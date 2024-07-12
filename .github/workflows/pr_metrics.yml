@@ -34,7 +34,7 @@ jobs:
         uses: github/issue-metrics@v3
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SEARCH_QUERY: $${{ env.REPO_LIST }} is:pr closed:${{ env.last_two_weeks }}
+          SEARCH_QUERY: 'repo:ihmeuw/vivarium repo:ihmeuw/vivarium_public_health repo:ihmeuw/vivarium_inputs repo:ihmeuw/vivarium_cluster_tools repo:ihmeuw/risk_distributions is:pr closed:${{ env.last_two_weeks }}'
 
       - name: Create issue for PRs closed in last sprint
         uses: peter-evans/create-issue-from-file@v4
@@ -48,7 +48,7 @@ jobs:
         uses: github/issue-metrics@v3
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SEARCH_QUERY: '$${{ env.REPO_LIST }} is:pr is:open'
+          SEARCH_QUERY: 'repo:ihmeuw/vivarium repo:ihmeuw/vivarium_public_health repo:ihmeuw/vivarium_inputs repo:ihmeuw/vivarium_cluster_tools repo:ihmeuw/risk_distributions is:pr is:open'
 
       - name: Create issue for currently open PRs
         uses: peter-evans/create-issue-from-file@v4
