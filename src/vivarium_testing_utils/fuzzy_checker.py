@@ -2,11 +2,10 @@
 # Fuzzy Checker #
 #################
 
-import os
 import warnings
 from functools import cache
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -50,13 +49,13 @@ class FuzzyChecker:
 
     def fuzzy_assert_proportion(
         self,
-        name: str,
         observed_numerator: int,
         observed_denominator: int,
         target_proportion: Union[Tuple[float, float], float],
         fail_bayes_factor_cutoff: float = 100.0,
         inconclusive_bayes_factor_cutoff: float = 0.1,
         bug_issue_beta_distribution_parameters: Tuple[float, float] = (0.5, 0.5),
+        name: str = "",
         name_additional: str = "",
     ) -> None:
         """
@@ -72,10 +71,6 @@ class FuzzyChecker:
         See more detail about the statistics used here:
         https://vivarium-research.readthedocs.io/en/latest/model_design/vivarium_features/automated_v_and_v/index.html#proportions-and-rates
 
-        :param name:
-            The name of the assertion, for use in messages and diagnostics.
-            All assertions with the same name will output identical warning messages,
-            which means pytest will aggregate those warnings.
         :param observed_numerator:
             The observed number of events.
         :param observed_denominator:
@@ -108,6 +103,10 @@ class FuzzyChecker:
             more mass around 0 and 1.
             Generally the default should be used in most circumstances; changing it is probably a
             research decision.
+        :param name:
+            The name of the assertion, for use in messages and diagnostics.
+            All assertions with the same name will output identical warning messages,
+            which means pytest will aggregate those warnings.
         :param name_additional:
             An optional additional name attribute that will be output in diagnostics but not in warnings.
             Useful for e.g. specifying the timestep when an assertion happened.
