@@ -52,6 +52,7 @@ if __name__ == "__main__":
     test_requirements = [
         "pytest",
         "pytest-mock",
+        "pytest-cov",
     ]
 
     doc_requirements = [
