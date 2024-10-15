@@ -39,6 +39,9 @@ if __name__ == "__main__":
         "tables",
         "networkx",
         "loguru",
+        # Type stubs
+        "pandas-stubs",
+        "networkx-stubs",
     ]
 
     setup_requires = ["setuptools_scm"]
