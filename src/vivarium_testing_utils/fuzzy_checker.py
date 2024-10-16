@@ -3,7 +3,6 @@
 #################
 from __future__ import annotations
 
-import sys
 import warnings
 from functools import cache
 from pathlib import Path
