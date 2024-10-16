@@ -27,5 +27,15 @@ strict = true  # See all the enabled flags `mypy --help | grep -A 10 'Strict mod
 disallow_any_unimported = false
 implicit_reexport = true
 exclude = [
-    'setup.py',
+    "build",
+    "setup.py",
+    "docs/source/conf.py",
 ]
+
+# handle mypy errors when 3rd party packages are not typed.
+[[tool.mypy.overrides]]
+module = [
+    "scipy.*",
+    # "sklearn.*",
+]
+ignore_missing_imports = true

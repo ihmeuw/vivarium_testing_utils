@@ -3,9 +3,11 @@
 #################
 from __future__ import annotations
 
+import sys
 import warnings
 from functools import cache
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -45,7 +47,7 @@ class FuzzyChecker:
     """
 
     def __init__(self) -> None:
-        self.proportion_test_diagnostics = []
+        self.proportion_test_diagnostics: list[dict[str, Any]] = []
 
     def fuzzy_assert_proportion(
         self,
@@ -206,13 +208,13 @@ class FuzzyChecker:
         # if we generate a probability too small to be stored in a floating point number(!), which is known
         # as "underflow"
         with np.errstate(under="ignore"):
-            bug_marginal_likelihood = bug_distribution.pmf(numerator)
-            no_bug_marginal_likelihood = no_bug_distribution.pmf(numerator)
+            bug_marginal_likelihood = float(bug_distribution.pmf(numerator))
+            no_bug_marginal_likelihood = float(no_bug_distribution.pmf(numerator))
 
         try:
             return bug_marginal_likelihood / no_bug_marginal_likelihood
         except (ZeroDivisionError, FloatingPointError):
-            return np.finfo(float).max
+            return float(np.finfo(float).max)
 
     @cache
     def _fit_beta_distribution_to_uncertainty_interval(
@@ -262,9 +264,9 @@ class FuzzyChecker:
         mean_min = lower_bound
         mean = (upper_bound + lower_bound) / 2
 
-        best_error = None
-        best_concentration = None
-        best_mean = None
+        # Make this a really large number so we are always less than this value in the
+        # first iteration of the loop.
+        best_error = sys.float_info.max
 
         for _ in range(1_000):
             with np.errstate(under="ignore"):
@@ -279,7 +281,7 @@ class FuzzyChecker:
                 ub_cdf = dist.cdf(upper_bound)
 
                 error = self._ui_squared_error(dist, lower_bound, upper_bound)
-                if best_error is None or error < best_error:
+                if error < best_error:
                     best_error = error
                     best_concentration = concentration
                     best_mean = mean
@@ -351,7 +353,7 @@ class FuzzyChecker:
         try:
             return squared_error_lower + squared_error_upper
         except FloatingPointError:
-            return np.finfo(float).max
+            return float(np.finfo(float).max)
 
     def _quantile_squared_error(
         self, dist: scipy.stats.rv_continuous, value: float, intended_quantile: float
@@ -360,16 +362,20 @@ class FuzzyChecker:
             actual_quantile = dist.cdf(value)
 
         if 0 < actual_quantile < 1:
-            return (
-                scipy.special.logit(actual_quantile) - scipy.special.logit(intended_quantile)
-            ) ** 2
+            return float(
+                (
+                    scipy.special.logit(actual_quantile)
+                    - scipy.special.logit(intended_quantile)
+                )
+                ** 2
+            )
         else:
             # In this case, we were so far off that the actual quantile can't even be
             # precisely calculated.
             # We return an arbitrarily large penalty to ensure this is never selected as the minimum.
-            return np.finfo(float).max
+            return float(np.finfo(float).max)
 
-    def save_diagnostic_output(self, output_directory) -> None:
+    def save_diagnostic_output(self, output_directory: Path | str) -> None:
         """
         Note: Users will need to set the output directory by creating a fixture with
         the output directory and passing that fixture to the fixture that instantiates

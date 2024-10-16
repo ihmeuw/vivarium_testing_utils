@@ -42,6 +42,8 @@ if __name__ == "__main__":
         # Type stubs
         "pandas-stubs",
         "networkx-stubs",
+        "types-docutils",
+        "types-setuptools",
     ]
 
     setup_requires = ["setuptools_scm"]
@@ -64,6 +66,7 @@ if __name__ == "__main__":
         "sphinx-click",
         "IPython",
         "matplotlib",
+        "docutils",
     ]
 
     lint_requirements = [
