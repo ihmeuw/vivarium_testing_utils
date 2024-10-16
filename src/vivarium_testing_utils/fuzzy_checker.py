@@ -266,7 +266,7 @@ class FuzzyChecker:
 
         # Make this a really large number so we are always less than this value in the
         # first iteration of the loop.
-        best_error = sys.float_info.max
+        best_error = float(np.finfo(float).max)
 
         for _ in range(1_000):
             with np.errstate(under="ignore"):
