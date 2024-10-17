@@ -1,3 +1,7 @@
+**0.1.2 - TBD**
+
+ - Add mypy type checking
+
 **0.1.1 - 10/14/24**
 
  - Make name an optional parameter to fuzzy_assert_proportion
