@@ -3,8 +3,8 @@
 #################
 from __future__ import annotations
 
-import warnings
 from functools import cache
+from loguru import logger
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +30,8 @@ class FuzzyChecker:
 
     To use this class, import it and create an instance as a fixture. Note: Users will need
     to pass a fixture containing the output directory for the diagnostics file to the fixture
-    that instantiates FuzzyChecker. Example:
+    that instantiates FuzzyChecker. The output direcotry should also be added to the .gitignore 
+    file. Example:
 
     @pytest.fixture(scope="session")
     def output_directory() -> str:
@@ -166,7 +167,7 @@ class FuzzyChecker:
         if reject_null:
             if observed_proportion < target_lower_bound:
                 raise AssertionError(
-                    f"{name} value {observed_proportion:g} is significantly less than expected, bayes factor = {bayes_factor:g}"
+                    f"{name} value {observed_proportion:g}  , bayes factor = {bayes_factor:g}"
                 )
             else:
                 raise AssertionError(
@@ -180,7 +181,7 @@ class FuzzyChecker:
             )
             < fail_bayes_factor_cutoff
         ):
-            warnings.warn(
+            logger.warning(
                 f"Sample size too small to ever find that the simulation's '{name}' value is less than expected."
             )
 
@@ -190,12 +191,12 @@ class FuzzyChecker:
             )
             < fail_bayes_factor_cutoff
         ):
-            warnings.warn(
+            logger.warning(
                 f"Sample size too small to ever find that the simulation's '{name}' value is greater than expected."
             )
 
         if fail_bayes_factor_cutoff > bayes_factor > inconclusive_bayes_factor_cutoff:
-            warnings.warn(f"Bayes factor for '{name}' is not conclusive.")
+            logger.warning(f"Bayes factor for '{name}' is not conclusive.")
 
     def _calculate_bayes_factor(
         self,
@@ -332,7 +333,7 @@ class FuzzyChecker:
             best_error < 0.1
         ), f"Beta distribution fitting for {lower_bound}, {upper_bound} failed with UI squared error {best_error}"
         if best_error > 1e-5:
-            warnings.warn(
+            logger.warning(
                 f"Didn't find a very good beta distribution for {lower_bound}, {upper_bound} -- using a best guess with UI squared error {best_error}"
             )
 
