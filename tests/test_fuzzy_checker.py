@@ -15,7 +15,7 @@ from vivarium_testing_utils.fuzzy_checker import FuzzyChecker
 
 OBSERVED_DENOMINATORS = [100_000, 1_000_000, 10_000_000]
 TARGET_PROPORTION = 0.1
-BOUNDS = [
+LOWER_BOUNDS = [
     1e-14,
     1e-10,
     0.000001,
@@ -79,10 +79,10 @@ def test_small_sample_size_fuzzy_assert_proportion(caplog: LogCaptureFixture) ->
 
 
 def test_not_conclusive_fuzzy_assert_proportion(caplog: LogCaptureFixture) -> None:
-    # This test verifies we will pass, then be inconclusive, then fail
+    # This test verifies we will pass, then be inconclusive, then fail.
     # The numbers used in this test are arbitrary but are intended to be conservative
     # estimates of the number of iterations needed to reach each state
-    # This is to cache some of the computation for the while loop
+    # Creating an instance here allows us to cache some of the computation for the while loop
     fuzzy_checker = FuzzyChecker()
     i = 1_000
     while True:
@@ -118,7 +118,7 @@ def test_not_conclusive_fuzzy_assert_proportion(caplog: LogCaptureFixture) -> No
         1_000_008,
     ],
 )
-@pytest.mark.parametrize("denominator", OBSERVED_DENOMINATORS, ids=lambda x: x)
+@pytest.mark.parametrize("denominator", OBSERVED_DENOMINATORS)
 def test__calculate_bayes_factor(numerator: int, denominator: int) -> None:
     if numerator > denominator:
         pytest.skip("Numerator cannot be greater than denominator.")
@@ -130,39 +130,27 @@ def test__calculate_bayes_factor(numerator: int, denominator: int) -> None:
         numerator, bug_issue_distribution, no_bug_issue_distribution
     )
     assert isinstance(bayes_factor, float)
+    assert bayes_factor > 0
 
 
 def test_zero_division__calculate_bayes_factor(caplog: LogCaptureFixture) -> None:
-    # THis is just testing that we will hit a zero division error or floating point error
+    # This is just testing that we will hit a zero division error or floating point error
     # and handle it correctly.
-    errors_occurred = 0
-    observed_numerators = [
-        1,
-        10,
-        1_000_000,
-        10_000_008 - 1,
-    ]
-    for proportion in BOUNDS:
-        for denominator in OBSERVED_DENOMINATORS:
-            for numerator in observed_numerators:
-                caplog.clear()
-                if numerator > denominator:
-                    break
-                # Parametrize rv_discrete for no bug distribution
-                # I am keeping the defaults for the bug distribution to remain 0.5 for alpha and beta
-                bug_issue_distribution = scipy.stats.betabinom(a=0.5, b=0.5, n=denominator)
-                no_bug_issue_distribution = scipy.stats.binom(p=proportion, n=denominator)
-                bayes_factor = FuzzyChecker()._calculate_bayes_factor(
-                    numerator, bug_issue_distribution, no_bug_issue_distribution
-                )
-                if "Reached ZeroDivisionError or FloatingPointError" in caplog.text:
-                    errors_occurred += 1
-                    assert bayes_factor == float(np.finfo(float).max)
-
-    assert errors_occurred > 0
+    # We want the case where we observe a proportion that indicates an event is very likely
+    # but we expect it to be very unlikely.
+    numerator = 10_000_000
+    denominator = 10_000_000 - 1
+    target_proportion = 0.1
+    # I am keeping the defaults for the bug distribution to remain 0.5 for alpha and beta
+    bug_issue_distribution = scipy.stats.betabinom(a=0.5, b=0.5, n=denominator)
+    no_bug_issue_distribution = scipy.stats.binom(p=target_proportion, n=denominator)
+    bayes_factor = FuzzyChecker()._calculate_bayes_factor(
+        numerator, bug_issue_distribution, no_bug_issue_distribution
+    )
+    assert bayes_factor == float(np.finfo(float).max)
 
 
-@pytest.mark.parametrize("lower_bound", BOUNDS, ids=lambda x: x)
+@pytest.mark.parametrize("lower_bound", LOWER_BOUNDS, ids=lambda x: x)
 @pytest.mark.parametrize("width", WIDTHS, ids=lambda x: x)
 def test__fit_beta_distribution_to_uncertainty_interval(
     lower_bound: float, width: float
@@ -192,7 +180,7 @@ def test__no_best_fit_beta_distribution(caplog: LogCaptureFixture) -> None:
     # This test verifies that the function will return the best fit beta distribution
     # even if we don't have a perfect fit and a log message will be recorded.
     warnings = 0
-    for lower_bound in BOUNDS:
+    for lower_bound in LOWER_BOUNDS:
         for width in WIDTHS:
             caplog.clear()
             upper_bound = lower_bound + width
@@ -207,7 +195,7 @@ def test__no_best_fit_beta_distribution(caplog: LogCaptureFixture) -> None:
     assert warnings > 0
 
 
-@pytest.mark.parametrize("lower_bound", BOUNDS, ids=lambda x: x)
+@pytest.mark.parametrize("lower_bound", LOWER_BOUNDS, ids=lambda x: x)
 @pytest.mark.parametrize("width", WIDTHS, ids=lambda x: x)
 def test__uncertainty_interval_squared_error(lower_bound: float, width: float) -> None:
     upper_bound = lower_bound + width
@@ -219,7 +207,7 @@ def test__uncertainty_interval_squared_error(lower_bound: float, width: float) -
     assert isinstance(error, float)
 
 
-@pytest.mark.parametrize("lower_bound", BOUNDS, ids=lambda x: x)
+@pytest.mark.parametrize("lower_bound", LOWER_BOUNDS, ids=lambda x: x)
 @pytest.mark.parametrize("width", WIDTHS, ids=lambda x: x)
 def test__quantile_squared_error(lower_bound: float, width: float) -> None:
     upper_bound = lower_bound + width

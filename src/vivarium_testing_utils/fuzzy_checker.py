@@ -30,8 +30,7 @@ class FuzzyChecker:
 
     To use this class, import it and create an instance as a fixture. Note: Users will need
     to pass a fixture containing the output directory for the diagnostics file to the fixture
-    that instantiates FuzzyChecker. The output direcotry should also be added to the .gitignore
-    file. Example:
+    that instantiates FuzzyChecker. The output directory should also be added to the .gitignore
 
     @pytest.fixture(scope="session")
     def output_directory() -> str:
@@ -214,9 +213,6 @@ class FuzzyChecker:
         try:
             return bug_marginal_likelihood / no_bug_marginal_likelihood
         except (ZeroDivisionError, FloatingPointError):
-            logger.warning(
-                "Reached ZeroDivisionError or FloatingPointError in Bayes factor calculation"
-            )
             return float(np.finfo(float).max)
 
     @cache
