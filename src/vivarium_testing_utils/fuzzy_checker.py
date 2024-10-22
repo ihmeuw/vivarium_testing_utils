@@ -167,7 +167,7 @@ class FuzzyChecker:
         if reject_null:
             if observed_proportion < target_lower_bound:
                 raise AssertionError(
-                    f"{name} value {observed_proportion:g}  , bayes factor = {bayes_factor:g}"
+                    f"{name} value {observed_proportion:g} is significantly less than expected, bayes factor = {bayes_factor:g}"
                 )
             else:
                 raise AssertionError(
