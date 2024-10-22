@@ -4,13 +4,13 @@
 from __future__ import annotations
 
 from functools import cache
-from loguru import logger
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 import scipy.stats
+from loguru import logger
 
 
 class FuzzyChecker:
@@ -30,7 +30,7 @@ class FuzzyChecker:
 
     To use this class, import it and create an instance as a fixture. Note: Users will need
     to pass a fixture containing the output directory for the diagnostics file to the fixture
-    that instantiates FuzzyChecker. The output direcotry should also be added to the .gitignore 
+    that instantiates FuzzyChecker. The output direcotry should also be added to the .gitignore
     file. Example:
 
     @pytest.fixture(scope="session")
@@ -214,6 +214,9 @@ class FuzzyChecker:
         try:
             return bug_marginal_likelihood / no_bug_marginal_likelihood
         except (ZeroDivisionError, FloatingPointError):
+            logger.warning(
+                "Reached ZeroDivisionError or FloatingPointError in Bayes factor calculation"
+            )
             return float(np.finfo(float).max)
 
     @cache
@@ -280,7 +283,9 @@ class FuzzyChecker:
                 lb_cdf = dist.cdf(lower_bound)
                 ub_cdf = dist.cdf(upper_bound)
 
-                error = self._ui_squared_error(dist, lower_bound, upper_bound)
+                error = self._uncertainty_interval_squared_error(
+                    dist, lower_bound, upper_bound
+                )
                 if error < best_error:
                     best_error = error
                     best_concentration = concentration
@@ -344,7 +349,7 @@ class FuzzyChecker:
         assert len(result) == 2
         return tuple(result)
 
-    def _ui_squared_error(
+    def _uncertainty_interval_squared_error(
         self, dist: scipy.stats.rv_continuous, lower_bound: float, upper_bound: float
     ) -> float:
         squared_error_lower = self._quantile_squared_error(dist, lower_bound, 0.025)

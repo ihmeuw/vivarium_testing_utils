@@ -1,3 +1,5 @@
+from typing import Generator
+
 import pytest
 from _pytest.config import Config, argparsing
 from _pytest.logging import LogCaptureFixture
@@ -24,7 +26,7 @@ def pytest_collection_modifyitems(config: Config, items: list[Function]) -> None
 
 
 @pytest.fixture
-def caplog(caplog: LogCaptureFixture):
+def caplog(caplog: LogCaptureFixture) -> Generator[LogCaptureFixture, None, None]:
     handler_id = logger.add(
         caplog.handler,
         format="{message}",

@@ -1,59 +1,259 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import numpy as np
+import pandas as pd
 import pytest
+import scipy
+from _pytest.logging import LogCaptureFixture
+
+if TYPE_CHECKING:
+    from py._path.local import LocalPath
 
 from vivarium_testing_utils.fuzzy_checker import FuzzyChecker
 
+OBSERVED_DENOMINATORS = [100_000, 1_000_000, 10_000_000]
+TARGET_PROPORTION = 0.1
+BOUNDS = [
+    1e-14,
+    1e-10,
+    0.000001,
+    0.01,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.8,
+    0.9,
+    0.99999,
+    1.0 - 1e-10,
+]
+WIDTHS = [
+    1e-14,
+    1e-12,
+    1e-10,
+    0.0000001,
+    0.00001,
+    0.001,
+    0.01,
+    0.03,
+    0.05,
+    0.1,
+    0.2,
+    0.4,
+    0.6,
+    0.9,
+]
+
 
 @pytest.mark.parametrize(
-    "numerator, denominator, target_proportion", 
-    [(10_008, 100_000, 0.1), (976, 1_000_000, 0.001), (1_049, 50_000, (0.0198, 0.0202))]
+    "numerator, denominator, target_proportion",
+    [(10_008, 100_000, 0.1), (976, 1_000_000, 0.001), (1_049, 50_000, (0.0198, 0.0202))],
 )
-def test_pass_fuzzy_assert_proportion(numerator, denominator, target_proportion) -> None:
+def test_pass_fuzzy_assert_proportion(
+    numerator: int, denominator: int, target_proportion: float
+) -> None:
     FuzzyChecker().fuzzy_assert_proportion(numerator, denominator, target_proportion)
 
 
 @pytest.mark.parametrize(
     "numerator, denominator, target_proportion, match",
-    [(901, 100_000, 0.05, "is significantly less than expected"),
-     (1_150, 50_000, 0.02, "is significantly greater than expected")]
+    [
+        (901, 100_000, 0.05, "is significantly less than expected"),
+        (1_150, 50_000, 0.02, "is significantly greater than expected"),
+    ],
 )
-def test_fail_fuzzy_assert_proportion(numerator, denominator, target_proportion, match) -> None:
+def test_fail_fuzzy_assert_proportion(
+    numerator: int, denominator: int, target_proportion: float, match: str
+) -> None:
     with pytest.raises(AssertionError, match=match):
         FuzzyChecker().fuzzy_assert_proportion(numerator, denominator, target_proportion)
 
 
-def test_small_sample_size_fuzzy_assert_proportion(caplog) -> None:
+def test_small_sample_size_fuzzy_assert_proportion(caplog: LogCaptureFixture) -> None:
     FuzzyChecker().fuzzy_assert_proportion(1, 10, 0.1)
     assert "Sample size too small" in caplog.text
 
 
-def test_not_conclusive_fuzzy_assert_proportion(caplog) -> None:
-    FuzzyChecker().fuzzy_assert_proportion(110, 1_000, 0.1)
-    assert "is not conclusive" in caplog.text
+def test_not_conclusive_fuzzy_assert_proportion(caplog: LogCaptureFixture) -> None:
+    # This test verifies we will pass, then be inconclusive, then fail
+    # The numbers used in this test are arbitrary but are intended to be conservative
+    # estimates of the number of iterations needed to reach each state
+    # This is to cache some of the computation for the while loop
+    fuzzy_checker = FuzzyChecker()
+    i = 1_000
+    while True:
+        caplog.clear()
+        fuzzy_checker.fuzzy_assert_proportion(i, 10_000, 0.1)
+        if "is not conclusive" in caplog.text:
+            assert i > 1050
+            break
+        if i > 1_200:
+            raise RuntimeError("Test did not reach the expected warning")
+        i += 1
+
+    while True:
+        caplog.clear()
+        try:
+            fuzzy_checker.fuzzy_assert_proportion(i, 10_000, 0.1)
+            assert "is not conclusive" in caplog.text
+        except AssertionError as e:
+            assert "is significantly greater" in str(e)
+            assert i > 1_100
+            break
+        if i > 1_300:
+            raise RuntimeError("Test did not reach the expected warning")
+        i += 1
 
 
-def test__calculate_bayes_factor() -> None:
-    pass
+@pytest.mark.parametrize(
+    "numerator",
+    [
+        1_008,
+        10_008,
+        100_008,
+        1_000_008,
+    ],
+)
+@pytest.mark.parametrize("denominator", OBSERVED_DENOMINATORS, ids=lambda x: x)
+def test__calculate_bayes_factor(numerator: int, denominator: int) -> None:
+    if numerator > denominator:
+        pytest.skip("Numerator cannot be greater than denominator.")
+    # Parametrize rv_discrete for no bug distribution
+    # I am keeping the defaults for the bug distribution to remain 0.5 for alpha and beta
+    bug_issue_distribution = scipy.stats.betabinom(a=0.5, b=0.5, n=denominator)
+    no_bug_issue_distribution = scipy.stats.binom(p=TARGET_PROPORTION, n=denominator)
+    bayes_factor = FuzzyChecker()._calculate_bayes_factor(
+        numerator, bug_issue_distribution, no_bug_issue_distribution
+    )
+    assert isinstance(bayes_factor, float)
 
 
-def test_zero_division__calculate_bayes_factor() -> None:
-    pass
+def test_zero_division__calculate_bayes_factor(caplog: LogCaptureFixture) -> None:
+    # THis is just testing that we will hit a zero division error or floating point error
+    # and handle it correctly.
+    errors_occurred = 0
+    observed_numerators = [
+        1,
+        10,
+        1_000_000,
+        10_000_008 - 1,
+    ]
+    for proportion in BOUNDS:
+        for denominator in OBSERVED_DENOMINATORS:
+            for numerator in observed_numerators:
+                caplog.clear()
+                if numerator > denominator:
+                    break
+                # Parametrize rv_discrete for no bug distribution
+                # I am keeping the defaults for the bug distribution to remain 0.5 for alpha and beta
+                bug_issue_distribution = scipy.stats.betabinom(a=0.5, b=0.5, n=denominator)
+                no_bug_issue_distribution = scipy.stats.binom(p=proportion, n=denominator)
+                bayes_factor = FuzzyChecker()._calculate_bayes_factor(
+                    numerator, bug_issue_distribution, no_bug_issue_distribution
+                )
+                if "Reached ZeroDivisionError or FloatingPointError" in caplog.text:
+                    errors_occurred += 1
+                    assert bayes_factor == float(np.finfo(float).max)
+
+    assert errors_occurred > 0
 
 
-def test__fit_beta_distribution_to_uncertainty_interval() -> None:
-    pass
+@pytest.mark.parametrize("lower_bound", BOUNDS, ids=lambda x: x)
+@pytest.mark.parametrize("width", WIDTHS, ids=lambda x: x)
+def test__fit_beta_distribution_to_uncertainty_interval(
+    lower_bound: float, width: float
+) -> None:
+    upper_bound = lower_bound + width
+    if upper_bound >= 1:
+        pytest.skip("Upper bound cannot be more than 1.")
+    a, b = FuzzyChecker()._fit_beta_distribution_to_uncertainty_interval(
+        lower_bound, upper_bound
+    )
+    dist = scipy.stats.beta(
+        a=a,
+        b=b,
+    )
+    with np.errstate(under="ignore"):
+        lb_cdf = dist.cdf(lower_bound)
+        ub_cdf = dist.cdf(upper_bound)
+    assert np.isclose(
+        lb_cdf, 0.025, atol=0.01
+    ), f"{lb_cdf} not close to {0.025}, {lower_bound} {upper_bound}"
+    assert np.isclose(
+        ub_cdf, 0.975, atol=0.01
+    ), f"{ub_cdf} not close to {0.975}, {lower_bound} {upper_bound}"
 
 
-def test__no_best_fit_beta_distribution() -> None:
-    pass
+def test__no_best_fit_beta_distribution(caplog: LogCaptureFixture) -> None:
+    # This test verifies that the function will return the best fit beta distribution
+    # even if we don't have a perfect fit and a log message will be recorded.
+    warnings = 0
+    for lower_bound in BOUNDS:
+        for width in WIDTHS:
+            caplog.clear()
+            upper_bound = lower_bound + width
+            if upper_bound >= 1:
+                break
+            a, b = FuzzyChecker()._fit_beta_distribution_to_uncertainty_interval(
+                lower_bound, upper_bound
+            )
+            if "Didn't find a very good beta distribution" in caplog.text:
+                warnings += 1
+
+    assert warnings > 0
 
 
-def test__ui_squared_error() -> None:
-    pass
+@pytest.mark.parametrize("lower_bound", BOUNDS, ids=lambda x: x)
+@pytest.mark.parametrize("width", WIDTHS, ids=lambda x: x)
+def test__uncertainty_interval_squared_error(lower_bound: float, width: float) -> None:
+    upper_bound = lower_bound + width
+    if upper_bound >= 1:
+        pytest.skip("Upper bound cannot be more than 1.")
+
+    dist = _make_beta_distribution(lower_bound, upper_bound)
+    error = FuzzyChecker()._uncertainty_interval_squared_error(dist, lower_bound, upper_bound)
+    assert isinstance(error, float)
 
 
-def test__quantile_squared_error() -> None:
-    pass
+@pytest.mark.parametrize("lower_bound", BOUNDS, ids=lambda x: x)
+@pytest.mark.parametrize("width", WIDTHS, ids=lambda x: x)
+def test__quantile_squared_error(lower_bound: float, width: float) -> None:
+    upper_bound = lower_bound + width
+    if upper_bound >= 1:
+        pytest.skip("Upper bound cannot be more than 1.")
+
+    dist = _make_beta_distribution(lower_bound, upper_bound)
+    squared_error_lower = FuzzyChecker()._quantile_squared_error(dist, lower_bound, 0.025)
+    squared_error_upper = FuzzyChecker()._quantile_squared_error(dist, upper_bound, 0.975)
+    assert isinstance(squared_error_lower, float)
+    assert isinstance(squared_error_upper, float)
 
 
-def test_save_diagnotic_file() -> None:
-    pass
+def test_save_diagnostic_output(tmpdir: LocalPath) -> None:
+    fuzzy_checker = FuzzyChecker()
+    fuzzy_checker.fuzzy_assert_proportion(10_008, 100_000, 0.1)
+    fuzzy_checker.save_diagnostic_output(tmpdir)
+    assert len(tmpdir.listdir()) == 1
+
+    output = pd.read_csv(tmpdir.listdir()[0])
+    assert output.shape == (1, 9)
+
+
+###########
+# Helpers #
+###########
+
+
+def _make_beta_distribution(lower_bound: float, upper_bound: float) -> scipy.stats.beta:
+    concentration_max = 1e40
+    concentration_min = 1e-3
+    concentration = np.exp((np.log(concentration_max) + np.log(concentration_min)) / 2)
+    mean = (upper_bound + lower_bound) / 2
+    return scipy.stats.beta(
+        a=mean * concentration,
+        b=(1 - mean) * concentration,
+    )
