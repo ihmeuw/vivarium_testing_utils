@@ -138,8 +138,8 @@ def test_zero_division__calculate_bayes_factor(caplog: LogCaptureFixture) -> Non
     # and handle it correctly.
     # We want the case where we observe a proportion that indicates an event is very likely
     # but we expect it to be very unlikely.
-    numerator = 10_000_000
-    denominator = 10_000_000 - 1
+    numerator = 10_000_000 - 1
+    denominator = 10_000_000
     target_proportion = 0.1
     # I am keeping the defaults for the bug distribution to remain 0.5 for alpha and beta
     bug_issue_distribution = scipy.stats.betabinom(a=0.5, b=0.5, n=denominator)
@@ -150,8 +150,8 @@ def test_zero_division__calculate_bayes_factor(caplog: LogCaptureFixture) -> Non
     assert bayes_factor == float(np.finfo(float).max)
 
 
-@pytest.mark.parametrize("lower_bound", LOWER_BOUNDS, ids=lambda x: x)
-@pytest.mark.parametrize("width", WIDTHS, ids=lambda x: x)
+@pytest.mark.parametrize("lower_bound", LOWER_BOUNDS)
+@pytest.mark.parametrize("width", WIDTHS)
 def test__fit_beta_distribution_to_uncertainty_interval(
     lower_bound: float, width: float
 ) -> None:
@@ -176,7 +176,7 @@ def test__fit_beta_distribution_to_uncertainty_interval(
     ), f"{ub_cdf} not close to {0.975}, {lower_bound} {upper_bound}"
 
 
-def test__no_best_fit_beta_distribution(caplog: LogCaptureFixture) -> None:
+def test__imprecise_fit_beta_distribution(caplog: LogCaptureFixture) -> None:
     # This test verifies that the function will return the best fit beta distribution
     # even if we don't have a perfect fit and a log message will be recorded.
     warnings = 0
