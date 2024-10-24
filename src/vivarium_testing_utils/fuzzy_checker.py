@@ -3,7 +3,6 @@
 #################
 from __future__ import annotations
 
-import warnings
 from functools import cache
 from pathlib import Path
 from typing import Any
@@ -11,6 +10,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import scipy.stats
+from loguru import logger
 
 
 class FuzzyChecker:
@@ -30,7 +30,7 @@ class FuzzyChecker:
 
     To use this class, import it and create an instance as a fixture. Note: Users will need
     to pass a fixture containing the output directory for the diagnostics file to the fixture
-    that instantiates FuzzyChecker. Example:
+    that instantiates FuzzyChecker. The output directory should also be added to the .gitignore
 
     @pytest.fixture(scope="session")
     def output_directory() -> str:
@@ -180,7 +180,7 @@ class FuzzyChecker:
             )
             < fail_bayes_factor_cutoff
         ):
-            warnings.warn(
+            logger.warning(
                 f"Sample size too small to ever find that the simulation's '{name}' value is less than expected."
             )
 
@@ -190,12 +190,12 @@ class FuzzyChecker:
             )
             < fail_bayes_factor_cutoff
         ):
-            warnings.warn(
+            logger.warning(
                 f"Sample size too small to ever find that the simulation's '{name}' value is greater than expected."
             )
 
         if fail_bayes_factor_cutoff > bayes_factor > inconclusive_bayes_factor_cutoff:
-            warnings.warn(f"Bayes factor for '{name}' is not conclusive.")
+            logger.warning(f"Bayes factor for '{name}' is not conclusive.")
 
     def _calculate_bayes_factor(
         self,
@@ -213,7 +213,7 @@ class FuzzyChecker:
         try:
             return bug_marginal_likelihood / no_bug_marginal_likelihood
         except (ZeroDivisionError, FloatingPointError):
-            return float(np.finfo(float).max)
+            return float("inf")
 
     @cache
     def _fit_beta_distribution_to_uncertainty_interval(
@@ -279,7 +279,9 @@ class FuzzyChecker:
                 lb_cdf = dist.cdf(lower_bound)
                 ub_cdf = dist.cdf(upper_bound)
 
-                error = self._ui_squared_error(dist, lower_bound, upper_bound)
+                error = self._uncertainty_interval_squared_error(
+                    dist, lower_bound, upper_bound
+                )
                 if error < best_error:
                     best_error = error
                     best_concentration = concentration
@@ -332,7 +334,7 @@ class FuzzyChecker:
             best_error < 0.1
         ), f"Beta distribution fitting for {lower_bound}, {upper_bound} failed with UI squared error {best_error}"
         if best_error > 1e-5:
-            warnings.warn(
+            logger.warning(
                 f"Didn't find a very good beta distribution for {lower_bound}, {upper_bound} -- using a best guess with UI squared error {best_error}"
             )
 
@@ -343,7 +345,7 @@ class FuzzyChecker:
         assert len(result) == 2
         return tuple(result)
 
-    def _ui_squared_error(
+    def _uncertainty_interval_squared_error(
         self, dist: scipy.stats.rv_continuous, lower_bound: float, upper_bound: float
     ) -> float:
         squared_error_lower = self._quantile_squared_error(dist, lower_bound, 0.025)
@@ -352,7 +354,7 @@ class FuzzyChecker:
         try:
             return squared_error_lower + squared_error_upper
         except FloatingPointError:
-            return float(np.finfo(float).max)
+            return float("inf")
 
     def _quantile_squared_error(
         self, dist: scipy.stats.rv_continuous, value: float, intended_quantile: float
@@ -372,7 +374,7 @@ class FuzzyChecker:
             # In this case, we were so far off that the actual quantile can't even be
             # precisely calculated.
             # We return an arbitrarily large penalty to ensure this is never selected as the minimum.
-            return float(np.finfo(float).max)
+            return float("inf")
 
     def save_diagnostic_output(self, output_directory: Path | str) -> None:
         """

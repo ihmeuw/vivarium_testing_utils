@@ -35,6 +35,7 @@ exclude = [
 # handle mypy errors when 3rd party packages are not typed.
 [[tool.mypy.overrides]]
 module = [
+    "py._path.local",
     "scipy.*",
     # "sklearn.*",
 ]
