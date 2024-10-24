@@ -109,19 +109,11 @@ def test_not_conclusive_fuzzy_assert_proportion(caplog: LogCaptureFixture) -> No
         i += 1
 
 
-@pytest.mark.parametrize(
-    "numerator",
-    [
-        1_008,
-        10_008,
-        100_008,
-        1_000_008,
-    ],
-)
-@pytest.mark.parametrize("denominator", OBSERVED_DENOMINATORS)
-def test__calculate_bayes_factor(numerator: int, denominator: int) -> None:
-    if numerator > denominator:
-        pytest.skip("Numerator cannot be greater than denominator.")
+@pytest.mark.parametrize("step", (-1, 1))
+def test__calculate_bayes_factor(step: int) -> None:
+    # This is the base case where our numerator / denominator = target_proportion
+    numerator = 10_000
+    denominator = 100_000
     # Parametrize rv_discrete for no bug distribution
     # I am keeping the defaults for the bug distribution to remain 0.5 for alpha and beta
     bug_issue_distribution = scipy.stats.betabinom(a=0.5, b=0.5, n=denominator)
@@ -129,11 +121,24 @@ def test__calculate_bayes_factor(numerator: int, denominator: int) -> None:
     bayes_factor = FuzzyChecker()._calculate_bayes_factor(
         numerator, bug_issue_distribution, no_bug_issue_distribution
     )
+    previous_bayes_factor = bayes_factor
     assert isinstance(bayes_factor, float)
     assert bayes_factor > 0
+    while numerator > 0 and numerator < 100_000:
+        numerator += step
+        bayes_factor = FuzzyChecker()._calculate_bayes_factor(
+            numerator, bug_issue_distribution, no_bug_issue_distribution
+        )
+        assert isinstance(bayes_factor, float)
+        assert bayes_factor > 0
+        # Break once we reach infinity
+        if bayes_factor == float("inf"):
+            break
+        assert bayes_factor - previous_bayes_factor >= float(np.finfo(float).min) * 1_000
+        previous_bayes_factor = bayes_factor
 
 
-def test_zero_division__calculate_bayes_factor(caplog: LogCaptureFixture) -> None:
+def test_zero_division__calculate_bayes_factor() -> None:
     # This is just testing that we will hit a zero division error or floating point error
     # and handle it correctly.
     # We want the case where we observe a proportion that indicates an event is very likely
@@ -147,7 +152,7 @@ def test_zero_division__calculate_bayes_factor(caplog: LogCaptureFixture) -> Non
     bayes_factor = FuzzyChecker()._calculate_bayes_factor(
         numerator, bug_issue_distribution, no_bug_issue_distribution
     )
-    assert bayes_factor == float(np.finfo(float).max)
+    assert bayes_factor == float("inf")
 
 
 @pytest.mark.parametrize("lower_bound", LOWER_BOUNDS)
@@ -177,22 +182,14 @@ def test__fit_beta_distribution_to_uncertainty_interval(
 
 
 def test__imprecise_fit_beta_distribution(caplog: LogCaptureFixture) -> None:
-    # This test verifies that the function will return the best fit beta distribution
-    # even if we don't have a perfect fit and a log message will be recorded.
-    warnings = 0
-    for lower_bound in LOWER_BOUNDS:
-        for width in WIDTHS:
-            caplog.clear()
-            upper_bound = lower_bound + width
-            if upper_bound >= 1:
-                break
-            a, b = FuzzyChecker()._fit_beta_distribution_to_uncertainty_interval(
-                lower_bound, upper_bound
-            )
-            if "Didn't find a very good beta distribution" in caplog.text:
-                warnings += 1
-
-    assert warnings > 0
+    # We want a narrow distribution with a small lower bound
+    lower_bound = 0.1
+    width = 1e-14
+    upper_bound = lower_bound + width
+    a, b = FuzzyChecker()._fit_beta_distribution_to_uncertainty_interval(
+        lower_bound, upper_bound
+    )
+    assert "Didn't find a very good beta distribution" in caplog.text
 
 
 @pytest.mark.parametrize("lower_bound", LOWER_BOUNDS, ids=lambda x: x)

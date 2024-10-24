@@ -213,7 +213,7 @@ class FuzzyChecker:
         try:
             return bug_marginal_likelihood / no_bug_marginal_likelihood
         except (ZeroDivisionError, FloatingPointError):
-            return float(np.finfo(float).max)
+            return float("inf")
 
     @cache
     def _fit_beta_distribution_to_uncertainty_interval(
@@ -354,7 +354,7 @@ class FuzzyChecker:
         try:
             return squared_error_lower + squared_error_upper
         except FloatingPointError:
-            return float(np.finfo(float).max)
+            return float("inf")
 
     def _quantile_squared_error(
         self, dist: scipy.stats.rv_continuous, value: float, intended_quantile: float
@@ -374,7 +374,7 @@ class FuzzyChecker:
             # In this case, we were so far off that the actual quantile can't even be
             # precisely calculated.
             # We return an arbitrarily large penalty to ensure this is never selected as the minimum.
-            return float(np.finfo(float).max)
+            return float("inf")
 
     def save_diagnostic_output(self, output_directory: Path | str) -> None:
         """
