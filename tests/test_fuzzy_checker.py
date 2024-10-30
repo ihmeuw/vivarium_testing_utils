@@ -79,10 +79,11 @@ def test_small_sample_size_fuzzy_assert_proportion(caplog: LogCaptureFixture) ->
 
 
 def test_not_conclusive_fuzzy_assert_proportion(caplog: LogCaptureFixture) -> None:
-    # This test verifies we will pass, then be inconclusive, then fail.
-    # The numbers used in this test are arbitrary but are intended to be conservative
-    # estimates of the number of iterations needed to reach each state
-    # Creating an instance here allows us to cache some of the computation for the while loop
+    """This test verifies we will pass, then be inconclusive, then fail.
+    The numbers used in this test are arbitrary but are intended to be conservative
+    estimates of the number of iterations needed to reach each state
+    Creating an instance here allows us to cache some of the computation for the while loop
+    """
     fuzzy_checker = FuzzyChecker()
     numerator = 1_000
     while True:
