@@ -84,29 +84,29 @@ def test_not_conclusive_fuzzy_assert_proportion(caplog: LogCaptureFixture) -> No
     # estimates of the number of iterations needed to reach each state
     # Creating an instance here allows us to cache some of the computation for the while loop
     fuzzy_checker = FuzzyChecker()
-    i = 1_000
+    numerator = 1_000
     while True:
         caplog.clear()
-        fuzzy_checker.fuzzy_assert_proportion(i, 10_000, 0.1)
+        fuzzy_checker.fuzzy_assert_proportion(numerator, 10_000, 0.1)
         if "is not conclusive" in caplog.text:
-            assert i > 1050
+            assert numerator > 1050
             break
-        if i > 1_200:
+        if numerator > 1_200:
             raise RuntimeError("Test did not reach the expected warning")
-        i += 1
+        numerator += 1
 
     while True:
         caplog.clear()
         try:
-            fuzzy_checker.fuzzy_assert_proportion(i, 10_000, 0.1)
+            fuzzy_checker.fuzzy_assert_proportion(numerator, 10_000, 0.1)
             assert "is not conclusive" in caplog.text
         except AssertionError as e:
             assert "is significantly greater" in str(e)
-            assert i > 1_100
+            assert numerator > 1_100
             break
-        if i > 1_300:
+        if numerator > 1_300:
             raise RuntimeError("Test did not reach the expected warning")
-        i += 1
+        numerator += 1
 
 
 @pytest.mark.parametrize("step", (-1, 1))
@@ -133,7 +133,11 @@ def test__calculate_bayes_factor(step: int) -> None:
         assert bayes_factor > 0
         # Break once we reach infinity
         if bayes_factor == float("inf"):
+            # Simple check to make sure this doesn't happen too early
+            assert abs(numerator - 10_000) > 50
             break
+        # Check that Bayes factor is getting larger (except for small wiggles) as we move
+        # further from the target proportion
         assert bayes_factor - previous_bayes_factor >= float(np.finfo(float).min) * 1_000
         previous_bayes_factor = bayes_factor
 
@@ -192,8 +196,8 @@ def test__imprecise_fit_beta_distribution(caplog: LogCaptureFixture) -> None:
     assert "Didn't find a very good beta distribution" in caplog.text
 
 
-@pytest.mark.parametrize("lower_bound", LOWER_BOUNDS, ids=lambda x: x)
-@pytest.mark.parametrize("width", WIDTHS, ids=lambda x: x)
+@pytest.mark.parametrize("lower_bound", LOWER_BOUNDS)
+@pytest.mark.parametrize("width", WIDTHS)
 def test__uncertainty_interval_squared_error(lower_bound: float, width: float) -> None:
     upper_bound = lower_bound + width
     if upper_bound >= 1:
