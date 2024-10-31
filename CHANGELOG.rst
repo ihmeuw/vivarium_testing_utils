@@ -1,4 +1,4 @@
-**0.1.2 - TBD**
+**0.1.2 - 10/31/24**
 
  - Add mypy type checking
  - Add unit tests for FuzzyChecker
