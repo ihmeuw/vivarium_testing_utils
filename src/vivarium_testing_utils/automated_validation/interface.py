@@ -22,12 +22,14 @@ class ValidationContext:
     def add_comparison(
         self, measure_key: str, test_source: str, ref_source: str, stratifications: list[str]
     ) -> None:
+        test_data = self.data_loader.get_dataset(measure_key, test_source)
+        ref_data = self.data_loader.get_dataset(measure_key, ref_source)
         self.comparisons.update(
-            [measure_key], Comparison(measure_key, test_source, ref_source, stratifications)
+            [measure_key], Comparison(measure_key, test_data, ref_data, stratifications)
         )
 
-    def verify_comparison(self, comparison_key: str):
-        self.comparisons[comparison_key].verify()
+    def verify(self, comparison_key: str, stratifications: list[str] = []):
+        self.comparisons[comparison_key].verify(stratifications)
 
     def plot_comparison(self, comparison_key: str, type: str, kwargs):
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
@@ -36,10 +38,11 @@ class ValidationContext:
         pass
 
     def verify_all(self):
-        pass
+        for comparison in self.comparisons.values():
+            comparison.verify()
 
     def plot_all(self):
         pass
 
-    def get_results(self):
+    def get_results(self, verbose: bool = False):
         pass

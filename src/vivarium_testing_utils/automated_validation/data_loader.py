@@ -10,23 +10,23 @@ class DataLoader:
         self.metadata = LayeredConfigTree()
         self.artifact = None  # Just stubbing this out for now
 
-    def load_data(dataset_key: str) -> None:
+    def load_data(self, dataset_key: str, data_type: str) -> None:
         pass
 
-    def get_dataset(dataset_key: str) -> pd.DataFrame:
+    def get_dataset(self, dataset_key: str, data_type: str) -> pd.DataFrame:
         pass
 
-    def sim_outputs():
+    def sim_outputs(self) -> list[str]:
         pass
 
-    def artifact_keys():
+    def artifact_keys(self) -> list[str]:
         pass
 
-    def load_from_sim():
+    def load_from_sim(self, dataset_key: str) -> pd.DataFrame:
         pass
 
-    def load_from_artifact():
+    def load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         pass
 
-    def load_from_gbd():
+    def load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         pass
