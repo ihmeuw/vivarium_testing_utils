@@ -3,7 +3,6 @@ from layered_config_tree import LayeredConfigTree
 
 
 class DataLoader:
-
     def __init__(self, results_dir: str, cache_size_mb: int = 1000):
         self.results_dir = results_dir
         self.cache_size_mb = cache_size_mb

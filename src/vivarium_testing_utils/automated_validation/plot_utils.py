@@ -1,5 +1,6 @@
-from vivarium_testing_utils.automated_validation.comparison import Comparison
 import pandas as pd
+
+from vivarium_testing_utils.automated_validation.comparison import Comparison
 
 
 def plot_comparison(comparison: Comparison, type: str, kwargs):
