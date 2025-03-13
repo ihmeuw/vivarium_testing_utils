@@ -5,12 +5,12 @@ from layered_config_tree import LayeredConfigTree
 
 from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison
-from vivarium_testing_utils.automated_validation.data_loader import DataLoader
+from vivarium_testing_utils.automated_validation.data_loader import DataManager
 
 
 class ValidationContext:
     def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None):
-        self.data_loader = DataLoader(results_dir)
+        self.data_loader = DataManager(results_dir)
         self.comparisons = LayeredConfigTree()
 
     def sim_outputs(self):
