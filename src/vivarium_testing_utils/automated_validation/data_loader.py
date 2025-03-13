@@ -1,6 +1,7 @@
-import pandas as pd
-from layered_config_tree import LayeredConfigTree, ConfigurationKeyError
 from pathlib import Path
+
+import pandas as pd
+from layered_config_tree import ConfigurationKeyError, LayeredConfigTree
 
 
 class DataLoader:
