@@ -35,14 +35,14 @@ class ValidationContext:
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
 
     def generate_comparisons(self):
-        pass
+        raise NotImplementedError
 
     def verify_all(self):
         for comparison in self.comparisons.values():
             comparison.verify()
 
     def plot_all(self):
-        pass
+        raise NotImplementedError
 
     def get_results(self, verbose: bool = False):
-        pass
+        raise NotImplementedError

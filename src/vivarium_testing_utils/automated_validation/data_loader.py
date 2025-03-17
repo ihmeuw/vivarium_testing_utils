@@ -44,7 +44,7 @@ class DataManager:
         return [str(f.stem) for f in self.sim_output_dir.glob("*.parquet")]
 
     def artifact_keys(self) -> list[str]:
-        pass
+        raise NotImplementedError
 
     def load_from_sim(self, dataset_key: str) -> pd.DataFrame:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
@@ -55,10 +55,10 @@ class DataManager:
         return sim_data
 
     def load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
-        pass
+        raise NotImplementedError
 
     def load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
-        pass
+        raise NotImplementedError
 
     def load_custom(self, dataset_key: str) -> pd.DataFrame:
-        pass
+        raise NotImplementedError
