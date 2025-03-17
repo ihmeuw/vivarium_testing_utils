@@ -31,7 +31,7 @@ class ValidationContext:
     def verify(self, comparison_key: str, stratifications: list[str] = []):
         self.comparisons[comparison_key].verify(stratifications)
 
-    def plot_comparison(self, comparison_key: str, type: str, kwargs):
+    def plot_comparison(self, comparison_key: str, type: str, **kwargs):
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
 
     def generate_comparisons(self):
