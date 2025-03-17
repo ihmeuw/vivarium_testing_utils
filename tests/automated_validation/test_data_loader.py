@@ -1,8 +1,8 @@
-from vivarium_testing_utils.automated_validation.data_loader import DataManager
+from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 
 
 def test_sim_outputs(sim_result_dir):
-    data_loader = DataManager(sim_result_dir)
+    data_loader = DataLoader(sim_result_dir)
     assert data_loader.sim_outputs() == [
         "deaths",
         "person_time_cause",
@@ -11,7 +11,7 @@ def test_sim_outputs(sim_result_dir):
 
 
 def test_load_from_simulation(sim_result_dir):
-    data_loader = DataManager(sim_result_dir)
+    data_loader = DataLoader(sim_result_dir)
     person_time_cause = data_loader.load_from_sim("deaths")
     assert person_time_cause.shape == (8, 1)
     # check that value is column and rest are indices

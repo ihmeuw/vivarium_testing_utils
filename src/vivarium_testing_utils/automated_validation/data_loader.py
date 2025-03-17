@@ -4,7 +4,7 @@ import pandas as pd
 from layered_config_tree import ConfigurationKeyError, LayeredConfigTree
 
 
-class DataManager:
+class DataLoader:
     def __init__(self, results_dir: str, cache_size_mb: int = 1000):
         self.results_dir = Path(results_dir)
         self.sim_output_dir = self.results_dir / "results"
