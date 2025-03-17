@@ -1,7 +1,9 @@
-from vivarium_testing_utils.automated_validation.data_loader import DataLoader
-import pytest
 from unittest.mock import MagicMock
+
 import pandas as pd
+import pytest
+
+from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 
 
 def test_get_sim_outputs(sim_result_dir):
