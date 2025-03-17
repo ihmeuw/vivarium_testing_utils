@@ -38,12 +38,12 @@ class DataManager:
         """Update the raw_datasets cache with the given data."""
         self.raw_datasets.update({source: {dataset_key: data}})
 
-    def sim_outputs(self) -> list[str]:
+    def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets in the given simulation output directory.
         Only return the filename, not the extension."""
         return [str(f.stem) for f in self.sim_output_dir.glob("*.parquet")]
 
-    def artifact_keys(self) -> list[str]:
+    def get_artifact_keys(self) -> list[str]:
         raise NotImplementedError
 
     def load_from_sim(self, dataset_key: str) -> pd.DataFrame:

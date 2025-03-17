@@ -13,7 +13,7 @@ class ValidationContext:
         self.data_loader = DataManager(results_dir)
         self.comparisons = LayeredConfigTree()
 
-    def sim_outputs(self):
+    def get_sim_outputs(self):
         return self.data_loader.sim_outputs()
 
     def get_artifact_keys(self):
