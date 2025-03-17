@@ -4,7 +4,7 @@ import pandas as pd
 from layered_config_tree import ConfigurationKeyError, LayeredConfigTree
 
 
-class DataLoader:
+class DataManager:
     def __init__(self, results_dir: str, cache_size_mb: int = 1000):
         self.results_dir = Path(results_dir)
         self.sim_output_dir = self.results_dir / "results"
@@ -22,9 +22,11 @@ class DataLoader:
         self.artifact = None  # Just stubbing this out for now
 
     def load_from_source(self, dataset_key: str, source: str) -> None:
+        """Load the data from the given source via the loader mapping."""
         return self.loader_mapping[source](dataset_key)
 
     def get_dataset(self, dataset_key: str, source: str) -> pd.DataFrame:
+        """Return the dataset from the cache if it exists, otherwise load it from the source."""
         try:
             return self.raw_datasets[source][dataset_key]
         except ConfigurationKeyError:
@@ -33,17 +35,24 @@ class DataLoader:
             return dataset
 
     def add_to_datasets(self, dataset_key: str, source: str, data: pd.DataFrame) -> None:
+        """Update the raw_datasets cache with the given data."""
         self.raw_datasets.update({source: {dataset_key: data}})
 
     def sim_outputs(self) -> list[str]:
-        # return only filenames
+        """Get a list of the datasets in the given simulation output directory.
+        Only return the filename, not the extension."""
         return [str(f.stem) for f in self.sim_output_dir.glob("*.parquet")]
 
     def artifact_keys(self) -> list[str]:
         pass
 
     def load_from_sim(self, dataset_key: str) -> pd.DataFrame:
-        return pd.read_parquet(self.sim_output_dir / f"{dataset_key}.parquet")
+        """Load the data from the simulation output directory and set the non-value columns as indices."""
+        sim_data = pd.read_parquet(self.sim_output_dir / f"{dataset_key}.parquet")
+        if "value" not in sim_data.columns:
+            raise ValueError(f"Value column not found in {dataset_key}.parquet")
+        sim_data = sim_data.set_index(sim_data.columns.drop("value").tolist())
+        return sim_data
 
     def load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         pass
