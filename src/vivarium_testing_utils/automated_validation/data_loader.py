@@ -11,22 +11,22 @@ class DataLoader:
         self.artifact = None  # Just stubbing this out for now
 
     def load_data(self, dataset_key: str, data_type: str) -> None:
-        pass
+        raise NotImplementedError
 
     def get_dataset(self, dataset_key: str, data_type: str) -> pd.DataFrame:
-        pass
+        raise NotImplementedError
 
     def sim_outputs(self) -> list[str]:
-        pass
+        raise NotImplementedError
 
     def artifact_keys(self) -> list[str]:
-        pass
+        raise NotImplementedError
 
     def load_from_sim(self, dataset_key: str) -> pd.DataFrame:
-        pass
+        raise NotImplementedError
 
     def load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
-        pass
+        raise NotImplementedError
 
     def load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
-        pass
+        raise NotImplementedError

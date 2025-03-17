@@ -20,10 +20,10 @@ class Comparison:
         # you need to marginalize out the non-stratified columns as well
 
     def verify(self, stratifications: list[str]):
-        pass
+        raise NotImplementedError
 
     def summarize(self, stratifications: list[str]):
-        pass
+        raise NotImplementedError
 
     def heads(self, stratifications: list[str]):
-        pass
+        raise NotImplementedError

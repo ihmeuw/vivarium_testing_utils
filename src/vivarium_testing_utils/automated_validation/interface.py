@@ -13,10 +13,10 @@ class ValidationContext:
         self.data_loader = DataLoader(results_dir)
         self.comparisons = LayeredConfigTree()
 
-    def sim_outputs(self):
+    def get_sim_outputs(self):
         return self.data_loader.sim_outputs()
 
-    def artifact_keys(self):
+    def get_artifact_keys(self):
         return self.data_loader.artifact_keys()
 
     def add_comparison(
@@ -35,14 +35,14 @@ class ValidationContext:
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
 
     def generate_comparisons(self):
-        pass
+        raise NotImplementedError
 
     def verify_all(self):
         for comparison in self.comparisons.values():
             comparison.verify()
 
     def plot_all(self):
-        pass
+        raise NotImplementedError
 
     def get_results(self, verbose: bool = False):
-        pass
+        raise NotImplementedError
