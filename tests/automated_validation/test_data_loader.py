@@ -9,11 +9,11 @@ from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 def test_get_sim_outputs(sim_result_dir):
     """Test we have the correctly truncated sim data keys"""
     data_loader = DataLoader(sim_result_dir)
-    assert data_loader.get_sim_outputs() == [
+    assert set(data_loader.get_sim_outputs()) == {
         "deaths",
         "person_time_cause",
         "transition_count_cause",
-    ]
+    }
 
 
 def test_get_dataset(sim_result_dir):
