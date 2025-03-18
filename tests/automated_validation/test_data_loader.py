@@ -48,7 +48,7 @@ def test_add_to_datasets(sim_result_dir: Path) -> None:
     """Ensure that we can add data to the cache"""
     df = pd.DataFrame({"baz": [1, 2, 3]})
     data_loader = DataLoader(sim_result_dir)
-    data_loader._add_to_datasets("foo", "bar", df)
+    data_loader._add_to_cache("foo", "bar", df)
     assert data_loader.raw_datasets.get("bar").get("foo").equals(df)
 
 
