@@ -1,6 +1,7 @@
 import pytest
+from pathlib import Path
 
 
 @pytest.fixture
 def sim_result_dir():
-    return "tests/automated_validation/data/sim_outputs"
+    return Path(__file__).parent / "data/sim_outputs"
