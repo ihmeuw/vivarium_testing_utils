@@ -22,11 +22,7 @@ class ValidationContext:
     def add_comparison(
         self, measure_key: str, test_source: str, ref_source: str, stratifications: list[str]
     ) -> None:
-        test_data = self._data_loader.get_dataset(measure_key, test_source)
-        ref_data = self._data_loader.get_dataset(measure_key, ref_source)
-        self.comparisons.update(
-            [measure_key], Comparison(measure_key, test_data, ref_data, stratifications)
-        )
+        raise NotImplementedError
 
     def verify(self, comparison_key: str, stratifications: list[str] = []):
         self.comparisons[comparison_key].verify(stratifications)
