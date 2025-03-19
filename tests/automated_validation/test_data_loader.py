@@ -34,6 +34,7 @@ def test_get_dataset(sim_result_dir: Path) -> None:
     "dataset_key, source",
     [
         ("deaths", DataSource.SIM),
+        ("deaths", DataSource.ARTIFACT),
         # Add more sources here later
     ],
 )
@@ -71,3 +72,25 @@ def test__load_from_sim(sim_result_dir: Path) -> None:
         "random_seed",
     ]
     assert person_time_cause.columns == ["value"]
+
+
+def test__load_artifact(sim_result_dir: Path) -> None:
+    """Ensure that we can load the artifact itself"""
+    artifact = DataLoader._load_artifact(sim_result_dir)
+    assert artifact.keys() == {}
+
+
+def test__load_from_artifact(sim_result_dir: Path) -> None:
+    """Ensure that we can load data from the artifact directory"""
+    data_loader = DataLoader(sim_result_dir)
+    artifact = data_loader._load_from_artifact("deaths")
+    assert artifact.shape == (8, 1)
+    # check that value is column and rest are indices
+    assert artifact.index.names == [
+        "measure",
+        "entity_type",
+        "entity",
+        "sub_entity",
+        "age_group",
+        "sex",
+    ]

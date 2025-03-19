@@ -71,7 +71,8 @@ class DataLoader:
         sim_data = sim_data.set_index(sim_data.columns.drop("value").tolist())
         return sim_data
 
-    def _load_artifact(self, results_dir: str) -> Artifact:
+    @staticmethod
+    def _load_artifact(results_dir: str) -> Artifact:
         model_spec_path = Path(results_dir) / "model_specification.yaml"
         artifact_path = yaml.safe_load(model_spec_path.open("r"))["configuration"][
             "input_data"
