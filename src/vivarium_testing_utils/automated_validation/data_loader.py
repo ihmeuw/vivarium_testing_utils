@@ -68,7 +68,7 @@ class DataLoader:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
         sim_data = pd.read_parquet(self.sim_output_dir / f"{dataset_key}.parquet")
         if "value" not in sim_data.columns:
-            raise ValueError(f"Value column not found in {dataset_key}.parquet")
+            raise ValueError(f"{dataset_key}.parquet requires a column labeled 'value'.")
         sim_data = sim_data.set_index(sim_data.columns.drop("value").tolist())
         return sim_data
 
