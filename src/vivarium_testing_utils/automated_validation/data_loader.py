@@ -44,14 +44,13 @@ class DataLoader:
     def get_artifact_keys(self) -> list[str]:
         raise NotImplementedError
 
-    def get_dataset(self, dataset_key: str, source: str) -> pd.DataFrame:
+    def get_dataset(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Return the dataset from the cache if it exists, otherwise load it from the source."""
-        source_enum = DataSource.from_str(source)
         try:
-            return self.raw_datasets[source_enum][dataset_key]
+            return self.raw_datasets[source][dataset_key]
         except ConfigurationKeyError:
-            dataset = self._load_from_source(dataset_key, source_enum)
-            self._add_to_datasets(dataset_key, source_enum, dataset)
+            dataset = self._load_from_source(dataset_key, source)
+            self._add_to_datasets(dataset_key, source, dataset)
             return dataset
 
     def _load_from_source(self, dataset_key: str, source: DataSource) -> None:
