@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -6,7 +7,7 @@ import pytest
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 
 
-def test_get_sim_outputs(sim_result_dir):
+def test_get_sim_outputs(sim_result_dir: Path) -> None:
     """Test we have the correctly truncated sim data keys"""
     data_loader = DataLoader(sim_result_dir)
     assert set(data_loader.get_sim_outputs()) == {
@@ -16,7 +17,7 @@ def test_get_sim_outputs(sim_result_dir):
     }
 
 
-def test_get_dataset(sim_result_dir):
+def test_get_dataset(sim_result_dir: Path) -> None:
     """Ensure that we load data from disk if needed, and don't if not."""
     data_loader = DataLoader(sim_result_dir)
     # check that we call load_from_source the first time we call get_dataset
@@ -35,7 +36,7 @@ def test_get_dataset(sim_result_dir):
         ("deaths", "sim"),
     ],
 )
-def load_from_source(dataset_key, source, sim_result_dir):
+def load_from_source(dataset_key: str, source: str, sim_result_dir: Path) -> None:
     """Ensure we can sensibly load using key / source combinations"""
     data_loader = DataLoader(sim_result_dir)
     assert not data_loader.raw_datasets.get(source).get(dataset_key)
@@ -43,7 +44,7 @@ def load_from_source(dataset_key, source, sim_result_dir):
     assert data_loader.raw_datasets.get(source).get(dataset_key)
 
 
-def test_add_to_datasets(sim_result_dir):
+def test_add_to_datasets(sim_result_dir: Path) -> None:
     """Ensure that we can add data to the cache"""
     df = pd.DataFrame({"baz": [1, 2, 3]})
     data_loader = DataLoader(sim_result_dir)
@@ -51,7 +52,7 @@ def test_add_to_datasets(sim_result_dir):
     assert data_loader.raw_datasets.get("bar").get("foo").equals(df)
 
 
-def test_load_from_sim(sim_result_dir):
+def test_load_from_sim(sim_result_dir: Path) -> None:
     """Ensure that we can load data from the simulation output directory"""
     data_loader = DataLoader(sim_result_dir)
     person_time_cause = data_loader.load_from_sim("deaths")
