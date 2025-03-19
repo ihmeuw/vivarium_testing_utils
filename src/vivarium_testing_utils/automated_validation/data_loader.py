@@ -28,10 +28,10 @@ class DataLoader:
         self.cache_size_mb = cache_size_mb
         self.raw_datasets = LayeredConfigTree({data_source: {} for data_source in DataSource})
         self.loader_mapping = {
-            DataSource.SIM: self.load_from_sim,
-            DataSource.GBD: self.load_from_gbd,
-            DataSource.ARTIFACT: self.load_from_artifact,
-            DataSource.CUSTOM: self.load_custom,
+            DataSource.SIM: self._load_from_sim,
+            DataSource.GBD: self._load_from_gbd,
+            DataSource.ARTIFACT: self._load_from_artifact,
+            DataSource.CUSTOM: self._load_custom,
         }
         self.metadata = LayeredConfigTree()
         self.artifact = None  # Just stubbing this out for now
@@ -50,21 +50,21 @@ class DataLoader:
         try:
             return self.raw_datasets[source_enum][dataset_key]
         except ConfigurationKeyError:
-            dataset = self.load_from_source(dataset_key, source_enum)
-            self.add_to_datasets(dataset_key, source_enum, dataset)
+            dataset = self._load_from_source(dataset_key, source_enum)
+            self._add_to_datasets(dataset_key, source_enum, dataset)
             return dataset
 
-    def load_from_source(self, dataset_key: str, source: DataSource) -> None:
+    def _load_from_source(self, dataset_key: str, source: DataSource) -> None:
         """Load the data from the given source via the loader mapping."""
         return self.loader_mapping[source](dataset_key)
 
-    def add_to_datasets(
+    def _add_to_datasets(
         self, dataset_key: str, source: DataSource, data: pd.DataFrame
     ) -> None:
         """Update the raw_datasets cache with the given data."""
         self.raw_datasets.update({source: {dataset_key: data}})
 
-    def load_from_sim(self, dataset_key: str) -> pd.DataFrame:
+    def _load_from_sim(self, dataset_key: str) -> pd.DataFrame:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
         sim_data = pd.read_parquet(self.sim_output_dir / f"{dataset_key}.parquet")
         if "value" not in sim_data.columns:
@@ -72,11 +72,11 @@ class DataLoader:
         sim_data = sim_data.set_index(sim_data.columns.drop("value").tolist())
         return sim_data
 
-    def load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
+    def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
 
-    def load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
+    def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
 
-    def load_custom(self, dataset_key: str) -> pd.DataFrame:
+    def _load_custom(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
