@@ -34,17 +34,19 @@ def test_get_dataset(sim_result_dir: Path) -> None:
     "dataset_key, source",
     [
         ("deaths", DataSource.SIM),
+        # Add more sources here later
     ],
 )
-def load_from_source(dataset_key: str, source: DataSource, sim_result_dir: Path) -> None:
+def test__load_from_source(
+    dataset_key: str, source: DataSource, sim_result_dir: Path
+) -> None:
     """Ensure we can sensibly load using key / source combinations"""
     data_loader = DataLoader(sim_result_dir)
-    assert not data_loader.raw_datasets.get(source).get(dataset_key)
-    data_loader._load_from_source(dataset_key, source)
-    assert data_loader.raw_datasets.get(source).get(dataset_key)
+    dataset = data_loader._load_from_source(dataset_key, source)
+    assert dataset is not None
 
 
-def test_add_to_datasets(sim_result_dir: Path) -> None:
+def test__add_to_cache(sim_result_dir: Path) -> None:
     """Ensure that we can add data to the cache"""
     df = pd.DataFrame({"baz": [1, 2, 3]})
     data_loader = DataLoader(sim_result_dir)
@@ -52,7 +54,7 @@ def test_add_to_datasets(sim_result_dir: Path) -> None:
     assert data_loader.raw_datasets.get("bar").get("foo").equals(df)
 
 
-def test_load_from_sim(sim_result_dir: Path) -> None:
+def test__load_from_sim(sim_result_dir: Path) -> None:
     """Ensure that we can load data from the simulation output directory"""
     data_loader = DataLoader(sim_result_dir)
     person_time_cause = data_loader._load_from_sim("deaths")

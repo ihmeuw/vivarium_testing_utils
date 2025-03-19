@@ -36,7 +36,7 @@ class DataLoader:
             DataSource.CUSTOM: self._load_custom,
         }
         self.metadata = LayeredConfigTree()
-        self.artifact = self.load_artifact(self.sim_output_dir)
+        self.artifact = self._load_artifact(self.sim_output_dir)
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets in the given simulation output directory.
@@ -52,7 +52,7 @@ class DataLoader:
             return self.raw_datasets[source][dataset_key]
         except ConfigurationKeyError:
             dataset = self._load_from_source(dataset_key, source)
-            self._add_to_datasets(dataset_key, source, dataset)
+            self._add_to_cache(dataset_key, source, dataset)
             return dataset
 
     def _load_from_source(self, dataset_key: str, source: DataSource) -> None:
@@ -78,7 +78,7 @@ class DataLoader:
         ]["artifact_path"]
         return Artifact(artifact_path)
 
-    def load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
+    def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         data = self.artifact.load(dataset_key)
         self.artifact.clear_cache()
         return data
