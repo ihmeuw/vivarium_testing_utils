@@ -17,23 +17,16 @@ def test_get_sim_outputs(sim_result_dir: Path) -> None:
     }
 
 
-def test_get_dataset_bad_source(sim_result_dir: Path) -> None:
-    """Ensure that we raise an error if the source is not recognized"""
-    data_loader = DataLoader(sim_result_dir)
-    with pytest.raises(ValueError):
-        data_loader.get_dataset("deaths", "foo")
-
-
 def test_get_dataset(sim_result_dir: Path) -> None:
     """Ensure that we load data from disk if needed, and don't if not."""
     data_loader = DataLoader(sim_result_dir)
     # check that we call load_from_source the first time we call get_dataset
     data_loader._load_from_source = MagicMock()
-    data_loader.get_dataset("deaths", "sim"), pd.DataFrame
+    data_loader.get_dataset("deaths", DataSource.SIM), pd.DataFrame
     data_loader._load_from_source.assert_called_once_with("deaths", DataSource.SIM)
     # check that we don't call load_from_source the second time we call get_dataset
     data_loader._load_from_source = MagicMock()
-    data_loader.get_dataset("deaths", "sim"), pd.DataFrame
+    data_loader.get_dataset("deaths", DataSource.SIM), pd.DataFrame
     data_loader._load_from_source.assert_not_called()
 
 
