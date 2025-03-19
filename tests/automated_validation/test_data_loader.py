@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from vivarium_testing_utils.automated_validation.data_loader import DataLoader
+from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 
 
 def test_get_sim_outputs(sim_result_dir: Path) -> None:
@@ -17,13 +17,20 @@ def test_get_sim_outputs(sim_result_dir: Path) -> None:
     }
 
 
+def test_get_dataset_bad_source(sim_result_dir: Path) -> None:
+    """Ensure that we raise an error if the source is not recognized"""
+    data_loader = DataLoader(sim_result_dir)
+    with pytest.raises(ValueError):
+        data_loader.get_dataset("deaths", "foo")
+
+
 def test_get_dataset(sim_result_dir: Path) -> None:
     """Ensure that we load data from disk if needed, and don't if not."""
     data_loader = DataLoader(sim_result_dir)
     # check that we call load_from_source the first time we call get_dataset
     data_loader.load_from_source = MagicMock()
     data_loader.get_dataset("deaths", "sim"), pd.DataFrame
-    data_loader.load_from_source.assert_called_once_with("deaths", "sim")
+    data_loader.load_from_source.assert_called_once_with("deaths", DataSource.SIM)
     # check that we don't call load_from_source the second time we call get_dataset
     data_loader.load_from_source = MagicMock()
     data_loader.get_dataset("deaths", "sim"), pd.DataFrame
@@ -33,10 +40,10 @@ def test_get_dataset(sim_result_dir: Path) -> None:
 @pytest.mark.parametrize(
     "dataset_key, source",
     [
-        ("deaths", "sim"),
+        ("deaths", DataSource.SIM),
     ],
 )
-def load_from_source(dataset_key: str, source: str, sim_result_dir: Path) -> None:
+def load_from_source(dataset_key: str, source: DataSource, sim_result_dir: Path) -> None:
     """Ensure we can sensibly load using key / source combinations"""
     data_loader = DataLoader(sim_result_dir)
     assert not data_loader.raw_datasets.get(source).get(dataset_key)

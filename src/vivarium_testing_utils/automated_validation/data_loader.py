@@ -1,7 +1,24 @@
+from __future__ import annotations
+
+from enum import Enum
 from pathlib import Path
 
 import pandas as pd
 from layered_config_tree import ConfigurationKeyError, LayeredConfigTree
+
+
+class DataSource(Enum):
+    SIM = "sim"
+    GBD = "gbd"
+    ARTIFACT = "artifact"
+    CUSTOM = "custom"
+
+    @classmethod
+    def from_str(cls, source: str) -> DataSource:
+        try:
+            return cls(source)
+        except ValueError:
+            raise ValueError(f"Source {source} not recognized. Must be one of {DataSource}")
 
 
 class DataLoader:
@@ -9,14 +26,12 @@ class DataLoader:
         self.results_dir = Path(results_dir)
         self.sim_output_dir = self.results_dir / "results"
         self.cache_size_mb = cache_size_mb
-        self.raw_datasets = LayeredConfigTree(
-            {"sim": {}, "gbd": {}, "artifact": {}, "custom": {}}
-        )
+        self.raw_datasets = LayeredConfigTree({data_source: {} for data_source in DataSource})
         self.loader_mapping = {
-            "sim": self.load_from_sim,
-            "gbd": self.load_from_gbd,
-            "artifact": self.load_from_artifact,
-            "custom": self.load_custom,
+            DataSource.SIM: self.load_from_sim,
+            DataSource.GBD: self.load_from_gbd,
+            DataSource.ARTIFACT: self.load_from_artifact,
+            DataSource.CUSTOM: self.load_custom,
         }
         self.metadata = LayeredConfigTree()
         self.artifact = None  # Just stubbing this out for now
@@ -31,18 +46,21 @@ class DataLoader:
 
     def get_dataset(self, dataset_key: str, source: str) -> pd.DataFrame:
         """Return the dataset from the cache if it exists, otherwise load it from the source."""
+        source_enum = DataSource.from_str(source)
         try:
-            return self.raw_datasets[source][dataset_key]
+            return self.raw_datasets[source_enum][dataset_key]
         except ConfigurationKeyError:
-            dataset = self.load_from_source(dataset_key, source)
-            self.add_to_datasets(dataset_key, source, dataset)
+            dataset = self.load_from_source(dataset_key, source_enum)
+            self.add_to_datasets(dataset_key, source_enum, dataset)
             return dataset
 
-    def load_from_source(self, dataset_key: str, source: str) -> None:
+    def load_from_source(self, dataset_key: str, source: DataSource) -> None:
         """Load the data from the given source via the loader mapping."""
         return self.loader_mapping[source](dataset_key)
 
-    def add_to_datasets(self, dataset_key: str, source: str, data: pd.DataFrame) -> None:
+    def add_to_datasets(
+        self, dataset_key: str, source: DataSource, data: pd.DataFrame
+    ) -> None:
         """Update the raw_datasets cache with the given data."""
         self.raw_datasets.update({source: {dataset_key: data}})
 

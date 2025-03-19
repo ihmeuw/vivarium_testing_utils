@@ -5,7 +5,7 @@ from layered_config_tree import LayeredConfigTree
 
 from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison
-from vivarium_testing_utils.automated_validation.data_loader import DataLoader
+from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 
 
 class ValidationContext:
