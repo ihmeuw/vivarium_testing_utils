@@ -4,9 +4,9 @@ from enum import Enum
 from pathlib import Path
 
 import pandas as pd
+import yaml
 from layered_config_tree import ConfigurationKeyError, LayeredConfigTree
 from vivarium import Artifact
-import yaml
 
 
 class DataSource(Enum):
