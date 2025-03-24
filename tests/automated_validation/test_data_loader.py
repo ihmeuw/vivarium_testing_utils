@@ -43,6 +43,7 @@ def test__load_from_source(
 ) -> None:
     """Ensure we can sensibly load using key / source combinations"""
     data_loader = DataLoader(sim_result_dir)
+    assert not data_loader._raw_datasets.get(source).get(dataset_key)
     dataset = data_loader._load_from_source(dataset_key, source)
     assert dataset is not None
 
@@ -52,7 +53,7 @@ def test__add_to_cache(sim_result_dir: Path) -> None:
     df = pd.DataFrame({"baz": [1, 2, 3]})
     data_loader = DataLoader(sim_result_dir)
     data_loader._add_to_cache("foo", "bar", df)
-    assert data_loader.raw_datasets.get("bar").get("foo").equals(df)
+    assert data_loader._raw_datasets.get("bar").get("foo").equals(df)
 
 
 def test__load_from_sim(sim_result_dir: Path) -> None:
