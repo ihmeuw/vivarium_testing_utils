@@ -50,6 +50,7 @@ if __name__ == "__main__":
         "pyarrow",
         # Type stubs
         "types-setuptools",
+        "vivarium",
     ]
 
     setup_requires = ["setuptools_scm"]

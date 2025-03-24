@@ -1,0 +1,3 @@
+configuration:
+  input_data:
+    artifact_path: tests/automated_validation/data/artifacts/artifact.hdf
