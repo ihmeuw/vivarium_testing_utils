@@ -59,6 +59,7 @@ if __name__ == "__main__":
         "networkx-stubs",
         "types-docutils",
         "types-setuptools",
+        "vivarium",
     ]
 
     setup_requires = ["setuptools_scm"]
