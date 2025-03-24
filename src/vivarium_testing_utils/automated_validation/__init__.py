@@ -1,2 +1,1 @@
-from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
