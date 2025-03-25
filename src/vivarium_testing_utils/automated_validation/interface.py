@@ -25,7 +25,7 @@ class ValidationContext:
         dataset = self._data_loader.get_dataset(dataset_key, source)
         return dataset.head(num_rows)
 
-    def upload_custom_data(self, data: pd.DataFrame, key: str) -> None:
+    def upload_custom_data(self, data: pd.DataFrame | pd.Series, key: str) -> None:
         self._data_loader._add_to_cache(key, "custom", data)
 
     def add_comparison(
