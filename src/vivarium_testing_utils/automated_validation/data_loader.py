@@ -35,7 +35,7 @@ class DataLoader:
             DataSource.SIM: self._load_from_sim,
             DataSource.GBD: self._load_from_gbd,
             DataSource.ARTIFACT: self._load_from_artifact,
-            DataSource.CUSTOM: self._load_custom,
+            DataSource.CUSTOM: self._raise_custom_data_error,
         }
         self._metadata = LayeredConfigTree()
         self._artifact = self._load_artifact(self._sim_output_dir)
@@ -63,6 +63,8 @@ class DataLoader:
 
     def _add_to_cache(self, dataset_key: str, source: str, data: pd.DataFrame) -> None:
         """Update the raw_datasets cache with the given data."""
+        if dataset_key in self._raw_datasets.get(source, {}):
+            raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
         self._raw_datasets.update({source: {dataset_key: data}})
 
     def _load_from_sim(self, dataset_key: str) -> pd.DataFrame:
@@ -89,5 +91,8 @@ class DataLoader:
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
 
-    def _load_custom(self, dataset_key: str) -> pd.DataFrame:
-        raise NotImplementedError
+    def _raise_custom_data_error(self, dataset_key: str) -> pd.DataFrame:
+        raise ValueError(
+            f"Custom data source not implemented for {dataset_key}."
+            "Please upload a dataset to the Validation Context."
+        )

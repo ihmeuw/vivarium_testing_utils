@@ -13,11 +13,20 @@ class ValidationContext:
         self._data_loader = DataLoader(results_dir)
         self.comparisons = LayeredConfigTree()
 
-    def get_sim_outputs(self):
+    def get_sim_outputs(self) -> list[str]:
         return self._data_loader.sim_outputs()
 
-    def get_artifact_keys(self):
+    def get_artifact_keys(self) -> list[str]:
         return self._data_loader.artifact_keys()
+
+    def show_raw_dataset(
+        self, dataset_key: str, source: str, num_rows: int = 10
+    ) -> pd.DataFrame:
+        dataset = self._data_loader.get_dataset(dataset_key, source)
+        return dataset.head(num_rows)
+
+    def upload_custom_data(self, data: pd.DataFrame, key: str) -> None:
+        self._data_loader._add_to_cache(key, "custom", data)
 
     def add_comparison(
         self, measure_key: str, test_source: str, ref_source: str, stratifications: list[str]

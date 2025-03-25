@@ -49,11 +49,13 @@ def test__load_from_source(
 
 
 def test__add_to_cache(sim_result_dir: Path) -> None:
-    """Ensure that we can add data to the cache"""
+    """Ensure that we can add data to the cache, but not the same key twice"""
     df = pd.DataFrame({"baz": [1, 2, 3]})
     data_loader = DataLoader(sim_result_dir)
     data_loader._add_to_cache("foo", "bar", df)
     assert data_loader._raw_datasets.get("bar").get("foo").equals(df)
+    with pytest.raises(ValueError):
+        data_loader._add_to_cache("foo", "bar", df)
 
 
 def test__load_from_sim(sim_result_dir: Path) -> None:
@@ -95,3 +97,10 @@ def test__load_from_artifact(sim_result_dir: Path) -> None:
         "year_end",
     }
     assert set(art_dataset.columns) == {"draw_0", "draw_1", "draw_2", "draw_3", "draw_4"}
+
+
+def test__raise_custom_data_error(sim_result_dir: Path) -> None:
+    """Ensure that we raise an error when trying to load custom data"""
+    data_loader = DataLoader(sim_result_dir)
+    with pytest.raises(ValueError):
+        data_loader._raise_custom_data_error("foo")
