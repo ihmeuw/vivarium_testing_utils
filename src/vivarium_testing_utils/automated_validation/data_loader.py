@@ -93,6 +93,6 @@ class DataLoader:
 
     def _raise_custom_data_error(self, dataset_key: str) -> pd.DataFrame:
         raise ValueError(
-            f"Custom data source not implemented for {dataset_key}."
-            "Please upload a dataset to the Validation Context."
+            f"No custom dataset found for {dataset_key}."
+            "Please upload a dataset using ValidationContext.upload_custom_data."
         )
