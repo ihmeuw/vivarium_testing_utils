@@ -1,6 +1,9 @@
 import pandas as pd
+from typing import TypeVar
 
-
+ 
+DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series)
+ 
 def process_raw_data(
     input_data_type: str, raw_data: pd.DataFrame, measure: str
 ) -> pd.DataFrame:
@@ -13,7 +16,8 @@ def compute_metric(
     raise NotImplementedError
 
 
-def validate_intermediate_data(intermediate_data: pd.DataFrame) -> pd.DataFrame:
+def validate_intermediate_data(intermediate_data: DataSet) -> DataSet:
+    """Ensure the intermediate data has an appropriate format for further calculations."""
     # raise if any of the columns are not numeric
     if not intermediate_data.applymap(lambda x: isinstance(x, (int, float))).all().all():
         raise ValueError("All value columns must be numeric")
@@ -25,17 +29,17 @@ def ratio(data: pd.DataFrame, numerator, denominator) -> pd.Series:
     return data[numerator] / data[denominator]
 
 
-def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str]) -> pd.DataFrame:
+def aggregate_sum(data: DataSet, groupby_cols: list[str]) -> DataSet:
     """Aggregate the dataframe over the specified index columns by summing."""
     return data.groupby(groupby_cols).sum()
 
 
-def stratify(data: pd.DataFrame, stratification_cols: list[str]) -> pd.DataFrame:
+def stratify(data: DataSet, stratification_cols: list[str]) -> DataSet:
     """Stratify the data by the index columns, summing over everything else. Syntactic sugar for aggregate."""
     return aggregate_sum(data, stratification_cols)
 
 
-def marginalize(data: pd.DataFrame, marginalize_cols: list[str]) -> pd.DataFrame:
+def marginalize(data: DataSet, marginalize_cols: list[str]) -> DataSet:
     """Sum over marginalize columns, keeping the rest. Syntactic sugar for aggregate."""
     return data.groupby(data.index.names.difference(marginalize_cols)).sum()
 
