@@ -19,11 +19,8 @@ class ValidationContext:
     def get_artifact_keys(self) -> list[str]:
         return self._data_loader.artifact_keys()
 
-    def show_raw_dataset(
-        self, dataset_key: str, source: str, num_rows: int = 10
-    ) -> pd.DataFrame:
-        dataset = self._data_loader.get_dataset(dataset_key, DataSource.from_str(source))
-        return dataset.head(num_rows)
+    def get_raw_dataset(self, dataset_key: str, source: str) -> pd.DataFrame:
+        return self._data_loader.get_dataset(dataset_key, DataSource.from_str(source))
 
     def upload_custom_data(self, data: pd.DataFrame | pd.Series, key: str) -> None:
         self._data_loader._add_to_cache(key, DataSource.CUSTOM, data)

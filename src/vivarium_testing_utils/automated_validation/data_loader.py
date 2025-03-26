@@ -51,11 +51,11 @@ class DataLoader:
     def get_dataset(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Return the dataset from the cache if it exists, otherwise load it from the source."""
         try:
-            return self._raw_datasets[source][dataset_key]
+            dataset = self._raw_datasets[source][dataset_key]
         except ConfigurationKeyError:
             dataset = self._load_from_source(dataset_key, source)
             self._add_to_cache(dataset_key, source, dataset)
-            return dataset
+        return dataset.copy()
 
     def _load_from_source(self, dataset_key: str, source: DataSource) -> None:
         """Load the data from the given source via the loader mapping."""
@@ -65,7 +65,7 @@ class DataLoader:
         """Update the raw_datasets cache with the given data."""
         if dataset_key in self._raw_datasets.get(source, {}):
             raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
-        self._raw_datasets.update({source: {dataset_key: data}})
+        self._raw_datasets.update({source: {dataset_key: data.copy()}})
 
     def _load_from_sim(self, dataset_key: str) -> pd.DataFrame:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
