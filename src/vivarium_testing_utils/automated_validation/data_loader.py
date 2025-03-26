@@ -51,11 +51,11 @@ class DataLoader:
     def get_dataset(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Return the dataset from the cache if it exists, otherwise load it from the source."""
         try:
-            dataset = self._raw_datasets[source][dataset_key]
+            return self._raw_datasets[source][dataset_key].copy()
         except ConfigurationKeyError:
             dataset = self._load_from_source(dataset_key, source)
             self._add_to_cache(dataset_key, source, dataset)
-        return dataset.copy()
+            return dataset
 
     def _load_from_source(self, dataset_key: str, source: DataSource) -> None:
         """Load the data from the given source via the loader mapping."""
