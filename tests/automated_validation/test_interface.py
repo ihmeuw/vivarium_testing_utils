@@ -18,7 +18,7 @@ def test_upload_custom_data(sim_result_dir: Path) -> None:
     """Ensure that we can upload custom data and retrieve it"""
     context = ValidationContext(sim_result_dir, None)
     df = pd.DataFrame({"baz": [1, 2, 3]})
-    context.upload_custom_data(df, "foo")
+    context.upload_custom_data("foo", df)
     assert context.get_raw_dataset("foo", "custom").equals(df)
 
 
@@ -26,7 +26,7 @@ def test_show_raw_dataset(sim_result_dir: Path) -> None:
     """Ensure that we can show the raw dataset"""
     context = ValidationContext(sim_result_dir, None)
     df = pd.DataFrame({"baz": [1, 2, 3]})
-    context.upload_custom_data(df, "foo")
+    context.upload_custom_data("foo", df)
 
     # Ensure loading with a string instead of a DataSource enum works
     assert context.get_raw_dataset("foo", "custom").equals(df)

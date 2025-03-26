@@ -20,10 +20,12 @@ class ValidationContext:
         return self._data_loader.artifact_keys()
 
     def get_raw_dataset(self, dataset_key: str, source: str) -> pd.DataFrame:
+        """Return a copy of the dataset for manual inspection."""
         return self._data_loader.get_dataset(dataset_key, DataSource.from_str(source))
 
-    def upload_custom_data(self, data: pd.DataFrame | pd.Series, key: str) -> None:
-        self._data_loader._add_to_cache(key, DataSource.CUSTOM, data)
+    def upload_custom_data(self, dataset_key: str, data: pd.DataFrame | pd.Series) -> None:
+        """Upload a custom DataFrame or Series to the context given by a dataset key."""
+        self._data_loader._add_to_cache(dataset_key, DataSource.CUSTOM, data)
 
     def add_comparison(
         self, measure_key: str, test_source: str, ref_source: str, stratifications: list[str]
