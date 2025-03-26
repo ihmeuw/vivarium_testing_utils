@@ -30,6 +30,22 @@ def test_get_dataset(sim_result_dir: Path) -> None:
     data_loader._load_from_source.assert_not_called()
 
 
+def test_get_dataset_custom(sim_result_dir: Path) -> None:
+    """Ensure that we can load custom data"""
+    data_loader = DataLoader(sim_result_dir)
+    custom_data = pd.DataFrame({"foo": [1, 2, 3]})
+
+    with pytest.raises(
+        ValueError,
+        match="No custom dataset found for foo."
+        "Please upload a dataset using ValidationContext.upload_custom_data.",
+    ):
+        data_loader.get_dataset("foo", DataSource.CUSTOM)
+    data_loader._add_to_cache("foo", DataSource.CUSTOM, custom_data)
+
+    assert data_loader.get_dataset("foo", DataSource.CUSTOM).equals(custom_data)
+
+
 @pytest.mark.parametrize(
     "dataset_key, source",
     [
@@ -49,11 +65,28 @@ def test__load_from_source(
 
 
 def test__add_to_cache(sim_result_dir: Path) -> None:
-    """Ensure that we can add data to the cache"""
+    """Ensure that we can add data to the cache, but not the same key twice"""
     df = pd.DataFrame({"baz": [1, 2, 3]})
     data_loader = DataLoader(sim_result_dir)
-    data_loader._add_to_cache("foo", "bar", df)
-    assert data_loader._raw_datasets.get("bar").get("foo").equals(df)
+    data_loader._add_to_cache("foo", DataSource.SIM, df)
+    assert data_loader._raw_datasets.get(DataSource.SIM).get("foo").equals(df)
+    with pytest.raises(ValueError, match="Dataset foo already exists in the cache."):
+        data_loader._add_to_cache("foo", DataSource.SIM, df)
+
+
+def test_cache_immutable(sim_result_dir: Path) -> None:
+    """Ensure that we can't mutate the cached data."""
+    data_loader = DataLoader(sim_result_dir)
+    source_data = pd.DataFrame({"foo": [1, 2, 3]})
+    data_loader._add_to_cache("foo", DataSource.CUSTOM, source_data)
+    # Mutate source data
+    source_data["foo"] = 0
+    cached_data = data_loader.get_dataset("foo", DataSource.CUSTOM)
+    assert not cached_data.equals(source_data)
+
+    # Mutate returned cache data
+    cached_data["foo"] = [4, 5, 6]
+    assert not data_loader.get_dataset("foo", DataSource.CUSTOM).equals(cached_data)
 
 
 def test__load_from_sim(sim_result_dir: Path) -> None:
