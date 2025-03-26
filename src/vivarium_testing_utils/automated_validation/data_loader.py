@@ -61,7 +61,7 @@ class DataLoader:
         """Load the data from the given source via the loader mapping."""
         return self._loader_mapping[source](dataset_key)
 
-    def _add_to_cache(self, dataset_key: str, source: str, data: pd.DataFrame) -> None:
+    def _add_to_cache(self, dataset_key: str, source: DataSource, data: pd.DataFrame) -> None:
         """Update the raw_datasets cache with the given data."""
         if dataset_key in self._raw_datasets.get(source, {}):
             raise ValueError(f"Dataset {dataset_key} already exists in the cache.")

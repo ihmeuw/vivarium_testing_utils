@@ -5,7 +5,7 @@ from layered_config_tree import LayeredConfigTree
 
 from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison
-from vivarium_testing_utils.automated_validation.data_loader import DataLoader
+from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 
 
 class ValidationContext:
@@ -22,11 +22,11 @@ class ValidationContext:
     def show_raw_dataset(
         self, dataset_key: str, source: str, num_rows: int = 10
     ) -> pd.DataFrame:
-        dataset = self._data_loader.get_dataset(dataset_key, source)
+        dataset = self._data_loader.get_dataset(dataset_key, DataSource.from_str(source))
         return dataset.head(num_rows)
 
     def upload_custom_data(self, data: pd.DataFrame | pd.Series, key: str) -> None:
-        self._data_loader._add_to_cache(key, "custom", data)
+        self._data_loader._add_to_cache(key, DataSource.CUSTOM, data)
 
     def add_comparison(
         self, measure_key: str, test_source: str, ref_source: str, stratifications: list[str]
