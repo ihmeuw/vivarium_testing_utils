@@ -14,9 +14,11 @@ class ValidationContext:
         self.comparisons = LayeredConfigTree()
 
     def get_sim_outputs(self) -> list[str]:
+        """Get a list of the datasets available in the given simulation output directory."""
         return self._data_loader.sim_outputs()
 
     def get_artifact_keys(self) -> list[str]:
+        """Get a list of the artifact keys available to compare against."""
         return self._data_loader.artifact_keys()
 
     def get_raw_dataset(self, dataset_key: str, source: str) -> pd.DataFrame:
