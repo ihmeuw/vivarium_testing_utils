@@ -27,7 +27,7 @@ class ValidationContext:
 
     def upload_custom_data(self, dataset_key: str, data: pd.DataFrame | pd.Series) -> None:
         """Upload a custom DataFrame or Series to the context given by a dataset key."""
-        self._data_loader._add_to_cache(dataset_key, DataSource.CUSTOM, data)
+        self._data_loader.upload_custom_data(dataset_key, data)
 
     def add_comparison(
         self, measure_key: str, test_source: str, ref_source: str, stratifications: list[str]
