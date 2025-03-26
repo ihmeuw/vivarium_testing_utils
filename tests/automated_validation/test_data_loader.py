@@ -28,12 +28,13 @@ def test_get_dataset(sim_result_dir: Path) -> None:
     data_loader._load_from_source = MagicMock()
     data_loader.get_dataset("deaths", DataSource.SIM), pd.DataFrame
     data_loader._load_from_source.assert_not_called()
-    
+
+
 def test_get_dataset_custom(sim_result_dir: Path) -> None:
     """Ensure that we can load custom data"""
     data_loader = DataLoader(sim_result_dir)
     custom_data = pd.DataFrame({"foo": [1, 2, 3]})
-    
+
     with pytest.raises(ValueError):
         data_loader.get_dataset("foo", DataSource.CUSTOM)
     data_loader._add_to_cache("foo", DataSource.CUSTOM, custom_data)
