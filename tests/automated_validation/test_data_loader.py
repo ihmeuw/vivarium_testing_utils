@@ -35,7 +35,11 @@ def test_get_dataset_custom(sim_result_dir: Path) -> None:
     data_loader = DataLoader(sim_result_dir)
     custom_data = pd.DataFrame({"foo": [1, 2, 3]})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="No custom dataset found for foo."
+        "Please upload a dataset using ValidationContext.upload_custom_data.",
+    ):
         data_loader.get_dataset("foo", DataSource.CUSTOM)
     data_loader._add_to_cache("foo", DataSource.CUSTOM, custom_data)
 
@@ -66,7 +70,7 @@ def test__add_to_cache(sim_result_dir: Path) -> None:
     data_loader = DataLoader(sim_result_dir)
     data_loader._add_to_cache("foo", DataSource.SIM, df)
     assert data_loader._raw_datasets.get(DataSource.SIM).get("foo").equals(df)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Dataset foo already exists in the cache."):
         data_loader._add_to_cache("foo", DataSource.SIM, df)
 
 

@@ -10,7 +10,7 @@ from vivarium_testing_utils.automated_validation.interface import ValidationCont
 def test_add_comparison_bad_source(sim_result_dir: Path) -> None:
     """Ensure that we raise an error if the source is not recognized"""
     context = ValidationContext(sim_result_dir, None)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Source bad_source not recognized"):
         context.add_comparison("cause.cause.incidence", "bad_source", "gbd")
 
 
