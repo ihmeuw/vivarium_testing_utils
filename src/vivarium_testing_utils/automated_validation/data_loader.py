@@ -35,7 +35,7 @@ class DataLoader:
             DataSource.SIM: self._load_from_sim,
             DataSource.GBD: self._load_from_gbd,
             DataSource.ARTIFACT: self._load_from_artifact,
-            DataSource.CUSTOM: self._load_custom,
+            DataSource.CUSTOM: self._raise_custom_data_error,
         }
         self._metadata = LayeredConfigTree()
         self._artifact = self._load_artifact(self._sim_output_dir)
@@ -51,19 +51,24 @@ class DataLoader:
     def get_dataset(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Return the dataset from the cache if it exists, otherwise load it from the source."""
         try:
-            return self._raw_datasets[source][dataset_key]
+            return self._raw_datasets[source][dataset_key].copy()
         except ConfigurationKeyError:
             dataset = self._load_from_source(dataset_key, source)
             self._add_to_cache(dataset_key, source, dataset)
             return dataset
 
+    def upload_custom_data(self, dataset_key: str, data: pd.DataFrame | pd.Series) -> None:
+        self._add_to_cache(dataset_key, DataSource.CUSTOM, data)
+
     def _load_from_source(self, dataset_key: str, source: DataSource) -> None:
         """Load the data from the given source via the loader mapping."""
         return self._loader_mapping[source](dataset_key)
 
-    def _add_to_cache(self, dataset_key: str, source: str, data: pd.DataFrame) -> None:
+    def _add_to_cache(self, dataset_key: str, source: DataSource, data: pd.DataFrame) -> None:
         """Update the raw_datasets cache with the given data."""
-        self._raw_datasets.update({source: {dataset_key: data}})
+        if dataset_key in self._raw_datasets.get(source, {}):
+            raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
+        self._raw_datasets.update({source: {dataset_key: data.copy()}})
 
     def _load_from_sim(self, dataset_key: str) -> pd.DataFrame:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
@@ -89,5 +94,8 @@ class DataLoader:
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
 
-    def _load_custom(self, dataset_key: str) -> pd.DataFrame:
-        raise NotImplementedError
+    def _raise_custom_data_error(self, dataset_key: str) -> pd.DataFrame:
+        raise ValueError(
+            f"No custom dataset found for {dataset_key}."
+            "Please upload a dataset using ValidationContext.upload_custom_data."
+        )
