@@ -1,9 +1,10 @@
-import pandas as pd
 from typing import TypeVar
 
- 
+import pandas as pd
+
 DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series)
- 
+
+
 def process_raw_data(
     input_data_type: str, raw_data: pd.DataFrame, measure: str
 ) -> pd.DataFrame:
