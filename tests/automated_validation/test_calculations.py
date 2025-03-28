@@ -5,7 +5,6 @@ from vivarium_testing_utils.automated_validation.calculations import (
     aggregate_sum,
     linear_combination,
     ratio,
-    validate_intermediate_data,
 )
 
 
