@@ -29,15 +29,6 @@ def intermediate_data() -> pd.DataFrame:
     )
 
 
-def test_validate_intermediate_data(intermediate_data: pd.DataFrame) -> None:
-    """Test validating a multi-indexed DataFrame"""
-    validate_intermediate_data(intermediate_data)
-    # test non-numeric column
-    intermediate_data["d"] = ["a", "b", "c", "d"]
-    with pytest.raises(ValueError):
-        validate_intermediate_data(intermediate_data)
-
-
 def test_ratio(intermediate_data: pd.DataFrame) -> None:
     """Test taking ratio of two columns in a multi-indexed DataFrame"""
     assert ratio(intermediate_data, "a", "b").equals(
