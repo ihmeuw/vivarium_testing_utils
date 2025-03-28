@@ -24,7 +24,7 @@ def validate_intermediate_data(intermediate_data: DataSet) -> DataSet:
         raise ValueError("All value columns must be numeric")
 
 
-def ratio(data: pd.DataFrame, numerator, denominator) -> pd.Series:
+def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.Series:
     """Return a series of the ratio of two columns in a DataFrame,
     where the columns are specified by their names."""
     return data[numerator] / data[denominator]
