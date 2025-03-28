@@ -17,13 +17,6 @@ def compute_metric(
     raise NotImplementedError
 
 
-def validate_intermediate_data(intermediate_data: DataSet) -> DataSet:
-    """Ensure the intermediate data has an appropriate format for further calculations."""
-    # raise if any of the columns are not numeric
-    if not intermediate_data.applymap(lambda x: isinstance(x, (int, float))).all().all():
-        raise ValueError("All value columns must be numeric")
-
-
 def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.Series:
     """Return a series of the ratio of two columns in a DataFrame,
     where the columns are specified by their names."""
