@@ -53,6 +53,7 @@ if __name__ == "__main__":
         "networkx",
         "loguru",
         "layered_config_tree",
+        "pandera",
         "pyarrow",
         # Type stubs
         "pandas-stubs",
