@@ -6,6 +6,7 @@ from layered_config_tree import LayeredConfigTree
 from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.measures import MEASURE_KEY_MAPPINGS
 
 
 class ValidationContext:
@@ -32,7 +33,18 @@ class ValidationContext:
     def add_comparison(
         self, measure_key: str, test_source: str, ref_source: str, stratifications: list[str]
     ) -> None:
-        raise NotImplementedError
+        """Add a comparison to the context given a measure key and data sources."""
+        test_source = DataSource.from_str(test_source)
+        ref_source = DataSource.from_str(ref_source)
+
+        entity_type, entity, measure = measure_key.split(".")
+        if test_source == DataSource.SIM:
+            measure = MEASURE_KEY_MAPPINGS[entity_type][measure](entity)
+            test_raw_datasets = {
+                dataset_name: self._data_loader.get_dataset(dataset_name, test_source)
+                for dataset_name in measure.required_data_keys
+            }
+            test_data = measure.process_raw_sim_data(**test_raw_datasets)
 
     def verify(self, comparison_key: str, stratifications: list[str] = []):
         self.comparisons[comparison_key].verify(stratifications)
