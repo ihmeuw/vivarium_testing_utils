@@ -4,6 +4,8 @@ import pandas as pd
 import pytest
 
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
+from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
+from vivarium_testing_utils.automated_validation.data_loader import DataSource
 
 
 @pytest.mark.skip("Not implemented")
@@ -32,3 +34,22 @@ def test_show_raw_dataset(sim_result_dir: Path) -> None:
     assert context.get_raw_dataset("foo", "custom").equals(df)
     assert context.get_raw_dataset("deaths", "sim").shape == (8, 1)
     assert context.get_raw_dataset("cause.cause.incidence_rate", "artifact").shape == (12, 5)
+
+
+def test___get_raw_datasets_from_source(sim_result_dir: Path) -> None:
+    """Ensure that we can get raw datasets from a source"""
+    context = ValidationContext(sim_result_dir, None)
+    measure = Incidence("cause")
+    test_raw_datasets = context._get_raw_datasets_from_source(measure, DataSource.SIM)
+    ref_raw_datasets = context._get_raw_datasets_from_source(measure, DataSource.ARTIFACT)
+    breakpoint()
+
+
+def test_add_comparison(sim_result_dir: Path) -> None:
+    """Ensure that we can add a comparison"""
+    measure_key = "cause.cause.incidence_rate"
+    context = ValidationContext(sim_result_dir, None)
+    context.add_comparison(measure_key, DataSource.SIM, DataSource.ARTIFACT, [])
+    assert measure_key in context.comparisons
+    comparison = context.comparisons[measure_key]
+    breakpoint()

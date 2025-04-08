@@ -2,7 +2,6 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     PersonTime,
-    SimDataFormatter,
     TransitionCounts,
     drop_redundant_index,
 )
@@ -41,6 +40,16 @@ def test_drop_redundant_index() -> None:
 
 def test_transition_counts() -> None:
     """Test TransitionCounts formatting."""
+    formatter = TransitionCounts("disease", "A", "B")
+    assert formatter.type == "transition_count"
+    assert formatter.cause == "disease"
+    assert formatter.data_key == "transition_count_disease"
+    assert formatter.start_state == "A"
+    assert formatter.end_state == "B"
+    assert formatter.transition_string == "A_TO_B"
+    assert formatter.groupby_column == "disease_transition"
+    assert formatter.renamed_column == "A_TO_B_transition_count"
+
     # Create a mock dataset
     dataset = pd.DataFrame(
         {
@@ -66,14 +75,20 @@ def test_transition_counts() -> None:
         ),
     )
 
-    formatter = TransitionCounts("disease", "A", "B")
-    formatted_dataset = formatter.format_dataset(dataset)
-    assert formatted_dataset.equals(expected_dataframe)
+    assert formatter.format_dataset(dataset).equals(expected_dataframe)
 
 
 def test_person_time() -> None:
     """Test PersonTime formatting."""
     # Create a mock dataset
+    formatter = PersonTime("disease", "infected")
+    assert formatter.type == "person_time"
+    assert formatter.cause == "disease"
+    assert formatter.data_key == "person_time_disease"
+    assert formatter.state == "infected"
+    assert formatter.groupby_column == "disease_state"
+    assert formatter.renamed_column == "infected_person_time"
+
     dataset = pd.DataFrame(
         {
             "value": [10, 20, 30, 40],
@@ -98,13 +113,19 @@ def test_person_time() -> None:
         ),
     )
 
-    formatter = PersonTime("disease", "infected")
-    formatted_dataset = formatter.format_dataset(dataset)
-    assert formatted_dataset.equals(expected_dataframe)
+    assert formatter.format_dataset(dataset).equals(expected_dataframe)
 
 
 def test_total_pt():
     """Test PersonTime formatting with total state."""
+    formatter = PersonTime("disease")
+    assert formatter.type == "person_time"
+    assert formatter.cause == "disease"
+    assert formatter.data_key == "person_time_disease"
+    assert formatter.state == "total"
+    assert formatter.groupby_column == "disease_state"
+    assert formatter.renamed_column == "total_person_time"
+
     # Create a mock dataset
     dataset = pd.DataFrame(
         {
@@ -130,6 +151,4 @@ def test_total_pt():
         ),
     )
 
-    formatter = PersonTime("disease")
-    formatted_dataset = formatter.format_dataset(dataset)
-    assert formatted_dataset.equals(expected_dataframe)
+    assert formatter.format_dataset(dataset).equals(expected_dataframe)
