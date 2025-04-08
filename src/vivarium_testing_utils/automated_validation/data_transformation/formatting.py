@@ -42,7 +42,17 @@ class TransitionCounts(SimDataFormatter):
         """Clean up cause column, filter for the transition, and rename the value column."""
         dataset = drop_redundant_index(
             dataset,
+            "measure",
+            self.type,
+        )
+        dataset = drop_redundant_index(
+            dataset,
+            "entity_type",
             "cause",
+        )
+        dataset = drop_redundant_index(
+            dataset,
+            "entity",
             self.cause,
         )
         dataset = filter_data(dataset, {self.groupby_column: [self.transition_string]})
@@ -65,7 +75,17 @@ class PersonTime(SimDataFormatter):
         """Clean up cause column, filter for the state, and rename the value column."""
         dataset = drop_redundant_index(
             dataset,
+            "measure",
+            self.type,
+        )
+        dataset = drop_redundant_index(
+            dataset,
+            "entity_type",
             "cause",
+        )
+        dataset = drop_redundant_index(
+            dataset,
+            "entity",
             self.cause,
         )
         if self.state == "total":

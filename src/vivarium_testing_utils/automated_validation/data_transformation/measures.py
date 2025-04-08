@@ -66,15 +66,15 @@ class RatioMeasure(Measure):
     def sim_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
-            "numerator": self.numerator.data_key,
-            "denominator": self.denominator.data_key,
+            "numerator_data": self.numerator.data_key,
+            "denominator_data": self.denominator.data_key,
         }
 
     @property
     def artifact_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
-            "measure_data": self.measure_key,
+            "artifact_data": self.measure_key,
         }
 
     @abstractmethod
@@ -106,8 +106,10 @@ class RatioMeasure(Measure):
         self, numerator_data: SimOutputData, denominator_data: SimOutputData
     ) -> RatioData:
         """Process raw incidence data into a format suitable for calculations."""
-        aligned_datasets = align_indexes([numerator_data, denominator_data])
-        return pd.concat(aligned_datasets, axis=0)
+        numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
+        numerator_data = self.numerator.format_dataset(numerator_data)
+        denominator_data = self.denominator.format_dataset(denominator_data)
+        return pd.concat([numerator_data, denominator_data], axis=0)
 
 
 class Incidence(RatioMeasure):

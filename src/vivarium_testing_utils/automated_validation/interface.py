@@ -60,7 +60,7 @@ class ValidationContext:
             ref_data,
             stratifications,
         )
-        self.comparisons[measure_key] = comparison
+        self.comparisons.update({measure_key: comparison})
 
     def verify(self, comparison_key: str, stratifications: list[str] = []):
         self.comparisons[comparison_key].verify(stratifications)

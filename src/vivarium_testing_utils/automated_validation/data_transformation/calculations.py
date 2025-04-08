@@ -43,6 +43,8 @@ def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.Series:
 
 def aggregate_sum(data: DataSet, groupby_cols: list[str]) -> DataSet:
     """Aggregate the dataframe over the specified index columns by summing."""
+    if not groupby_cols:
+        return data
     return data.groupby(groupby_cols).sum()
 
 
@@ -53,7 +55,7 @@ def stratify(data: DataSet, stratification_cols: list[str]) -> DataSet:
 
 def marginalize(data: DataSet, marginalize_cols: list[str]) -> DataSet:
     """Sum over marginalize columns, keeping the rest. Syntactic sugar for aggregate."""
-    return data.groupby(data.index.names.difference(marginalize_cols)).sum()
+    return aggregate_sum(data, data.index.names.difference(marginalize_cols))
 
 
 def linear_combination(
