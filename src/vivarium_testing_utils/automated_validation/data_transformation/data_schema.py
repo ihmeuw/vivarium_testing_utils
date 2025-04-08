@@ -5,11 +5,6 @@ from pandera.typing import DataFrame, Index, Series
 
 class SimOutputData(pa.DataFrameModel):
     # A data schema for raw simulation data that enters the data loader
-    value: Series[float] = pa.Field(
-        pa.Float,
-        coerce=True,
-        nullable=True,
-    )
     pass
 
 
