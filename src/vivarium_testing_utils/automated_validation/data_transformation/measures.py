@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
+from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     align_indexes,
     ratio,
@@ -17,7 +18,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     SimDataFormatter,
     TransitionCounts,
 )
-from vivarium_testing_utils.automated_validation.data_loader import DataSource
 
 
 class Measure(ABC):

@@ -1,18 +1,29 @@
-import pandas as pd
+from abc import ABC, abstractmethod
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    ArtifactData,
     MeasureData,
     RatioData,
-    SimOutputData,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     RatioMeasure,
 )
 
 
-class FuzzyComparison:
+class Comparison(ABC):
+    @abstractmethod
+    def verify(self, stratifications: list[str]):
+        pass
 
+    @abstractmethod
+    def summarize(self, stratifications: list[str]):
+        pass
+
+    @abstractmethod
+    def heads(self, stratifications: list[str]):
+        pass
+
+
+class FuzzyComparison:
     def __init__(
         self,
         measure: RatioMeasure,
