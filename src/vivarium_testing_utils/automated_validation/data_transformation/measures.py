@@ -23,7 +23,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
 class Measure(ABC):
     """Base class for all measures."""
 
-    required_datasets: dict[str, str]
+    sim_datasets: dict[str, str]
+    artifact_datasets: dict[str, str]
 
     @abstractmethod
     def get_measure_data_from_artifact(self, *args, **kwargs) -> MeasureData:
@@ -44,20 +45,36 @@ class Measure(ABC):
         else:
             raise ValueError(f"Unsupported data source: {source}")
 
+    def get_required_datasets(self, source: DataSource) -> dict[str, str]:
+        """Return a dictionary of required datasets for the specified source."""
+        if source == DataSource.SIM:
+            return self.sim_datasets
+        elif source == DataSource.ARTIFACT:
+            return self.artifact_datasets
+        else:
+            raise ValueError(f"Unsupported data source: {source}")
+
 
 class RatioMeasure(Measure):
     """A Measure that calculates ratio data from simulation data."""
 
-    cause: str
+    measure_key: str
     numerator: SimDataFormatter
     denominator: SimDataFormatter
 
     @property
-    def required_datasets(self) -> dict[str, str]:
+    def sim_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
             "numerator": self.numerator.data_key,
             "denominator": self.denominator.data_key,
+        }
+
+    @property
+    def artifact_datasets(self) -> dict[str, str]:
+        """Return a dictionary of required datasets for this measure."""
+        return {
+            "measure_data": self.measure_key,
         }
 
     @abstractmethod
@@ -97,16 +114,16 @@ class Incidence(RatioMeasure):
     """Class to compute incidence from simulation data."""
 
     def __init__(self, cause: str):
-        self.cause = cause
-        self.numerator = TransitionCounts(cause, f"susceptible_to_{self.cause}", cause)
-        self.denominator = PersonTime(cause, f"susceptible_to_{self.cause}")
+        self.measure_key = f"cause.{cause}.incidence_rate"
+        self.numerator = TransitionCounts(cause, f"susceptible_to_{cause}", cause)
+        self.denominator = PersonTime(cause, f"susceptible_to_{cause}")
 
 
 class Prevalence(RatioMeasure):
     """Computes prevalence from simulation data."""
 
     def __init__(self, cause: str):
-        self.cause = cause
+        self.measure_key = f"cause.{cause}.prevalence"
         self.numerator = PersonTime(cause, cause)
         self.denominator = PersonTime(cause)
 
@@ -115,14 +132,14 @@ class Remission(RatioMeasure):
     """Computes remission from simulation data."""
 
     def __init__(self, cause: str):
-        self.cause = cause
-        self.numerator = TransitionCounts(cause, cause, f"susceptible_to_{self.cause}")
-        self.denominator = PersonTime(cause, f"susceptible_to_{self.cause}")
+        self.measure_key = f"cause.{cause}.remission"
+        self.numerator = TransitionCounts(cause, cause, f"susceptible_to_{cause}")
+        self.denominator = PersonTime(cause, f"susceptible_to_{cause}")
 
 
 MEASURE_KEY_MAPPINGS = {
     "cause": {
-        "incidence": Incidence,
+        "incidence_rate": Incidence,
         "prevalence": Prevalence,
         "remission": Remission,
     }
