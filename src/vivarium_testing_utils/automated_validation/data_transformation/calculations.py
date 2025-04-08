@@ -23,7 +23,7 @@ def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
     for col, values in filter_cols.items():
         if len(values) == 1:
             data = data[data.index.get_level_values(col) == values[0]]
-            data = data.drop(columns=[col])
+            data = data.droplevel([col])
         else:
             data = data[data.index.get_level_values(col).isin(values)]
     if data.empty:

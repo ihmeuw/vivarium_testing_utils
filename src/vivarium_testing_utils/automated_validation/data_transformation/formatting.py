@@ -40,7 +40,7 @@ class TransitionCounts(SimDataFormatter):
 
     def format_dataset(self, dataset: SimOutputData) -> SimOutputData:
         """Clean up cause column, filter for the transition, and rename the value column."""
-        dataset = drop_redundant_column(
+        dataset = drop_redundant_index(
             dataset,
             "cause",
             self.cause,
@@ -63,7 +63,7 @@ class PersonTime(SimDataFormatter):
 
     def format_dataset(self, dataset: SimOutputData) -> SimOutputData:
         """Clean up cause column, filter for the state, and rename the value column."""
-        dataset = drop_redundant_column(
+        dataset = drop_redundant_index(
             dataset,
             "cause",
             self.cause,
@@ -79,12 +79,13 @@ class PersonTime(SimDataFormatter):
         return dataset
 
 
-def drop_redundant_column(data: pd.DataFrame, column_name: str, column_value: str) -> None:
+def drop_redundant_index(
+    data: pd.DataFrame, idx_column_name: str, idx_column_value: str
+) -> None:
     """Validate that the column is singular-valued, then drop it"""
-
-    if not all(data.index.get_level_values(column_name) == column_value):
+    if not (data.index.get_level_values(idx_column_name) == idx_column_value).all():
         raise ValueError(
-            f"Cause {data.index.get_level_values('cause').unique()} in data does not match expected cause {column_name}"
+            f"Cause {data.index.get_level_values(idx_column_name).unique()} in data does not match expected cause {idx_column_name}"
         )
-    data = data.drop(columns=[column_name])
+    data = data.droplevel([idx_column_name])
     return data
