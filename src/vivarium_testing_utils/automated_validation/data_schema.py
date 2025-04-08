@@ -23,11 +23,11 @@ class CustomData(pa.DataFrameModel):
     pass
 
 
-class IntermediateData(pa.DataFrameModel):
-    # Data schema for intermediate data that serves as basis of calculations
+class RatioData(pa.DataFrameModel):
+    # Data schema for ratio data, which can be assembled into a measure.
     pass
 
 
-class ProcessedData(pa.DataFrameModel):
-    # Schema of processed data that is the output of calculations
+class MeasureData(pa.DataFrameModel):
+    # Measure data is the final, single-column output correponding to a measure.
     pass
