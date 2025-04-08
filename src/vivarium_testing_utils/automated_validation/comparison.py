@@ -11,20 +11,19 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 )
 
 
-class Comparison:
+class FuzzyComparison:
+
     def __init__(
         self,
-        measure_key: str,
-        test_data: pd.DataFrame,
-        reference_data: pd.DataFrame,
+        measure: RatioMeasure,
+        test_data: RatioData,
+        reference_data: MeasureData,
         stratifications: list[str] = [],
     ):
-        self.measure = measure_key
+        self.measure = measure
         self.test_data = test_data
         self.reference_data = reference_data
-        self.computed_comparison = compute_metric(
-            self.test_data, self.reference_data, self.measure
-        )
+        self.stratifications = stratifications
         # you need to marginalize out the non-stratified columns as well
 
     def verify(self, stratifications: list[str]):
