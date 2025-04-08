@@ -1,6 +1,14 @@
 import pandas as pd
 
-from vivarium_testing_utils.automated_validation.calculations import compute_metric
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    ArtifactData,
+    MeasureData,
+    RatioData,
+    SimOutputData,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    RatioMeasure,
+)
 
 
 class Comparison:

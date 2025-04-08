@@ -1,6 +1,6 @@
-import pandera as pa
 import pandas as pd
-from pandera.typing import Index, DataFrame, Series
+import pandera as pa
+from pandera.typing import DataFrame, Index, Series
 
 
 class SimOutputData(pa.DataFrameModel):

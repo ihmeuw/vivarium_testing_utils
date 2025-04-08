@@ -6,7 +6,9 @@ from layered_config_tree import LayeredConfigTree
 from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
-from vivarium_testing_utils.automated_validation.measures import MEASURE_KEY_MAPPINGS
+from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    MEASURE_KEY_MAPPINGS,
+)
 
 
 class ValidationContext:
