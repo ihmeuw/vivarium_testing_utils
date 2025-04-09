@@ -75,8 +75,7 @@ class DataLoader:
         sim_data = pd.read_parquet(self._results_dir / f"{dataset_key}.parquet")
         if "value" not in sim_data.columns:
             raise ValueError(f"{dataset_key}.parquet requires a column labeled 'value'.")
-        sim_data = sim_data.set_index(sim_data.columns.drop("value").tolist())
-        return sim_data
+        return sim_data.set_index(sim_data.columns.drop("value").tolist())
 
     @staticmethod
     def _load_artifact(results_dir: str) -> Artifact:
@@ -89,6 +88,21 @@ class DataLoader:
     def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
+        # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
+        # and melt the data into long format
+        if data.columns.str.startswith("draw_").all():
+            data = data.melt(
+                var_name="draw",
+                value_name="value",
+                ignore_index=False,
+            )
+            data["draw"] = data["draw"].str.replace("draw_", "", regex=False)
+            data["draw"] = data["draw"].astype(int)
+            data = data.set_index("draw", append=True).sort_index()
+        elif "value" not in data.columns:
+            raise ValueError(
+                f"Artifact {dataset_key} must have draw columns or a value column."
+            )
         return data
 
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
