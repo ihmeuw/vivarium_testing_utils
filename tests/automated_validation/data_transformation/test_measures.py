@@ -7,11 +7,11 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 
 def test_incidence() -> None:
     """Test the Incidence measure."""
-    cause = "disease"
+    cause = "cause"
     measure = Incidence(cause)
-    assert measure.measure_key == f"incidence_{cause}"
+    assert measure.measure_key == f"cause.{cause}.incidence_rate"
     assert measure.sim_datasets == {
-        "numerator": f"transition_count_{cause}",
-        "denominator": f"person_time_{cause}",
+        "numerator_data": f"transition_count_{cause}",
+        "denominator_data": f"person_time_{cause}",
     }
-    assert measure.artifact_datasets == {"measure_data": measure.measure_key}
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}

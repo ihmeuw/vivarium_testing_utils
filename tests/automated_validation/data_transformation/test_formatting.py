@@ -46,9 +46,9 @@ def test_transition_counts() -> None:
     assert formatter.data_key == "transition_count_disease"
     assert formatter.start_state == "A"
     assert formatter.end_state == "B"
-    assert formatter.transition_string == "A_TO_B"
-    assert formatter.groupby_column == "disease_transition"
-    assert formatter.renamed_column == "A_TO_B_transition_count"
+    assert formatter.transition_string == "A_to_B"
+    assert formatter.groupby_column == "sub_entity"
+    assert formatter.renamed_column == "A_to_B_transition_count"
 
     # Create a mock dataset
     dataset = pd.DataFrame(
@@ -57,17 +57,17 @@ def test_transition_counts() -> None:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("disease", "True", "A_TO_B"),
-                ("disease", "False", "A_TO_B"),
-                ("disease", "True", "B_TO_C"),
-                ("disease", "False", "B_TO_C"),
+                ("transition_count", "cause", "disease", "True", "A_to_B"),
+                ("transition_count", "cause", "disease", "False", "A_to_B"),
+                ("transition_count", "cause", "disease", "True", "B_to_C"),
+                ("transition_count", "cause", "disease", "False", "B_to_C"),
             ],
-            names=["cause", "stratify_column", "disease_transition"],
+            names=["measure", "entity_type", "entity", "stratify_column", "sub_entity"],
         ),
     )
     expected_dataframe = pd.DataFrame(
         {
-            "A_TO_B_transition_count": [10, 20],
+            "A_to_B_transition_count": [10, 20],
         },
         index=pd.Index(
             ["True", "False"],
@@ -86,7 +86,7 @@ def test_person_time() -> None:
     assert formatter.cause == "disease"
     assert formatter.data_key == "person_time_disease"
     assert formatter.state == "infected"
-    assert formatter.groupby_column == "disease_state"
+    assert formatter.groupby_column == "sub_entity"
     assert formatter.renamed_column == "infected_person_time"
 
     dataset = pd.DataFrame(
@@ -95,12 +95,12 @@ def test_person_time() -> None:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("disease", "susceptible", "A"),
-                ("disease", "infected", "A"),
-                ("disease", "susceptible", "B"),
-                ("disease", "infected", "B"),
+                ("person_time", "cause", "disease", "susceptible", "A"),
+                ("person_time", "cause", "disease", "infected", "A"),
+                ("person_time", "cause", "disease", "susceptible", "B"),
+                ("person_time", "cause", "disease", "infected", "B"),
             ],
-            names=["cause", "disease_state", "stratify_column"],
+            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
         ),
     )
     expected_dataframe = pd.DataFrame(
@@ -123,7 +123,7 @@ def test_total_pt():
     assert formatter.cause == "disease"
     assert formatter.data_key == "person_time_disease"
     assert formatter.state == "total"
-    assert formatter.groupby_column == "disease_state"
+    assert formatter.groupby_column == "sub_entity"
     assert formatter.renamed_column == "total_person_time"
 
     # Create a mock dataset
@@ -133,12 +133,12 @@ def test_total_pt():
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("disease", "susceptible", "A"),
-                ("disease", "infected", "A"),
-                ("disease", "susceptible", "B"),
-                ("disease", "infected", "B"),
+                ("person_time", "cause", "disease", "susceptible", "A"),
+                ("person_time", "cause", "disease", "infected", "A"),
+                ("person_time", "cause", "disease", "susceptible", "B"),
+                ("person_time", "cause", "disease", "infected", "B"),
             ],
-            names=["cause", "disease_state", "stratify_column"],
+            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
         ),
     )
     expected_dataframe = pd.DataFrame(

@@ -34,8 +34,8 @@ class TransitionCounts(SimDataFormatter):
         self.data_key = f"{self.type}_{self.cause}"
         self.start_state = start_state
         self.end_state = end_state
-        self.transition_string = f"{self.start_state}_TO_{self.end_state}"
-        self.groupby_column = f"{self.cause}_transition"
+        self.transition_string = f"{self.start_state}_to_{self.end_state}"
+        self.groupby_column = "sub_entity"
         self.renamed_column = f"{self.transition_string}_{self.type}"
 
     def format_dataset(self, dataset: SimOutputData) -> SimOutputData:
@@ -68,7 +68,7 @@ class PersonTime(SimDataFormatter):
         self.cause = cause
         self.data_key = f"{self.type}_{self.cause}"
         self.state = state if state else "total"
-        self.groupby_column = f"{self.cause}_state"
+        self.groupby_column = f"sub_entity"
         self.renamed_column = f"{self.state}_{self.type}"
 
     def format_dataset(self, dataset: SimOutputData) -> SimOutputData:
