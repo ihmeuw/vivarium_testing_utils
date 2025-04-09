@@ -38,74 +38,21 @@ def test_drop_redundant_index() -> None:
     assert formatted_dataset.equals(expected_dataframe)
 
 
-def test_transition_counts() -> None:
+def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     """Test TransitionCounts formatting."""
-    formatter = TransitionCounts("disease", "A", "B")
+    formatter = TransitionCounts("disease", "susceptible_to_disease", "disease")
     assert formatter.type == "transition_count"
     assert formatter.cause == "disease"
     assert formatter.data_key == "transition_count_disease"
-    assert formatter.start_state == "A"
-    assert formatter.end_state == "B"
-    assert formatter.transition_string == "A_to_B"
+    assert formatter.start_state == "susceptible_to_disease"
+    assert formatter.end_state == "disease"
+    assert formatter.transition_string == "susceptible_to_disease_to_disease"
     assert formatter.groupby_column == "sub_entity"
-    assert formatter.renamed_column == "A_to_B_transition_count"
+    assert formatter.renamed_column == "susceptible_to_disease_to_disease_transition_count"
 
-    # Create a mock dataset
-    dataset = pd.DataFrame(
-        {
-            "value": [10, 20, 30, 40],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("transition_count", "cause", "disease", "True", "A_to_B"),
-                ("transition_count", "cause", "disease", "False", "A_to_B"),
-                ("transition_count", "cause", "disease", "True", "B_to_C"),
-                ("transition_count", "cause", "disease", "False", "B_to_C"),
-            ],
-            names=["measure", "entity_type", "entity", "stratify_column", "sub_entity"],
-        ),
-    )
     expected_dataframe = pd.DataFrame(
         {
-            "A_to_B_transition_count": [10, 20],
-        },
-        index=pd.Index(
-            ["True", "False"],
-            name="stratify_column",
-        ),
-    )
-
-    assert formatter.format_dataset(dataset).equals(expected_dataframe)
-
-
-def test_person_time() -> None:
-    """Test PersonTime formatting."""
-    # Create a mock dataset
-    formatter = PersonTime("disease", "infected")
-    assert formatter.type == "person_time"
-    assert formatter.cause == "disease"
-    assert formatter.data_key == "person_time_disease"
-    assert formatter.state == "infected"
-    assert formatter.groupby_column == "sub_entity"
-    assert formatter.renamed_column == "infected_person_time"
-
-    dataset = pd.DataFrame(
-        {
-            "value": [10, 20, 30, 40],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("person_time", "cause", "disease", "susceptible", "A"),
-                ("person_time", "cause", "disease", "infected", "A"),
-                ("person_time", "cause", "disease", "susceptible", "B"),
-                ("person_time", "cause", "disease", "infected", "B"),
-            ],
-            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
-        ),
-    )
-    expected_dataframe = pd.DataFrame(
-        {
-            "infected_person_time": [20, 40],
+            formatter.renamed_column: [3, 5],
         },
         index=pd.Index(
             ["A", "B"],
@@ -113,10 +60,34 @@ def test_person_time() -> None:
         ),
     )
 
-    assert formatter.format_dataset(dataset).equals(expected_dataframe)
+    assert formatter.format_dataset(transition_count_data).equals(expected_dataframe)
 
 
-def test_total_pt():
+def test_person_time(person_time_data: pd.DataFrame) -> None:
+    """Test PersonTime formatting."""
+    # Create a mock dataset
+    formatter = PersonTime("disease", "disease")
+    assert formatter.type == "person_time"
+    assert formatter.cause == "disease"
+    assert formatter.data_key == "person_time_disease"
+    assert formatter.state == "disease"
+    assert formatter.groupby_column == "sub_entity"
+    assert formatter.renamed_column == "disease_person_time"
+
+    expected_dataframe = pd.DataFrame(
+        {
+            "disease_person_time": [23, 37],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+
+    assert formatter.format_dataset(person_time_data).equals(expected_dataframe)
+
+
+def test_total_pt(person_time_data: pd.DataFrame) -> None:
     """Test PersonTime formatting with total state."""
     formatter = PersonTime("disease")
     assert formatter.type == "person_time"
@@ -126,24 +97,9 @@ def test_total_pt():
     assert formatter.groupby_column == "sub_entity"
     assert formatter.renamed_column == "total_person_time"
 
-    # Create a mock dataset
-    dataset = pd.DataFrame(
-        {
-            "value": [10, 20, 30, 40],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("person_time", "cause", "disease", "susceptible", "A"),
-                ("person_time", "cause", "disease", "infected", "A"),
-                ("person_time", "cause", "disease", "susceptible", "B"),
-                ("person_time", "cause", "disease", "infected", "B"),
-            ],
-            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
-        ),
-    )
     expected_dataframe = pd.DataFrame(
         {
-            "total_person_time": [30, 70],
+            "total_person_time": [17 + 23, 29 + 37],
         },
         index=pd.Index(
             ["A", "B"],
@@ -151,4 +107,4 @@ def test_total_pt():
         ),
     )
 
-    assert formatter.format_dataset(dataset).equals(expected_dataframe)
+    assert formatter.format_dataset(person_time_data).equals(expected_dataframe)

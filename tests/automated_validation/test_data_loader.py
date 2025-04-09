@@ -89,13 +89,15 @@ def test_cache_immutable(sim_result_dir: Path) -> None:
     assert not data_loader.get_dataset("foo", DataSource.CUSTOM).equals(cached_data)
 
 
-def test__load_from_sim(sim_result_dir: Path) -> None:
+def test__load_from_sim(
+    sim_result_dir: Path,
+) -> None:
     """Ensure that we can load data from the simulation output directory"""
     data_loader = DataLoader(sim_result_dir)
-    person_time_malaria = data_loader._load_from_sim("deaths")
-    assert person_time_malaria.shape == (8, 1)
+    deaths = data_loader._load_from_sim("deaths")
+    assert deaths.shape == (8, 1)
     # check that value is column and rest are indices
-    assert set(person_time_malaria.index.names) == {
+    assert set(deaths.index.names) == {
         "measure",
         "entity_type",
         "entity",
@@ -105,7 +107,7 @@ def test__load_from_sim(sim_result_dir: Path) -> None:
         "input_draw",
         "random_seed",
     }
-    assert set(person_time_malaria.columns) == {"value"}
+    assert set(deaths.columns) == {"value"}
 
 
 def test__load_artifact(sim_result_dir: Path) -> None:

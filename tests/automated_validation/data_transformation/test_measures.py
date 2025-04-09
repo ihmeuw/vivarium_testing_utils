@@ -3,11 +3,14 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     Prevalence,
     Remission,
 )
+import pandas as pd
 
 
-def test_incidence() -> None:
+def test_incidence(
+    transition_count_data: pd.DataFrame, person_time_data: pd.DataFrame
+) -> None:
     """Test the Incidence measure."""
-    cause = "cause"
+    cause = "disease"
     measure = Incidence(cause)
     assert measure.measure_key == f"cause.{cause}.incidence_rate"
     assert measure.sim_datasets == {
@@ -15,3 +18,119 @@ def test_incidence() -> None:
         "denominator_data": f"person_time_{cause}",
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+
+    ratio_data = measure.get_ratio_data_from_sim(
+        numerator_data=transition_count_data,
+        denominator_data=person_time_data,
+    )
+    expected_ratio_data = pd.DataFrame(
+        {
+            "susceptible_to_disease_to_disease_transition_count": [3, 5],
+            "susceptible_to_disease_person_time": [17, 29],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert ratio_data.equals(expected_ratio_data)
+
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(ratio_data=ratio_data)
+
+    measure_data = measure.get_measure_data_from_sim(
+        numerator_data=transition_count_data, denominator_data=person_time_data
+    )
+    expected_measure_data = pd.Series(
+        [3 / 17, 5 / 29],
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert measure_data.equals(expected_measure_data)
+    assert measure_data_from_ratio.equals(expected_measure_data)
+
+
+def test_prevalence(person_time_data: pd.DataFrame) -> None:
+    """Test the Prevalence measure."""
+    cause = "disease"
+    measure = Prevalence(cause)
+    assert measure.measure_key == f"cause.{cause}.prevalence"
+    assert measure.sim_datasets == {
+        "numerator_data": f"person_time_{cause}",
+        "denominator_data": f"person_time_{cause}",
+    }
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+
+    ratio_data = measure.get_ratio_data_from_sim(
+        numerator_data=person_time_data,
+        denominator_data=person_time_data,
+    )
+    expected_ratio_data = pd.DataFrame(
+        {
+            "disease_person_time": [23, 37],
+            "total_person_time": [17 + 23, 29 + 37],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert ratio_data.equals(expected_ratio_data)
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(ratio_data=ratio_data)
+    measure_data = measure.get_measure_data_from_sim(
+        numerator_data=person_time_data, denominator_data=person_time_data
+    )
+    expected_measure_data = pd.Series(
+        [23 / (17 + 23), 37 / (29 + 37)],
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+
+    assert measure_data.equals(expected_measure_data)
+    assert measure_data_from_ratio.equals(expected_measure_data)
+
+
+def test_remission(
+    transition_count_data: pd.DataFrame, person_time_data: pd.DataFrame
+) -> None:
+    """Test the Remission measure."""
+    cause = "disease"
+    measure = Remission(cause)
+    assert measure.measure_key == f"cause.{cause}.remission"
+    assert measure.sim_datasets == {
+        "numerator_data": f"transition_count_{cause}",
+        "denominator_data": f"person_time_{cause}",
+    }
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+
+    ratio_data = measure.get_ratio_data_from_sim(
+        numerator_data=transition_count_data,
+        denominator_data=person_time_data,
+    )
+    expected_ratio_data = pd.DataFrame(
+        {
+            "disease_to_susceptible_to_disease_transition_count": [7, 13],
+            "susceptible_to_disease_person_time": [17, 29],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert ratio_data.equals(expected_ratio_data)
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(ratio_data=ratio_data)
+    measure_data = measure.get_measure_data_from_sim(
+        numerator_data=transition_count_data, denominator_data=person_time_data
+    )
+    expected_measure_data = pd.Series(
+        [7 / 17, 13 / 29],
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert measure_data.equals(expected_measure_data)
+    assert measure_data_from_ratio.equals(expected_measure_data)
