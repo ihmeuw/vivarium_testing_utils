@@ -12,6 +12,10 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
 
 
 class SimDataFormatter(ABC):
+    """A SimDataFormatter contains information about how to format particular kinds of
+    simulaton data for use in a measure calculation. For example, incidence relies on
+    both transition counts and person time data, which require different formatting/ operations
+    on assumed columns in the simulation data."""
 
     type: str
     cause: str
@@ -26,9 +30,9 @@ class SimDataFormatter(ABC):
 
 
 class TransitionCounts(SimDataFormatter):
-    """structured container to hold info about Transition Counts"""
+    """Formatter for simulation data that contains transition counts."""
 
-    def __init__(self, cause, start_state, end_state):
+    def __init__(self, cause: str, start_state: str, end_state: str) -> None:
         self.type = "transition_count"
         self.cause = cause
         self.data_key = f"{self.type}_{self.cause}"
@@ -39,7 +43,7 @@ class TransitionCounts(SimDataFormatter):
         self.renamed_column = f"{self.transition_string}_{self.type}"
 
     def format_dataset(self, dataset: SimOutputData) -> SimOutputData:
-        """Clean up cause column, filter for the transition, and rename the value column."""
+        """Clean up redundant columns, filter for the transition, and rename the value column."""
         dataset = drop_redundant_index(
             dataset,
             "measure",
@@ -61,9 +65,9 @@ class TransitionCounts(SimDataFormatter):
 
 
 class PersonTime(SimDataFormatter):
-    """structured container to hold info about Person Time"""
+    """Formatter for simulation data that contains person time."""
 
-    def __init__(self, cause, state=None):
+    def __init__(self, cause: str, state=None) -> None:
         self.type = "person_time"
         self.cause = cause
         self.data_key = f"{self.type}_{self.cause}"
@@ -72,7 +76,7 @@ class PersonTime(SimDataFormatter):
         self.renamed_column = f"{self.state}_{self.type}"
 
     def format_dataset(self, dataset: SimOutputData) -> SimOutputData:
-        """Clean up cause column, filter for the state, and rename the value column."""
+        """Clean up redundant columns, filter for the state, and rename the value column."""
         dataset = drop_redundant_index(
             dataset,
             "measure",
@@ -102,7 +106,7 @@ class PersonTime(SimDataFormatter):
 def drop_redundant_index(
     data: pd.DataFrame, idx_column_name: str, idx_column_value: str
 ) -> None:
-    """Validate that the column is singular-valued, then drop it"""
+    """Validate that a DataFrame column is singular-valued, then drop it from the index."""
     if not (data.index.get_level_values(idx_column_name) == idx_column_value).all():
         raise ValueError(
             f"Cause {data.index.get_level_values(idx_column_name).unique()} in data does not match expected cause {idx_column_name}"
