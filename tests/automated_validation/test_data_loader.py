@@ -119,7 +119,9 @@ def test__load_artifact(sim_result_dir: Path) -> None:
     }
 
 
-def test__load_from_artifact(sim_result_dir: Path, artifact_disease_incidence) -> None:
+def test__load_from_artifact(
+    sim_result_dir: Path, artifact_disease_incidence: pd.DataFrame
+) -> None:
     """Ensure that we can load data from the artifact directory"""
     data_loader = DataLoader(sim_result_dir)
     art_dataset = data_loader._load_from_artifact("cause.disease.incidence_rate")

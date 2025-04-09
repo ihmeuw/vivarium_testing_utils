@@ -24,7 +24,9 @@ def test_upload_custom_data(sim_result_dir: Path) -> None:
     assert context.get_raw_dataset("foo", "custom").equals(df)
 
 
-def test_show_raw_dataset(sim_result_dir: Path, artifact_disease_incidence) -> None:
+def test_show_raw_dataset(
+    sim_result_dir: Path, artifact_disease_incidence: pd.DataFrame
+) -> None:
     """Ensure that we can show the raw dataset"""
     context = ValidationContext(sim_result_dir, None)
     df = pd.DataFrame({"baz": [1, 2, 3]})
