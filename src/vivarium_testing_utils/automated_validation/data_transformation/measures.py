@@ -87,9 +87,6 @@ class RatioMeasure(Measure):
     def get_measure_data_from_artifact(self, artifact_data: ArtifactData) -> MeasureData:
         return artifact_data
 
-    def get_ratio_data_from_artifact(self, artifact_data: ArtifactData) -> RatioData:
-        raise NotImplementedError("Artifact data cannot be processed as a ratio.")
-
     def get_measure_data_from_ratio(self, ratio_data: RatioData) -> MeasureData:
         """Compute final measure data from split data."""
         return ratio(
@@ -113,36 +110,36 @@ class RatioMeasure(Measure):
 
 
 class Incidence(RatioMeasure):
-    """Class to compute incidence from simulation data."""
+    """Computes Susceptible Population Incidence Rate."""
 
-    def __init__(self, cause: str):
+    def __init__(self, cause: str) -> None:
         self.measure_key = f"cause.{cause}.incidence_rate"
         self.numerator = TransitionCounts(cause, f"susceptible_to_{cause}", cause)
         self.denominator = PersonTime(cause, f"susceptible_to_{cause}")
 
 
 class Prevalence(RatioMeasure):
-    """Computes prevalence from simulation data."""
+    """Computes Prevalence of cause in the population."""
 
-    def __init__(self, cause: str):
+    def __init__(self, cause: str) -> None:
         self.measure_key = f"cause.{cause}.prevalence"
         self.numerator = PersonTime(cause, cause)
         self.denominator = PersonTime(cause)
 
 
-class Remission(RatioMeasure):
-    """Computes remission from simulation data."""
+class SIRemission(RatioMeasure):
+    """Computes (SI) remission rate among infected population."""
 
-    def __init__(self, cause: str):
-        self.measure_key = f"cause.{cause}.remission"
+    def __init__(self, cause: str) -> None:
+        self.measure_key = f"cause.{cause}.remission_rate"
         self.numerator = TransitionCounts(cause, cause, f"susceptible_to_{cause}")
-        self.denominator = PersonTime(cause, f"susceptible_to_{cause}")
+        self.denominator = PersonTime(cause, cause)
 
 
 MEASURE_KEY_MAPPINGS = {
     "cause": {
         "incidence_rate": Incidence,
         "prevalence": Prevalence,
-        "remission": Remission,
+        "remission_rate": SIRemission,
     }
 }
