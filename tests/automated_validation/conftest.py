@@ -66,3 +66,26 @@ def person_time_data() -> pd.DataFrame:
             names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
         ),
     )
+
+
+@pytest.fixture
+def artifact_disease_incidence() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "value": [
+                0.17,
+                0.18,
+                0.13,
+                0.14,
+            ],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("A", 0),
+                ("A", 1),
+                ("B", 0),
+                ("B", 1),
+            ],
+            names=["stratify_column", "draw"],
+        ),
+    )
