@@ -7,9 +7,20 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     RatioMeasure,
 )
+import pandas as pd
 
 
 class Comparison(ABC):
+    """A Comparison is the basic testing unit to compare two datasets, a "test" dataset and a
+    "reference" dataset. The test dataset is the one that is being validated, while the reference
+    dataset is the one that is used as a benchmark. The comparison operates on a *measure* of the two datasets,
+    typically a derived quantity of the test data such as incidene rate or prevalence."""
+
+    measure: RatioMeasure
+    test_data: pd.DataFrame
+    reference_data: MeasureData
+    stratifications: list[str]
+
     @abstractmethod
     def verify(self, stratifications: list[str]):
         pass
@@ -35,7 +46,6 @@ class FuzzyComparison:
         self.test_data = test_data
         self.reference_data = reference_data
         self.stratifications = stratifications
-        # you need to marginalize out the non-stratified columns as well
 
     def verify(self, stratifications: list[str]):
         raise NotImplementedError
