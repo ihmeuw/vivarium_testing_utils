@@ -21,7 +21,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
 
 
 class Measure(ABC):
-    """Base class for all measures."""
+    """A Measure contains key information and methods to take raw data from a DataSource
+    and process it into an epidemiological measure suitable for use in a Comparison."""
 
     sim_datasets: dict[str, str]
     artifact_datasets: dict[str, str]
