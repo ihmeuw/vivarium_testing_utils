@@ -1,7 +1,7 @@
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Incidence,
     Prevalence,
-    Remission,
+    SIRemission,
 )
 import pandas as pd
 
@@ -93,13 +93,13 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
     assert measure_data_from_ratio.equals(expected_measure_data)
 
 
-def test_remission(
+def test_siremission(
     transition_count_data: pd.DataFrame, person_time_data: pd.DataFrame
 ) -> None:
-    """Test the Remission measure."""
+    """Test the SIRemission measure."""
     cause = "disease"
-    measure = Remission(cause)
-    assert measure.measure_key == f"cause.{cause}.remission"
+    measure = SIRemission(cause)
+    assert measure.measure_key == f"cause.{cause}.remission_rate"
     assert measure.sim_datasets == {
         "numerator_data": f"transition_count_{cause}",
         "denominator_data": f"person_time_{cause}",
@@ -113,20 +113,21 @@ def test_remission(
     expected_ratio_data = pd.DataFrame(
         {
             "disease_to_susceptible_to_disease_transition_count": [7, 13],
-            "susceptible_to_disease_person_time": [17, 29],
+            "disease_person_time": [23, 37],
         },
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",
         ),
     )
+
     assert ratio_data.equals(expected_ratio_data)
     measure_data_from_ratio = measure.get_measure_data_from_ratio(ratio_data=ratio_data)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=transition_count_data, denominator_data=person_time_data
     )
     expected_measure_data = pd.Series(
-        [7 / 17, 13 / 29],
+        [7 / 23, 13 / 37],
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",
