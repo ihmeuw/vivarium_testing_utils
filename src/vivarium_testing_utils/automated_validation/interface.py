@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pandas as pd
-from layered_config_tree import LayeredConfigTree
 
 from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison
@@ -11,7 +10,7 @@ from vivarium_testing_utils.automated_validation.data_loader import DataLoader, 
 class ValidationContext:
     def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None):
         self._data_loader = DataLoader(results_dir)
-        self.comparisons = LayeredConfigTree()
+        self.comparisons = {}
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""

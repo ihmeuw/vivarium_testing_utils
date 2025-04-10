@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pandas as pd
 import yaml
-from layered_config_tree import ConfigurationKeyError, LayeredConfigTree
 from vivarium import Artifact
 
 
@@ -28,16 +27,13 @@ class DataLoader:
         self._sim_output_dir = Path(sim_output_dir)
         self._results_dir = self._sim_output_dir / "results"
         self._cache_size_mb = cache_size_mb
-        self._raw_datasets = LayeredConfigTree(
-            {data_source: {} for data_source in DataSource}
-        )
+        self._raw_datasets = {data_source: {} for data_source in DataSource}
         self._loader_mapping = {
             DataSource.SIM: self._load_from_sim,
             DataSource.GBD: self._load_from_gbd,
             DataSource.ARTIFACT: self._load_from_artifact,
             DataSource.CUSTOM: self._raise_custom_data_error,
         }
-        self._metadata = LayeredConfigTree()
         self._artifact = self._load_artifact(self._sim_output_dir)
 
     def get_sim_outputs(self) -> list[str]:
@@ -52,7 +48,7 @@ class DataLoader:
         """Return the dataset from the cache if it exists, otherwise load it from the source."""
         try:
             return self._raw_datasets[source][dataset_key].copy()
-        except ConfigurationKeyError:
+        except KeyError:
             dataset = self._load_from_source(dataset_key, source)
             self._add_to_cache(dataset_key, source, dataset)
             return dataset
@@ -75,8 +71,7 @@ class DataLoader:
         sim_data = pd.read_parquet(self._results_dir / f"{dataset_key}.parquet")
         if "value" not in sim_data.columns:
             raise ValueError(f"{dataset_key}.parquet requires a column labeled 'value'.")
-        sim_data = sim_data.set_index(sim_data.columns.drop("value").tolist())
-        return sim_data
+        return sim_data.set_index(sim_data.columns.drop("value").tolist())
 
     @staticmethod
     def _load_artifact(results_dir: str) -> Artifact:
