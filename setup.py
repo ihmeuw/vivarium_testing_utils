@@ -52,7 +52,6 @@ if __name__ == "__main__":
         "tables",
         "networkx",
         "loguru",
-        "layered_config_tree",
         "pandera",
         "pyarrow",
         # Type stubs
