@@ -33,4 +33,6 @@ def test_show_raw_dataset(
     # Ensure loading with a string instead of a DataSource enum works
     assert context.get_raw_dataset("foo", "custom").equals(df)
     assert context.get_raw_dataset("deaths", "sim").shape == (8, 1)
-    assert context.get_raw_dataset("cause.cause.incidence_rate", "artifact").shape == (12, 5)
+    assert context.get_raw_dataset("cause.disease.incidence_rate", "artifact").equals(
+        artifact_disease_incidence
+    )
