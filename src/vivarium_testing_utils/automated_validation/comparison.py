@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+import pandas as pd
+
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     MeasureData,
     RatioData,
@@ -7,7 +9,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     RatioMeasure,
 )
-import pandas as pd
 
 
 class Comparison(ABC):
