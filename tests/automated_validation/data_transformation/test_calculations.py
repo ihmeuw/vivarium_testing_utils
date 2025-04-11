@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from vivarium_testing_utils.automated_validation.calculations import (
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     aggregate_sum,
     linear_combination,
     ratio,
