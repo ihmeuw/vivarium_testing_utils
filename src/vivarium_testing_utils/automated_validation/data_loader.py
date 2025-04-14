@@ -7,6 +7,8 @@ import pandas as pd
 import yaml
 from vivarium import Artifact
 
+DRAW_PREFIX = "draw_"
+
 
 class DataSource(Enum):
     SIM = "sim"
@@ -84,6 +86,21 @@ class DataLoader:
     def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
+        # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
+        # and melt the data into long format
+        if data.columns.str.startswith(DRAW_PREFIX).all():
+            data = data.melt(
+                var_name="draw",
+                value_name="value",
+                ignore_index=False,
+            )
+            data["draw"] = data["draw"].str.replace(DRAW_PREFIX, "", regex=False)
+            data["draw"] = data["draw"].astype(int)
+            data = data.set_index("draw", append=True).sort_index()
+        elif "value" not in data.columns:
+            raise ValueError(
+                f"Artifact {dataset_key} must have draw columns or a value column."
+            )
         return data
 
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
