@@ -8,6 +8,8 @@ import yaml
 from vivarium import Artifact
 
 DRAW_PREFIX = "draw_"
+
+
 class DataSource(Enum):
     SIM = "sim"
     GBD = "gbd"
