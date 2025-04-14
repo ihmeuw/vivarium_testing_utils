@@ -55,7 +55,7 @@ def transition_count_data() -> pd.DataFrame:
 def person_time_data() -> pd.DataFrame:
     return pd.DataFrame(
         {
-            "value": [17, 23, 29, 37],
+            "value": [17.0, 23.0, 29.0, 37.0],
         },
         index=pd.MultiIndex.from_tuples(
             [

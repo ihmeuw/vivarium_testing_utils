@@ -4,8 +4,17 @@ from pandera.typing import DataFrame, Index, Series
 
 
 class SimOutputData(pa.DataFrameModel):
-    # A data schema for raw simulation data that enters the data loader
-    pass
+    # Required index levels
+    measure: Index[str]
+    entity_type: Index[str]
+    entity: Index[str]
+    sub_entity: Index[str]
+
+    # Required and only data column
+    value: Series[float]
+
+    class Config:
+        strict = True  # Prevents extra columns beyond those defined here
 
 
 class ArtifactData(pa.DataFrameModel):
