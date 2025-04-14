@@ -12,8 +12,8 @@ def test_get_sim_outputs(sim_result_dir: Path) -> None:
     data_loader = DataLoader(sim_result_dir)
     assert set(data_loader.get_sim_outputs()) == {
         "deaths",
-        "person_time_cause",
-        "transition_count_cause",
+        "person_time_disease",
+        "transition_count_disease",
     }
 
 
@@ -50,7 +50,7 @@ def test_get_dataset_custom(sim_result_dir: Path) -> None:
     "dataset_key, source",
     [
         ("deaths", DataSource.SIM),
-        ("cause.cause.incidence_rate", DataSource.ARTIFACT),
+        ("cause.disease.incidence_rate", DataSource.ARTIFACT),
         # Add more sources here later
     ],
 )
@@ -89,13 +89,15 @@ def test_cache_immutable(sim_result_dir: Path) -> None:
     assert not data_loader.get_dataset("foo", DataSource.CUSTOM).equals(cached_data)
 
 
-def test__load_from_sim(sim_result_dir: Path) -> None:
+def test__load_from_sim(
+    sim_result_dir: Path,
+) -> None:
     """Ensure that we can load data from the simulation output directory"""
     data_loader = DataLoader(sim_result_dir)
-    person_time_cause = data_loader._load_from_sim("deaths")
-    assert person_time_cause.shape == (8, 1)
+    deaths = data_loader._load_from_sim("deaths")
+    assert deaths.shape == (8, 1)
     # check that value is column and rest are indices
-    assert set(person_time_cause.index.names) == {
+    assert set(deaths.index.names) == {
         "measure",
         "entity_type",
         "entity",
@@ -105,26 +107,28 @@ def test__load_from_sim(sim_result_dir: Path) -> None:
         "input_draw",
         "random_seed",
     }
-    assert set(person_time_cause.columns) == {"value"}
+    assert set(deaths.columns) == {"value"}
 
 
 def test__load_artifact(sim_result_dir: Path) -> None:
     """Ensure that we can load the artifact itself"""
     artifact = DataLoader._load_artifact(sim_result_dir)
-    assert set(artifact.keys) == {"metadata.keyspace", "cause.cause.incidence_rate"}
+    assert set(artifact.keys) == {
+        "metadata.keyspace",
+        "cause.disease.incidence_rate",
+    }
 
 
-def test__load_from_artifact(sim_result_dir: Path) -> None:
+def test__load_from_artifact(
+    sim_result_dir: Path, artifact_disease_incidence: pd.DataFrame
+) -> None:
     """Ensure that we can load data from the artifact directory"""
     data_loader = DataLoader(sim_result_dir)
-    art_dataset = data_loader._load_from_artifact("cause.cause.incidence_rate")
-    assert art_dataset.shape == (12, 5)
+    art_dataset = data_loader._load_from_artifact("cause.disease.incidence_rate")
+    assert art_dataset.equals(artifact_disease_incidence)
     # check that value is column and rest are indices
     assert set(art_dataset.index.names) == {
-        "sex",
-        "age_start",
-        "age_end",
-        "year_start",
-        "year_end",
+        "stratify_column",
+        "draw",
     }
-    assert set(art_dataset.columns) == {"draw_0", "draw_1", "draw_2", "draw_3", "draw_4"}
+    assert set(art_dataset.columns) == {"value"}
