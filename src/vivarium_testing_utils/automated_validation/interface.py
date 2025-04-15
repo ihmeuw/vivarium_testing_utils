@@ -3,8 +3,12 @@ from pathlib import Path
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation import plot_utils
-from vivarium_testing_utils.automated_validation.comparison import Comparison
+from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    MEASURE_KEY_MAPPINGS,
+    Measure,
+)
 
 
 class ValidationContext:
@@ -31,7 +35,31 @@ class ValidationContext:
     def add_comparison(
         self, measure_key: str, test_source: str, ref_source: str, stratifications: list[str]
     ) -> None:
-        raise NotImplementedError
+        """Add a comparison to the context given a measure key and data sources."""
+        entity_type, entity, measure = measure_key.split(".")
+        measure = MEASURE_KEY_MAPPINGS[entity_type][measure](entity)
+
+        test_source = DataSource.from_str(test_source)
+
+        if not test_source == DataSource.SIM:
+            raise NotImplementedError(
+                f"Fuzzy Comparison for {test_source} source not implemented. Must be SIM."
+            )
+        test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source)
+        test_data = measure.get_ratio_data_from_sim(
+            **test_raw_datasets,
+        )
+
+        ref_source = DataSource.from_str(ref_source)
+        ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source)
+        ref_data = measure.get_measure_data(ref_source, **ref_raw_datasets)
+        comparison = FuzzyComparison(
+            measure,
+            test_data,
+            ref_data,
+            stratifications,
+        )
+        self.comparisons.update({measure_key: comparison})
 
     def verify(self, comparison_key: str, stratifications: list[str] = []):
         self.comparisons[comparison_key].verify(stratifications)
@@ -51,3 +79,12 @@ class ValidationContext:
 
     def get_results(self, verbose: bool = False):
         raise NotImplementedError
+
+    def _get_raw_datasets_from_source(
+        self, measure: Measure, source: DataSource
+    ) -> dict[str, pd.DataFrame]:
+        """Get the raw datasets from the given source."""
+        return {
+            dataset_name: self._data_loader.get_dataset(dataset_key, source)
+            for dataset_name, dataset_key in measure.get_required_datasets(source).items()
+        }
