@@ -64,6 +64,8 @@ def _drop_redundant_index(
     data: pd.DataFrame, idx_column_name: str, idx_column_value: str
 ) -> None:
     """Validate that a DataFrame column is singular-valued, then drop it from the index."""
+    # TODO: Make sure we handle this case appropriately when we
+    # want to automatically add many comparisons
     if not (data.index.get_level_values(idx_column_name) == idx_column_value).all():
         raise ValueError(
             f"Cause {data.index.get_level_values(idx_column_name).unique()} in data does not match expected cause {idx_column_name}"

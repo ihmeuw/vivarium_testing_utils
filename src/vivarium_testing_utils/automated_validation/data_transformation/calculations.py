@@ -29,6 +29,8 @@ def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
         else:
             data = data[data.index.get_level_values(col).isin(values)]
     if data.empty:
+        # TODO: Make sure we handle this case appropriately when we
+        # want to automatically add many comparisons
         raise ValueError(
             f"DataFrame is empty after filtering by {filter_cols}. "
             f"Check that the filter values are valid."
