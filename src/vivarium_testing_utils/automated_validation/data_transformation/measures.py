@@ -56,7 +56,7 @@ class Measure(ABC):
             raise ValueError(f"Unsupported data source: {source}")
 
 
-class RatioMeasure(Measure):
+class RatioMeasure(Measure, ABC):
     """A Measure that calculates ratio data from simulation data."""
 
     measure_key: str
