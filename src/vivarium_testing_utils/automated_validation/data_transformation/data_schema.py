@@ -1,6 +1,7 @@
 import pandas as pd
 import pandera as pa
 from pandera.typing import DataFrame, Index, Series
+from pandas.api.types import is_any_real_numeric_dtype
 
 
 class SimOutputData(pa.DataFrameModel):
@@ -11,7 +12,11 @@ class SimOutputData(pa.DataFrameModel):
     sub_entity: Index[str]
 
     # Required and only data column
-    value: Series[float]
+    value: Series
+
+    @pa.check("value")
+    def check_value(self, series: Series) -> Series:
+        return is_any_real_numeric_dtype(series)
 
     class Config:
         strict = True  # Prevents extra columns beyond those defined here
