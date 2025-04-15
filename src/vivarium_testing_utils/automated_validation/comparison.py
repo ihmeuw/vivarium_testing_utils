@@ -15,7 +15,7 @@ class Comparison(ABC):
     """A Comparison is the basic testing unit to compare two datasets, a "test" dataset and a
     "reference" dataset. The test dataset is the one that is being validated, while the reference
     dataset is the one that is used as a benchmark. The comparison operates on a *measure* of the two datasets,
-    typically a derived quantity of the test data such as incidene rate or prevalence."""
+    typically a derived quantity of the test data such as incidence rate or prevalence."""
 
     measure: RatioMeasure
     test_data: pd.DataFrame

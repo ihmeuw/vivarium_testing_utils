@@ -16,7 +16,9 @@ def align_indexes(datasets: list[DataSet]) -> list[DataSet]:
 
 
 def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
-    """Filter a DataFrame by the given index columns and values. The filter_cols argument
+    """Filter a DataFrame by the given index columns and values.
+
+    The filter_cols argument
     should be a dictionary where the keys are column names and the values are lists of
     values to keep. If we filter to a single value, drop the column. If the dataframe is empty
     after filtering, raise an error."""
