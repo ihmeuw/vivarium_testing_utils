@@ -11,99 +11,56 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
 )
 
 
-class SimDataFormatter(ABC):
+class SimDataFormatter:
     """A SimDataFormatter contains information about how to format particular kinds of
     simulaton data for use in a measure calculation. For example, incidence relies on
     both transition counts and person time data, which require different formatting/ operations
     on assumed columns in the simulation data."""
 
-    type: str
-    cause: str
-    data_key: str
-    groupby_column: str
-    renamed_column: str
+    def __init__(self, type: str, cause: str, filter_value: str) -> None:
+        self.type = type
+        self.cause = cause
+        self.data_key = f"{self.type}_{self.cause}"
+        self.redundant_columns = {
+            "measure": self.type,
+            "entity_type": "cause",
+            "entity": self.cause,
+        }
+        self.filter_column = "sub_entity"
+        self.filter_value = filter_value
+        self.new_value_column_name = f"{self.filter_value}_{self.type}"
 
-    @abstractmethod
     def format_dataset(self, dataset: SimOutputData) -> SimOutputData:
-        """Format the dataset for the specific measure."""
-        pass
+        """Clean up redundant columns, filter for the state, and rename the value column."""
+        for column, value in self.redundant_columns.items():
+            dataset = _drop_redundant_index(
+                dataset,
+                column,
+                value,
+            )
+        if self.filter_value == "total":
+            dataset = marginalize(dataset, [self.filter_column])
+        else:
+            dataset = filter_data(dataset, {self.filter_column: [self.filter_value]})
+        dataset = dataset.rename(columns={"value": self.new_value_column_name})
+        return dataset
 
 
 class TransitionCounts(SimDataFormatter):
     """Formatter for simulation data that contains transition counts."""
 
     def __init__(self, cause: str, start_state: str, end_state: str) -> None:
-        self.type = "transition_count"
-        self.cause = cause
-        self.data_key = f"{self.type}_{self.cause}"
-        self.start_state = start_state
-        self.end_state = end_state
-        self.transition_string = f"{self.start_state}_to_{self.end_state}"
-        self.groupby_column = "sub_entity"
-        self.renamed_column = f"{self.transition_string}_{self.type}"
-
-    def format_dataset(self, dataset: SimOutputData) -> SimOutputData:
-        """Clean up redundant columns, filter for the transition, and rename the value column."""
-        dataset = drop_redundant_index(
-            dataset,
-            "measure",
-            self.type,
-        )
-        dataset = drop_redundant_index(
-            dataset,
-            "entity_type",
-            "cause",
-        )
-        dataset = drop_redundant_index(
-            dataset,
-            "entity",
-            self.cause,
-        )
-        dataset = filter_data(dataset, {self.groupby_column: [self.transition_string]})
-        dataset = dataset.rename(columns={"value": self.renamed_column})
-        return dataset
+        super().__init__("transition_count", cause, f"{start_state}_to_{end_state}")
 
 
 class PersonTime(SimDataFormatter):
     """Formatter for simulation data that contains person time."""
 
     def __init__(self, cause: str, state=None) -> None:
-        self.type = "person_time"
-        self.cause = cause
-        self.data_key = f"{self.type}_{self.cause}"
-        self.state = state if state else "total"
-        self.groupby_column = f"sub_entity"
-        self.renamed_column = f"{self.state}_{self.type}"
-
-    def format_dataset(self, dataset: SimOutputData) -> SimOutputData:
-        """Clean up redundant columns, filter for the state, and rename the value column."""
-        dataset = drop_redundant_index(
-            dataset,
-            "measure",
-            self.type,
-        )
-        dataset = drop_redundant_index(
-            dataset,
-            "entity_type",
-            "cause",
-        )
-        dataset = drop_redundant_index(
-            dataset,
-            "entity",
-            self.cause,
-        )
-        if self.state == "total":
-            dataset = marginalize(
-                dataset,
-                [self.groupby_column],
-            )
-        else:
-            dataset = filter_data(dataset, {self.groupby_column: [self.state]})
-        dataset = dataset.rename(columns={"value": self.renamed_column})
-        return dataset
+        super().__init__("person_time", cause, state or "total")
 
 
-def drop_redundant_index(
+def _drop_redundant_index(
     data: pd.DataFrame, idx_column_name: str, idx_column_value: str
 ) -> None:
     """Validate that a DataFrame column is singular-valued, then drop it from the index."""

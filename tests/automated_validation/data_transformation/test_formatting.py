@@ -3,11 +3,11 @@ import pandas as pd
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     PersonTime,
     TransitionCounts,
-    drop_redundant_index,
+    _drop_redundant_index,
 )
 
 
-def test_drop_redundant_index() -> None:
+def test__drop_redundant_index() -> None:
     """Test drop_redundant_index function."""
     # Create a mock dataset
     dataset = pd.DataFrame(
@@ -34,7 +34,7 @@ def test_drop_redundant_index() -> None:
         ),
     )
     # Call the function to drop the redundant index
-    formatted_dataset = drop_redundant_index(dataset, "redundant_column", "redundant_column")
+    formatted_dataset = _drop_redundant_index(dataset, "redundant_column", "redundant_column")
     assert formatted_dataset.equals(expected_dataframe)
 
 
@@ -44,15 +44,16 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     assert formatter.type == "transition_count"
     assert formatter.cause == "disease"
     assert formatter.data_key == "transition_count_disease"
-    assert formatter.start_state == "susceptible_to_disease"
-    assert formatter.end_state == "disease"
-    assert formatter.transition_string == "susceptible_to_disease_to_disease"
-    assert formatter.groupby_column == "sub_entity"
-    assert formatter.renamed_column == "susceptible_to_disease_to_disease_transition_count"
+    assert formatter.filter_value == "susceptible_to_disease_to_disease"
+    assert formatter.filter_column == "sub_entity"
+    assert (
+        formatter.new_value_column_name
+        == "susceptible_to_disease_to_disease_transition_count"
+    )
 
     expected_dataframe = pd.DataFrame(
         {
-            formatter.renamed_column: [3, 5],
+            formatter.new_value_column_name: [3, 5],
         },
         index=pd.Index(
             ["A", "B"],
@@ -70,9 +71,8 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
     assert formatter.type == "person_time"
     assert formatter.cause == "disease"
     assert formatter.data_key == "person_time_disease"
-    assert formatter.state == "disease"
-    assert formatter.groupby_column == "sub_entity"
-    assert formatter.renamed_column == "disease_person_time"
+    assert formatter.filter_column == "sub_entity"
+    assert formatter.new_value_column_name == "disease_person_time"
 
     expected_dataframe = pd.DataFrame(
         {
@@ -93,9 +93,8 @@ def test_total_pt(person_time_data: pd.DataFrame) -> None:
     assert formatter.type == "person_time"
     assert formatter.cause == "disease"
     assert formatter.data_key == "person_time_disease"
-    assert formatter.state == "total"
-    assert formatter.groupby_column == "sub_entity"
-    assert formatter.renamed_column == "total_person_time"
+    assert formatter.filter_column == "sub_entity"
+    assert formatter.new_value_column_name == "total_person_time"
 
     expected_dataframe = pd.DataFrame(
         {

@@ -92,8 +92,8 @@ class RatioMeasure(Measure):
         """Compute final measure data from split data."""
         return ratio(
             ratio_data,
-            numerator=self.numerator.renamed_column,
-            denominator=self.denominator.renamed_column,
+            numerator=self.numerator.new_value_column_name,
+            denominator=self.denominator.new_value_column_name,
         )
 
     def get_measure_data_from_sim(self, *args, **kwargs) -> MeasureData:
