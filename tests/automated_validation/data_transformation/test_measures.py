@@ -94,7 +94,7 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
     assert measure_data_from_ratio.equals(expected_measure_data)
 
 
-def test_siremission(
+def test_si_remission(
     transition_count_data: pd.DataFrame, person_time_data: pd.DataFrame
 ) -> None:
     """Test the SIRemission measure."""

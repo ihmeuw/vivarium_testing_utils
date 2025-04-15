@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     PersonTime,
@@ -37,10 +38,26 @@ def test__drop_redundant_index() -> None:
     formatted_dataset = _drop_redundant_index(dataset, "redundant_column", "redundant_column")
     assert formatted_dataset.equals(expected_dataframe)
 
+    # Test that we raise an error if the column has more than one value
+    dataset = dataset.copy()
+    dataset.index = pd.MultiIndex.from_tuples(
+        [
+            ("redundant_column", "heterogeneous"),
+            ("redundant_column", "values"),
+            ("redundant_column", "in_this"),
+            ("not_redundant!", "column"),
+        ],
+        names=["redundant_column", "interesting_column"],
+    )
+    with pytest.raises(ValueError):
+        _drop_redundant_index(dataset, "redundant_column", "redundant_column")
+
 
 def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     """Test TransitionCounts formatting."""
     formatter = TransitionCounts("disease", "susceptible_to_disease", "disease")
+    # assert formatter has right number of attrs
+    assert len(formatter.__dict__) == 7
     assert formatter.type == "transition_count"
     assert formatter.cause == "disease"
     assert formatter.data_key == "transition_count_disease"
@@ -50,6 +67,11 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
         formatter.new_value_column_name
         == "susceptible_to_disease_to_disease_transition_count"
     )
+    assert formatter.redundant_columns == {
+        "measure": "transition_count",
+        "entity_type": "cause",
+        "entity": "disease",
+    }
 
     expected_dataframe = pd.DataFrame(
         {
@@ -68,11 +90,17 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
     """Test PersonTime formatting."""
     # Create a mock dataset
     formatter = PersonTime("disease", "disease")
+    assert len(formatter.__dict__) == 7
     assert formatter.type == "person_time"
     assert formatter.cause == "disease"
     assert formatter.data_key == "person_time_disease"
     assert formatter.filter_column == "sub_entity"
     assert formatter.new_value_column_name == "disease_person_time"
+    assert formatter.redundant_columns == {
+        "measure": "person_time",
+        "entity_type": "cause",
+        "entity": "disease",
+    }
 
     expected_dataframe = pd.DataFrame(
         {
@@ -90,11 +118,17 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
 def test_total_pt(person_time_data: pd.DataFrame) -> None:
     """Test PersonTime formatting with total state."""
     formatter = PersonTime("disease")
+    assert len(formatter.__dict__) == 7
     assert formatter.type == "person_time"
     assert formatter.cause == "disease"
     assert formatter.data_key == "person_time_disease"
     assert formatter.filter_column == "sub_entity"
     assert formatter.new_value_column_name == "total_person_time"
+    assert formatter.redundant_columns == {
+        "measure": "person_time",
+        "entity_type": "cause",
+        "entity": "disease",
+    }
 
     expected_dataframe = pd.DataFrame(
         {
