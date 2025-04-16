@@ -1,7 +1,15 @@
 from pathlib import Path
 
 import pandas as pd
+import pandera as pa
 import pytest
+from pandera.typing import DataFrame
+
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    DrawData,
+    SimOutputData,
+    SingleNumericValue,
+)
 
 
 @pytest.fixture
@@ -9,11 +17,12 @@ def sim_result_dir() -> Path:
     return Path(__file__).parent / "data/sim_outputs"
 
 
+@pa.check_types
 @pytest.fixture
-def transition_count_data() -> pd.DataFrame:
+def transition_count_data() -> DataFrame[SimOutputData]:
     return pd.DataFrame(
         {
-            "value": [3, 5, 7, 13],
+            "value": [3.0, 5.0, 7.0, 13.0],
         },
         index=pd.MultiIndex.from_tuples(
             [
@@ -51,8 +60,9 @@ def transition_count_data() -> pd.DataFrame:
     )
 
 
+@pa.check_types
 @pytest.fixture
-def person_time_data() -> pd.DataFrame:
+def person_time_data() -> DataFrame[SimOutputData]:
     return pd.DataFrame(
         {
             "value": [17.0, 23.0, 29.0, 37.0],
@@ -70,7 +80,7 @@ def person_time_data() -> pd.DataFrame:
 
 
 @pytest.fixture
-def raw_artifact_disease_incidence() -> pd.DataFrame:
+def raw_artifact_disease_incidence() -> DataFrame[DrawData]:
     return pd.DataFrame(
         {
             "draw_0": [0.17, 0.13],
@@ -86,8 +96,9 @@ def raw_artifact_disease_incidence() -> pd.DataFrame:
     )
 
 
+@pa.check_types
 @pytest.fixture
-def artifact_disease_incidence() -> pd.DataFrame:
+def artifact_disease_incidence() -> DataFrame[SingleNumericValue]:
     return pd.DataFrame(
         {
             "value": [
