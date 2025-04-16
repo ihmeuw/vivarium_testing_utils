@@ -1,42 +1,68 @@
+from typing import Literal, Optional, Union
+
 import pandas as pd
 import pandera as pa
-from pandera.typing import DataFrame, Index, Series
 from pandas.api.types import is_any_real_numeric_dtype
+from pandera.typing import DataFrame, Index, Series
 
 
-class SimOutputData(pa.DataFrameModel):
+class SingleNumericValue(pa.DataFrameModel):
+    """We restrict many intermediate dataframes to a single numeric column.
+
+    This is a primitive DataFrameModel that checks for this criterion. It is inherited elsewhere.
+    """
+
+    # Columns
+    value: Series
+
+    @pa.check("value")
+    def check_value(cls, series: Series) -> bool:
+        return is_any_real_numeric_dtype(series)
+
+    class Config:
+        strict = True
+
+
+class SimOutputData(SingleNumericValue):
+    """The output of a simulation is a dataframe with a single numeric column and a multi-index."""
+
     # Required index levels
     measure: Index[str]
     entity_type: Index[str]
     entity: Index[str]
     sub_entity: Index[str]
 
-    # Required and only data column
-    value: Series
 
-    @pa.check("value")
-    def check_value(self, series: Series) -> Series:
-        return is_any_real_numeric_dtype(series)
+class DrawData(pa.DataFrameModel):
+    """Draw Data from the Artifact has a large number of 'draw_' columns which must be pivoted."""
+
+    # Columns
+    draws: Series = pa.Field(regex=True, alias=r"^draw_\d+")
+
+    @pa.dataframe_check
+    def check_draw_columns(cls, df: DataFrame) -> bool:
+        # Check that all columns are numeric
+        numeric_columns = df.select_dtypes(include=["number"]).columns
+        # Check that all columns start with "draw_"
+        draw_columns = df.columns[df.columns.str.startswith("draw_")]
+        # Check that the number of draw columns is equal to the number of numeric columns
+        return len(numeric_columns) == len(draw_columns) == len(df.columns)
 
     class Config:
-        strict = True  # Prevents extra columns beyond those defined here
+        strict = True
 
 
-class ArtifactData(pa.DataFrameModel):
-    # A data schema for artifact data that enters the data loader
-    pass
-
-
-class CustomData(pa.DataFrameModel):
-    # A data schema for custom data that enters the data loader
-    pass
+RawArtifactData = Union[DataFrame[SingleNumericValue], DataFrame[DrawData]]
 
 
 class RatioData(pa.DataFrameModel):
-    # Data schema for ratio data, which can be assembled into a measure.
-    pass
+    """Ratio data is simulation data that has undergone one processing step to yield a dataframe with two numeric columns.
 
+    The columns will be numerator and denominator for a calculation into a final measure."""
 
-class MeasureData(pa.DataFrameModel):
-    # Measure data is the final, single-column output correponding to a measure.
-    pass
+    # Custom Checks
+    @pa.dataframe_check
+    def check_two_numeric_columns(cls, df: DataFrame) -> bool:
+        # Check that there are exactly two numeric columns in the DataFrame
+        numeric_columns = df.select_dtypes(include=["number"]).columns
+        return len(numeric_columns) == 2

@@ -70,6 +70,23 @@ def person_time_data() -> pd.DataFrame:
 
 
 @pytest.fixture
+def raw_artifact_disease_incidence() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "draw_0": [0.17, 0.13],
+            "draw_1": [0.18, 0.14],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("A"),
+                ("B"),
+            ],
+            names=["stratify_column"],
+        ),
+    )
+
+
+@pytest.fixture
 def artifact_disease_incidence() -> pd.DataFrame:
     return pd.DataFrame(
         {
