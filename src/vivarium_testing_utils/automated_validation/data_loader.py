@@ -4,18 +4,18 @@ from enum import Enum
 from pathlib import Path
 
 import pandas as pd
+import pandera as pa
 import yaml
-from vivarium import Artifact
 from pandera.typing import DataFrame
-from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    SingleNumericValue,
-    SimOutputData,
-    DrawData,
-    RawArtifactData,
-    RatioData,
-)
+from vivarium import Artifact
 
-DRAW_PREFIX = "draw_"
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    clean_artifact_data,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    SimOutputData,
+    SingleNumericValue,
+)
 
 
 class DataSource(Enum):
@@ -76,6 +76,7 @@ class DataLoader:
             raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
         self._raw_datasets.update({source: {dataset_key: data.copy()}})
 
+    @pa.check_types
     def _load_from_sim(self, dataset_key: str) -> DataFrame[SimOutputData]:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
         sim_data = pd.read_parquet(self._results_dir / f"{dataset_key}.parquet")
@@ -91,10 +92,11 @@ class DataLoader:
         ]["artifact_path"]
         return Artifact(artifact_path)
 
+    @pa.check_types
     def _load_from_artifact(self, dataset_key: str) -> DataFrame[SingleNumericValue]:
         data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
-        return self._clean_artifact_data(data, dataset_key)
+        return clean_artifact_data(dataset_key, data)
 
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
@@ -104,27 +106,3 @@ class DataLoader:
             f"No custom dataset found for {dataset_key}."
             "Please upload a dataset using ValidationContext.upload_custom_data."
         )
-
-    @staticmethod
-    def _clean_artifact_data(
-        data: DataFrame[RawArtifactData],
-        dataset_key: str,
-    ) -> DataFrame[SingleNumericValue]:
-        """Clean the artifact data by dropping unnecessary columns and renaming the value column."""
-        # Drop unnecessary columns
-        # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
-        # and melt the data into long format
-        if data.columns.str.startswith(DRAW_PREFIX).all():
-            data = data.melt(
-                var_name="draw",
-                value_name="value",
-                ignore_index=False,
-            )
-            data["draw"] = data["draw"].str.replace(DRAW_PREFIX, "", regex=False)
-            data["draw"] = data["draw"].astype(int)
-            data = data.set_index("draw", append=True).sort_index()
-        elif "value" not in data.columns:
-            raise ValueError(
-                f"Artifact {dataset_key} must have draw columns or a value column."
-            )
-        return data

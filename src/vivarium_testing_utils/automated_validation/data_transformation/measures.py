@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import pandas as pd
+from pandera.typing import DataFrame as DataFrame
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
@@ -8,10 +9,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     ratio,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    ArtifactData,
-    MeasureData,
     RatioData,
     SimOutputData,
+    SingleNumericValue,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     PersonTime,
@@ -28,16 +28,20 @@ class Measure(ABC):
     artifact_datasets: dict[str, str]
 
     @abstractmethod
-    def get_measure_data_from_artifact(self, *args, **kwargs) -> MeasureData:
+    def get_measure_data_from_artifact(
+        self, *args, **kwargs
+    ) -> DataFrame[SingleNumericValue]:
         """Process artifact data into a format suitable for calculations."""
         pass
 
     @abstractmethod
-    def get_measure_data_from_sim(self, *args, **kwargs) -> MeasureData:
+    def get_measure_data_from_sim(self, *args, **kwargs) -> DataFrame[SingleNumericValue]:
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
-    def get_measure_data(self, source: DataSource, *args, **kwargs) -> MeasureData:
+    def get_measure_data(
+        self, source: DataSource, *args, **kwargs
+    ) -> DataFrame[SingleNumericValue]:
         """Process data from the specified source into a format suitable for calculations."""
         if source == DataSource.SIM:
             return self.get_measure_data_from_sim(*args, **kwargs)
@@ -80,15 +84,21 @@ class RatioMeasure(Measure, ABC):
 
     @abstractmethod
     def get_ratio_data_from_sim(
-        self, numerator_data: SimOutputData, denominator_data: SimOutputData
-    ) -> RatioData:
+        self,
+        numerator_data: DataFrame[SimOutputData],
+        denominator_data: DataFrame[SimOutputData],
+    ) -> DataFrame[RatioData]:
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
-    def get_measure_data_from_artifact(self, artifact_data: ArtifactData) -> MeasureData:
+    def get_measure_data_from_artifact(
+        self, artifact_data: DataFrame[SingleNumericValue]
+    ) -> DataFrame[SingleNumericValue]:
         return artifact_data
 
-    def get_measure_data_from_ratio(self, ratio_data: RatioData) -> MeasureData:
+    def get_measure_data_from_ratio(
+        self, ratio_data: DataFrame[RatioData]
+    ) -> DataFrame[SingleNumericValue]:
         """Compute final measure data from split data."""
         return ratio(
             ratio_data,
@@ -96,12 +106,14 @@ class RatioMeasure(Measure, ABC):
             denominator=self.denominator.new_value_column_name,
         )
 
-    def get_measure_data_from_sim(self, *args, **kwargs) -> MeasureData:
+    def get_measure_data_from_sim(self, *args, **kwargs) -> DataFrame[SingleNumericValue]:
         """Process raw simulation data into a format suitable for calculations."""
         return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
 
     def get_ratio_data_from_sim(
-        self, numerator_data: SimOutputData, denominator_data: SimOutputData
+        self,
+        numerator_data: DataFrame[SimOutputData],
+        denominator_data: DataFrame[SimOutputData],
     ) -> RatioData:
         """Process raw incidence data into a format suitable for calculations."""
         numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
