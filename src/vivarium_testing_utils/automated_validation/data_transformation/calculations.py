@@ -1,12 +1,10 @@
 from typing import TypeVar, Union
 
 import pandas as pd
-import pandera as pa
 from pandera.typing import DataFrame
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
-    RatioData,
     SingleNumericValue,
 )
 
@@ -49,9 +47,7 @@ def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
     return data
 
 
-def ratio(
-    data: DataFrame[RatioData], numerator: str, denominator: str
-) -> DataFrame[SingleNumericValue]:
+def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.Series:
     """Return a series of the ratio of two columns in a DataFrame,
     where the columns are specified by their names."""
     return data[numerator] / data[denominator]
@@ -75,13 +71,12 @@ def marginalize(data: DataSet, marginalize_cols: list[str]) -> DataSet:
 
 
 def linear_combination(
-    data: DataFrame[RatioData], coeff_a: float, col_a: str, coeff_b: float, col_b: str
-) -> DataFrame[SingleNumericValue]:
+    data: pd.DataFrame, coeff_a: float, col_a: str, coeff_b: float, col_b: str
+) -> pd.Series:
     """Return a series that is the linear combination of two columns in a DataFrame."""
     return (data[col_a] * coeff_a) + (data[col_b] * coeff_b)
 
 
-@pa.check_types
 def clean_artifact_data(
     dataset_key: str,
     data: Union[DataFrame[SingleNumericValue], DataFrame[DrawData]],
