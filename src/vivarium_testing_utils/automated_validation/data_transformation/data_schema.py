@@ -1,23 +1,18 @@
-from typing import Literal, Optional, Union
+from typing import Union
 
-import pandas as pd
 import pandera as pa
-from pandas.api.types import is_any_real_numeric_dtype
 from pandera.typing import DataFrame, Index, Series
 
 
 class SingleNumericValue(pa.DataFrameModel):
     """We restrict many intermediate dataframes to a single numeric column.
 
-    This is a primitive DataFrameModel that checks for this criterion. It is inherited elsewhere.
+    This is a primitive DataFrameModel that checks for this criterion. We coerce all numeric types to float.
+    It is inherited elsewhere.
     """
 
     # Columns
-    value: Series
-
-    @pa.check("value")
-    def check_value(cls, series: Series) -> bool:
-        return is_any_real_numeric_dtype(series)
+    value: Series[float] = pa.Field(coerce=True)
 
     class Config:
         strict = True
@@ -37,16 +32,7 @@ class DrawData(pa.DataFrameModel):
     """Draw Data from the Artifact has a large number of 'draw_' columns which must be pivoted."""
 
     # Columns
-    draws: Series = pa.Field(regex=True, alias=r"^draw_\d+")
-
-    @pa.dataframe_check
-    def check_draw_columns(cls, df: DataFrame) -> bool:
-        # Check that all columns are numeric
-        numeric_columns = df.select_dtypes(include=["number"]).columns
-        # Check that all columns start with "draw_"
-        draw_columns = df.columns[df.columns.str.startswith("draw_")]
-        # Check that the number of draw columns is equal to the number of numeric columns
-        return len(numeric_columns) == len(draw_columns) == len(df.columns)
+    draws: Series[float] = pa.Field(regex=True, alias=r"^draw_\d+", coerce=True)
 
     class Config:
         strict = True
