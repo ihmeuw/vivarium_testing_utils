@@ -1,6 +1,14 @@
 from typing import TypeVar
 
 import pandas as pd
+from pandera.typing import DataFrame, Index, Series
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    SingleNumericValue,
+    SimOutputData,
+    DrawData,
+    RawArtifactData,
+    RatioData,
+)
 
 DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series)
 
@@ -39,7 +47,9 @@ def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
     return data
 
 
-def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.Series:
+def ratio(
+    data: DataFrame[RatioData], numerator: str, denominator: str
+) -> DataFrame[SingleNumericValue]:
     """Return a series of the ratio of two columns in a DataFrame,
     where the columns are specified by their names."""
     return data[numerator] / data[denominator]
@@ -63,7 +73,7 @@ def marginalize(data: DataSet, marginalize_cols: list[str]) -> DataSet:
 
 
 def linear_combination(
-    data: pd.DataFrame, coeff_a: float, col_a: str, coeff_b: float, col_b: str
-) -> pd.Series:
+    data: DataFrame[RatioData], coeff_a: float, col_a: str, coeff_b: float, col_b: str
+) -> DataFrame[SingleNumericValue]:
     """Return a series that is the linear combination of two columns in a DataFrame."""
     return (data[col_a] * coeff_a) + (data[col_b] * coeff_b)

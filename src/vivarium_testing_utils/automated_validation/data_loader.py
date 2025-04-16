@@ -6,6 +6,14 @@ from pathlib import Path
 import pandas as pd
 import yaml
 from vivarium import Artifact
+from pandera.typing import DataFrame
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    SingleNumericValue,
+    SimOutputData,
+    DrawData,
+    RawArtifactData,
+    RatioData,
+)
 
 DRAW_PREFIX = "draw_"
 
@@ -68,7 +76,7 @@ class DataLoader:
             raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
         self._raw_datasets.update({source: {dataset_key: data.copy()}})
 
-    def _load_from_sim(self, dataset_key: str) -> pd.DataFrame:
+    def _load_from_sim(self, dataset_key: str) -> DataFrame[SimOutputData]:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
         sim_data = pd.read_parquet(self._results_dir / f"{dataset_key}.parquet")
         if "value" not in sim_data.columns:
@@ -83,9 +91,27 @@ class DataLoader:
         ]["artifact_path"]
         return Artifact(artifact_path)
 
-    def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
+    def _load_from_artifact(self, dataset_key: str) -> DataFrame[SingleNumericValue]:
         data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
+        return self._clean_artifact_data(data, dataset_key)
+
+    def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
+        raise NotImplementedError
+
+    def _raise_custom_data_error(self, dataset_key: str) -> pd.DataFrame:
+        raise ValueError(
+            f"No custom dataset found for {dataset_key}."
+            "Please upload a dataset using ValidationContext.upload_custom_data."
+        )
+
+    @staticmethod
+    def _clean_artifact_data(
+        data: DataFrame[RawArtifactData],
+        dataset_key: str,
+    ) -> DataFrame[SingleNumericValue]:
+        """Clean the artifact data by dropping unnecessary columns and renaming the value column."""
+        # Drop unnecessary columns
         # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
         # and melt the data into long format
         if data.columns.str.startswith(DRAW_PREFIX).all():
@@ -102,12 +128,3 @@ class DataLoader:
                 f"Artifact {dataset_key} must have draw columns or a value column."
             )
         return data
-
-    def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
-        raise NotImplementedError
-
-    def _raise_custom_data_error(self, dataset_key: str) -> pd.DataFrame:
-        raise ValueError(
-            f"No custom dataset found for {dataset_key}."
-            "Please upload a dataset using ValidationContext.upload_custom_data."
-        )
