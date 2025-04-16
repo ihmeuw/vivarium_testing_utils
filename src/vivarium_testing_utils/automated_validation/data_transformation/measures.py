@@ -40,9 +40,10 @@ class Measure(ABC):
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
+    @pa.check_types
     def get_measure_data(
         self, source: DataSource, *args, **kwargs
-    ) -> DataFrame[SingleNumericValue]:
+    ) -> Series[SingleNumericValue]:
         """Process data from the specified source into a format suitable for calculations."""
         if source == DataSource.SIM:
             return self.get_measure_data_from_sim(*args, **kwargs)
