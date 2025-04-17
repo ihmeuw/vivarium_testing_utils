@@ -42,7 +42,7 @@ RawArtifactData = Union[DataFrame[SingleNumericValue], DataFrame[DrawData]]
 
 
 class RatioData(pa.DataFrameModel):
-    """Ratio data is simulation data that has undergone one processing step to yield a dataframe with two numeric columns.
+    """Ratio data is a dataframe with two numeric columns.
 
     The columns will be numerator and denominator for a calculation into a final measure."""
 
