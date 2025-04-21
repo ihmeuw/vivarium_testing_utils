@@ -1,7 +1,5 @@
-from typing import Union
-
 import pandera as pa
-from pandera.typing import DataFrame, Index, Series
+from pandera.typing import DataFrame, Index
 
 
 class SingleNumericColumn(pa.DataFrameModel):
@@ -46,7 +44,7 @@ class DrawData(pa.DataFrameModel):
         strict = True
 
 
-RawArtifactData = Union[DataFrame[SingleNumericColumn], DataFrame[DrawData]]
+RawArtifactData = DataFrame[SingleNumericColumn] | DataFrame[DrawData]
 
 
 class RatioData(pa.DataFrameModel):

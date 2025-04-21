@@ -1,12 +1,12 @@
-from typing import TypeVar, Union
+from typing import TypeVar
 
 import pandas as pd
 import pandera as pa
 from pandera.typing import DataFrame
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    DrawData,
     SingleNumericColumn,
+    RawArtifactData,
 )
 
 DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series)
@@ -81,7 +81,7 @@ def linear_combination(
 @pa.check_types
 def clean_artifact_data(
     dataset_key: str,
-    data: Union[DataFrame[SingleNumericColumn], DataFrame[DrawData]],
+    data: RawArtifactData,
 ) -> DataFrame[SingleNumericColumn]:
     """Clean the artifact data by dropping unnecessary columns and renaming the value column."""
     # Drop unnecessary columns
