@@ -12,7 +12,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     RatioData,
     SimOutputData,
-    SingleNumericValue,
+    SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     PersonTime,
@@ -31,19 +31,19 @@ class Measure(ABC):
     @abstractmethod
     def get_measure_data_from_artifact(
         self, *args, **kwargs
-    ) -> DataFrame[SingleNumericValue]:
+    ) -> DataFrame[SingleNumericColumn]:
         """Process artifact data into a format suitable for calculations."""
         pass
 
     @abstractmethod
-    def get_measure_data_from_sim(self, *args, **kwargs) -> DataFrame[SingleNumericValue]:
+    def get_measure_data_from_sim(self, *args, **kwargs) -> DataFrame[SingleNumericColumn]:
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
     @pa.check_types
     def get_measure_data(
         self, source: DataSource, *args, **kwargs
-    ) -> Series[SingleNumericValue]:
+    ) -> Series[SingleNumericColumn]:
         """Process data from the specified source into a format suitable for calculations."""
         if source == DataSource.SIM:
             return self.get_measure_data_from_sim(*args, **kwargs)
@@ -95,14 +95,14 @@ class RatioMeasure(Measure, ABC):
 
     @pa.check_types
     def get_measure_data_from_artifact(
-        self, artifact_data: DataFrame[SingleNumericValue]
-    ) -> Series[SingleNumericValue]:
+        self, artifact_data: DataFrame[SingleNumericColumn]
+    ) -> Series[SingleNumericColumn]:
         return artifact_data
 
     @pa.check_types
     def get_measure_data_from_ratio(
         self, ratio_data: DataFrame[RatioData]
-    ) -> Series[SingleNumericValue]:
+    ) -> Series[SingleNumericColumn]:
         """Compute final measure data from split data."""
         return ratio(
             ratio_data,
@@ -111,7 +111,7 @@ class RatioMeasure(Measure, ABC):
         )
 
     @pa.check_types
-    def get_measure_data_from_sim(self, *args, **kwargs) -> Series[SingleNumericValue]:
+    def get_measure_data_from_sim(self, *args, **kwargs) -> Series[SingleNumericColumn]:
         """Process raw simulation data into a format suitable for calculations."""
         return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
 

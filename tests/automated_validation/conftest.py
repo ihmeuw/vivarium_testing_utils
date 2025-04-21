@@ -8,7 +8,7 @@ from pandera.typing import DataFrame
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
     SimOutputData,
-    SingleNumericValue,
+    SingleNumericColumn,
 )
 
 
@@ -98,7 +98,7 @@ def raw_artifact_disease_incidence() -> DataFrame[DrawData]:
 
 @pa.check_types
 @pytest.fixture
-def artifact_disease_incidence() -> DataFrame[SingleNumericValue]:
+def artifact_disease_incidence() -> DataFrame[SingleNumericColumn]:
     return pd.DataFrame(
         {
             "value": [

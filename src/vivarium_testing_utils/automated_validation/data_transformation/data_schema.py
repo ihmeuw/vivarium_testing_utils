@@ -4,7 +4,7 @@ import pandera as pa
 from pandera.typing import DataFrame, Index, Series
 
 
-class SingleNumericValue(pa.DataFrameModel):
+class SingleNumericColumn(pa.DataFrameModel):
     """We restrict many intermediate dataframes to a single numeric column.
 
     This is a primitive DataFrameModel that checks for this criterion. We coerce all numeric types to float.
@@ -18,7 +18,7 @@ class SingleNumericValue(pa.DataFrameModel):
         strict = True
 
 
-class SimOutputData(SingleNumericValue):
+class SimOutputData(SingleNumericColumn):
     """The output of a simulation is a dataframe with a single numeric column and a multi-index."""
 
     # Required index levels
@@ -38,7 +38,7 @@ class DrawData(pa.DataFrameModel):
         strict = True
 
 
-RawArtifactData = Union[DataFrame[SingleNumericValue], DataFrame[DrawData]]
+RawArtifactData = Union[DataFrame[SingleNumericColumn], DataFrame[DrawData]]
 
 
 class RatioData(pa.DataFrameModel):

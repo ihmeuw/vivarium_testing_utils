@@ -6,13 +6,13 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     DrawData,
     RatioData,
     SimOutputData,
-    SingleNumericValue,
+    SingleNumericColumn,
 )
 
 
 def test_single_numeric_value() -> None:
     """Test that the SingleNumericValue schema correctly validates a DataFrame with a single numeric column."""
-    schema = SingleNumericValue
+    schema = SingleNumericColumn
     data = pd.DataFrame({"value": [1, 2, 3]}, index=pd.Index([0, 1, 2], name="index"))
     schema.validate(data)
 

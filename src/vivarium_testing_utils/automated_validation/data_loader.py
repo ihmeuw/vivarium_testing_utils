@@ -14,7 +14,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
-    SingleNumericValue,
+    SingleNumericColumn,
 )
 
 
@@ -93,7 +93,7 @@ class DataLoader:
         return Artifact(artifact_path)
 
     @pa.check_types
-    def _load_from_artifact(self, dataset_key: str) -> DataFrame[SingleNumericValue]:
+    def _load_from_artifact(self, dataset_key: str) -> DataFrame[SingleNumericColumn]:
         data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
         return clean_artifact_data(dataset_key, data)
