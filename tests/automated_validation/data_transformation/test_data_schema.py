@@ -108,3 +108,10 @@ def test_ratio_data() -> None:
     extra_column_data["extra_column"] = 0
     with pytest.raises(SchemaError):
         schema.validate(extra_column_data)
+
+    # Test that the schema raises an error for extra columns
+    # even if it's not numeric
+    extra_column_data = data.copy()
+    extra_column_data["extra_column"] = "foo"
+    with pytest.raises(SchemaError):
+        schema.validate(extra_column_data)

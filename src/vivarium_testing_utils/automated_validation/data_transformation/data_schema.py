@@ -12,7 +12,7 @@ class SingleNumericColumn(pa.DataFrameModel):
     """
 
     # Columns
-    value: Series[float] = pa.Field(coerce=True)
+    value: float = pa.Field(coerce=True)
 
     class Config:
         strict = True
@@ -32,7 +32,7 @@ class DrawData(pa.DataFrameModel):
     """Draw Data from the Artifact has a large number of 'draw_' columns which must be pivoted."""
 
     # Columns
-    draws: Series[float] = pa.Field(regex=True, alias=r"^draw_\d+", coerce=True)
+    draws: float = pa.Field(regex=True, alias=r"^draw_\d+", coerce=True)
 
     class Config:
         strict = True
@@ -49,6 +49,7 @@ class RatioData(pa.DataFrameModel):
     # Custom Checks
     @pa.dataframe_check
     def check_two_numeric_columns(cls, df: DataFrame) -> bool:
-        # Check that there are exactly two numeric columns in the DataFrame
+        # Check that there are exactly two columns in the DataFrame,
+        # and both are numeric
         numeric_columns = df.select_dtypes(include=["number"]).columns
-        return len(numeric_columns) == 2
+        return len(numeric_columns) == df.shape[1] == 2

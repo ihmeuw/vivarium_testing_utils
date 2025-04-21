@@ -1,6 +1,7 @@
 from typing import TypeVar, Union
 
 import pandas as pd
+import pandera as pa
 from pandera.typing import DataFrame
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
