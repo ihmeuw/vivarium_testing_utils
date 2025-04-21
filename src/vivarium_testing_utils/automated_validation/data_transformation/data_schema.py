@@ -26,12 +26,11 @@ class SimOutputData(SingleNumericColumn):
     """The output of a simulation is a dataframe with a single numeric column and a multi-index."""
 
     # Required index levels
+    # Index levels have to be in this order, but extra levels are allowed and can be between them.
     measure: Index[str]
     entity_type: Index[str]
     entity: Index[str]
     sub_entity: Index[str]
-
-    # Index levels have to be in this order, but extra levels are allowed and can be between them.
 
 
 class DrawData(pa.DataFrameModel):
