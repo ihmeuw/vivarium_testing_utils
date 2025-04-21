@@ -14,6 +14,12 @@ class SingleNumericColumn(pa.DataFrameModel):
     # Columns
     value: float = pa.Field(coerce=True)
 
+    # Config is inherited in child classes.
+    # I'm not sure entirely how it works, but
+    # it seems that the parent config settings will be
+    # applied *before* the child config class is applied,
+    # so overwriting Config won't make it to non-strict, for example.
+    # However, the Config *class* of the child object won't have strict in it.
     class Config:
         strict = True
 
@@ -26,6 +32,8 @@ class SimOutputData(SingleNumericColumn):
     entity_type: Index[str]
     entity: Index[str]
     sub_entity: Index[str]
+
+    # Index levels have to be in this order, but extra levels are allowed and can be between them.
 
 
 class DrawData(pa.DataFrameModel):

@@ -55,6 +55,17 @@ def test_sim_output(
         with pytest.raises(SchemaError):
             schema.validate(missing_index_data)
 
+    # Test that out of order index levels raises an error
+    out_of_order_index_data = transition_count_data.swaplevel("entity", "measure")
+    with pytest.raises(SchemaError):
+        schema.validate(out_of_order_index_data)
+
+    # Test that the schema raises an error for extra columns
+    extra_column_data = transition_count_data.copy()
+    extra_column_data["extra_column"] = 0
+    with pytest.raises(SchemaError):
+        schema.validate(extra_column_data)
+
 
 def test_draw_data(raw_artifact_disease_incidence: pd.DataFrame) -> None:
     """

@@ -82,7 +82,24 @@ class DataLoader:
         sim_data = pd.read_parquet(self._results_dir / f"{dataset_key}.parquet")
         if "value" not in sim_data.columns:
             raise ValueError(f"{dataset_key}.parquet requires a column labeled 'value'.")
-        return sim_data.set_index(sim_data.columns.drop("value").tolist())
+        multi_index_df = sim_data.set_index(sim_data.columns.drop("value").tolist())
+        # ensure index levels are in order ["measure", "entity_type", "entity", "sub_entity"]
+        # and then whatever else is in the index
+        REQUIRED_INDEX_LEVELS = [
+            "measure",
+            "entity_type",
+            "entity",
+            "sub_entity",
+        ]
+        multi_index_df = multi_index_df.reorder_levels(
+            [level for level in REQUIRED_INDEX_LEVELS]
+            + [
+                level
+                for level in multi_index_df.index.names
+                if level not in REQUIRED_INDEX_LEVELS
+            ]
+        )
+        return multi_index_df
 
     @staticmethod
     def _load_artifact(results_dir: str) -> Artifact:
