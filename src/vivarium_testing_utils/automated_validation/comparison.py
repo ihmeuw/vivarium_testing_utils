@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 
 import pandas as pd
+from pandera.typing import DataFrame
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    MeasureData,
     RatioData,
+    SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    Measure,
     RatioMeasure,
 )
 
@@ -17,9 +19,9 @@ class Comparison(ABC):
     dataset is the one that is used as a benchmark. The comparison operates on a *measure* of the two datasets,
     typically a derived quantity of the test data such as incidence rate or prevalence."""
 
-    measure: RatioMeasure
+    measure: Measure
     test_data: pd.DataFrame
-    reference_data: MeasureData
+    reference_data: pd.DataFrame
     stratifications: list[str]
 
     @abstractmethod
@@ -39,8 +41,8 @@ class FuzzyComparison:
     def __init__(
         self,
         measure: RatioMeasure,
-        test_data: RatioData,
-        reference_data: MeasureData,
+        test_data: DataFrame[RatioData],
+        reference_data: DataFrame[SingleNumericColumn],
         stratifications: list[str] = [],
     ):
         self.measure = measure

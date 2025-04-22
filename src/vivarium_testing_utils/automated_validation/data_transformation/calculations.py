@@ -1,8 +1,17 @@
 from typing import TypeVar
 
 import pandas as pd
+import pandera as pa
+from pandera.typing import DataFrame
+
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    RawArtifactData,
+    SingleNumericColumn,
+)
 
 DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series)
+
+DRAW_PREFIX = "draw_"
 
 
 def align_indexes(datasets: list[DataSet]) -> list[DataSet]:
@@ -67,3 +76,26 @@ def linear_combination(
 ) -> pd.Series:
     """Return a series that is the linear combination of two columns in a DataFrame."""
     return (data[col_a] * coeff_a) + (data[col_b] * coeff_b)
+
+
+@pa.check_types
+def clean_artifact_data(
+    dataset_key: str,
+    data: RawArtifactData,
+) -> DataFrame[SingleNumericColumn]:
+    """Clean the artifact data by dropping unnecessary columns and renaming the value column."""
+    # Drop unnecessary columns
+    # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
+    # and melt the data into long format
+    if data.columns.str.startswith(DRAW_PREFIX).all():
+        data = data.melt(
+            var_name="draw",
+            value_name="value",
+            ignore_index=False,
+        )
+        data["draw"] = data["draw"].str.replace(DRAW_PREFIX, "", regex=False)
+        data["draw"] = data["draw"].astype(int)
+        data = data.set_index("draw", append=True).sort_index()
+    elif "value" not in data.columns:
+        raise ValueError(f"Artifact {dataset_key} must have draw columns or a value column.")
+    return data
