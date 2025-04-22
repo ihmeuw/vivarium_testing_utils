@@ -26,8 +26,8 @@ def test_incidence(
     )
     expected_ratio_data = pd.DataFrame(
         {
-            "susceptible_to_disease_to_disease_transition_count": [3, 5],
-            "susceptible_to_disease_person_time": [17, 29],
+            "susceptible_to_disease_to_disease_transition_count": [3.0, 5.0],
+            "susceptible_to_disease_person_time": [17.0, 29.0],
         },
         index=pd.Index(
             ["A", "B"],
@@ -42,7 +42,7 @@ def test_incidence(
         numerator_data=transition_count_data, denominator_data=person_time_data
     )
     expected_measure_data = pd.Series(
-        [3 / 17, 5 / 29],
+        [3 / 17.0, 5 / 29.0],
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",
@@ -69,8 +69,8 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
     )
     expected_ratio_data = pd.DataFrame(
         {
-            "disease_person_time": [23, 37],
-            "total_person_time": [17 + 23, 29 + 37],
+            "disease_person_time": [23.0, 37.0],
+            "total_person_time": [17.0 + 23.0, 29.0 + 37.0],
         },
         index=pd.Index(
             ["A", "B"],
@@ -83,7 +83,7 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
         numerator_data=person_time_data, denominator_data=person_time_data
     )
     expected_measure_data = pd.Series(
-        [23 / (17 + 23), 37 / (29 + 37)],
+        [23.0 / (17.0 + 23.0), 37.0 / (29.0 + 37.0)],
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",
@@ -113,8 +113,8 @@ def test_si_remission(
     )
     expected_ratio_data = pd.DataFrame(
         {
-            "disease_to_susceptible_to_disease_transition_count": [7, 13],
-            "disease_person_time": [23, 37],
+            "disease_to_susceptible_to_disease_transition_count": [7.0, 13.0],
+            "disease_person_time": [23.0, 37.0],
         },
         index=pd.Index(
             ["A", "B"],
@@ -128,7 +128,7 @@ def test_si_remission(
         numerator_data=transition_count_data, denominator_data=person_time_data
     )
     expected_measure_data = pd.Series(
-        [7 / 23, 13 / 37],
+        [7 / 23.0, 13 / 37.0],
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",

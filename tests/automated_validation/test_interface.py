@@ -71,8 +71,8 @@ def test_add_comparison(
     assert comparison.stratifications == []
     expected_ratio_data = pd.DataFrame(
         {
-            "susceptible_to_disease_to_disease_transition_count": [3, 5],
-            "susceptible_to_disease_person_time": [17, 29],
+            "susceptible_to_disease_to_disease_transition_count": [3.0, 5.0],
+            "susceptible_to_disease_person_time": [17.0, 29.0],
         },
         index=pd.Index(
             ["A", "B"],

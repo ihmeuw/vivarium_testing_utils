@@ -4,10 +4,18 @@ from enum import Enum
 from pathlib import Path
 
 import pandas as pd
+import pandera as pa
 import yaml
+from pandera.typing import DataFrame
 from vivarium import Artifact
 
-DRAW_PREFIX = "draw_"
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    clean_artifact_data,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    SimOutputData,
+    SingleNumericColumn,
+)
 
 
 class DataSource(Enum):
@@ -68,12 +76,30 @@ class DataLoader:
             raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
         self._raw_datasets.update({source: {dataset_key: data.copy()}})
 
-    def _load_from_sim(self, dataset_key: str) -> pd.DataFrame:
+    @pa.check_types
+    def _load_from_sim(self, dataset_key: str) -> DataFrame[SimOutputData]:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
         sim_data = pd.read_parquet(self._results_dir / f"{dataset_key}.parquet")
         if "value" not in sim_data.columns:
             raise ValueError(f"{dataset_key}.parquet requires a column labeled 'value'.")
-        return sim_data.set_index(sim_data.columns.drop("value").tolist())
+        multi_index_df = sim_data.set_index(sim_data.columns.drop("value").tolist())
+        # ensure index levels are in order ["measure", "entity_type", "entity", "sub_entity"]
+        # and then whatever else is in the index
+        REQUIRED_INDEX_LEVELS = [
+            "measure",
+            "entity_type",
+            "entity",
+            "sub_entity",
+        ]
+        multi_index_df = multi_index_df.reorder_levels(
+            [level for level in REQUIRED_INDEX_LEVELS]
+            + [
+                level
+                for level in multi_index_df.index.names
+                if level not in REQUIRED_INDEX_LEVELS
+            ]
+        )
+        return multi_index_df
 
     @staticmethod
     def _load_artifact(results_dir: str) -> Artifact:
@@ -83,25 +109,11 @@ class DataLoader:
         ]["artifact_path"]
         return Artifact(artifact_path)
 
-    def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
+    @pa.check_types
+    def _load_from_artifact(self, dataset_key: str) -> DataFrame[SingleNumericColumn]:
         data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
-        # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
-        # and melt the data into long format
-        if data.columns.str.startswith(DRAW_PREFIX).all():
-            data = data.melt(
-                var_name="draw",
-                value_name="value",
-                ignore_index=False,
-            )
-            data["draw"] = data["draw"].str.replace(DRAW_PREFIX, "", regex=False)
-            data["draw"] = data["draw"].astype(int)
-            data = data.set_index("draw", append=True).sort_index()
-        elif "value" not in data.columns:
-            raise ValueError(
-                f"Artifact {dataset_key} must have draw columns or a value column."
-            )
-        return data
+        return clean_artifact_data(dataset_key, data)
 
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
