@@ -57,6 +57,7 @@ if __name__ == "__main__":
         # Type stubs
         "pandas-stubs",
         "networkx-stubs",
+        "scipy-stubs",
         "types-docutils",
         "types-setuptools",
         "vivarium",

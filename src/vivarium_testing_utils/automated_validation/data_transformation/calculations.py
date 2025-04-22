@@ -9,7 +9,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SingleNumericColumn,
 )
 
-DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series)
+DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series[float])
 
 DRAW_PREFIX = "draw_"
 
@@ -18,13 +18,13 @@ def align_indexes(datasets: list[DataSet]) -> list[DataSet]:
     """Put each dataframe on a common index by choosing the intersection of index columns
     and marginalizing over the rest."""
     # Get the common index columns
-    common_index = set.intersection(*(set(data.index.names) for data in datasets))
+    common_index = list(set.intersection(*(set(data.index.names) for data in datasets)))
 
     # Marginalize over the rest
     return [marginalize(data, common_index) for data in datasets]
 
 
-def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
+def filter_data(data: DataSet, filter_cols: dict[str, list[str]]) -> DataSet:
     """Filter a DataFrame by the given index columns and values.
 
     The filter_cols argument
@@ -48,7 +48,7 @@ def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
     return data
 
 
-def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.Series:
+def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.Series[float]:
     """Return a series of the ratio of two columns in a DataFrame,
     where the columns are specified by their names."""
     return data[numerator] / data[denominator]
@@ -73,7 +73,7 @@ def marginalize(data: DataSet, marginalize_cols: list[str]) -> DataSet:
 
 def linear_combination(
     data: pd.DataFrame, coeff_a: float, col_a: str, coeff_b: float, col_b: str
-) -> pd.Series:
+) -> pd.Series[float]:
     """Return a series that is the linear combination of two columns in a DataFrame."""
     return (data[col_a] * coeff_a) + (data[col_b] * coeff_b)
 
@@ -98,4 +98,4 @@ def clean_artifact_data(
         data = data.set_index("draw", append=True).sort_index()
     elif "value" not in data.columns:
         raise ValueError(f"Artifact {dataset_key} must have draw columns or a value column.")
-    return data
+    return data.pipe(DataFrame[SingleNumericColumn])
