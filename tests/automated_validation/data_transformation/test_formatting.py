@@ -75,7 +75,7 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
 
     expected_dataframe = pd.DataFrame(
         {
-            formatter.new_value_column_name: [3, 5],
+            formatter.new_value_column_name: [3.0, 5.0],
         },
         index=pd.Index(
             ["A", "B"],
@@ -104,7 +104,7 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
 
     expected_dataframe = pd.DataFrame(
         {
-            "disease_person_time": [23, 37],
+            "disease_person_time": [23.0, 37.0],
         },
         index=pd.Index(
             ["A", "B"],
@@ -132,7 +132,7 @@ def test_total_pt(person_time_data: pd.DataFrame) -> None:
 
     expected_dataframe = pd.DataFrame(
         {
-            "total_person_time": [17 + 23, 29 + 37],
+            "total_person_time": [17.0 + 23.0, 29.0 + 37.0],
         },
         index=pd.Index(
             ["A", "B"],
