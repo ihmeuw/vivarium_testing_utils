@@ -1,15 +1,16 @@
-from typing import TypeVar
+from __future__ import annotations
+from typing import TypeVar, cast
 
 import pandas as pd
 import pandera as pa
-from pandera.typing import DataFrame
+from pandera.typing import DataFrame, Series
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     RawArtifactData,
     SingleNumericColumn,
 )
 
-DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series[float])
+DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series, DataFrame, Series)  # type: ignore [type-arg]
 
 DRAW_PREFIX = "draw_"
 
@@ -58,7 +59,7 @@ def aggregate_sum(data: DataSet, groupby_cols: list[str]) -> DataSet:
     """Aggregate the dataframe over the specified index columns by summing."""
     if not groupby_cols:
         return data
-    return data.groupby(groupby_cols).sum()
+    return data.groupby(groupby_cols).sum().pipe(type(data))
 
 
 def stratify(data: DataSet, stratification_cols: list[str]) -> DataSet:
@@ -68,7 +69,7 @@ def stratify(data: DataSet, stratification_cols: list[str]) -> DataSet:
 
 def marginalize(data: DataSet, marginalize_cols: list[str]) -> DataSet:
     """Sum over marginalize columns, keeping the rest. Syntactic sugar for aggregate."""
-    return aggregate_sum(data, data.index.names.difference(marginalize_cols))
+    return aggregate_sum(data, [x for x in data.index.names if x not in marginalize_cols])
 
 
 def linear_combination(

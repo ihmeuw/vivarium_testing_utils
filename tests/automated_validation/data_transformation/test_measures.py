@@ -5,10 +5,17 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     Prevalence,
     SIRemission,
 )
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    RatioData,
+    SimOutputData,
+    SingleNumericColumn,
+)
+from pandera.typing import DataFrame
 
 
 def test_incidence(
-    transition_count_data: pd.DataFrame, person_time_data: pd.DataFrame
+    transition_count_data: DataFrame[SimOutputData],
+    person_time_data: DataFrame[SimOutputData],
 ) -> None:
     """Test the Incidence measure."""
     cause = "disease"
@@ -24,7 +31,7 @@ def test_incidence(
         numerator_data=transition_count_data,
         denominator_data=person_time_data,
     )
-    expected_ratio_data = pd.DataFrame(
+    expected_ratio_data = DataFrame[RatioData](
         {
             "susceptible_to_disease_to_disease_transition_count": [3.0, 5.0],
             "susceptible_to_disease_person_time": [17.0, 29.0],
@@ -52,7 +59,7 @@ def test_incidence(
     assert measure_data_from_ratio.equals(expected_measure_data)
 
 
-def test_prevalence(person_time_data: pd.DataFrame) -> None:
+def test_prevalence(person_time_data: DataFrame[SimOutputData]) -> None:
     """Test the Prevalence measure."""
     cause = "disease"
     measure = Prevalence(cause)
@@ -67,7 +74,7 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
         numerator_data=person_time_data,
         denominator_data=person_time_data,
     )
-    expected_ratio_data = pd.DataFrame(
+    expected_ratio_data = DataFrame[RatioData](
         {
             "disease_person_time": [23.0, 37.0],
             "total_person_time": [17.0 + 23.0, 29.0 + 37.0],
@@ -95,7 +102,8 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
 
 
 def test_si_remission(
-    transition_count_data: pd.DataFrame, person_time_data: pd.DataFrame
+    transition_count_data: DataFrame[SimOutputData],
+    person_time_data: DataFrame[SimOutputData],
 ) -> None:
     """Test the SIRemission measure."""
     cause = "disease"
@@ -111,7 +119,7 @@ def test_si_remission(
         numerator_data=transition_count_data,
         denominator_data=person_time_data,
     )
-    expected_ratio_data = pd.DataFrame(
+    expected_ratio_data = DataFrame[RatioData](
         {
             "disease_to_susceptible_to_disease_transition_count": [7.0, 13.0],
             "disease_person_time": [23.0, 37.0],

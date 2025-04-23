@@ -29,14 +29,12 @@ class Measure(ABC):
     artifact_datasets: dict[str, str]
 
     @abstractmethod
-    def get_measure_data_from_artifact(
-        self, *args, **kwargs
-    ) -> DataFrame[SingleNumericColumn]:
+    def get_measure_data_from_artifact(self, *args, **kwargs) -> Series[SingleNumericColumn]:
         """Process artifact data into a format suitable for calculations."""
         pass
 
     @abstractmethod
-    def get_measure_data_from_sim(self, *args, **kwargs) -> DataFrame[SingleNumericColumn]:
+    def get_measure_data_from_sim(self, *args, **kwargs) -> Series[SingleNumericColumn]:
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
@@ -62,7 +60,7 @@ class Measure(ABC):
             raise ValueError(f"Unsupported data source: {source}")
 
 
-class RatioMeasure(Measure, ABC):
+class RatioMeasure(Measure):
     """A Measure that calculates ratio data from simulation data."""
 
     measure_key: str
@@ -84,18 +82,9 @@ class RatioMeasure(Measure, ABC):
             "artifact_data": self.measure_key,
         }
 
-    @abstractmethod
-    def get_ratio_data_from_sim(
-        self,
-        numerator_data: DataFrame[SimOutputData],
-        denominator_data: DataFrame[SimOutputData],
-    ) -> DataFrame[RatioData]:
-        """Process raw simulation data into a format suitable for calculations."""
-        pass
-
     @pa.check_types
     def get_measure_data_from_artifact(
-        self, artifact_data: DataFrame[SingleNumericColumn]
+        self, artifact_data: Series[SingleNumericColumn]
     ) -> Series[SingleNumericColumn]:
         return artifact_data
 
@@ -118,8 +107,8 @@ class RatioMeasure(Measure, ABC):
     @pa.check_types
     def get_ratio_data_from_sim(
         self,
-        numerator_data: DataFrame[SimOutputData],
-        denominator_data: DataFrame[SimOutputData],
+        numerator_data: Series[SimOutputData],
+        denominator_data: Series[SimOutputData],
     ) -> DataFrame[RatioData]:
         """Process raw incidence data into a format suitable for calculations."""
         numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])

@@ -16,6 +16,12 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SimOutputData,
     SingleNumericColumn,
 )
+from vivarium_testing_utils.automated_validation.types import (
+    PDDataSet,
+    RawArtifactDataSet,
+    RawDataSet,
+    SimDataSet,
+)
 
 
 class DataSource(Enum):
@@ -33,11 +39,15 @@ class DataSource(Enum):
 
 
 class DataLoader:
-    def __init__(self, sim_output_dir: str, cache_size_mb: int = 1000):
-        self._sim_output_dir = Path(sim_output_dir)
-        self._results_dir = self._sim_output_dir / "results"
+
+    def __init__(self, sim_output_dir: Path, cache_size_mb: int = 1000):
+        self._sim_output_dir = sim_output_dir
         self._cache_size_mb = cache_size_mb
-        self._raw_datasets = {data_source: {} for data_source in DataSource}
+
+        self._results_dir = self._sim_output_dir / "results"
+        self._raw_datasets: dict[DataSource, dict[str, RawDataSet]] = {
+            data_source: {} for data_source in DataSource
+        }
         self._loader_mapping = {
             DataSource.SIM: self._load_from_sim,
             DataSource.GBD: self._load_from_gbd,
@@ -54,7 +64,7 @@ class DataLoader:
     def get_artifact_keys(self) -> list[str]:
         return self._artifact.keys
 
-    def get_dataset(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
+    def get_dataset(self, dataset_key: str, source: DataSource) -> RawDataSet:
         """Return the dataset from the cache if it exists, otherwise load it from the source."""
         try:
             return self._raw_datasets[source][dataset_key].copy()
@@ -66,11 +76,13 @@ class DataLoader:
     def upload_custom_data(self, dataset_key: str, data: pd.DataFrame | pd.Series) -> None:
         self._add_to_cache(dataset_key, DataSource.CUSTOM, data)
 
-    def _load_from_source(self, dataset_key: str, source: DataSource) -> None:
+    def _load_from_source(
+        self, dataset_key: str, source: DataSource
+    ) -> pd.DataFrame | pd.Series:
         """Load the data from the given source via the loader mapping."""
         return self._loader_mapping[source](dataset_key)
 
-    def _add_to_cache(self, dataset_key: str, source: DataSource, data: pd.DataFrame) -> None:
+    def _add_to_cache(self, dataset_key: str, source: DataSource, data: RawDataSet) -> None:
         """Update the raw_datasets cache with the given data."""
         if dataset_key in self._raw_datasets.get(source, {}):
             raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
@@ -102,8 +114,8 @@ class DataLoader:
         return multi_index_df
 
     @staticmethod
-    def _load_artifact(results_dir: str) -> Artifact:
-        model_spec_path = Path(results_dir) / "model_specification.yaml"
+    def _load_artifact(results_dir: Path) -> Artifact:
+        model_spec_path = results_dir / "model_specification.yaml"
         artifact_path = yaml.safe_load(model_spec_path.open("r"))["configuration"][
             "input_data"
         ]["artifact_path"]
@@ -115,10 +127,10 @@ class DataLoader:
         self._artifact.clear_cache()
         return clean_artifact_data(dataset_key, data)
 
-    def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
+    def _load_from_gbd(self, dataset_key: str) -> DataFrame[SingleNumericColumn]:
         raise NotImplementedError
 
-    def _raise_custom_data_error(self, dataset_key: str) -> pd.DataFrame:
+    def _raise_custom_data_error(self, dataset_key: str) -> None:
         raise ValueError(
             f"No custom dataset found for {dataset_key}."
             "Please upload a dataset using ValidationContext.upload_custom_data."

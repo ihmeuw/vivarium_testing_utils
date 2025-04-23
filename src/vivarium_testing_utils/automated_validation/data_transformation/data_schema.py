@@ -1,6 +1,6 @@
 import pandera as pa
-from pandera.typing import DataFrame, Index
-
+import pandas as pd
+from pandera.typing import Index
 
 class SingleNumericColumn(pa.DataFrameModel):
     """We restrict many intermediate dataframes to a single numeric column.
@@ -43,9 +43,6 @@ class DrawData(pa.DataFrameModel):
         strict = True
 
 
-RawArtifactData = DataFrame[SingleNumericColumn] | DataFrame[DrawData]
-
-
 class RatioData(pa.DataFrameModel):
     """Ratio data is a dataframe with two numeric columns.
 
@@ -53,7 +50,7 @@ class RatioData(pa.DataFrameModel):
 
     # Custom Checks
     @pa.dataframe_check
-    def check_two_numeric_columns(cls, df: DataFrame) -> bool:
+    def check_two_numeric_columns(cls, df: pd.DataFrame) -> bool:
         # Check that there are exactly two columns in the DataFrame,
         # and both are numeric
         numeric_columns = df.select_dtypes(include=["number"]).columns

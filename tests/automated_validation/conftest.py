@@ -20,7 +20,7 @@ def sim_result_dir() -> Path:
 @pa.check_types
 @pytest.fixture
 def transition_count_data() -> DataFrame[SimOutputData]:
-    return pd.DataFrame(
+    return DataFrame[SimOutputData](
         {
             "value": [3.0, 5.0, 7.0, 13.0],
         },
@@ -63,7 +63,7 @@ def transition_count_data() -> DataFrame[SimOutputData]:
 @pa.check_types
 @pytest.fixture
 def person_time_data() -> DataFrame[SimOutputData]:
-    return pd.DataFrame(
+    return DataFrame[SimOutputData](
         {
             "value": [17.0, 23.0, 29.0, 37.0],
         },
@@ -81,15 +81,15 @@ def person_time_data() -> DataFrame[SimOutputData]:
 
 @pytest.fixture
 def raw_artifact_disease_incidence() -> DataFrame[DrawData]:
-    return pd.DataFrame(
+    return DataFrame[DrawData](
         {
             "draw_0": [0.17, 0.13],
             "draw_1": [0.18, 0.14],
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("A"),
-                ("B"),
+                ("A",),
+                ("B",),
             ],
             names=["stratify_column"],
         ),
@@ -99,7 +99,7 @@ def raw_artifact_disease_incidence() -> DataFrame[DrawData]:
 @pa.check_types
 @pytest.fixture
 def artifact_disease_incidence() -> DataFrame[SingleNumericColumn]:
-    return pd.DataFrame(
+    return DataFrame[SingleNumericColumn](
         {
             "value": [
                 0.17,
