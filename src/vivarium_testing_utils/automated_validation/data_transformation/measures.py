@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+from typing import Any
 import pandas as pd
 import pandera as pa
 from pandera.typing import DataFrame, Series
@@ -25,24 +25,35 @@ class Measure(ABC):
     """A Measure contains key information and methods to take raw data from a DataSource
     and process it into an epidemiological measure suitable for use in a Comparison."""
 
-    sim_datasets: dict[str, str]
-    artifact_datasets: dict[str, str]
+    @property
+    @abstractmethod
+    def sim_datasets(self) -> dict[str, str]:
+        """Return a dictionary of required datasets for this measure."""
+        pass
+
+    @property
+    @abstractmethod
+    def artifact_datasets(self) -> dict[str, str]:
+        """Return a dictionary of required datasets for this measure."""
+        pass
 
     @abstractmethod
     def get_measure_data_from_artifact(
-        self, *args, **kwargs
+        self, *args: Any, **kwargs: Any
     ) -> DataFrame[SingleNumericColumn]:
         """Process artifact data into a format suitable for calculations."""
         pass
 
     @abstractmethod
-    def get_measure_data_from_sim(self, *args, **kwargs) -> DataFrame[SingleNumericColumn]:
+    def get_measure_data_from_sim(
+        self, *args: Any, **kwargs: Any
+    ) -> DataFrame[SingleNumericColumn]:
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
     @pa.check_types
     def get_measure_data(
-        self, source: DataSource, *args, **kwargs
+        self, source: DataSource, *args: Any, **kwargs: Any
     ) -> DataFrame[SingleNumericColumn]:
         """Process data from the specified source into a format suitable for calculations."""
         if source == DataSource.SIM:
@@ -99,10 +110,12 @@ class RatioMeasure(Measure):
             ratio_data,
             numerator=self.numerator.new_value_column_name,
             denominator=self.denominator.new_value_column_name,
-        )
+        ).pipe(DataFrame[SingleNumericColumn])
 
     @pa.check_types
-    def get_measure_data_from_sim(self, *args, **kwargs) -> DataFrame[SingleNumericColumn]:
+    def get_measure_data_from_sim(
+        self, *args: Any, **kwargs: Any
+    ) -> DataFrame[SingleNumericColumn]:
         """Process raw simulation data into a format suitable for calculations."""
         return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
 
@@ -116,7 +129,9 @@ class RatioMeasure(Measure):
         numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
-        return pd.concat([numerator_data, denominator_data], axis=1)
+        return pd.concat([numerator_data, denominator_data], axis=1).pipe(
+            DataFrame[RatioData]
+        )
 
 
 class Incidence(RatioMeasure):

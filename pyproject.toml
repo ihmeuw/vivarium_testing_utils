@@ -30,7 +30,6 @@ exclude = [
     "build",
     "setup.py",
     "docs/source/conf.py",
-    "src/vivarium_testing_utils/automated_validation/data_transformation/measures.py",
     "src/vivarium_testing_utils/automated_validation/comparison.py",
     "src/vivarium_testing_utils/automated_validation/plot_utils.py", # Only stubbed out currently
 
