@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
+
 import pandas as pd
 import pandera as pa
 from pandera.typing import DataFrame, Series

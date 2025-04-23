@@ -1,15 +1,15 @@
 import pandas as pd
 import pytest
+from pandera.typing import DataFrame
 
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    SimOutputData,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     PersonTime,
     TransitionCounts,
     _drop_redundant_index,
 )
-from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    SimOutputData,
-)
-from pandera.typing import DataFrame
 
 
 def test__drop_redundant_index() -> None:
