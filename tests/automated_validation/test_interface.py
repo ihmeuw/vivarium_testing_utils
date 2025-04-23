@@ -6,6 +6,11 @@ import pytest
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
+from pandera.typing import DataFrame
+
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    SingleNumericColumn,
+)
 
 
 @pytest.mark.skip("Not implemented")
@@ -25,7 +30,7 @@ def test_upload_custom_data(sim_result_dir: Path) -> None:
 
 
 def test_show_raw_dataset(
-    sim_result_dir: Path, artifact_disease_incidence: pd.DataFrame
+    sim_result_dir: Path, artifact_disease_incidence: DataFrame[SingleNumericColumn]
 ) -> None:
     """Ensure that we can show the raw dataset"""
     context = ValidationContext(sim_result_dir, None)
@@ -63,7 +68,7 @@ def test_add_comparison(
     """Ensure that we can add a comparison"""
     measure_key = "cause.disease.incidence_rate"
     context = ValidationContext(sim_result_dir, None)
-    context.add_comparison(measure_key, DataSource.SIM, DataSource.ARTIFACT, [])
+    context.add_comparison(measure_key, "sim", "artifact", [])
     assert measure_key in context.comparisons
     comparison = context.comparisons[measure_key]
 

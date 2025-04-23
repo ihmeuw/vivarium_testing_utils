@@ -9,4 +9,4 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
 
 SimDataSet = DataFrame[SimOutputData]
 RawArtifactDataSet = DataFrame[SingleNumericColumn] | DataFrame[DrawData]
-RawDataSet = SimDataSet | RawArtifactDataSet | pd.DataFrame | pd.Series  # type: ignore[type-arg]
+RawDataSet = SimDataSet | RawArtifactDataSet | pd.DataFrame

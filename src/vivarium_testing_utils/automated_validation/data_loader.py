@@ -69,9 +69,7 @@ class DataLoader:
             self._add_to_cache(dataset_key, source, dataset)
             return dataset
 
-    def upload_custom_data(
-        self, dataset_key: str, data: pd.DataFrame | pd.Series[float]
-    ) -> None:
+    def upload_custom_data(self, dataset_key: str, data: pd.DataFrame) -> None:
         self._add_to_cache(dataset_key, DataSource.CUSTOM, data)
 
     def _load_from_source(self, dataset_key: str, source: DataSource) -> RawDataSet:

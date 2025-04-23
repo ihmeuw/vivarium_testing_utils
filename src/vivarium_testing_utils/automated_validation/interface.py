@@ -39,10 +39,16 @@ class ValidationContext:
         self, dataset_key: str, data: pd.DataFrame | pd.Series[float]
     ) -> None:
         """Upload a custom DataFrame or Series to the context given by a dataset key."""
+        if isinstance(data, pd.Series):
+            data = data.to_frame(name="value")
         self._data_loader.upload_custom_data(dataset_key, data)
 
     def add_comparison(
-        self, measure_key: str, test_source: str, ref_source: str, stratifications: list[str]
+        self,
+        measure_key: str,
+        test_source: str,
+        ref_source: str,
+        stratifications: list[str] = [],
     ) -> None:
         """Add a comparison to the context given a measure key and data sources."""
         entity_type, entity, measure_name = measure_key.split(".")

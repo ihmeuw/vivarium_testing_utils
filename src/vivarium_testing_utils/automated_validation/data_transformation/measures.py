@@ -25,6 +25,8 @@ class Measure(ABC):
     """A Measure contains key information and methods to take raw data from a DataSource
     and process it into an epidemiological measure suitable for use in a Comparison."""
 
+    measure_key: str
+
     @property
     @abstractmethod
     def sim_datasets(self) -> dict[str, str]:
@@ -73,7 +75,7 @@ class Measure(ABC):
             raise ValueError(f"Unsupported data source: {source}")
 
 
-class RatioMeasure(Measure):
+class RatioMeasure(Measure, ABC):
     """A Measure that calculates ratio data from simulation data."""
 
     measure_key: str
