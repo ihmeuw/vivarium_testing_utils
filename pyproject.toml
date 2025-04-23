@@ -33,7 +33,6 @@ exclude = [
     "src/vivarium_testing_utils/automated_validation/comparison.py", # Only stubbed out currently
     "src/vivarium_testing_utils/automated_validation/plot_utils.py", # Only stubbed out currently
 
-    "tests/automated_validation/test_data_loader.py",
 
     "src/vivarium_testing_utils/fuzzy_checker.py",
     "tests/test_fuzzy_checker.py",
