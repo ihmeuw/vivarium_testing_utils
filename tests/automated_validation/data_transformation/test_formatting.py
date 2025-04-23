@@ -6,6 +6,10 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     TransitionCounts,
     _drop_redundant_index,
 )
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    SimOutputData,
+)
+from pandera.typing import DataFrame
 
 
 def test__drop_redundant_index() -> None:
@@ -53,7 +57,7 @@ def test__drop_redundant_index() -> None:
         _drop_redundant_index(dataset, "redundant_column", "redundant_column")
 
 
-def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
+def test_transition_counts(transition_count_data: DataFrame[SimOutputData]) -> None:
     """Test TransitionCounts formatting."""
     formatter = TransitionCounts("disease", "susceptible_to_disease", "disease")
     # assert formatter has right number of attrs
@@ -86,7 +90,7 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     assert formatter.format_dataset(transition_count_data).equals(expected_dataframe)
 
 
-def test_person_time(person_time_data: pd.DataFrame) -> None:
+def test_person_time(person_time_data: DataFrame[SimOutputData]) -> None:
     """Test PersonTime formatting."""
     # Create a mock dataset
     formatter = PersonTime("disease", "disease")
@@ -115,7 +119,7 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
     assert formatter.format_dataset(person_time_data).equals(expected_dataframe)
 
 
-def test_total_pt(person_time_data: pd.DataFrame) -> None:
+def test_total_pt(person_time_data: DataFrame[SimOutputData]) -> None:
     """Test PersonTime formatting with total state."""
     formatter = PersonTime("disease")
     assert len(formatter.__dict__) == 7
