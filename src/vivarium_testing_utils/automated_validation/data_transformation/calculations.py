@@ -1,16 +1,16 @@
 from __future__ import annotations
-from typing import TypeVar, cast
+from typing import TypeVar
 
 import pandas as pd
 import pandera as pa
-from pandera.typing import DataFrame, Series
+from pandera.typing import DataFrame
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.types import RawArtifactDataSet
 
-DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series, DataFrame, Series)  # type: ignore [type-arg]
+DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series, DataFrame)  # type: ignore [type-arg]
 
 DRAW_PREFIX = "draw_"
 
