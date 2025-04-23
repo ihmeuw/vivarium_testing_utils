@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 import pandas as pd
-from pandera.typing import DataFrame
+from pandera.typing import DataFrame, Series
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     RatioData,
@@ -25,24 +25,24 @@ class Comparison(ABC):
     stratifications: list[str]
 
     @abstractmethod
-    def verify(self, stratifications: list[str]):
+    def verify(self, stratifications: list[str] = []):
         pass
 
     @abstractmethod
-    def summarize(self, stratifications: list[str]):
+    def summarize(self, stratifications: list[str] = []):
         pass
 
     @abstractmethod
-    def heads(self, stratifications: list[str]):
+    def heads(self, stratifications: list[str] = []):
         pass
 
 
-class FuzzyComparison:
+class FuzzyComparison(Comparison):
     def __init__(
         self,
         measure: RatioMeasure,
         test_data: DataFrame[RatioData],
-        reference_data: DataFrame[SingleNumericColumn],
+        reference_data: Series[SingleNumericColumn],
         stratifications: list[str] = [],
     ):
         self.measure = measure

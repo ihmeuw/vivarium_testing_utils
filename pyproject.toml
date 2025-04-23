@@ -32,9 +32,9 @@ exclude = [
     "docs/source/conf.py",
     "src/vivarium_testing_utils/automated_validation/data_transformation/measures.py",
     "src/vivarium_testing_utils/automated_validation/comparison.py",
-    "src/vivarium_testing_utils/automated_validation/interface.py",
     "src/vivarium_testing_utils/automated_validation/plot_utils.py",
-    
+    "src/vivarium_testing_utils/automated_validation/data_loader.py",
+
     "tests/automated_validation/test_data_loader.py",
     "tests/automated_validation/test_interface.py",
     "tests/automated_validation/data_transformation/test_formatting.py",
@@ -52,5 +52,6 @@ module = [
     "py._path.local",
     "scipy.*",
     # "sklearn.*",
+    "vivarium.*",
 ]
 ignore_missing_imports = true

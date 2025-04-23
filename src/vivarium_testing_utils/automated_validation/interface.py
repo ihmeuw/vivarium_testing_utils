@@ -3,18 +3,18 @@ from pathlib import Path
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation import plot_utils
-from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
+from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison, Comparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     MEASURE_KEY_MAPPINGS,
     Measure,
 )
-
+from vivarium_testing_utils.automated_validation.types import RawDataSet, SimDataSet
 
 class ValidationContext:
     def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None):
         self._data_loader = DataLoader(Path(results_dir))
-        self.comparisons = {}
+        self.comparisons: dict[str, Comparison] = {}
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -24,11 +24,13 @@ class ValidationContext:
         """Get a list of the artifact keys available to compare against."""
         return self._data_loader.get_artifact_keys()
 
-    def get_raw_dataset(self, dataset_key: str, source: str) -> pd.DataFrame:
+    def get_raw_dataset(self, dataset_key: str, source: str) -> RawDataSet:
         """Return a copy of the dataset for manual inspection."""
         return self._data_loader.get_dataset(dataset_key, DataSource.from_str(source))
 
-    def upload_custom_data(self, dataset_key: str, data: pd.DataFrame | pd.Series) -> None:
+    def upload_custom_data(
+        self, dataset_key: str, data: pd.DataFrame | pd.Series[float]
+    ) -> None:
         """Upload a custom DataFrame or Series to the context given by a dataset key."""
         self._data_loader.upload_custom_data(dataset_key, data)
 
@@ -45,7 +47,9 @@ class ValidationContext:
             raise NotImplementedError(
                 f"Fuzzy Comparison for {test_source} source not implemented. Must be SIM."
             )
-        test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
+        test_raw_datasets: dict[str, SimDataSet] = self._get_raw_datasets_from_source(
+            measure, test_source_enum
+        )
         test_data = measure.get_ratio_data_from_sim(
             **test_raw_datasets,
         )
@@ -59,30 +63,30 @@ class ValidationContext:
             ref_data,
             stratifications,
         )
-        self.comparisons.update({measure_key: comparison})
+        self.comparisons[measure_key] = comparison
 
-    def verify(self, comparison_key: str, stratifications: list[str] = []):
+    def verify(self, comparison_key: str, stratifications: list[str] = []):  # type: ignore[no-untyped-def]
         self.comparisons[comparison_key].verify(stratifications)
 
-    def plot_comparison(self, comparison_key: str, type: str, **kwargs):
+    def plot_comparison(self, comparison_key: str, type: str, **kwargs):  # type: ignore[no-untyped-def]
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
 
-    def generate_comparisons(self):
+    def generate_comparisons(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def verify_all(self):
+    def verify_all(self):  # type: ignore[no-untyped-def]
         for comparison in self.comparisons.values():
             comparison.verify()
 
-    def plot_all(self):
+    def plot_all(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def get_results(self, verbose: bool = False):
+    def get_results(self, verbose: bool = False):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
     def _get_raw_datasets_from_source(
         self, measure: Measure, source: DataSource
-    ) -> dict[str, pd.DataFrame]:
+    ) -> dict[str, RawDataSet]:
         """Get the raw datasets from the given source."""
         return {
             dataset_name: self._data_loader.get_dataset(dataset_key, source)
