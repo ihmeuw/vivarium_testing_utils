@@ -50,11 +50,11 @@ class FuzzyComparison(Comparison):
         self.reference_data = reference_data
         self.stratifications = stratifications
 
-    def verify(self, stratifications: list[str]):
+    def verify(self, stratifications: list[str] = []):
         raise NotImplementedError
 
-    def summarize(self, stratifications: list[str]):
+    def summarize(self, stratifications: list[str] = []):
         raise NotImplementedError
 
-    def heads(self, stratifications: list[str]):
+    def heads(self, stratifications: list[str] = []):
         raise NotImplementedError
