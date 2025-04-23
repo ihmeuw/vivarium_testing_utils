@@ -58,7 +58,7 @@ class DataLoader:
         return [str(f.stem) for f in self._results_dir.glob("*.parquet")]
 
     def get_artifact_keys(self) -> list[str]:
-        return self._artifact.keys
+        return self._artifact.keys  # type: ignore[no-any-return]
 
     def get_dataset(self, dataset_key: str, source: DataSource) -> RawDataSet:
         """Return the dataset from the cache if it exists, otherwise load it from the source."""
@@ -69,14 +69,14 @@ class DataLoader:
             self._add_to_cache(dataset_key, source, dataset)
             return dataset
 
-    def upload_custom_data(self, dataset_key: str, data: pd.DataFrame | pd.Series) -> None:
+    def upload_custom_data(
+        self, dataset_key: str, data: pd.DataFrame | pd.Series[float]
+    ) -> None:
         self._add_to_cache(dataset_key, DataSource.CUSTOM, data)
 
-    def _load_from_source(
-        self, dataset_key: str, source: DataSource
-    ) -> pd.DataFrame | pd.Series:
+    def _load_from_source(self, dataset_key: str, source: DataSource) -> RawDataSet:
         """Load the data from the given source via the loader mapping."""
-        return self._loader_mapping[source](dataset_key)
+        return self._loader_mapping[source](dataset_key)  # type: ignore[return-value]
 
     def _add_to_cache(self, dataset_key: str, source: DataSource, data: RawDataSet) -> None:
         """Update the raw_datasets cache with the given data."""
@@ -107,7 +107,7 @@ class DataLoader:
                 if level not in REQUIRED_INDEX_LEVELS
             ]
         )
-        return multi_index_df
+        return multi_index_df.pipe(DataFrame[SimOutputData])
 
     @staticmethod
     def _load_artifact(results_dir: Path) -> Artifact:

@@ -1,5 +1,4 @@
-from typing import Union
-
+import pandas as pd
 from pandera.typing import DataFrame
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
@@ -10,4 +9,4 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
 
 SimDataSet = DataFrame[SimOutputData]
 RawArtifactDataSet = DataFrame[SingleNumericColumn] | DataFrame[DrawData]
-RawDataSet = SimDataSet | RawArtifactDataSet
+RawDataSet = SimDataSet | RawArtifactDataSet | pd.DataFrame | pd.Series  # type: ignore[type-arg]
