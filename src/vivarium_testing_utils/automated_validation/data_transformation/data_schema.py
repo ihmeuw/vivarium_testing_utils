@@ -1,6 +1,7 @@
-import pandera as pa
 import pandas as pd
+import pandera as pa
 from pandera.typing import Index
+
 
 class SingleNumericColumn(pa.DataFrameModel):
     """We restrict many intermediate dataframes to a single numeric column.

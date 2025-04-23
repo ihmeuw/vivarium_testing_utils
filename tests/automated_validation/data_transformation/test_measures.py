@@ -1,16 +1,16 @@
 import pandas as pd
+from pandera.typing import DataFrame
 
-from vivarium_testing_utils.automated_validation.data_transformation.measures import (
-    Incidence,
-    Prevalence,
-    SIRemission,
-)
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     RatioData,
     SimOutputData,
     SingleNumericColumn,
 )
-from pandera.typing import DataFrame
+from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    Incidence,
+    Prevalence,
+    SIRemission,
+)
 
 
 def test_incidence(

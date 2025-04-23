@@ -36,7 +36,6 @@ class DataSource(Enum):
 
 
 class DataLoader:
-
     def __init__(self, sim_output_dir: Path, cache_size_mb: int = 1000):
         self._sim_output_dir = sim_output_dir
         self._cache_size_mb = cache_size_mb
