@@ -29,19 +29,21 @@ class Measure(ABC):
     artifact_datasets: dict[str, str]
 
     @abstractmethod
-    def get_measure_data_from_artifact(self, *args, **kwargs) -> Series[SingleNumericColumn]:
+    def get_measure_data_from_artifact(
+        self, *args, **kwargs
+    ) -> DataFrame[SingleNumericColumn]:
         """Process artifact data into a format suitable for calculations."""
         pass
 
     @abstractmethod
-    def get_measure_data_from_sim(self, *args, **kwargs) -> Series[SingleNumericColumn]:
+    def get_measure_data_from_sim(self, *args, **kwargs) -> DataFrame[SingleNumericColumn]:
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
     @pa.check_types
     def get_measure_data(
         self, source: DataSource, *args, **kwargs
-    ) -> Series[SingleNumericColumn]:
+    ) -> DataFrame[SingleNumericColumn]:
         """Process data from the specified source into a format suitable for calculations."""
         if source == DataSource.SIM:
             return self.get_measure_data_from_sim(*args, **kwargs)
@@ -84,14 +86,14 @@ class RatioMeasure(Measure):
 
     @pa.check_types
     def get_measure_data_from_artifact(
-        self, artifact_data: Series[SingleNumericColumn]
-    ) -> Series[SingleNumericColumn]:
+        self, artifact_data: DataFrame[SingleNumericColumn]
+    ) -> DataFrame[SingleNumericColumn]:
         return artifact_data
 
     @pa.check_types
     def get_measure_data_from_ratio(
         self, ratio_data: DataFrame[RatioData]
-    ) -> Series[SingleNumericColumn]:
+    ) -> DataFrame[SingleNumericColumn]:
         """Compute final measure data from split data."""
         return ratio(
             ratio_data,
@@ -100,15 +102,15 @@ class RatioMeasure(Measure):
         )
 
     @pa.check_types
-    def get_measure_data_from_sim(self, *args, **kwargs) -> Series[SingleNumericColumn]:
+    def get_measure_data_from_sim(self, *args, **kwargs) -> DataFrame[SingleNumericColumn]:
         """Process raw simulation data into a format suitable for calculations."""
         return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
 
     @pa.check_types
     def get_ratio_data_from_sim(
         self,
-        numerator_data: Series[SimOutputData],
-        denominator_data: Series[SimOutputData],
+        numerator_data: DataFrame[SimOutputData],
+        denominator_data: DataFrame[SimOutputData],
     ) -> DataFrame[RatioData]:
         """Process raw incidence data into a format suitable for calculations."""
         numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])

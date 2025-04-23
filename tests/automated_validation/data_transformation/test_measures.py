@@ -48,8 +48,8 @@ def test_incidence(
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=transition_count_data, denominator_data=person_time_data
     )
-    expected_measure_data = pd.Series(
-        [3 / 17.0, 5 / 29.0],
+    expected_measure_data = pd.DataFrame(
+        {"value": [3 / 17.0, 5 / 29.0]},
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",
@@ -89,8 +89,8 @@ def test_prevalence(person_time_data: DataFrame[SimOutputData]) -> None:
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=person_time_data, denominator_data=person_time_data
     )
-    expected_measure_data = pd.Series(
-        [23.0 / (17.0 + 23.0), 37.0 / (29.0 + 37.0)],
+    expected_measure_data = pd.DataFrame(
+        {"value": [23.0 / (17.0 + 23.0), 37.0 / (29.0 + 37.0)]},
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",
@@ -135,8 +135,8 @@ def test_si_remission(
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=transition_count_data, denominator_data=person_time_data
     )
-    expected_measure_data = pd.Series(
-        [7 / 23.0, 13 / 37.0],
+    expected_measure_data = pd.DataFrame(
+        {"value": [7 / 23.0, 13 / 37.0]},
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",

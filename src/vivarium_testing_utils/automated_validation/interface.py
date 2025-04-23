@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
@@ -10,6 +11,10 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     Measure,
 )
 from vivarium_testing_utils.automated_validation.types import RawDataSet, SimDataSet
+from pandera.typing import DataFrame
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    SimOutputData,
+)
 
 class ValidationContext:
     def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None):
@@ -47,11 +52,9 @@ class ValidationContext:
             raise NotImplementedError(
                 f"Fuzzy Comparison for {test_source} source not implemented. Must be SIM."
             )
-        test_raw_datasets: dict[str, SimDataSet] = self._get_raw_datasets_from_source(
-            measure, test_source_enum
-        )
+        test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
         test_data = measure.get_ratio_data_from_sim(
-            **test_raw_datasets,
+            **test_raw_datasets,  # type: ignore[arg-type]
         )
 
         ref_source_enum = DataSource.from_str(ref_source)

@@ -17,10 +17,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.types import (
-    PDDataSet,
-    RawArtifactDataSet,
     RawDataSet,
-    SimDataSet,
 )
 
 

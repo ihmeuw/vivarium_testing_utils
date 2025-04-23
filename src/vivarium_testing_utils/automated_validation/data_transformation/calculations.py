@@ -49,10 +49,10 @@ def filter_data(data: DataSet, filter_cols: dict[str, list[str]]) -> DataSet:
     return data
 
 
-def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.Series[float]:
+def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
     """Return a series of the ratio of two columns in a DataFrame,
     where the columns are specified by their names."""
-    return data[numerator] / data[denominator]
+    return (data[numerator] / data[denominator]).to_frame(name="value")
 
 
 def aggregate_sum(data: DataSet, groupby_cols: list[str]) -> DataSet:
