@@ -1,6 +1,8 @@
+from __future__ import annotations
+import pandas as pd
 import pandera as pa
 from pandera.typing import Index
-import pandas as pd
+
 
 class SingleNumericColumn(pa.DataFrameModel):
     """We restrict many intermediate dataframes to a single numeric column.

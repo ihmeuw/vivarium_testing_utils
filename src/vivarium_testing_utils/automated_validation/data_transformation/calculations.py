@@ -4,8 +4,8 @@ import pandas as pd
 import pandera as pa
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    SingleNumericColumn,
     DrawData,
+    SingleNumericColumn,
     check_io,
     series_to_dataframe,
 )
