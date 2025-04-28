@@ -5,6 +5,7 @@ import pandera as pa
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SingleNumericColumn,
+    DrawData,
     check_io,
     series_to_dataframe,
 )
@@ -88,14 +89,26 @@ def clean_artifact_data(
     # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
     # and melt the data into long format
     if data.columns.str.startswith(DRAW_PREFIX).all():
-        data = data.melt(
-            var_name="draw",
-            value_name="value",
-            ignore_index=False,
-        )
-        data["draw"] = data["draw"].str.replace(DRAW_PREFIX, "", regex=False)
-        data["draw"] = data["draw"].astype(int)
-        data = data.set_index("draw", append=True).sort_index()
+        data = _clean_artifact_draws(data)
     elif "value" not in data.columns:
         raise ValueError(f"Artifact {dataset_key} must have draw columns or a value column.")
+    return data
+
+
+@check_io(data=DrawData, out=SingleNumericColumn)
+def _clean_artifact_draws(
+    data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Clean the artifact data by dropping unnecessary columns and renaming the value column."""
+    # Drop unnecessary columns
+    # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
+    # and melt the data into long format
+    data = data.melt(
+        var_name="draw",
+        value_name="value",
+        ignore_index=False,
+    )
+    data["draw"] = data["draw"].str.replace(DRAW_PREFIX, "", regex=False)
+    data["draw"] = data["draw"].astype(int)
+    data = data.set_index("draw", append=True).sort_index()
     return data
