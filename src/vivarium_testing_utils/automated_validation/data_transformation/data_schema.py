@@ -1,5 +1,5 @@
 import pandera as pa
-from pandera.typing import DataFrame, Index
+from pandera.typing import Index
 import pandas as pd
 
 class SingleNumericColumn(pa.DataFrameModel):
