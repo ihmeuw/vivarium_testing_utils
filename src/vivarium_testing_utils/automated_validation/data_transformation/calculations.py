@@ -2,10 +2,8 @@ from typing import TypeVar
 
 import pandas as pd
 import pandera as pa
-from pandera.typing import DataFrame
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    RawArtifactData,
     SingleNumericColumn,
 )
 
@@ -48,10 +46,10 @@ def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
     return data
 
 
-def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.Series:
+def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
     """Return a series of the ratio of two columns in a DataFrame,
     where the columns are specified by their names."""
-    return data[numerator] / data[denominator]
+    return (data[numerator] / data[denominator]).to_frame(name="value")
 
 
 def aggregate_sum(data: DataSet, groupby_cols: list[str]) -> DataSet:
@@ -73,16 +71,16 @@ def marginalize(data: DataSet, marginalize_cols: list[str]) -> DataSet:
 
 def linear_combination(
     data: pd.DataFrame, coeff_a: float, col_a: str, coeff_b: float, col_b: str
-) -> pd.Series:
+) -> pd.DataFrame:
     """Return a series that is the linear combination of two columns in a DataFrame."""
-    return (data[col_a] * coeff_a) + (data[col_b] * coeff_b)
+    return ((data[col_a] * coeff_a) + (data[col_b] * coeff_b)).to_frame(name="value")
 
 
-@pa.check_types
+@pa.check_io(out=SingleNumericColumn.to_schema())
 def clean_artifact_data(
     dataset_key: str,
-    data: RawArtifactData,
-) -> DataFrame[SingleNumericColumn]:
+    data: pd.DataFrame,
+) -> pd.DataFrame:
     """Clean the artifact data by dropping unnecessary columns and renaming the value column."""
     # Drop unnecessary columns
     # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix

@@ -38,11 +38,12 @@ class Comparison(ABC):
 
 
 class FuzzyComparison:
+
     def __init__(
         self,
         measure: RatioMeasure,
-        test_data: DataFrame[RatioData],
-        reference_data: DataFrame[SingleNumericColumn],
+        test_data: pd.DataFrame,
+        reference_data: pd.DataFrame,
         stratifications: list[str] = [],
     ):
         self.measure = measure
