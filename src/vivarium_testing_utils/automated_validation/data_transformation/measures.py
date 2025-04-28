@@ -12,6 +12,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     RatioData,
     SimOutputData,
     SingleNumericColumn,
+    check_io,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     PersonTime,
@@ -37,7 +38,7 @@ class Measure(ABC):
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
-    @pa.check_io(out=SingleNumericColumn.to_schema())
+    @check_io(out=SingleNumericColumn)
     def get_measure_data(self, source: DataSource, *args, **kwargs) -> pd.DataFrame:
         """Process data from the specified source into a format suitable for calculations."""
         if source == DataSource.SIM:
@@ -88,13 +89,11 @@ class RatioMeasure(Measure, ABC):
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
-    @pa.check_io(
-        artifact_data=SingleNumericColumn.to_schema(), out=SingleNumericColumn.to_schema()
-    )
+    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
-    @pa.check_io(ratio_data=RatioData.to_schema(), out=SingleNumericColumn.to_schema())
+    @check_io(ratio_data=RatioData, out=SingleNumericColumn)
     def get_measure_data_from_ratio(self, ratio_data: pd.DataFrame) -> pd.DataFrame:
         """Compute final measure data from split data."""
         return ratio(
@@ -103,15 +102,15 @@ class RatioMeasure(Measure, ABC):
             denominator=self.denominator.new_value_column_name,
         )
 
-    @pa.check_io(out=SingleNumericColumn.to_schema())
+    @check_io(out=SingleNumericColumn)
     def get_measure_data_from_sim(self, *args, **kwargs) -> pd.DataFrame:
         """Process raw simulation data into a format suitable for calculations."""
         return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
 
-    @pa.check_io(
-        numerator_data=SimOutputData.to_schema(),
-        denominator_data=SimOutputData.to_schema(),
-        out=RatioData.to_schema(),
+    @check_io(
+        numerator_data=SimOutputData,
+        denominator_data=SimOutputData,
+        out=RatioData,
     )
     def get_ratio_data_from_sim(
         self,

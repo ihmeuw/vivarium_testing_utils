@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
 import pandas as pd
-from pandera.typing import DataFrame
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     RatioData,

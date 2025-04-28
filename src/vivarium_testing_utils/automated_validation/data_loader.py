@@ -14,6 +14,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
     SingleNumericColumn,
+    check_io,
 )
 
 
@@ -75,7 +76,7 @@ class DataLoader:
             raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
         self._raw_datasets.update({source: {dataset_key: data.copy()}})
 
-    @pa.check_io(out=SimOutputData.to_schema())
+    @check_io(out=SimOutputData)
     def _load_from_sim(self, dataset_key: str) -> pd.DataFrame:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
         sim_data = pd.read_parquet(self._results_dir / f"{dataset_key}.parquet")
@@ -108,7 +109,7 @@ class DataLoader:
         ]["artifact_path"]
         return Artifact(artifact_path)
 
-    @pa.check_io(out=SingleNumericColumn.to_schema())
+    @check_io(out=SingleNumericColumn)
     def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()

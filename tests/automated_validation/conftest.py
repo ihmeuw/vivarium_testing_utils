@@ -5,9 +5,8 @@ import pandera as pa
 import pytest
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    DrawData,
-    SimOutputData,
     SingleNumericColumn,
+    check_io,
 )
 
 
@@ -16,7 +15,7 @@ def sim_result_dir() -> Path:
     return Path(__file__).parent / "data/sim_outputs"
 
 
-@pa.check_io(out=SingleNumericColumn.to_schema())
+@check_io(out=SingleNumericColumn)
 @pytest.fixture
 def transition_count_data() -> pd.DataFrame:
     return pd.DataFrame(
@@ -59,7 +58,7 @@ def transition_count_data() -> pd.DataFrame:
     )
 
 
-@pa.check_io(out=SingleNumericColumn.to_schema())
+@check_io(out=SingleNumericColumn)
 @pytest.fixture
 def person_time_data() -> pd.DataFrame:
     return pd.DataFrame(
@@ -95,7 +94,7 @@ def raw_artifact_disease_incidence() -> pd.DataFrame:
     )
 
 
-@pa.check_io(out=SingleNumericColumn.to_schema())
+@check_io(out=SingleNumericColumn)
 @pytest.fixture
 def artifact_disease_incidence() -> pd.DataFrame:
     return pd.DataFrame(

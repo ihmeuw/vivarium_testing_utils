@@ -5,6 +5,7 @@ import pandera as pa
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SingleNumericColumn,
+    check_io,
 )
 
 DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series)
@@ -76,7 +77,7 @@ def linear_combination(
     return ((data[col_a] * coeff_a) + (data[col_b] * coeff_b)).to_frame(name="value")
 
 
-@pa.check_io(out=SingleNumericColumn.to_schema())
+@check_io(out=SingleNumericColumn)
 def clean_artifact_data(
     dataset_key: str,
     data: pd.DataFrame,
