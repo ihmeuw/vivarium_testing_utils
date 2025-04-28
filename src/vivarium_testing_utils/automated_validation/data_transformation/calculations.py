@@ -6,6 +6,7 @@ import pandera as pa
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SingleNumericColumn,
     check_io,
+    series_to_dataframe,
 )
 
 DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series)
@@ -50,7 +51,7 @@ def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
 def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
     """Return a series of the ratio of two columns in a DataFrame,
     where the columns are specified by their names."""
-    return (data[numerator] / data[denominator]).to_frame(name="value")
+    return series_to_dataframe(data[numerator] / data[denominator])
 
 
 def aggregate_sum(data: DataSet, groupby_cols: list[str]) -> DataSet:
@@ -74,7 +75,7 @@ def linear_combination(
     data: pd.DataFrame, coeff_a: float, col_a: str, coeff_b: float, col_b: str
 ) -> pd.DataFrame:
     """Return a series that is the linear combination of two columns in a DataFrame."""
-    return ((data[col_a] * coeff_a) + (data[col_b] * coeff_b)).to_frame(name="value")
+    return series_to_dataframe((data[col_a] * coeff_a) + (data[col_b] * coeff_b))
 
 
 @check_io(out=SingleNumericColumn)

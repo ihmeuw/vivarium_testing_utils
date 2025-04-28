@@ -80,3 +80,10 @@ def check_io(**model_dict):
 
     # Return the decorator using pa.check_io with the converted schemas
     return pa.check_io(**schema_dict)
+
+
+# TODO: Remove this function and references when we can support Series schemas
+# more easily
+def series_to_dataframe(series: pd.Series[float]) -> pd.DataFrame:
+    """Convert a Series to a DataFrame with the Series values as a single column."""
+    return series.to_frame(name="value")
