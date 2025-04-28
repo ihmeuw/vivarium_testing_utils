@@ -56,9 +56,6 @@ class RatioData(pa.DataFrameModel):
         numeric_columns = df.select_dtypes(include=["number"]).columns
         return len(numeric_columns) == df.shape[1] == 2
 
-import functools
-import pandera as pa
-
 
 def check_io(**model_dict):
     """
