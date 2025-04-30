@@ -6,7 +6,6 @@ from pathlib import Path
 import pandas as pd
 import pandera as pa
 import yaml
-from pandera.typing import DataFrame
 from vivarium import Artifact
 
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
@@ -16,6 +15,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SimOutputData,
     SingleNumericColumn,
 )
+from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
 
 
 class DataSource(Enum):
@@ -76,8 +76,8 @@ class DataLoader:
             raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
         self._raw_datasets.update({source: {dataset_key: data.copy()}})
 
-    @pa.check_types
-    def _load_from_sim(self, dataset_key: str) -> DataFrame[SimOutputData]:
+    @check_io(out=SimOutputData)
+    def _load_from_sim(self, dataset_key: str) -> pd.DataFrame:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
         sim_data = pd.read_parquet(self._results_dir / f"{dataset_key}.parquet")
         if "value" not in sim_data.columns:
@@ -109,8 +109,8 @@ class DataLoader:
         ]["artifact_path"]
         return Artifact(artifact_path)
 
-    @pa.check_types
-    def _load_from_artifact(self, dataset_key: str) -> DataFrame[SingleNumericColumn]:
+    @check_io(out=SingleNumericColumn)
+    def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
         return clean_artifact_data(dataset_key, data)
