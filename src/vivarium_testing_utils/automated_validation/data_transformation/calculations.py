@@ -87,9 +87,6 @@ def clean_artifact_data(
     data: pd.DataFrame,
 ) -> pd.DataFrame:
     """Clean the artifact data by dropping unnecessary columns and renaming the value column."""
-    # Drop unnecessary columns
-    # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
-    # and melt the data into long format
     if data.columns.str.startswith(DRAW_PREFIX).all():
         data = _clean_artifact_draws(data)
     elif "value" not in data.columns:
