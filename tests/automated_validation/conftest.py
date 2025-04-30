@@ -6,8 +6,8 @@ import pytest
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SingleNumericColumn,
-    check_io,
 )
+from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
 
 
 @pytest.fixture

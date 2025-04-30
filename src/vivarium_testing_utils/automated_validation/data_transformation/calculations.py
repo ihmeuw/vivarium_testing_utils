@@ -6,6 +6,8 @@ import pandera as pa
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
     SingleNumericColumn,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.utils import (
     check_io,
     series_to_dataframe,
 )
