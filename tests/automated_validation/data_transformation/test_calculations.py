@@ -31,10 +31,10 @@ def intermediate_data() -> pd.DataFrame:
 def test_ratio(intermediate_data: pd.DataFrame) -> None:
     """Test taking ratio of two columns in a multi-indexed DataFrame"""
     assert ratio(intermediate_data, "a", "b").equals(
-        pd.Series([1 / 4, 2 / 5, 3 / 6, 4 / 7], index=intermediate_data.index)
+        pd.DataFrame({"value": [1 / 4, 2 / 5, 3 / 6, 4 / 7]}, index=intermediate_data.index)
     )
     assert ratio(intermediate_data, "a", "c").equals(
-        pd.Series([1, 2, float("inf"), 4], index=intermediate_data.index)
+        pd.DataFrame({"value": [1, 2, float("inf"), 4]}, index=intermediate_data.index)
     )
     # test non-existent column
     with pytest.raises(KeyError):
@@ -72,10 +72,10 @@ def test_aggregate(intermediate_data: pd.DataFrame) -> None:
 def test_linear_combination(intermediate_data: pd.DataFrame) -> None:
     """Test linear combination of two columns in a multi-indexed DataFrame"""
     assert linear_combination(intermediate_data, 1, "a", 1, "b").equals(
-        pd.Series([5, 7, 9, 11], index=intermediate_data.index)
+        pd.DataFrame({"value": [5, 7, 9, 11]}, index=intermediate_data.index)
     )
     assert linear_combination(intermediate_data, 2, "a", -1, "b").equals(
-        pd.Series([-2, -1, 0, 1], index=intermediate_data.index)
+        pd.DataFrame({"value": [-2, -1, 0, 1]}, index=intermediate_data.index)
     )
     # test non-existent column
     with pytest.raises(KeyError):
