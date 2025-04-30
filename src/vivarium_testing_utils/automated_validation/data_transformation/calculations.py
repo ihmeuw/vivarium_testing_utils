@@ -14,12 +14,10 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     series_to_dataframe,
 )
 
-DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series, DataFrame)  # type: ignore [type-arg]
-
 DRAW_PREFIX = "draw_"
 
 
-def align_indexes(datasets: list[DataSet]) -> list[DataSet]:
+def align_indexes(datasets: list[pd.DataFrame]) -> list[pd.DataFrame]:
     """Put each dataframe on a common index by choosing the intersection of index columns
     and marginalizing over the rest."""
     # Get the common index columns
@@ -29,7 +27,7 @@ def align_indexes(datasets: list[DataSet]) -> list[DataSet]:
     return [marginalize(data, common_index) for data in datasets]
 
 
-def filter_data(data: DataSet, filter_cols: dict[str, list[str]]) -> DataSet:
+def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.DataFrame:
     """Filter a DataFrame by the given index columns and values.
 
     The filter_cols argument
@@ -59,19 +57,19 @@ def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
     return series_to_dataframe(data[numerator] / data[denominator])
 
 
-def aggregate_sum(data: DataSet, groupby_cols: list[str]) -> DataSet:
+def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str]) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
     if not groupby_cols:
         return data
     return data.groupby(groupby_cols).sum()
 
 
-def stratify(data: DataSet, stratification_cols: list[str]) -> DataSet:
+def stratify(data: pd.DataFrame, stratification_cols: list[str]) -> pd.DataFrame:
     """Stratify the data by the index columns, summing over everything else. Syntactic sugar for aggregate."""
     return aggregate_sum(data, stratification_cols)
 
 
-def marginalize(data: DataSet, marginalize_cols: list[str]) -> DataSet:
+def marginalize(data: pd.DataFrame, marginalize_cols: list[str]) -> pd.DataFrame:
     """Sum over marginalize columns, keeping the rest. Syntactic sugar for aggregate."""
     return aggregate_sum(data, [x for x in data.index.names if x not in marginalize_cols])
 

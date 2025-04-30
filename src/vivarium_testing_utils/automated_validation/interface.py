@@ -3,19 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
-from pandera.typing import DataFrame
 
 from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    SimOutputData,
-)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     MEASURE_KEY_MAPPINGS,
     Measure,
 )
-from vivarium_testing_utils.automated_validation.types import RawDataSet, SimDataSet
 
 
 class ValidationContext:
@@ -31,7 +26,7 @@ class ValidationContext:
         """Get a list of the artifact keys available to compare against."""
         return self._data_loader.get_artifact_keys()
 
-    def get_raw_dataset(self, dataset_key: str, source: str) -> RawDataSet:
+    def get_raw_dataset(self, dataset_key: str, source: str) -> pd.DataFrame:
         """Return a copy of the dataset for manual inspection."""
         return self._data_loader.get_dataset(dataset_key, DataSource.from_str(source))
 
@@ -62,7 +57,7 @@ class ValidationContext:
             )
         test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
         test_data = measure.get_ratio_data_from_sim(
-            **test_raw_datasets,  # type: ignore[arg-type]
+            **test_raw_datasets,
         )
 
         ref_source_enum = DataSource.from_str(ref_source)
@@ -97,7 +92,7 @@ class ValidationContext:
 
     def _get_raw_datasets_from_source(
         self, measure: Measure, source: DataSource
-    ) -> dict[str, RawDataSet]:
+    ) -> dict[str, pd.DataFrame]:
         """Get the raw datasets from the given source."""
         return {
             dataset_name: self._data_loader.get_dataset(dataset_key, source)

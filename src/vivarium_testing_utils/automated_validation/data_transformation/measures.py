@@ -50,7 +50,7 @@ class Measure(ABC):
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
-    @pa.check_types
+    @check_io(out=SingleNumericColumn)
     def get_measure_data(self, source: DataSource, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process data from the specified source into a format suitable for calculations."""
         if source == DataSource.SIM:
@@ -92,15 +92,6 @@ class RatioMeasure(Measure, ABC):
             "artifact_data": self.measure_key,
         }
 
-    @abstractmethod
-    def get_ratio_data_from_sim(
-        self,
-        numerator_data: pd.DataFrame,
-        denominator_data: pd.DataFrame,
-    ) -> pd.DataFrame:
-        """Process raw simulation data into a format suitable for calculations."""
-        pass
-
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
@@ -114,7 +105,7 @@ class RatioMeasure(Measure, ABC):
             denominator=self.denominator.new_value_column_name,
         )
 
-    @pa.check_types
+    @check_io(out=SingleNumericColumn)
     def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process raw simulation data into a format suitable for calculations."""
         return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
