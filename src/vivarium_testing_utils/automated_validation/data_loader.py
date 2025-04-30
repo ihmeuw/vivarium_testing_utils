@@ -4,9 +4,7 @@ from enum import Enum
 from pathlib import Path
 
 import pandas as pd
-import pandera as pa
 import yaml
-from pandera.typing import DataFrame
 from vivarium import Artifact
 
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
@@ -16,9 +14,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SimOutputData,
     SingleNumericColumn,
 )
-from vivarium_testing_utils.automated_validation.types import (
-    RawDataSet,
-)
+from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
 
 
 class DataSource(Enum):
@@ -41,7 +37,7 @@ class DataLoader:
         self._cache_size_mb = cache_size_mb
 
         self._results_dir = self._sim_output_dir / "results"
-        self._raw_datasets: dict[DataSource, dict[str, RawDataSet]] = {
+        self._raw_datasets: dict[DataSource, dict[str, pd.DataFrame]] = {
             data_source: {} for data_source in DataSource
         }
         self._loader_mapping = {
@@ -60,7 +56,7 @@ class DataLoader:
     def get_artifact_keys(self) -> list[str]:
         return self._artifact.keys  # type: ignore[no-any-return]
 
-    def get_dataset(self, dataset_key: str, source: DataSource) -> RawDataSet:
+    def get_dataset(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Return the dataset from the cache if it exists, otherwise load it from the source."""
         try:
             return self._raw_datasets[source][dataset_key].copy()
@@ -72,18 +68,18 @@ class DataLoader:
     def upload_custom_data(self, dataset_key: str, data: pd.DataFrame) -> None:
         self._add_to_cache(dataset_key, DataSource.CUSTOM, data)
 
-    def _load_from_source(self, dataset_key: str, source: DataSource) -> RawDataSet:
+    def _load_from_source(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Load the data from the given source via the loader mapping."""
         return self._loader_mapping[source](dataset_key)  # type: ignore[return-value]
 
-    def _add_to_cache(self, dataset_key: str, source: DataSource, data: RawDataSet) -> None:
+    def _add_to_cache(self, dataset_key: str, source: DataSource, data: pd.DataFrame) -> None:
         """Update the raw_datasets cache with the given data."""
         if dataset_key in self._raw_datasets.get(source, {}):
             raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
         self._raw_datasets.update({source: {dataset_key: data.copy()}})
 
-    @pa.check_types
-    def _load_from_sim(self, dataset_key: str) -> DataFrame[SimOutputData]:
+    @check_io(out=SimOutputData)
+    def _load_from_sim(self, dataset_key: str) -> pd.DataFrame:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
         sim_data = pd.read_parquet(self._results_dir / f"{dataset_key}.parquet")
         if "value" not in sim_data.columns:
@@ -105,7 +101,7 @@ class DataLoader:
                 if level not in REQUIRED_INDEX_LEVELS
             ]
         )
-        return multi_index_df.pipe(DataFrame[SimOutputData])
+        return multi_index_df
 
     @staticmethod
     def _load_artifact(results_dir: Path) -> Artifact:
@@ -115,13 +111,13 @@ class DataLoader:
         ]["artifact_path"]
         return Artifact(artifact_path)
 
-    @pa.check_types
-    def _load_from_artifact(self, dataset_key: str) -> DataFrame[SingleNumericColumn]:
+    @check_io(out=SingleNumericColumn)
+    def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
         return clean_artifact_data(dataset_key, data)
 
-    def _load_from_gbd(self, dataset_key: str) -> DataFrame[SingleNumericColumn]:
+    def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
 
     def _raise_custom_data_error(self, dataset_key: str) -> None:

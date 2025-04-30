@@ -72,10 +72,10 @@ def test_aggregate(intermediate_data: pd.DataFrame) -> None:
 def test_linear_combination(intermediate_data: pd.DataFrame) -> None:
     """Test linear combination of two columns in a multi-indexed DataFrame"""
     assert linear_combination(intermediate_data, 1, "a", 1, "b").equals(
-        pd.Series([5, 7, 9, 11], index=intermediate_data.index)
+        pd.DataFrame({"value": [5, 7, 9, 11]}, index=intermediate_data.index)
     )
     assert linear_combination(intermediate_data, 2, "a", -1, "b").equals(
-        pd.Series([-2, -1, 0, 1], index=intermediate_data.index)
+        pd.DataFrame({"value": [-2, -1, 0, 1]}, index=intermediate_data.index)
     )
     # test non-existent column
     with pytest.raises(KeyError):

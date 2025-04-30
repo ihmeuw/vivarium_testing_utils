@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
 import pandas as pd
-from pandera.typing import DataFrame
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     RatioData,
@@ -41,8 +40,8 @@ class FuzzyComparison(Comparison):
     def __init__(
         self,
         measure: RatioMeasure,
-        test_data: DataFrame[RatioData],
-        reference_data: DataFrame[SingleNumericColumn],
+        test_data: pd.DataFrame,
+        reference_data: pd.DataFrame,
         stratifications: list[str] = [],
     ):
         self.measure = measure
