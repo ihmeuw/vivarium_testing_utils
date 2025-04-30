@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import scipy.stats
 from loguru import logger
-from scipy.stats._distn_infrastructure import rv_discrete_frozen, rv_continuous_frozen
+from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_frozen
 
 
 class FuzzyChecker:
