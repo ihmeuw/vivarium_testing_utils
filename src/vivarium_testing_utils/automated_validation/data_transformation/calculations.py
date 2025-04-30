@@ -2,11 +2,14 @@ from typing import TypeVar
 
 import pandas as pd
 import pandera as pa
-from pandera.typing import DataFrame
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    RawArtifactData,
+    DrawData,
     SingleNumericColumn,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.utils import (
+    check_io,
+    series_to_dataframe,
 )
 
 DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series)
@@ -48,10 +51,10 @@ def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
     return data
 
 
-def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.Series:
+def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
     """Return a series of the ratio of two columns in a DataFrame,
     where the columns are specified by their names."""
-    return data[numerator] / data[denominator]
+    return series_to_dataframe(data[numerator] / data[denominator])
 
 
 def aggregate_sum(data: DataSet, groupby_cols: list[str]) -> DataSet:
@@ -73,29 +76,38 @@ def marginalize(data: DataSet, marginalize_cols: list[str]) -> DataSet:
 
 def linear_combination(
     data: pd.DataFrame, coeff_a: float, col_a: str, coeff_b: float, col_b: str
-) -> pd.Series:
+) -> pd.DataFrame:
     """Return a series that is the linear combination of two columns in a DataFrame."""
-    return (data[col_a] * coeff_a) + (data[col_b] * coeff_b)
+    return series_to_dataframe((data[col_a] * coeff_a) + (data[col_b] * coeff_b))
 
 
-@pa.check_types
+@check_io(out=SingleNumericColumn)
 def clean_artifact_data(
     dataset_key: str,
-    data: RawArtifactData,
-) -> DataFrame[SingleNumericColumn]:
+    data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Clean the artifact data by dropping unnecessary columns and renaming the value column."""
+    if data.columns.str.startswith(DRAW_PREFIX).all():
+        data = _clean_artifact_draws(data)
+    elif "value" not in data.columns:
+        raise ValueError(f"Artifact {dataset_key} must have draw columns or a value column.")
+    return data
+
+
+@check_io(data=DrawData, out=SingleNumericColumn)
+def _clean_artifact_draws(
+    data: pd.DataFrame,
+) -> pd.DataFrame:
     """Clean the artifact data by dropping unnecessary columns and renaming the value column."""
     # Drop unnecessary columns
     # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
     # and melt the data into long format
-    if data.columns.str.startswith(DRAW_PREFIX).all():
-        data = data.melt(
-            var_name="draw",
-            value_name="value",
-            ignore_index=False,
-        )
-        data["draw"] = data["draw"].str.replace(DRAW_PREFIX, "", regex=False)
-        data["draw"] = data["draw"].astype(int)
-        data = data.set_index("draw", append=True).sort_index()
-    elif "value" not in data.columns:
-        raise ValueError(f"Artifact {dataset_key} must have draw columns or a value column.")
+    data = data.melt(
+        var_name="draw",
+        value_name="value",
+        ignore_index=False,
+    )
+    data["draw"] = data["draw"].str.replace(DRAW_PREFIX, "", regex=False)
+    data["draw"] = data["draw"].astype(int)
+    data = data.set_index("draw", append=True).sort_index()
     return data
