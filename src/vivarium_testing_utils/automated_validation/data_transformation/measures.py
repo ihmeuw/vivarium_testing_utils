@@ -73,7 +73,6 @@ class Measure(ABC):
 class RatioMeasure(Measure, ABC):
     """A Measure that calculates ratio data from simulation data."""
 
-    measure_key: str
     numerator: SimDataFormatter
     denominator: SimDataFormatter
 
