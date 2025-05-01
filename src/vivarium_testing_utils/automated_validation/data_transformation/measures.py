@@ -24,7 +24,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
 class Measure(ABC):
     """A Measure contains key information and methods to take raw data from a DataSource
     and process it into an epidemiological measure suitable for use in a Comparison."""
-
+    measure_key: str
     sim_datasets: dict[str, str]
     artifact_datasets: dict[str, str]
 
@@ -61,7 +61,6 @@ class Measure(ABC):
 class RatioMeasure(Measure, ABC):
     """A Measure that calculates ratio data from simulation data."""
 
-    measure_key: str
     numerator: SimDataFormatter
     denominator: SimDataFormatter
 
