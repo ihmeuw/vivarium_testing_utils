@@ -19,9 +19,6 @@ class AgeGroup:
         if self.span < 0:
             raise ValueError("End age must be greater than or equal to start age.")
 
-    def __repr__(self):
-        return f"AgeGroup(start={self.start}, end={self.end})"
-
     def fraction_contained_by(self, other: AgeGroup) -> float:
         """
         Return the amount of this group that is contained within another group.
