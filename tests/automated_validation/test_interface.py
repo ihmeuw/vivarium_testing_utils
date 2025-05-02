@@ -80,4 +80,6 @@ def test_add_comparison(
         ),
     )
     assert comparison.test_data.equals(expected_ratio_data)
-    assert comparison.reference_data.equals(artifact_disease_incidence)
+    assert comparison.reference_data.equals(
+        artifact_disease_incidence.rename(columns={"value": "Reference Rate"})
+    )
