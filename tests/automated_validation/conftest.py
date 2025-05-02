@@ -113,6 +113,6 @@ def artifact_disease_incidence() -> pd.DataFrame:
                 ("B", 0),
                 ("B", 1),
             ],
-            names=["stratify_column", "input_draw"],
+            names=["stratify_column", "draw"],
         ),
     )

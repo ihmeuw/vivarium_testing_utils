@@ -21,10 +21,10 @@ def align_indexes(datasets: list[DataSet]) -> list[DataSet]:
     """Put each dataframe on a common index by choosing the intersection of index columns
     and marginalizing over the rest."""
     # Get the common index columns
-    common_index = list(set.intersection(*(set(data.index.names) for data in datasets)))
+    common_index = set.intersection(*(set(data.index.names) for data in datasets))
 
     # Marginalize over the rest
-    return [stratify(data, common_index) for data in datasets]
+    return [marginalize(data, common_index) for data in datasets]
 
 
 def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
@@ -103,11 +103,11 @@ def _clean_artifact_draws(
     # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
     # and melt the data into long format
     data = data.melt(
-        var_name="input_draw",
+        var_name="draw",
         value_name="value",
         ignore_index=False,
     )
-    data["input_draw"] = data["input_draw"].str.replace(DRAW_PREFIX, "", regex=False)
-    data["input_draw"] = data["input_draw"].astype(int)
-    data = data.set_index("input_draw", append=True).sort_index()
+    data["draw"] = data["draw"].str.replace(DRAW_PREFIX, "", regex=False)
+    data["draw"] = data["draw"].astype(int)
+    data = data.set_index("draw", append=True).sort_index()
     return data
