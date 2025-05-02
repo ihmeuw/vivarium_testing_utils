@@ -185,27 +185,17 @@ def rebin_dataframe(
     source_age_schema = AgeSchema.from_dataframe(df)
     source_age_schema.validate_compatible(target_age_schema)
 
-    # Get the mapping between source and target schemas
     converter = target_age_schema.get_converter(source_age_schema)
 
-    # Reset index to work with age_group as a column
     df_reset = df.reset_index()
-
-    # Identify index columns (all multi-index levels except age_group)
     idx_cols = [
         col for col in df_reset.columns if col in df.index.names and col != "age_group"
     ]
-
-    # Identify value columns (all non-index columns)
     value_cols = [
         col for col in df_reset.columns if col not in df.index.names and col != "age_group"
     ]
-
-    # Group by all index columns except age_group
     groupby_cols = idx_cols.copy()
     grouped = df_reset.groupby(groupby_cols)
-
-    # Create a list to hold new rows
     result_rows = []
 
     # Process each group
@@ -213,9 +203,6 @@ def rebin_dataframe(
         # Convert group_key to a tuple for consistent handling
         if not isinstance(group_key, tuple):
             group_key = (group_key,)
-
-        # Get all the unique source bucket names in this group
-        source_buckets = group_df["age_group"].unique()
 
         # For each target age bucket, calculate the contributed values
         for target_idx, target_bucket in enumerate(target_age_schema.age_buckets):
@@ -235,35 +222,17 @@ def rebin_dataframe(
             # Find all converter entries for this target bucket
             for t_idx, s_idx, fraction in converter:
                 if t_idx == target_idx:
-                    # Get the corresponding source bucket
                     source_bucket = source_age_schema.age_buckets[s_idx]
-
-                    # Find the source row in the group dataframe
                     source_rows = group_df[group_df["age_group"] == source_bucket.name]
-
                     if not source_rows.empty:
-                        # Get the source values
                         source_row = source_rows.iloc[0]
-
-                        # Add proportional values for each value column
                         for col in value_cols:
                             new_row[col] += source_row[col] * fraction
 
-            # Only add the row if at least one value column has a non-zero value
             if any(new_row[col] != 0.0 for col in value_cols):
                 result_rows.append(new_row)
 
-    # Create new dataframe from the results
     result_df = pd.DataFrame(result_rows)
-
-    # Check if we actually got data
-    if result_df.empty:
-        warnings.warn(
-            "No data was generated. Check that the schemas are compatible and the converter is working correctly."
-        )
-        return pd.DataFrame()
-
-    # Set multi-index back
     index_cols = groupby_cols + ["age_group"]
     result_df = result_df.set_index(index_cols)
 
