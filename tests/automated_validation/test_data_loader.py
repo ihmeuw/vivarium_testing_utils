@@ -133,6 +133,6 @@ def test__load_from_artifact(
     # check that value is column and rest are indices
     assert set(art_dataset.index.names) == {
         "stratify_column",
-        "draw",
+        "input_draw",
     }
     assert set(art_dataset.columns) == {"value"}

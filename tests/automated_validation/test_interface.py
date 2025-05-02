@@ -80,16 +80,6 @@ def test_add_comparison(
         ),
     )
     assert comparison.test_data.equals(expected_ratio_data)
-    assert comparison.reference_data.equals(artifact_disease_incidence)
-
-
-@pytest.mark.skip("Not implemented")
-def test_summarize() -> None:
-    """Ensure that we can summarize a comparison"""
-    pass
-
-
-@pytest.mark.skip("Not implemented")
-def test_heads() -> None:
-    """Ensure that we can verify a comparison"""
-    pass
+    assert comparison.reference_data.equals(
+        artifact_disease_incidence.rename(columns={"value": "Reference Rate"})
+    )

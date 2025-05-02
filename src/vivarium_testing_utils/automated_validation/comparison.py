@@ -15,6 +15,11 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     stratify,
     align_indexes,
 )
+from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
+    AgeSchema,
+    rebin_dataframe,
+    reformat_artifact_dataframe,
+)
 
 
 class Comparison(ABC):
@@ -57,13 +62,19 @@ class FuzzyComparison(Comparison):
         self.test_source = test_source
         self.test_data = test_data
         self.reference_source = reference_source
-        self.reference_data = reference_data.rename(columns={"value": "Reference Rate"})
+        reference_data = reformat_artifact_dataframe(
+            reference_data,
+        )
+        reference_data = rebin_dataframe(
+            reference_data, AgeSchema.from_dataframe(test_data)
+        ).rename(columns={"value": "Reference Rate"})
+        self.reference_data = reference_data
         self.stratifications = stratifications
 
     def verify(self, stratifications: Collection[str] = ()):
         raise NotImplementedError
 
-    def summarize(self, stratifications: list[str]):
+    def summarize(self):
         measure_key = self.measure.measure_key
         test_info = self._data_info(self.test_source, self.test_data)
         reference_info = self._data_info(self.reference_source, self.reference_data)
@@ -80,17 +91,17 @@ class FuzzyComparison(Comparison):
         sort_by: str = "Percent Error",
         ascending: bool = False,
     ):
-        converted_test_data = self.measure.get_measure_data_from_ratio(self.test_data).rename(
-            columns={"value": "Test Rate"}
+        aligned_ratio_data, aligned_reference_data = align_indexes(
+            [self.test_data, self.reference_data],
         )
+        converted_test_data = self.measure.get_measure_data_from_ratio(
+            aligned_ratio_data
+        ).rename(columns={"value": "Test Rate"})
         converted_test_data = stratify(
             converted_test_data,
             stratifications,
         )
-        converted_reference_data = stratify(self.reference_data, stratifications)
-        converted_test_data, converted_reference_data = align_indexes(
-            [converted_test_data, converted_reference_data]
-        )
+        converted_reference_data = stratify(aligned_reference_data, stratifications)
         merged_data = pd.concat([converted_test_data, converted_reference_data], axis=1)
         merged_data["Percent Error"] = (
             (merged_data["Test Rate"] - merged_data["Reference Rate"])
@@ -104,14 +115,14 @@ class FuzzyComparison(Comparison):
     def _data_info(self, source: DataSource, dataframe: pd.DataFrame) -> dict[str, str]:
         """Return a dictionary of the data source and the dataframe."""
         data_info: dict[str, str] = {}
-        data_info["source"] = source.name
+        data_info["source"] = source.value
         data_info["index_columns"] = dataframe.index.names
         data_info["size"] = dataframe.shape
-        # get unique values for index level "draw" if it exists, else return zero
-        if "draw" in dataframe.index.names:
-            data_info["num_draws"] = dataframe.index.get_level_values("draw").nunique()
-            data_info["draws"] = dataframe.index.get_level_values("draw").unique()
+        if "input_draw" in dataframe.index.names:
+            data_info["num_draws"] = dataframe.index.get_level_values("input_draw").nunique()
+            data_info["input_draw"] = dataframe.index.get_level_values("input_draw").unique()
         else:
             data_info["num_draws"] = 0
         if source == DataSource.SIM:
-            data_info["num_seeds"] = dataframe.index.get_level_values("seed").nunique()
+            data_info["num_seeds"] = dataframe.index.get_level_values("random_seed").nunique()
+        return data_info
