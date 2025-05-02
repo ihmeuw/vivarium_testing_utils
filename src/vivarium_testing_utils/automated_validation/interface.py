@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation import plot_utils
-from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
+from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     MEASURE_KEY_MAPPINGS,
@@ -14,7 +14,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 class ValidationContext:
     def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None):
         self._data_loader = DataLoader(results_dir)
-        self.comparisons: dict[str, Comparison] = {}
+        self.comparisons = {}
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -63,12 +63,6 @@ class ValidationContext:
 
     def verify(self, comparison_key: str, stratifications: list[str] = []):
         self.comparisons[comparison_key].verify(stratifications)
-
-    def summarize(self, comparison_key: str, stratifications: list[str] = []):
-        self.comparisons[comparison_key].summarize(stratifications)
-
-    def heads(self, comparison_key: str, stratifications: list[str] = []):
-        self.comparisons[comparison_key].heads(stratifications)
 
     def plot_comparison(self, comparison_key: str, type: str, **kwargs):
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
