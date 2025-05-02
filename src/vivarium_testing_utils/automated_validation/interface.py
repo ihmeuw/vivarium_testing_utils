@@ -55,9 +55,7 @@ class ValidationContext:
         ref_data = measure.get_measure_data(ref_source, **ref_raw_datasets)
         comparison = FuzzyComparison(
             measure,
-            test_source,
             test_data,
-            ref_source,
             ref_data,
             stratifications,
         )
