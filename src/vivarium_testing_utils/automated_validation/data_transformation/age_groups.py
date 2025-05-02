@@ -44,7 +44,7 @@ class AgeGroup:
         match = re.match(pattern, name)
 
         if not match:
-            raise ValueError(f"Invalid bucket name format: {name}")
+            raise ValueError(f"Invalid age group name format: {name}")
 
         start, end, unit = match.groups()
         start, end = float(start), float(end)
@@ -64,7 +64,7 @@ class AgeGroup:
             start_years = start
             end_years = end
         else:
-            ValueError(f"Invalid unit: {unit}. Must be 'days', 'months', or 'years'.")
+            raise ValueError(f"Invalid unit: {unit}. Must be 'days', 'months', or 'years'.")
 
         return cls(name, start_years, end_years)
 
