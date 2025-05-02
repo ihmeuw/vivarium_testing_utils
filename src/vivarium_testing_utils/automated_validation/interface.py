@@ -12,18 +12,17 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 
 
 class ValidationContext:
-
-    def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None = None):
+    def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None):
         self._data_loader = DataLoader(results_dir)
         self.comparisons: dict[str, Comparison] = {}
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
-        return self._data_loader.get_sim_outputs()
+        return self._data_loader.sim_outputs()
 
     def get_artifact_keys(self) -> list[str]:
         """Get a list of the artifact keys available to compare against."""
-        return self._data_loader.get_artifact_keys()
+        return self._data_loader.artifact_keys()
 
     def get_raw_dataset(self, dataset_key: str, source: str) -> pd.DataFrame:
         """Return a copy of the dataset for manual inspection."""
@@ -67,8 +66,8 @@ class ValidationContext:
     def verify(self, comparison_key: str, stratifications: list[str] = []):
         self.comparisons[comparison_key].verify(stratifications)
 
-    def summarize(self, comparison_key: str):
-        self.comparisons[comparison_key].summarize()
+    def summarize(self, comparison_key: str, stratifications: list[str] = []):
+        self.comparisons[comparison_key].summarize(stratifications)
 
     def heads(self, comparison_key: str, stratifications: list[str] = []):
         self.comparisons[comparison_key].heads(stratifications)
