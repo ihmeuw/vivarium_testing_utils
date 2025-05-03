@@ -1,9 +1,11 @@
 from __future__ import annotations
-import pandas as pd
+
 import re
-import numpy as np
-from collections import defaultdict
 import warnings
+from collections import defaultdict
+
+import numpy as np
+import pandas as pd
 
 
 class AgeGroup:

@@ -1,16 +1,18 @@
 from __future__ import annotations
-import pandas as pd
+
 import re
-import numpy as np
-from collections import defaultdict
 import warnings
+from collections import defaultdict
+
+import numpy as np
+import pandas as pd
 import pytest
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeGroup,
     AgeSchema,
-    reformat_artifact_dataframe,
     rebin_dataframe,
+    reformat_artifact_dataframe,
 )
 
 
