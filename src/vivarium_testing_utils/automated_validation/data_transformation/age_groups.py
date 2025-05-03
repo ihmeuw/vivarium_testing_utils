@@ -11,7 +11,7 @@ class AgeGroup:
     Class to represent an age group with start and end ages.
     """
 
-    def __init__(self, name, start: int, end: int):
+    def __init__(self, name, start: int | float, end: int | float):
         self.name = name
         self.start = start
         self.end = end
@@ -112,17 +112,17 @@ class AgeSchema:
         Returns a list of tuples (target_idx, source_idx, fraction) where fraction is
         the proportion of the source bucket that should go into the target bucket.
         """
-        converter = []
-        for i, target_bucket in enumerate(self.age_buckets):
-            for j, source_bucket in enumerate(other.age_buckets):
+        converter = defaultdict(dict)
+        for target_bucket in self.age_buckets:
+            for source_bucket in other.age_buckets:
                 # Calculate what fraction of the source bucket should go into the target bucket
                 fraction = source_bucket.fraction_contained_by(target_bucket)
                 if fraction > 0:
-                    converter.append((i, j, fraction))
+                    converter[target_bucket.name][source_bucket.name] = fraction
         return converter
 
     @classmethod
-    def from_dict(cls, age_buckets: dict[str, tuple[int, int]]):
+    def from_dict(cls, age_buckets: dict[str, tuple[int | float, int | float]]):
         """
         Create an AgeSchema from a dictionary of age buckets.
         """
@@ -186,54 +186,77 @@ def rebin_dataframe(
     source_age_schema.validate_compatible(target_age_schema)
 
     converter = target_age_schema.get_converter(source_age_schema)
+    # Get new categories from mapping
+    new_ages = list(converter.keys())
 
-    df_reset = df.reset_index()
-    idx_cols = [
-        col for col in df_reset.columns if col in df.index.names and col != "age_group"
-    ]
-    value_cols = [
-        col for col in df_reset.columns if col not in df.index.names and col != "age_group"
-    ]
-    groupby_cols = idx_cols.copy()
-    grouped = df_reset.groupby(groupby_cols)
-    result_rows = []
+    # Create transformation matrix
+    old_ages = df.index.get_level_values("age_group").unique()
+    transform_matrix = pd.DataFrame(0, index=new_ages, columns=old_ages)
 
-    # Process each group
-    for group_key, group_df in grouped:
-        # Convert group_key to a tuple for consistent handling
-        if not isinstance(group_key, tuple):
-            group_key = (group_key,)
+    # Fill transformation matrix with weights
+    for new_age, weights in converter.items():
+        for old_age, weight in weights.items():
+            transform_matrix.loc[new_age, old_age] = weight
 
-        # For each target age bucket, calculate the contributed values
-        for target_idx, target_bucket in enumerate(target_age_schema.age_buckets):
-            new_row = {}
+    # Get index structure
+    idx_names = df.index.names
+    other_levels = [name for name in idx_names if name != "age_group"]
 
-            # Set index columns
-            for i, col in enumerate(groupby_cols):
-                new_row[col] = group_key[i]
+    # Get other index levels
+    other_idx_values = [df.index.get_level_values(name).unique() for name in other_levels]
 
-            # Set the target age bucket name
-            new_row["age_group"] = target_bucket.name
+    # Create cartesian product of other index values
+    other_combos = pd.MultiIndex.from_product(other_idx_values, names=other_levels)
 
-            # Initialize value columns
-            for col in value_cols:
-                new_row[col] = 0.0
+    # Create new index for result
+    new_idx_components = [[new_ages[i] for i in range(len(new_ages))]]
+    new_idx_components.extend(
+        [df.index.get_level_values(name).unique() for name in other_levels]
+    )
+    new_idx_names = ["age_group"] + other_levels
 
-            # Find all converter entries for this target bucket
-            for t_idx, s_idx, fraction in converter:
-                if t_idx == target_idx:
-                    source_bucket = source_age_schema.age_buckets[s_idx]
-                    source_rows = group_df[group_df["age_group"] == source_bucket.name]
-                    if not source_rows.empty:
-                        source_row = source_rows.iloc[0]
-                        for col in value_cols:
-                            new_row[col] += source_row[col] * fraction
+    new_idx = pd.MultiIndex.from_product(new_idx_components, names=new_idx_names)
 
-            if any(new_row[col] != 0.0 for col in value_cols):
-                result_rows.append(new_row)
+    # Initialize result DataFrame
+    result = pd.DataFrame(0.0, index=new_idx, columns=df.columns)
 
-    result_df = pd.DataFrame(result_rows)
-    index_cols = groupby_cols + ["age_group"]
-    result_df = result_df.set_index(index_cols)
+    # Process each combination of other indices
+    for combo in other_combos:
+        # Create mask for this combination
+        mask = True
+        for i, level_name in enumerate(other_levels):
+            if isinstance(combo, tuple):
+                val = combo[i]
+            else:
+                val = combo  # Single value
+            mask = mask & (df.index.get_level_values(level_name) == val)
 
-    return result_df
+        # Extract subset with this combination
+        subset = df[mask]
+
+        # Create values array (age_groups x columns)
+        values = np.zeros((len(old_ages), len(df.columns)))
+
+        # Fill values from subset
+        for i, age_group in enumerate(old_ages):
+            # Find matching indices with this age_group
+            age_mask = subset.index.get_level_values("age_group") == age_group
+            if age_mask.any():
+                # If there are matches, sum the values (in case of duplicates)
+                values[i, :] = subset[age_mask].sum().values
+
+        # Apply transformation
+        result_values = np.dot(transform_matrix, values)
+
+        # Update result DataFrame
+        for i, new_age in enumerate(new_ages):
+            # Create new index tuple
+            if isinstance(combo, tuple):
+                new_idx_tuple = (new_age,) + combo
+            else:
+                new_idx_tuple = (new_age, combo)
+
+            # Assign transformed values
+            result.loc[new_idx_tuple, :] = result_values[i, :]
+
+    return result.reorder_levels(df.index.names)

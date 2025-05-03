@@ -107,8 +107,8 @@ def test_rebin_dataframe():
     # Create a sample DataFrame with age groups
     df = pd.DataFrame(
         {
-            "foo": [1, 2, 3, 4],
-            "bar": [5, 6, 7, 8],
+            "foo": [1.0, 2.0, 3.0, 4.0],
+            "bar": [5.0, 6.0, 7.0, 8.0],
         },
         index=pd.MultiIndex.from_tuples(
             [
