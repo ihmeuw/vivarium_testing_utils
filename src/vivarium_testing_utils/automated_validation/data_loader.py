@@ -60,6 +60,11 @@ class DataLoader:
         try:
             return self._raw_datasets[source][dataset_key].copy()
         except KeyError:
+            if source == DataSource.CUSTOM:
+                raise ValueError(
+                    f"No custom dataset found for {dataset_key}."
+                    "Please upload a dataset using ValidationContext.upload_custom_data."
+                )
             dataset = self._load_from_source(dataset_key, source)
             self._add_to_cache(dataset_key, source, dataset)
             return dataset
@@ -69,13 +74,8 @@ class DataLoader:
 
     def _load_from_source(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Load the data from the given source via the loader mapping."""
-        try:
-            return self._loader_mapping[source](dataset_key)
-        except KeyError:
-            raise ValueError(
-                f"No custom dataset found for {dataset_key}."
-                "Please upload a dataset using ValidationContext.upload_custom_data."
-            )
+        return self._loader_mapping[source](dataset_key)
+
     def _add_to_cache(self, dataset_key: str, source: DataSource, data: pd.DataFrame) -> None:
         """Update the raw_datasets cache with the given data."""
         if dataset_key in self._raw_datasets.get(source, {}):
