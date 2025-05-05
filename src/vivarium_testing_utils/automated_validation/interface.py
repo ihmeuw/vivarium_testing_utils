@@ -53,7 +53,7 @@ class ValidationContext:
 
         if not test_source_enum == DataSource.SIM:
             raise NotImplementedError(
-                f"Fuzzy Comparison for {test_source} source not implemented. Must be SIM."
+                f"Comparison for {test_source} source not implemented. Must be SIM."
             )
         test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
         test_data = measure.get_ratio_data_from_sim(
