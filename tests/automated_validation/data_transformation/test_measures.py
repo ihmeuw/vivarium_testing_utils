@@ -11,8 +11,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 
 
 def test_incidence(
-    transition_count_data: pd.DataFrame,
-    person_time_data: pd.DataFrame,
+    transition_count_data: pd.DataFrame, person_time_data: pd.DataFrame
 ) -> None:
     """Test the Incidence measure."""
     cause = "disease"
@@ -99,8 +98,7 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
 
 
 def test_si_remission(
-    transition_count_data: pd.DataFrame,
-    person_time_data: pd.DataFrame,
+    transition_count_data: pd.DataFrame, person_time_data: pd.DataFrame
 ) -> None:
     """Test the SIRemission measure."""
     cause = "disease"
