@@ -41,6 +41,5 @@ module = [
     "py._path.local",
     "scipy.*",
     # "sklearn.*",
-    "vivarium.*",
 ]
 ignore_missing_imports = true

@@ -44,7 +44,6 @@ class DataLoader:
             DataSource.SIM: self._load_from_sim,
             DataSource.GBD: self._load_from_gbd,
             DataSource.ARTIFACT: self._load_from_artifact,
-            DataSource.CUSTOM: self._raise_custom_data_error,
         }
         self._artifact = self._load_artifact(self._sim_output_dir)
 
@@ -54,7 +53,7 @@ class DataLoader:
         return [str(f.stem) for f in self._results_dir.glob("*.parquet")]
 
     def get_artifact_keys(self) -> list[str]:
-        return self._artifact.keys  # type: ignore[no-any-return]
+        return self._artifact.keys
 
     def get_dataset(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Return the dataset from the cache if it exists, otherwise load it from the source."""
@@ -70,8 +69,13 @@ class DataLoader:
 
     def _load_from_source(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Load the data from the given source via the loader mapping."""
-        return self._loader_mapping[source](dataset_key)  # type: ignore[return-value]
-
+        try:
+            return self._loader_mapping[source](dataset_key)
+        except KeyError:
+            raise ValueError(
+                f"No custom dataset found for {dataset_key}."
+                "Please upload a dataset using ValidationContext.upload_custom_data."
+            )
     def _add_to_cache(self, dataset_key: str, source: DataSource, data: pd.DataFrame) -> None:
         """Update the raw_datasets cache with the given data."""
         if dataset_key in self._raw_datasets.get(source, {}):
@@ -119,9 +123,3 @@ class DataLoader:
 
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
-
-    def _raise_custom_data_error(self, dataset_key: str) -> None:
-        raise ValueError(
-            f"No custom dataset found for {dataset_key}."
-            "Please upload a dataset using ValidationContext.upload_custom_data."
-        )
