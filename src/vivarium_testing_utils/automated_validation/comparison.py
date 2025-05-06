@@ -38,7 +38,6 @@ class Comparison(ABC):
 
 
 class FuzzyComparison(Comparison):
-
     def __init__(
         self,
         measure: RatioMeasure,
