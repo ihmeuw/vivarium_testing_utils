@@ -12,7 +12,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
 
 
 def check_schema_error_batch(
-    schema: pa.DataFrameModel, invalid_dataframes: list[pd.DataFrame]
+    schema: type[pa.DataFrameModel], invalid_dataframes: list[pd.DataFrame]
 ) -> None:
     """Helper function to check if a schema raises an error for invalid data."""
     for df in invalid_dataframes:
