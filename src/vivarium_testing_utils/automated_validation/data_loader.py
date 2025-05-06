@@ -45,6 +45,11 @@ class DataLoader:
             DataSource.CUSTOM: self._raise_custom_data_error,
         }
         self._artifact = self._load_artifact(self._sim_output_dir)
+        self._add_to_cache(
+            "population.age_bins",
+            source=DataSource.ARTIFACT,
+            data=self._artifact.load("population.age_bins"),
+        )
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets in the given simulation output directory.

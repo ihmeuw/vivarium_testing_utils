@@ -2,10 +2,6 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    RatioData,
-    SingleNumericColumn,
-)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
     RatioMeasure,

@@ -3,27 +3,37 @@ from pathlib import Path
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation import plot_utils
-from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
+from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     MEASURE_KEY_MAPPINGS,
     Measure,
 )
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    align_indexes,
+    resolve_age_bins,
+)
 
 
 class ValidationContext:
 
-    def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None = None):
+    def __init__(self, results_dir: str | Path, age_groups: pd.Index | None = None):
         self._data_loader = DataLoader(results_dir)
-        self.comparisons = {}
+        self.comparisons: dict[str, Comparison] = {}
+        if not age_groups:
+            self.age_bins = self.get_raw_dataset(
+                "population.age_bins", "artifact"
+            ).rename_axis(index={"age_group_name": "age_group"})
+        else:
+            self.age_bins = age_groups
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
-        return self._data_loader.sim_outputs()
+        return self._data_loader.get_sim_outputs()
 
     def get_artifact_keys(self) -> list[str]:
         """Get a list of the artifact keys available to compare against."""
-        return self._data_loader.artifact_keys()
+        return self._data_loader.get_artifact_keys()
 
     def get_raw_dataset(self, dataset_key: str, source: str) -> pd.DataFrame:
         """Return a copy of the dataset for manual inspection."""
@@ -54,9 +64,12 @@ class ValidationContext:
         ref_source = DataSource.from_str(ref_source)
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source)
         ref_data = measure.get_measure_data(ref_source, **ref_raw_datasets)
+        test_data, ref_data = self.align_datasets(test_data, ref_data)
         comparison = FuzzyComparison(
             measure,
+            test_source,
             test_data,
+            ref_source,
             ref_data,
             stratifications,
         )
@@ -64,6 +77,12 @@ class ValidationContext:
 
     def verify(self, comparison_key: str, stratifications: list[str] = []):
         self.comparisons[comparison_key].verify(stratifications)
+
+    def summarize(self, comparison_key: str):
+        self.comparisons[comparison_key].summarize()
+
+    def heads(self, comparison_key: str, stratifications: list[str] = []):
+        self.comparisons[comparison_key].heads(stratifications)
 
     def plot_comparison(self, comparison_key: str, type: str, **kwargs):
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
@@ -89,3 +108,12 @@ class ValidationContext:
             dataset_name: self._data_loader.get_dataset(dataset_key, source)
             for dataset_name, dataset_key in measure.get_required_datasets(source).items()
         }
+
+    def align_datasets(
+        self, test_data: pd.DataFrame, ref_data: pd.DataFrame
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Align the test and reference datasets on the same index."""
+        test_data, ref_data = align_indexes([test_data, ref_data])
+        test_data = resolve_age_bins(test_data, self.age_bins)
+        ref_data = resolve_age_bins(ref_data, self.age_bins)
+        return test_data, ref_data

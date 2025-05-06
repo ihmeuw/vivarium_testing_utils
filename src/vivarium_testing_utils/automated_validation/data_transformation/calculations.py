@@ -111,3 +111,13 @@ def _clean_artifact_draws(
     data["draw"] = data["draw"].astype(int)
     data = data.set_index("draw", append=True).sort_index()
     return data
+
+
+def resolve_age_bins(data: pd.DataFrame, age_bins: pd.DataFrame) -> pd.DataFrame:
+    """Try to merge the age bins with the data. If it fails, just return the data."""
+    try:
+        data = pd.merge(data, age_bins, left_index=True, right_index=True)
+        if data.empty:
+            raise ValueError("DataFrame is not compatible with specified age bins.")
+    except ValueError:
+        return data
