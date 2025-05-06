@@ -4,7 +4,6 @@ from enum import Enum
 from pathlib import Path
 
 import pandas as pd
-import pandera as pa
 import yaml
 from vivarium import Artifact
 
@@ -33,16 +32,18 @@ class DataSource(Enum):
 
 
 class DataLoader:
-    def __init__(self, sim_output_dir: str, cache_size_mb: int = 1000):
-        self._sim_output_dir = Path(sim_output_dir)
-        self._results_dir = self._sim_output_dir / "results"
+    def __init__(self, sim_output_dir: Path, cache_size_mb: int = 1000):
+        self._sim_output_dir = sim_output_dir
         self._cache_size_mb = cache_size_mb
-        self._raw_datasets = {data_source: {} for data_source in DataSource}
+
+        self._results_dir = self._sim_output_dir / "results"
+        self._raw_datasets: dict[DataSource, dict[str, pd.DataFrame]] = {
+            data_source: {} for data_source in DataSource
+        }
         self._loader_mapping = {
             DataSource.SIM: self._load_from_sim,
             DataSource.GBD: self._load_from_gbd,
             DataSource.ARTIFACT: self._load_from_artifact,
-            DataSource.CUSTOM: self._raise_custom_data_error,
         }
         self._artifact = self._load_artifact(self._sim_output_dir)
 
@@ -59,14 +60,19 @@ class DataLoader:
         try:
             return self._raw_datasets[source][dataset_key].copy()
         except KeyError:
+            if source == DataSource.CUSTOM:
+                raise ValueError(
+                    f"No custom dataset found for {dataset_key}."
+                    "Please upload a dataset using ValidationContext.upload_custom_data."
+                )
             dataset = self._load_from_source(dataset_key, source)
             self._add_to_cache(dataset_key, source, dataset)
             return dataset
 
-    def upload_custom_data(self, dataset_key: str, data: pd.DataFrame | pd.Series) -> None:
+    def upload_custom_data(self, dataset_key: str, data: pd.DataFrame) -> None:
         self._add_to_cache(dataset_key, DataSource.CUSTOM, data)
 
-    def _load_from_source(self, dataset_key: str, source: DataSource) -> None:
+    def _load_from_source(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Load the data from the given source via the loader mapping."""
         return self._loader_mapping[source](dataset_key)
 
@@ -102,8 +108,8 @@ class DataLoader:
         return multi_index_df
 
     @staticmethod
-    def _load_artifact(results_dir: str) -> Artifact:
-        model_spec_path = Path(results_dir) / "model_specification.yaml"
+    def _load_artifact(results_dir: Path) -> Artifact:
+        model_spec_path = results_dir / "model_specification.yaml"
         artifact_path = yaml.safe_load(model_spec_path.open("r"))["configuration"][
             "input_data"
         ]["artifact_path"]
@@ -117,9 +123,3 @@ class DataLoader:
 
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
-
-    def _raise_custom_data_error(self, dataset_key: str) -> pd.DataFrame:
-        raise ValueError(
-            f"No custom dataset found for {dataset_key}."
-            "Please upload a dataset using ValidationContext.upload_custom_data."
-        )

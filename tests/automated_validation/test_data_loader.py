@@ -1,5 +1,5 @@
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -21,13 +21,17 @@ def test_get_dataset(sim_result_dir: Path) -> None:
     """Ensure that we load data from disk if needed, and don't if not."""
     data_loader = DataLoader(sim_result_dir)
     # check that we call load_from_source the first time we call get_dataset
-    data_loader._load_from_source = MagicMock()
-    data_loader.get_dataset("deaths", DataSource.SIM), pd.DataFrame
-    data_loader._load_from_source.assert_called_once_with("deaths", DataSource.SIM)
-    # check that we don't call load_from_source the second time we call get_dataset
-    data_loader._load_from_source = MagicMock()
-    data_loader.get_dataset("deaths", DataSource.SIM), pd.DataFrame
-    data_loader._load_from_source.assert_not_called()
+    with patch.object(data_loader, "_load_from_source") as mock_load:
+        mock_load.return_value = pd.DataFrame()  # Set appropriate return value
+        result = data_loader.get_dataset("deaths", DataSource.SIM)
+        assert isinstance(result, pd.DataFrame)
+        mock_load.assert_called_once_with("deaths", DataSource.SIM)
+
+    # Second call should use cached data
+    with patch.object(data_loader, "_load_from_source") as mock_load:
+        result = data_loader.get_dataset("deaths", DataSource.SIM)
+        assert isinstance(result, pd.DataFrame)
+        mock_load.assert_not_called()
 
 
 def test_get_dataset_custom(sim_result_dir: Path) -> None:
@@ -59,7 +63,7 @@ def test__load_from_source(
 ) -> None:
     """Ensure we can sensibly load using key / source combinations"""
     data_loader = DataLoader(sim_result_dir)
-    assert not data_loader._raw_datasets.get(source).get(dataset_key)
+    assert not data_loader._raw_datasets[source].get(dataset_key)
     dataset = data_loader._load_from_source(dataset_key, source)
     assert dataset is not None
 
@@ -69,7 +73,7 @@ def test__add_to_cache(sim_result_dir: Path) -> None:
     df = pd.DataFrame({"baz": [1, 2, 3]})
     data_loader = DataLoader(sim_result_dir)
     data_loader._add_to_cache("foo", DataSource.SIM, df)
-    assert data_loader._raw_datasets.get(DataSource.SIM).get("foo").equals(df)
+    assert data_loader._raw_datasets[DataSource.SIM]["foo"].equals(df)
     with pytest.raises(ValueError, match="Dataset foo already exists in the cache."):
         data_loader._add_to_cache("foo", DataSource.SIM, df)
 

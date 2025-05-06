@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 import pandas as pd
 import pandera as pa
@@ -25,21 +26,32 @@ class Measure(ABC):
     """A Measure contains key information and methods to take raw data from a DataSource
     and process it into an epidemiological measure suitable for use in a Comparison."""
 
-    sim_datasets: dict[str, str]
-    artifact_datasets: dict[str, str]
+    measure_key: str
+
+    @property
+    @abstractmethod
+    def sim_datasets(self) -> dict[str, str]:
+        """Return a dictionary of required datasets for this measure."""
+        pass
+
+    @property
+    @abstractmethod
+    def artifact_datasets(self) -> dict[str, str]:
+        """Return a dictionary of required datasets for this measure."""
+        pass
 
     @abstractmethod
-    def get_measure_data_from_artifact(self, *args, **kwargs) -> pd.DataFrame:
+    def get_measure_data_from_artifact(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process artifact data into a format suitable for calculations."""
         pass
 
     @abstractmethod
-    def get_measure_data_from_sim(self, *args, **kwargs) -> pd.DataFrame:
+    def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
     @check_io(out=SingleNumericColumn)
-    def get_measure_data(self, source: DataSource, *args, **kwargs) -> pd.DataFrame:
+    def get_measure_data(self, source: DataSource, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process data from the specified source into a format suitable for calculations."""
         if source == DataSource.SIM:
             return self.get_measure_data_from_sim(*args, **kwargs)
@@ -80,15 +92,6 @@ class RatioMeasure(Measure, ABC):
             "artifact_data": self.measure_key,
         }
 
-    @abstractmethod
-    def get_ratio_data_from_sim(
-        self,
-        numerator_data: pd.DataFrame,
-        denominator_data: pd.DataFrame,
-    ) -> pd.DataFrame:
-        """Process raw simulation data into a format suitable for calculations."""
-        pass
-
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
@@ -103,7 +106,7 @@ class RatioMeasure(Measure, ABC):
         )
 
     @check_io(out=SingleNumericColumn)
-    def get_measure_data_from_sim(self, *args, **kwargs) -> pd.DataFrame:
+    def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process raw simulation data into a format suitable for calculations."""
         return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
 
