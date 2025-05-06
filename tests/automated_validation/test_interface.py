@@ -63,7 +63,7 @@ def test_add_comparison(
     """Ensure that we can add a comparison"""
     measure_key = "cause.disease.incidence_rate"
     context = ValidationContext(sim_result_dir, None)
-    context.add_comparison(measure_key, DataSource.SIM, DataSource.ARTIFACT, [])
+    context.add_comparison(measure_key, "sim", "artifact", [])
     assert measure_key in context.comparisons
     comparison = context.comparisons[measure_key]
 

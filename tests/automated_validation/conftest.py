@@ -86,8 +86,8 @@ def raw_artifact_disease_incidence() -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("A"),
-                ("B"),
+                ("A",),
+                ("B",),
             ],
             names=["stratify_column"],
         ),
