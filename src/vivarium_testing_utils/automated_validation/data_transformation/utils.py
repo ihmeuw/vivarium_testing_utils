@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from typing import Any, Callable, TypeVar
+
 import pandas as pd
 import pandera as pa
 
+F = TypeVar("F", bound=Callable[..., Any])
 
-def check_io(**model_dict):
+
+def check_io(**model_dict: type) -> Callable[[F], F]:
     """
     A wrapper for pa.check_io that automatically converts SchemaModels to schemas.
 
