@@ -1,6 +1,9 @@
 import pandas as pd
 import pytest
 
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    SimOutputData,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     PersonTime,
     TransitionCounts,
