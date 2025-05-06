@@ -74,6 +74,12 @@ class ValidationContext:
     def verify(self, comparison_key: str, stratifications: list[str] = []):  # type: ignore[no-untyped-def]
         self.comparisons[comparison_key].verify(stratifications)
 
+    def summarize(self, comparison_key: str, stratifications: list[str] = []):  # type: ignore[no-untyped-def]
+        return self.comparisons[comparison_key].summarize(stratifications)
+
+    def heads(self, comparison_key: str, stratifications: list[str] = []):  # type: ignore[no-untyped-def]
+        self.comparisons[comparison_key].heads(stratifications)
+
     def plot_comparison(self, comparison_key: str, type: str, **kwargs):  # type: ignore[no-untyped-def]
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
 
