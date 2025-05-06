@@ -1,13 +1,8 @@
-from abc import ABC, abstractmethod
-
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
     marginalize,
-)
-from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    SimOutputData,
 )
 
 
@@ -30,7 +25,7 @@ class SimDataFormatter:
         self.filter_value = filter_value
         self.new_value_column_name = f"{self.filter_value}_{self.type}"
 
-    def format_dataset(self, dataset: SimOutputData) -> SimOutputData:
+    def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         """Clean up redundant columns, filter for the state, and rename the value column."""
         for column, value in self.redundant_columns.items():
             dataset = _drop_redundant_index(
@@ -56,13 +51,13 @@ class TransitionCounts(SimDataFormatter):
 class PersonTime(SimDataFormatter):
     """Formatter for simulation data that contains person time."""
 
-    def __init__(self, cause: str, state=None) -> None:
+    def __init__(self, cause: str, state: str | None = None) -> None:
         super().__init__("person_time", cause, state or "total")
 
 
 def _drop_redundant_index(
     data: pd.DataFrame, idx_column_name: str, idx_column_value: str
-) -> None:
+) -> pd.DataFrame:
     """Validate that a DataFrame column is singular-valued, then drop it from the index."""
     # TODO: Make sure we handle this case appropriately when we
     # want to automatically add many comparisons
