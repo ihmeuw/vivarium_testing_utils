@@ -12,7 +12,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 
 
 class ValidationContext:
-    def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None):
+
+    def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None = None):
         self._data_loader = DataLoader(results_dir)
         self.comparisons = {}
 
