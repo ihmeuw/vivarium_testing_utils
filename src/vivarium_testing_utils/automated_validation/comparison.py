@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Collection
 
 import pandas as pd
 
@@ -20,36 +21,36 @@ class Comparison(ABC):
     stratifications: list[str]
 
     @abstractmethod
-    def verify(self, stratifications: list[str]):
+    def verify(self, stratifications: Collection[str] = ()):
         pass
 
     @abstractmethod
-    def summarize(self, stratifications: list[str]):
+    def summarize(self, stratifications: Collection[str] = ()):
         pass
 
     @abstractmethod
-    def heads(self, stratifications: list[str]):
+    def heads(self, stratifications: Collection[str] = ()):
         pass
 
 
-class FuzzyComparison:
+class FuzzyComparison(Comparison):
     def __init__(
         self,
         measure: RatioMeasure,
         test_data: pd.DataFrame,
         reference_data: pd.DataFrame,
-        stratifications: list[str] = [],
+        stratifications: Collection[str] = (),
     ):
         self.measure = measure
         self.test_data = test_data
         self.reference_data = reference_data
         self.stratifications = stratifications
 
-    def verify(self, stratifications: list[str]):
+    def verify(self, stratifications: Collection[str] = ()):
         raise NotImplementedError
 
-    def summarize(self, stratifications: list[str]):
+    def summarize(self, stratifications: Collection[str] = ()):
         raise NotImplementedError
 
-    def heads(self, stratifications: list[str]):
+    def heads(self, stratifications: Collection[str] = ()):
         raise NotImplementedError
