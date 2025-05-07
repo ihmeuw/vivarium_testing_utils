@@ -13,18 +13,14 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     align_indexes,
     resolve_age_groups,
 )
-from vivarium_inputs import get_age_bins
+import vivarium_inputs as vi
 
 class ValidationContext:
 
     def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None = None):
         self._data_loader = DataLoader(results_dir)
         self.comparisons: dict[str, Comparison] = {}
-        self.age_bins = (
-            age_groups
-            if age_groups
-            else get_age_bins().rename_axis(index={"age_group_name": "age_group"})
-        )
+        self.age_groups = self._get_age_groups(age_groups)
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -98,6 +94,17 @@ class ValidationContext:
 
     def get_results(self, verbose: bool = False):
         raise NotImplementedError
+
+    def _get_age_groups(self, age_groups: pd.DataFrame | None) -> pd.DataFrame:
+        """Get the age groups from the given DataFrame or from the artifact."""
+        if age_groups is None:
+            try:
+                age_groups = self._data_loader.get_dataset(
+                    "population.age_bins", DataSource.SIM
+                )
+            except KeyError:
+                age_groups = vi.get_age_bins()
+        return age_groups
 
     def _get_raw_datasets_from_source(
         self, measure: Measure, source: DataSource
