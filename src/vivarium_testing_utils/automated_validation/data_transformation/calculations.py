@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
