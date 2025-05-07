@@ -26,10 +26,10 @@ def align_indexes(datasets: list[DataSet]) -> list[DataSet]:
     """Put each dataframe on a common index by choosing the intersection of index columns
     and marginalizing over the rest."""
     # Get the common index columns
-    common_index = set.intersection(*(set(data.index.names) for data in datasets))
+    common_index = list(set.intersection(*(set(data.index.names) for data in datasets)))
 
     # Marginalize over the rest
-    return [marginalize(data, common_index) for data in datasets]
+    return [stratify(data, common_index) for data in datasets]
 
 
 def filter_data(data: DataSet, filter_cols: dict[str, list]) -> DataSet:
@@ -126,10 +126,20 @@ def resolve_age_groups(data: pd.DataFrame, age_bins: pd.DataFrame) -> pd.DataFra
         # if the data doesn't have any age information, just return it
         return data
     context_age_schema = AgeSchema.from_dataframe(age_bins)
-    if data_age_schema == context_age_schema:
+    if data_age_schema.is_subset(context_age_schema):
         if "age_group" in data.index.names:
             data = data.droplevel("age_group")
         return pd.merge(data, age_bins, left_index=True, right_index=True)
 
     else:
         return rebin_dataframe(data, context_age_schema)
+
+
+def align_datasets(
+    test_data: pd.DataFrame, ref_data: pd.DataFrame, age_bins: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Align the test and reference datasets on the same index."""
+    test_data = resolve_age_groups(test_data, age_bins)
+    ref_data = resolve_age_groups(ref_data, age_bins)
+    test_data, ref_data = align_indexes([test_data, ref_data])
+    return test_data, ref_data
