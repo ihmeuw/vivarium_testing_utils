@@ -179,13 +179,13 @@ class AgeSchema:
         has_ranges = "age_start" in df.index.names and "age_end" in df.index.names
         if has_names and has_ranges:
             levels = ["age_group", "age_start", "age_end"]
-            age_buckets = (
+            age_buckets = list(
                 df.index.droplevel(list(set(df.index.names) - set(levels)))
                 .reorder_levels(levels)
                 .unique()
             )
 
-            return cls(age_buckets)
+            return cls.from_tuples(age_buckets)
         elif has_ranges:
             levels = ["age_start", "age_end"]
             age_buckets = (
@@ -235,65 +235,32 @@ def rebin_dataframe(
         for old_age, weight in weights.items():
             transform_matrix.loc[new_age, old_age] = weight
 
-    # Get index structure
-    idx_names = df.index.names
-    other_levels = [name for name in idx_names if name != "age_group"]
+    original_index_names = list(df.index.names)
 
-    # Get other index levels
-    other_idx_values = [df.index.get_level_values(name).unique() for name in other_levels]
+    all_results_series = []
 
-    # Create cartesian product of other index values
-    other_combos = pd.MultiIndex.from_product(other_idx_values, names=other_levels)
+    for val_col in df.columns.tolist():
 
-    # Create new index for result
-    new_idx_components = [[new_ages[i] for i in range(len(new_ages))]]
-    new_idx_components.extend(
-        [df.index.get_level_values(name).unique() for name in other_levels]
-    )
-    new_idx_names = ["age_group"] + other_levels
+        # Unstack the DataFrame to get the age groups as columns
+        unstacked_series = (
+            df[val_col]
+            .unstack(level="age_group", fill_value=0)
+            .reindex(columns=transform_matrix.columns, fill_value=0)
+        )
 
-    new_idx = pd.MultiIndex.from_product(new_idx_components, names=new_idx_names)
+        # Perform the dot product
+        result_matrix_for_col = unstacked_series.dot(transform_matrix.T)
 
-    # Initialize result DataFrame
-    result = pd.DataFrame(0.0, index=new_idx, columns=df.columns)
+        # Name the columns of result_matrix_for_col to be the "age_group"
+        # This ensures the stacked level gets the correct name.
+        result_matrix_for_col.columns.name = "age_group"
 
-    # Process each combination of other indices
-    for combo in other_combos:
-        # Create mask for this combination
-        mask = True
-        for i, level_name in enumerate(other_levels):
-            if isinstance(combo, tuple):
-                val = combo[i]
-            else:
-                val = combo  # Single value
-            mask = mask & (df.index.get_level_values(level_name) == val)
+        # Stack the new age group columns into the index
+        stacked_series_for_col = result_matrix_for_col.stack(level="age_group", dropna=False)
+        stacked_series_for_col.name = val_col  # Name the Series for correct concatenation
 
-        # Extract subset with this combination
-        subset = df[mask]
+        all_results_series.append(stacked_series_for_col)
 
-        # Create values array (age_groups x columns)
-        values = np.zeros((len(old_ages), len(df.columns)))
+    output_df = pd.concat(all_results_series, axis=1).reorder_levels(original_index_names)
 
-        # Fill values from subset
-        for i, age_group in enumerate(old_ages):
-            # Find matching indices with this age_group
-            age_mask = subset.index.get_level_values("age_group") == age_group
-            if age_mask.any():
-                # If there are matches, sum the values (in case of duplicates)
-                values[i, :] = subset[age_mask].sum().values
-
-        # Apply transformation
-        result_values = np.dot(transform_matrix, values)
-
-        # Update result DataFrame
-        for i, new_age in enumerate(new_ages):
-            # Create new index tuple
-            if isinstance(combo, tuple):
-                new_idx_tuple = (new_age,) + combo
-            else:
-                new_idx_tuple = (new_age, combo)
-
-            # Assign transformed values
-            result.loc[new_idx_tuple, :] = result_values[i, :]
-
-    return result.reorder_levels(df.index.names)
+    return output_df.sort_index()
