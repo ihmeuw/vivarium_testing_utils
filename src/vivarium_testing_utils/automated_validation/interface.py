@@ -20,7 +20,11 @@ class ValidationContext:
     def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None = None):
         self._data_loader = DataLoader(results_dir)
         self.comparisons: dict[str, Comparison] = {}
-        self.age_bins = age_groups if age_groups else get_age_bins()
+        self.age_bins = (
+            age_groups
+            if age_groups
+            else get_age_bins().rename_axis(index={"age_group_name": "age_group"})
+        )
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
