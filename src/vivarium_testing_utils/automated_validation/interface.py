@@ -3,22 +3,21 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
+import vivarium_inputs as vi
 
 from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    align_datasets,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     MEASURE_KEY_MAPPINGS,
     Measure,
 )
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    align_datasets,
-)
-import vivarium_inputs as vi
 
 
 class ValidationContext:
-
     def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None = None):
         self._data_loader = DataLoader(results_dir)
         self.comparisons: dict[str, Comparison] = {}
