@@ -12,7 +12,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     AgeGroup,
     AgeSchema,
     rebin_dataframe,
-    reformat_artifact_dataframe,
 )
 
 
@@ -76,35 +75,6 @@ def test_age_group_fraction_contained_by(group_name, group_ages, fraction):
     assert group.fraction_contained_by(other_group) == fraction
 
 
-def test_reformat_artifact_dataframe():
-    artifact_df = pd.DataFrame(
-        {"value": [1, 2, 3, 4]},
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "0", "5"),
-                ("cause", "disease", "5", "10"),
-                ("cause", "disease", "10", "15"),
-                ("cause", "disease", "15", "20"),
-            ],
-            names=["cause", "disease", "age_start", "age_end"],
-        ),
-    )
-    reformatted_df = reformat_artifact_dataframe(artifact_df)
-    expected_df = pd.DataFrame(
-        {"value": [1, 2, 3, 4]},
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "0_to_5"),
-                ("cause", "disease", "5_to_10"),
-                ("cause", "disease", "10_to_15"),
-                ("cause", "disease", "15_to_20"),
-            ],
-            names=["cause", "disease", "age_group"],
-        ),
-    )
-    assert reformatted_df.equals(expected_df)
-
-
 def test_rebin_dataframe():
     # Create a sample DataFrame with age groups
     df = pd.DataFrame(
@@ -123,11 +93,11 @@ def test_rebin_dataframe():
         ),
     )
     # Create a target age schema
-    target_age_schema = AgeSchema.from_dict(
-        {
-            "0_to_10": (0, 10),
-            "10_to_20": (10, 20),
-        }
+    target_age_schema = AgeSchema.from_tuples(
+        [
+            ("0_to_10", 0, 10),
+            ("10_to_20", 10, 20),
+        ]
     )
     # Rebin the DataFrame
     rebinned_df = rebin_dataframe(df, target_age_schema)
@@ -165,13 +135,13 @@ def test_rebin_dataframe_uneven():
         ),
     )
     # Create a target age schema
-    target_age_schema = AgeSchema.from_dict(
-        {
-            "0_to_3": (0, 3),
-            "3_to_4": (3, 4),
-            "4_to_7": (4, 7),
-            "7_to_20": (7, 20),
-        }
+    target_age_schema = AgeSchema.from_tuples(
+        [
+            ("0_to_3", 0, 3),
+            ("3_to_4", 3, 4),
+            ("4_to_7", 4, 7),
+            ("7_to_20", 7, 20),
+        ]
     )
     expected_foo = {
         "0_to_3": 1.0 * 3 / 5,
