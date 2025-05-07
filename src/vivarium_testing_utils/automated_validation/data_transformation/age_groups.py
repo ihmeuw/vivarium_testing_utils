@@ -7,7 +7,7 @@ import pandas as pd
 
 class AgeGroup:
     """
-    Class to represent an age group with start and end ages.
+    Class to represent a single age interval with start and end ages.
     """
 
     def __init__(self, name: str, start: int | float, end: int | float):
@@ -81,7 +81,7 @@ class AgeGroup:
 
 class AgeSchema:
     """
-    Class to represent a schema of age groups.
+    An AgeSchema is an ordered collection of disjoint age groups spanning a contiguous range of ages.
     """
 
     def __init__(self, age_groups: list[AgeGroup]) -> None:
@@ -125,7 +125,7 @@ class AgeSchema:
     @classmethod
     def from_tuples(cls, age_tuples: list[tuple[str, int | float, int | float]]) -> AgeSchema:
         """group
-        Create an AgeSchema from a dictionary of age groups.
+        Create an AgeSchema from a list of age tuples.
         """
         age_groups = []
         for group_tuple in age_tuples:
@@ -189,7 +189,7 @@ class AgeSchema:
 
     def _validate(self) -> None:
         """
-        Validate the age groups to ensure they are non-overlapping and ordered.
+        Validate the age groups to ensure they are non-overlapping and complete.
         """
         if len(self.age_groups) == 0:
             raise ValueError("No age groups provided.")
