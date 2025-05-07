@@ -11,7 +11,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
 
 
 def test_age_group() -> None:
-    # Test the AgeGroup class
+    """Test the AgeGroup class instantiation."""
     group = AgeGroup("0_to_5_years", 0, 5)
     assert group.name == "0_to_5_years"
     assert group.start == 0
@@ -28,12 +28,13 @@ def test_age_group() -> None:
     ],
 )
 def test_age_group_invalid(name: str, start: int, end: int, match: str) -> None:
+    """Test the AgeGroup class instantiation with invalid parameters."""
     with pytest.raises(ValueError, match=match):
         AgeGroup(name, start, end)
 
 
 def test_age_group_eq() -> None:
-
+    """Test the equality operator for AgeGroup."""
     group1 = AgeGroup("0_to_5_years", 0, 5)
     group2 = AgeGroup("0_to_5", 0, 5)
     group3 = AgeGroup("5_to_10_years", 5, 10)
@@ -51,6 +52,7 @@ def test_age_group_eq() -> None:
     ],
 )
 def test_age_group_from_string(string: str, ages: tuple[int | float, int | float]) -> None:
+    """Test AgeGroup instantiation from string."""
     group = AgeGroup.from_string(string)
     assert group.name == string
     assert group.start == ages[0]
@@ -69,13 +71,13 @@ def test_age_group_from_string(string: str, ages: tuple[int | float, int | float
     ],
 )
 def test_age_group_invalid_string(string: str, match: str) -> None:
-    # Test invalid string format
+    """Test AgeGroup instantiation from invalid string."""
     with pytest.raises(ValueError, match=match):
         AgeGroup.from_string(string)
 
 
 def test_age_group_from_range() -> None:
-    # Test the from_range method
+    """Test AgeGroup instantiation from range."""
     group = AgeGroup.from_range(0, 5)
     assert group.name == "0_to_5"
     assert group.start == 0
@@ -113,19 +115,19 @@ def test_age_schema() -> None:
 
 
 @pytest.mark.parametrize(
-    "age_buckets, err_match",
+    "age_groups, err_match",
     [
-        ([("0_to_5", 0, 5), ("4_to_10", 4, 10)], "Overlapping age buckets"),
-        ([("0_to_5", 0, 5), ("6_to_10", 6, 10)], "Gap between consecutive age buckets"),
-        ([], "No age buckets provided"),
+        ([("0_to_5", 0, 5), ("4_to_10", 4, 10)], "Overlapping age groups"),
+        ([("0_to_5", 0, 5), ("6_to_10", 6, 10)], "Gap between consecutive age groups"),
+        ([], "No age groups provided"),
     ],
 )
 def test_age_schema_validation(
-    age_buckets: list[tuple[str, float | int, float | int]], err_match: str
+    age_groups: list[tuple[str, float | int, float | int]], err_match: str
 ) -> None:
     """Test we get errors for invalid combinations of age groups."""
     with pytest.raises(ValueError, match=err_match):
-        AgeSchema.from_tuples(age_buckets)
+        AgeSchema.from_tuples(age_groups)
 
 
 def test_age_schema_from_tuples() -> None:
@@ -177,7 +179,7 @@ def test_age_schema_from_dataframe() -> None:
     )
 
     target_age_schema = AgeSchema.from_dataframe(df)
-    assert len(target_age_schema.age_buckets) == 4
+    assert len(target_age_schema.age_groups) == 4
     assert target_age_schema.range == (0, 20)
     assert target_age_schema.span == 20
 
@@ -283,7 +285,7 @@ def test_rebin_dataframe() -> None:
 
 
 def test_rebin_dataframe_uneven() -> None:
-    """Test we can transform a DataFrame to a new age schema with uneven buckets."""
+    """Test we can transform a DataFrame to a new age schema with uneven groups."""
     df = pd.DataFrame(
         {
             "foo": [1.0, 2.0, 3.0, 4.0],

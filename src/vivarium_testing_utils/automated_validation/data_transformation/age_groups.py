@@ -42,10 +42,10 @@ class AgeGroup:
     @classmethod
     def from_string(cls, name: str) -> AgeGroup:
         """
-        Parse age bucket names to extract start and end ages and their units.
+        Parse age group names to extract start and end ages and their units.
         Supports formats like '0_to_6_months', '12_to_15_years', '0_to_8_days', '14_to_17'
         """
-        # Extract numbers and unit from the bucket name
+        # Extract numbers and unit from the group name
         pattern = r"(\d+(?:\.\d+)?)_to_(\d+(?:\.\d+)?)(?:_(\w+))?"
         match = re.match(pattern, name.lower())
 
@@ -81,32 +81,32 @@ class AgeGroup:
 
 class AgeSchema:
     """
-    Class to represent a schema of age buckets.
+    Class to represent a schema of age groups.
     """
 
-    def __init__(self, age_buckets: list[AgeGroup]) -> None:
-        self.age_buckets = age_buckets
-        self.age_buckets.sort(key=lambda x: x.start)
+    def __init__(self, age_groups: list[AgeGroup]) -> None:
+        self.age_groups = age_groups
+        self.age_groups.sort(key=lambda x: x.start)
         self._validate()
-        self.range = (self.age_buckets[0].start, self.age_buckets[-1].end)
+        self.range = (self.age_groups[0].start, self.age_groups[-1].end)
         self.span = self.range[1] - self.range[0]
 
     def __getitem__(self, index: int) -> AgeGroup:
-        """Get an age bucket by index."""
-        return self.age_buckets[index]
+        """Get an age group by index."""
+        return self.age_groups[index]
 
     def __len__(self) -> int:
-        """Get the number of age buckets."""
-        return len(self.age_buckets)
+        """Get the number of age groups."""
+        return len(self.age_groups)
 
     def __eq__(self, other: object) -> bool:
-        """True if two schemas have the same age buckets."""
+        """True if two schemas have the same age groups."""
         if not isinstance(other, AgeSchema):
             return NotImplemented
-        if len(self.age_buckets) != len(other.age_buckets):
+        if len(self.age_groups) != len(other.age_groups):
             return False
-        for i in range(len(self.age_buckets)):
-            if self.age_buckets[i] != other.age_buckets[i]:
+        for i in range(len(self.age_groups)):
+            if self.age_groups[i] != other.age_groups[i]:
                 return False
         return True
 
@@ -114,76 +114,74 @@ class AgeSchema:
         """
         Check if an age group is contained in the schema.
         """
-        return any(item == bucket for bucket in self.age_buckets)
+        return any(item == group for group in self.age_groups)
 
     def is_subset(self, other: AgeSchema) -> bool:
         """
         Check if this schema is a subset of another schema.
         """
-        return all(bucket in other for bucket in self.age_buckets)
+        return all(group in other for group in self.age_groups)
 
     @classmethod
-    def from_tuples(
-        cls, age_buckets: list[tuple[str, int | float, int | float]]
-    ) -> AgeSchema:
-        """
-        Create an AgeSchema from a dictionary of age buckets.
+    def from_tuples(cls, age_tuples: list[tuple[str, int | float, int | float]]) -> AgeSchema:
+        """group
+        Create an AgeSchema from a dictionary of age groups.
         """
         age_groups = []
-        for bucket_tuple in age_buckets:
-            age_groups.append(AgeGroup(*bucket_tuple))
+        for group_tuple in age_tuples:
+            age_groups.append(AgeGroup(*group_tuple))
         return cls(age_groups)
 
     @classmethod
-    def from_ranges(cls, age_buckets: list[tuple[int | float, int | float]]) -> AgeSchema:
+    def from_ranges(cls, age_ranges: list[tuple[int | float, int | float]]) -> AgeSchema:
         """
         Create an AgeSchema from a list of age ranges.
         """
         age_groups = []
-        for start, end in age_buckets:
+        for start, end in age_ranges:
             age_groups.append(AgeGroup.from_range(start, end))
         return cls(age_groups)
 
     @classmethod
-    def from_strings(cls, age_buckets: list[str]) -> AgeSchema:
+    def from_strings(cls, age_strings: list[str]) -> AgeSchema:
         """
-        Create an AgeSchema from a list of age bucket names.
+        Create an AgeSchema from a list of age group names.
         """
         age_groups = []
-        for name in age_buckets:
+        for name in age_strings:
             age_groups.append(AgeGroup.from_string(name))
         return cls(age_groups)
 
     @classmethod
     def from_dataframe(cls, df: pd.DataFrame) -> AgeSchema:
         """
-        Create an AgeSchema from a DataFrame with age bucket names.
+        Create an AgeSchema from a DataFrame with age group names.
         """
         has_names = "age_group" in df.index.names
         has_ranges = "age_start" in df.index.names and "age_end" in df.index.names
         if has_names and has_ranges:
             levels = ["age_group", "age_start", "age_end"]
-            age_buckets = list(
+            age_groups = list(
                 df.index.droplevel(list(set(df.index.names) - set(levels)))
                 .reorder_levels(levels)
                 .unique()
             )
 
-            return cls.from_tuples(age_buckets)
+            return cls.from_tuples(age_groups)
         elif has_ranges:
             levels = ["age_start", "age_end"]
-            age_buckets = (
+            age_groups = (
                 df.index.droplevel(list(set(df.index.names) - set(levels)))
                 .reorder_levels(levels)
                 .unique()
             )
-            return cls.from_ranges(age_buckets)
+            return cls.from_ranges(age_groups)
         elif has_names:
             levels = ["age_group"]
-            age_buckets = list(
+            age_groups = list(
                 df.index.droplevel(list(set(df.index.names) - set(levels))).unique()
             )
-            return cls.from_strings(age_buckets)
+            return cls.from_strings(age_groups)
         else:
             raise ValueError(
                 "DataFrame must have either 'age_group' or 'age_start' and 'age_end' index levels."
@@ -191,19 +189,19 @@ class AgeSchema:
 
     def _validate(self) -> None:
         """
-        Validate the age buckets to ensure they are non-overlapping and ordered.
+        Validate the age groups to ensure they are non-overlapping and ordered.
         """
-        if len(self.age_buckets) == 0:
-            raise ValueError("No age buckets provided.")
+        if len(self.age_groups) == 0:
+            raise ValueError("No age groups provided.")
 
-        for i in range(len(self.age_buckets) - 1):
-            if self.age_buckets[i].end > self.age_buckets[i + 1].start:
+        for i in range(len(self.age_groups) - 1):
+            if self.age_groups[i].end > self.age_groups[i + 1].start:
                 raise ValueError(
-                    f"Overlapping age buckets: {self.age_buckets[i]} and {self.age_buckets[i + 1]}"
+                    f"Overlapping age groups: {self.age_groups[i]} and {self.age_groups[i + 1]}"
                 )
-            if self.age_buckets[i].end < self.age_buckets[i + 1].start:
+            if self.age_groups[i].end < self.age_groups[i + 1].start:
                 raise ValueError(
-                    f"Gap between consecutive age buckets: {self.age_buckets[i]} and {self.age_buckets[i + 1]}"
+                    f"Gap between consecutive age groups: {self.age_groups[i]} and {self.age_groups[i + 1]}"
                 )
 
     def validate_compatible(self, other: AgeSchema) -> None:
@@ -221,18 +219,18 @@ class AgeSchema:
         Returns a datafrme with the target age groups as rows and the source age groups as columns,
         with the values representing the fraction of the source age group that should go into the target age group.
         """
-        source_age_groups = [bucket.name for bucket in other.age_buckets]
-        target_age_groups = [bucket.name for bucket in self.age_buckets]
+        source_age_groups = [group.name for group in other.age_groups]
+        target_age_groups = [group.name for group in self.age_groups]
 
         transform_matrix = pd.DataFrame(
             0.0, index=target_age_groups, columns=source_age_groups
         )
-        for target_bucket in self.age_buckets:
-            for source_bucket in other.age_buckets:
-                # Calculate what fraction of the source bucket should go into the target bucket
-                fraction = source_bucket.fraction_contained_by(target_bucket)
+        for target_group in self.age_groups:
+            for source_group in other.age_groups:
+                # Calculate what fraction of the source group should go into the target group
+                fraction = source_group.fraction_contained_by(target_group)
                 if fraction > 0:
-                    transform_matrix.loc[target_bucket.name, source_bucket.name] = fraction
+                    transform_matrix.loc[target_group.name, source_group.name] = fraction
         return transform_matrix
 
     def rebin_dataframe(
@@ -244,9 +242,9 @@ class AgeSchema:
 
         Parameters:
         - df: DataFrame with multi-index including 'age_group' level
-        - target_age_schema: AgeSchema instance for the target age buckets
+        - target_age_schema: AgeSchema instance for the target age groups
 
-        Returns a new DataFrame with values redistributed to new age buckets
+        Returns a new DataFrame with values redistributed to new age groups
         """
         source_age_schema = AgeSchema.from_dataframe(df)
         source_age_schema.validate_compatible(self)
