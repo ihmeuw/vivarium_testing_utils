@@ -15,7 +15,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     MEASURE_KEY_MAPPINGS,
     Measure,
 )
-
+from vivarium.framework.artifact.artifact import ArtifactException
 
 class ValidationContext:
     def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None = None):
@@ -108,9 +108,10 @@ class ValidationContext:
         if age_groups is None:
             try:
                 age_groups = self._data_loader.get_dataset(
-                    "population.age_bins", DataSource.SIM
+                    "population.age_bins", DataSource.ARTIFACT
                 )
-            except KeyError:
+            # If we can't find the age groups in the artifact, get them directly from vivarium inputs
+            except ArtifactException:
                 age_groups = vi.get_age_bins()
 
             # mypy wants this to do type narrowing

@@ -80,7 +80,10 @@ def test_add_comparison(
         ),
     )
     assert comparison.test_data.equals(expected_ratio_data)
-    assert comparison.reference_data.equals(artifact_disease_incidence)
+    # group by stratify column, because we don't have draw data in the test_data
+    assert comparison.reference_data.equals(
+        artifact_disease_incidence.groupby("stratify_column").sum()
+    )
 
 
 @pytest.mark.skip("Not implemented")
