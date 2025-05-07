@@ -46,11 +46,6 @@ class DataLoader:
             DataSource.ARTIFACT: self._load_from_artifact,
         }
         self._artifact = self._load_artifact(self._sim_output_dir)
-        self._add_to_cache(
-            "population.age_bins",
-            source=DataSource.ARTIFACT,
-            data=self._artifact.load("population.age_bins"),
-        )
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets in the given simulation output directory.
@@ -120,7 +115,6 @@ class DataLoader:
         ]["artifact_path"]
         return Artifact(artifact_path)
 
-    @check_io(out=SingleNumericColumn)
     def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
