@@ -21,9 +21,9 @@ class AgeGroup:
         if self.span < 0:
             raise ValueError("End age must be greater than or equal to start age.")
 
-        def __eq__(self, other: AgeGroup) -> bool:
-            """True if two age groups have the same start and end ages."""
-            return self.start == other.start and self.end == other.end
+    def __eq__(self, other: AgeGroup) -> bool:
+        """True if two age groups have the same start and end ages."""
+        return (self.start, self.end) == (other.start, other.end)
 
     def fraction_contained_by(self, other: AgeGroup) -> float:
         """
@@ -96,6 +96,18 @@ class AgeSchema:
             if self.age_buckets[i] != other.age_buckets[i]:
                 return False
         return True
+
+    def __contains__(self, item: AgeGroup) -> bool:
+        """
+        Check if an age group is contained in the schema.
+        """
+        return any(item == bucket for bucket in self.age_buckets)
+
+    def is_subset(self, other: AgeSchema) -> bool:
+        """
+        Check if this schema is a subset of another schema.
+        """
+        return all(bucket in other for bucket in self.age_buckets)
 
     def _validate(self):
         """
