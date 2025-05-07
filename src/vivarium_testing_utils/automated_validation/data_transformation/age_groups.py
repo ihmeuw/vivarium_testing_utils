@@ -21,6 +21,10 @@ class AgeGroup:
         if self.span < 0:
             raise ValueError("End age must be greater than or equal to start age.")
 
+        def __eq__(self, other: AgeGroup) -> bool:
+            """True if two age groups have the same start and end ages."""
+            return self.start == other.start and self.end == other.end
+
     def fraction_contained_by(self, other: AgeGroup) -> float:
         """
         Return the amount of this group that is contained within another group.
@@ -40,7 +44,7 @@ class AgeGroup:
         """
         # Extract numbers and unit from the bucket name
         pattern = r"(\d+(?:\.\d+)?)_to_(\d+(?:\.\d+)?)(?:_(\w+))?"
-        match = re.match(pattern, name)
+        match = re.match(pattern, name.lower())
 
         if not match:
             raise ValueError(f"Invalid age group name format: {name}")
@@ -67,6 +71,10 @@ class AgeGroup:
 
         return cls(name, start_years, end_years)
 
+    @classmethod
+    def from_range(cls, start: float | int, end: float | int):
+        return cls(f"{start}_to_{end}", start, end)
+
 
 class AgeSchema:
     """
@@ -79,6 +87,15 @@ class AgeSchema:
         self._validate()
         self.range = (self.age_buckets[0].start, self.age_buckets[-1].end)
         self.span = self.range[1] - self.range[0]
+
+    def __eq__(self, other: AgeSchema) -> bool:
+        """True if two schemas have the same age buckets."""
+        if len(self.age_buckets) != len(other.age_buckets):
+            return False
+        for i in range(len(self.age_buckets)):
+            if self.age_buckets[i] != other.age_buckets[i]:
+                return False
+        return True
 
     def _validate(self):
         """
@@ -124,13 +141,23 @@ class AgeSchema:
         return converter
 
     @classmethod
-    def from_dict(cls, age_buckets: dict[str, tuple[int | float, int | float]]):
+    def from_tuples(cls, age_buckets: tuple[str, int | float, int | float]):
         """
         Create an AgeSchema from a dictionary of age buckets.
         """
         age_groups = []
-        for name, (start, end) in age_buckets.items():
+        for name, start, end in age_buckets:
             age_groups.append(AgeGroup(name, start, end))
+        return cls(age_groups)
+
+    @classmethod
+    def from_ranges(cls, age_buckets: list[tuple[int | float, int | float]]):
+        """
+        Create an AgeSchema from a list of age ranges.
+        """
+        age_groups = []
+        for start, end in age_buckets:
+            age_groups.append(AgeGroup.from_range(start, end))
         return cls(age_groups)
 
     @classmethod
@@ -148,27 +175,35 @@ class AgeSchema:
         """
         Create an AgeSchema from a DataFrame with age bucket names.
         """
-        age_groups = []
-        for name in df.index.get_level_values("age_group").unique():
-            age_groups.append(AgeGroup.from_string(name))
-        return cls(age_groups)
+        has_names = "age_group" in df.index.names
+        has_ranges = "age_start" in df.index.names and "age_end" in df.index.names
+        if has_names and has_ranges:
+            levels = ["age_group", "age_start", "age_end"]
+            age_buckets = (
+                df.index.droplevel(list(set(df.index.names) - set(levels)))
+                .reorder_levels(levels)
+                .unique()
+            )
 
-
-def reformat_artifact_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Reformat a DataFrame with age_start and age_end index levels to have a single age_group level.
-    """
-    # Add a new index level to the multi-index DataFrame for age_group
-    df["age_group"] = (
-        df.index.get_level_values("age_start").astype(str)
-        + "_to_"
-        + df.index.get_level_values("age_end").astype(str)
-    )
-    df = df.set_index("age_group", append=True)
-    # Drop the old index levels
-    df = df.droplevel(["age_start", "age_end"])
-
-    return df
+            return cls(age_buckets)
+        elif has_ranges:
+            levels = ["age_start", "age_end"]
+            age_buckets = (
+                df.index.droplevel(list(set(df.index.names) - set(levels)))
+                .reorder_levels(levels)
+                .unique()
+            )
+            return cls.from_ranges(age_buckets)
+        elif has_names:
+            levels = ["age_group"]
+            age_buckets = list(
+                df.index.droplevel(list(set(df.index.names) - set(levels))).unique()
+            )
+            return cls.from_strings(age_buckets)
+        else:
+            raise ValueError(
+                "DataFrame must have either 'age_group' or 'age_start' and 'age_end' index levels."
+            )
 
 
 def rebin_dataframe(

@@ -54,12 +54,13 @@ if __name__ == "__main__":
         "loguru",
         "pandera",
         "pyarrow",
+        "vivarium",
+        "vivarium-inputs",
         # Type stubs
         "pandas-stubs",
         "networkx-stubs",
         "types-docutils",
         "types-setuptools",
-        "vivarium",
     ]
 
     setup_requires = ["setuptools_scm"]

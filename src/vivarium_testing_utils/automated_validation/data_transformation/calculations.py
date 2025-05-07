@@ -11,6 +11,11 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     check_io,
     series_to_dataframe,
 )
+from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
+    AgeGroup,
+    AgeSchema,
+    rebin_dataframe,
+)
 
 DataSet = TypeVar("DataSet", pd.DataFrame, pd.Series)
 
@@ -113,11 +118,18 @@ def _clean_artifact_draws(
     return data
 
 
-def resolve_age_bins(data: pd.DataFrame, age_bins: pd.DataFrame) -> pd.DataFrame:
-    """Try to merge the age bins with the data. If it fails, just return the data."""
+def resolve_age_groups(data: pd.DataFrame, age_bins: pd.DataFrame) -> pd.DataFrame:
+    """Try to merge the age groups with the data. If it fails, just return the data."""
     try:
-        data = pd.merge(data, age_bins, left_index=True, right_index=True)
-        if data.empty:
-            raise ValueError("DataFrame is not compatible with specified age bins.")
+        data_age_schema = AgeSchema.from_dataframe(data)
     except ValueError:
+        # if the data doesn't have any age information, just return it
         return data
+    context_age_schema = AgeSchema.from_dataframe(age_bins)
+    if data_age_schema == context_age_schema:
+        if "age_group" in data.index.names:
+            data = data.droplevel("age_group")
+        return pd.merge(data, age_bins, left_index=True, right_index=True)
+
+    else:
+        return rebin_dataframe(data, context_age_schema)

@@ -11,21 +11,16 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 )
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     align_indexes,
-    resolve_age_bins,
+    resolve_age_groups,
 )
-
+from vivarium_inputs import get_age_bins
 
 class ValidationContext:
 
-    def __init__(self, results_dir: str | Path, age_groups: pd.Index | None = None):
+    def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None = None):
         self._data_loader = DataLoader(results_dir)
         self.comparisons: dict[str, Comparison] = {}
-        if not age_groups:
-            self.age_bins = self.get_raw_dataset(
-                "population.age_bins", "artifact"
-            ).rename_axis(index={"age_group_name": "age_group"})
-        else:
-            self.age_bins = age_groups
+        self.age_bins = age_groups if age_groups else get_age_bins()
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -113,7 +108,7 @@ class ValidationContext:
         self, test_data: pd.DataFrame, ref_data: pd.DataFrame
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Align the test and reference datasets on the same index."""
+        test_data = resolve_age_groups(test_data, self.age_bins)
+        ref_data = resolve_age_groups(ref_data, self.age_bins)
         test_data, ref_data = align_indexes([test_data, ref_data])
-        test_data = resolve_age_bins(test_data, self.age_bins)
-        ref_data = resolve_age_bins(ref_data, self.age_bins)
         return test_data, ref_data
