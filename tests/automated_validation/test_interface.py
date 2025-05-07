@@ -40,6 +40,11 @@ def test_show_raw_dataset(
     )
 
 
+def test__get_age_groups() -> None:
+    """Ensure that we can get age groups"""
+    pass
+
+
 def test___get_raw_datasets_from_source(
     sim_result_dir: Path,
     transition_count_data: pd.DataFrame,

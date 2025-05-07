@@ -80,3 +80,13 @@ def test_linear_combination(intermediate_data: pd.DataFrame) -> None:
     # test non-existent column
     with pytest.raises(KeyError):
         linear_combination(intermediate_data, 1, "a", 1, "foo")
+
+
+def test_resolve_ages() -> None:
+    """Test resolving ages to age groups"""
+    pass
+
+
+def test_align_datasets() -> None:
+    """Test aligning datasets"""
+    pass
