@@ -10,7 +10,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
 )
 
 
-def test_age_group():
+def test_age_group() -> None:
     # Test the AgeGroup class
     group = AgeGroup("0_to_5_years", 0, 5)
     assert group.name == "0_to_5_years"
@@ -27,12 +27,12 @@ def test_age_group():
         ("0_to_5_years", 5, 4, "End age must be greater than start age."),
     ],
 )
-def test_age_group_invalid(name, start, end, match):
+def test_age_group_invalid(name: str, start: int, end: int, match: str) -> None:
     with pytest.raises(ValueError, match=match):
         AgeGroup(name, start, end)
 
 
-def test_age_group_eq():
+def test_age_group_eq() -> None:
 
     group1 = AgeGroup("0_to_5_years", 0, 5)
     group2 = AgeGroup("0_to_5", 0, 5)
@@ -50,7 +50,7 @@ def test_age_group_eq():
         ("14_to_17", (14, 17)),
     ],
 )
-def test_age_group_from_string(string, ages):
+def test_age_group_from_string(string: str, ages: tuple[int | float, int | float]) -> None:
     group = AgeGroup.from_string(string)
     assert group.name == string
     assert group.start == ages[0]
@@ -68,13 +68,13 @@ def test_age_group_from_string(string, ages):
         ),
     ],
 )
-def test_age_group_invalid_string(string, match):
+def test_age_group_invalid_string(string: str, match: str) -> None:
     # Test invalid string format
     with pytest.raises(ValueError, match=match):
         AgeGroup.from_string(string)
 
 
-def test_age_group_from_range():
+def test_age_group_from_range() -> None:
     # Test the from_range method
     group = AgeGroup.from_range(0, 5)
     assert group.name == "0_to_5"
@@ -92,16 +92,18 @@ def test_age_group_from_range():
         ("6_to_10_years", (6, 10), 0.0),
     ],
 )
-def test_age_group_fraction_contained_by(group_name, group_ages, fraction):
-    # Test fraction_contained_by method
+def test_age_group_fraction_contained_by(
+    group_name: str, group_ages: tuple[float | int, float | int], fraction: float
+) -> None:
+    """Test that we get the correct amount of overlap between two age groups."""
     group = AgeGroup("0_to_5_years", 0, 5)
 
     other_group = AgeGroup(group_name, *group_ages)
     assert group.fraction_contained_by(other_group) == fraction
 
 
-def test_age_schema():
-    # Test the AgeSchema class
+def test_age_schema() -> None:
+    """Test the AgeSchema class instantiation."""
     schema = AgeSchema([AgeGroup("0_to_5", 0, 5), AgeGroup("5_to_10", 5, 10)])
     assert len(schema) == 2
     assert schema[0] == AgeGroup("0_to_5", 0, 5)
@@ -118,13 +120,16 @@ def test_age_schema():
         ([], "No age buckets provided"),
     ],
 )
-def test_age_schema_validation(age_buckets, err_match):
+def test_age_schema_validation(
+    age_buckets: list[tuple[str, float | int, float | int]], err_match: str
+) -> None:
+    """Test we get errors for invalid combinations of age groups."""
     with pytest.raises(ValueError, match=err_match):
         AgeSchema.from_tuples(age_buckets)
 
 
-def test_age_schema_from_tuples():
-    # Test the from_tuples method
+def test_age_schema_from_tuples() -> None:
+    """Test instantion of AgeSchema from tuples."""
     schema = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
     assert len(schema) == 2
     assert schema[0] == AgeGroup("0_to_5", 0, 5)
@@ -133,8 +138,8 @@ def test_age_schema_from_tuples():
     assert schema.span == 10
 
 
-def test_age_schema_from_ranges():
-    # Test the from_ranges method
+def test_age_schema_from_ranges() -> None:
+    """Test instantion of AgeSchema from ranges."""
     schema = AgeSchema.from_ranges([(0, 5), (5, 10)])
     assert len(schema) == 2
     assert schema[0] == AgeGroup("0_to_5", 0, 5)
@@ -143,8 +148,8 @@ def test_age_schema_from_ranges():
     assert schema.span == 10
 
 
-def test_age_schema_from_strings():
-    # Test the from_strings method
+def test_age_schema_from_strings() -> None:
+    """Test instantion of AgeSchema from strings."""
     schema = AgeSchema.from_strings(["0_to_5", "5_to_10"])
     assert len(schema) == 2
     assert schema[0] == AgeGroup("0_to_5", 0, 5)
@@ -153,8 +158,8 @@ def test_age_schema_from_strings():
     assert schema.span == 10
 
 
-def test_age_schema_from_dataframe():
-    # Create a sample DataFrame with age groups
+def test_age_schema_from_dataframe() -> None:
+    """Test instantion of AgeSchema from a DataFrame."""
     df = pd.DataFrame(
         {
             "foo": [1.0, 2.0, 3.0, 4.0],
@@ -170,15 +175,15 @@ def test_age_schema_from_dataframe():
             names=["cause", "disease", "age_group"],
         ),
     )
-    # Create a target age schema
+
     target_age_schema = AgeSchema.from_dataframe(df)
     assert len(target_age_schema.age_buckets) == 4
     assert target_age_schema.range == (0, 20)
     assert target_age_schema.span == 20
 
 
-def test_age_schema_eq():
-    # Test the AgeSchema class
+def test_age_schema_eq() -> None:
+    """Test the equality operator for AgeSchema."""
     schema1 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
     schema2 = AgeSchema.from_tuples([("foo", 0, 5), ("bar", 5, 10)])
     schema3 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_15", 5, 15)])
@@ -186,8 +191,8 @@ def test_age_schema_eq():
     assert schema1 != schema3
 
 
-def test_age_schema_contains():
-    # Test the contains method
+def test_age_schema_contains() -> None:
+    """Test the contains method for AgeSchema."""
     schema = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
 
     assert AgeGroup("different_name", 0, 5) in schema
@@ -195,8 +200,8 @@ def test_age_schema_contains():
     assert not AgeGroup("10_to_15", 10, 15) in schema
 
 
-def test_age_schema_is_subset():
-    # Test the is_subset method
+def test_age_schema_is_subset() -> None:
+    """Test we can see whether one schema is a subset of another."""
     schema1 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
     schema2 = AgeSchema.from_tuples(
         [("0_to_5", 0, 5), ("5_to_10", 5, 10), ("10_to_15", 10, 15)]
@@ -206,8 +211,8 @@ def test_age_schema_is_subset():
     assert not schema1.is_subset(schema3)
 
 
-def test_age_schema_validate_compatible():
-    # Test the _validate_compatible method
+def test_age_schema_validate_compatible() -> None:
+    """Test whether one schema can be transformed to another."""
     schema1 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
     schema2 = AgeSchema.from_tuples([("0_to_4", 0, 4), ("4_to_10", 4, 10)])
     schema3 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_15", 5, 15)])
@@ -219,8 +224,8 @@ def test_age_schema_validate_compatible():
         schema1.validate_compatible(schema3)
 
 
-def test_age_schema_get_transform_matrix():
-    # Test the get_converter method
+def test_age_schema_get_transform_matrix() -> None:
+    """Test we can get a transform matrix between two schemas."""
     schema1 = AgeSchema.from_tuples([("0_to_2", 0, 2), ("2_to_5", 2, 5)])
     schema2 = AgeSchema.from_tuples([("0_to_1", 0, 1), ("1_to_3", 1, 3), ("3_to_5", 3, 5)])
     transform_matrix = schema1.get_transform_matrix(schema2)
@@ -235,8 +240,8 @@ def test_age_schema_get_transform_matrix():
     pd.testing.assert_frame_equal(transform_matrix, expected_matrix)
 
 
-def test_rebin_dataframe():
-    # Create a sample DataFrame with age groups
+def test_rebin_dataframe() -> None:
+    """Test we can transform a DataFrame to a new age schema."""
     df = pd.DataFrame(
         {
             "foo": [1.0, 2.0, 3.0, 4.0],
@@ -252,14 +257,14 @@ def test_rebin_dataframe():
             names=["cause", "disease", "age_group"],
         ),
     )
-    # Create a target age schema
+
     target_age_schema = AgeSchema.from_tuples(
         [
             ("0_to_10", 0, 10),
             ("10_to_20", 10, 20),
         ]
     )
-    # Rebin the DataFrame
+
     rebinned_df = target_age_schema.rebin_dataframe(df)
     expected_df = pd.DataFrame(
         {
@@ -277,8 +282,8 @@ def test_rebin_dataframe():
     assert rebinned_df.equals(expected_df)
 
 
-def test_rebin_dataframe_uneven():
-    # Create a sample DataFrame with age groups
+def test_rebin_dataframe_uneven() -> None:
+    """Test we can transform a DataFrame to a new age schema with uneven buckets."""
     df = pd.DataFrame(
         {
             "foo": [1.0, 2.0, 3.0, 4.0],
@@ -294,7 +299,7 @@ def test_rebin_dataframe_uneven():
             names=["cause", "disease", "age_group"],
         ),
     )
-    # Create a target age schema
+
     target_age_schema = AgeSchema.from_tuples(
         [
             ("0_to_3", 0, 3),
@@ -315,7 +320,7 @@ def test_rebin_dataframe_uneven():
         "4_to_7": 5.0 * 1 / 5 + 6.0 * 2 / 5,
         "7_to_20": 6.0 * 3 / 5 + 7.0 + 8.0,
     }
-    # Rebin the DataFrame
+
     rebinned_df = target_age_schema.rebin_dataframe(df)
     expected_df = pd.DataFrame(
         {

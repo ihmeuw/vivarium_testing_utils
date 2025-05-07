@@ -19,7 +19,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 
 class ValidationContext:
     def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None = None):
-        self._data_loader = DataLoader(results_dir)
+        self._data_loader = DataLoader(Path(results_dir))
         self.comparisons: dict[str, Comparison] = {}
         self.age_groups = self._get_age_groups(age_groups)
 
@@ -112,6 +112,12 @@ class ValidationContext:
                 )
             except KeyError:
                 age_groups = vi.get_age_bins()
+
+            # mypy wants this to do type narrowing
+            if age_groups is None:
+                raise ValueError(
+                    "No age groups found. Please provide a DataFrame or use the artifact."
+                )
         return age_groups
 
     def _get_raw_datasets_from_source(
