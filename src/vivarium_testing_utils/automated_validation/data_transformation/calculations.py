@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-from typing import TypeVar
 
 import pandas as pd
-import pandera as pa
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AgeGroup,
     AgeSchema,
-    rebin_dataframe,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
@@ -132,7 +128,7 @@ def resolve_age_groups(data: pd.DataFrame, age_bins: pd.DataFrame) -> pd.DataFra
         return pd.merge(data, age_bins, left_index=True, right_index=True)
 
     else:
-        return rebin_dataframe(data, context_age_schema)
+        return context_age_schema.rebin_dataframe(data)
 
 
 def align_datasets(
