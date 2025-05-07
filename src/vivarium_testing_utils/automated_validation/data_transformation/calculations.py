@@ -23,7 +23,7 @@ def align_indexes(datasets: list[pd.DataFrame]) -> list[pd.DataFrame]:
     # Get the common index columns
     common_index = list(set.intersection(*(set(data.index.names) for data in datasets)))
 
-    # Marginalize over the rest
+    # stratify over the rest
     return [stratify(data, common_index) for data in datasets]
 
 
