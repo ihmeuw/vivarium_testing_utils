@@ -252,10 +252,7 @@ class AgeSchema:
 
     def format_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Format a DataFrame to match the target age schema.
-        Parameters:
-        - df: DataFrame with multi-index including 'age_group' level
-        Returns a new DataFrame with values redistributed to new age groups
+        Format a DataFrame to match the current schema.
         """
         source_age_schema = AgeSchema.from_dataframe(df)
         df = pd.merge(df, source_age_schema.to_dataframe(), left_index=True, right_index=True)

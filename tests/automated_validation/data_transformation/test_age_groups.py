@@ -184,6 +184,20 @@ def test_age_schema_from_dataframe() -> None:
     assert target_age_schema.span == 20
 
 
+def test_age_schema_to_dataframe() -> None:
+    """Test we can convert an AgeSchema to a DataFrame."""
+    schema = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
+    df = schema.to_dataframe()
+    expected_df = pd.DataFrame(
+        {
+            "age_group": ["0_to_5", "5_to_10"],
+            "age_start": [0, 5],
+            "age_end": [5, 10],
+        }
+    ).set_index(["age_group", "age_start", "age_end"])
+    pd.testing.assert_frame_equal(df, expected_df)
+
+
 def test_age_schema_eq() -> None:
     """Test the equality operator for AgeSchema."""
     schema1 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
@@ -242,7 +256,62 @@ def test_age_schema_get_transform_matrix() -> None:
 
 
 def test_age_schema_format_dataframe() -> None:
-    pass
+    target_schema = AgeSchema.from_tuples(
+        [
+            ("0_to_5", 0, 5),
+            ("5_to_10", 5, 10),
+            ("10_to_15", 10, 15),
+            ("15_to_20", 15, 20),
+        ]
+    )
+    df = pd.DataFrame(
+        {
+            "foo": [1.0, 2.0, 3.0, 4.0],
+            "bar": [5.0, 6.0, 7.0, 8.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cause", "disease", "25_to_30"),
+                ("cause", "disease", "35_to_40"),
+            ],
+            names=["cause", "disease", "age_group"],
+        ),
+    )
+    with pytest.raises(ValueError, match="Cannot coerce"):
+        target_schema.format_dataframe(df)
+
+    df = pd.DataFrame(
+        {
+            "foo": [1.0, 2.0, 3.0, 4.0],
+            "bar": [5.0, 6.0, 7.0, 8.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cause", "disease", "0_to_5"),
+                ("cause", "disease", "5_to_10"),
+                ("cause", "disease", "10_to_15"),
+            ],
+            names=["cause", "disease", "age_group"],
+        ),
+    )
+    formatted_df = target_schema.format_dataframe(df)
+    pd.testing.assert_frame_equal(formatted_df, df)
+
+    df = pd.DataFrame(
+        {
+            "foo": [1.0, 2.0],
+            "bar": [5.0, 6.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cause", "disease", "0_to_7"),
+                ("cause", "disease", "7_to_20"),
+            ],
+            names=["cause", "disease", "age_group"],
+        ),
+    )
+    formatted_df = target_schema.format_dataframe(df)
+    pd.testing.assert_frame_equal(formatted_df, target_schema.rebin_dataframe(df))
 
 
 def test_rebin_dataframe() -> None:
