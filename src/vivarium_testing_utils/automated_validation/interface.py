@@ -18,10 +18,11 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 from vivarium.framework.artifact.artifact import ArtifactException
 
 class ValidationContext:
-    def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None = None):
+
+    def __init__(self, results_dir: str | Path):
         self._data_loader = DataLoader(Path(results_dir))
         self.comparisons: dict[str, Comparison] = {}
-        self.age_groups = self._get_age_groups(age_groups)
+        self.age_groups = self._get_age_groups()
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -103,22 +104,22 @@ class ValidationContext:
     def get_results(self, verbose: bool = False):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def _get_age_groups(self, age_groups: pd.DataFrame | None) -> pd.DataFrame:
+    # TODO MIC-6047 Let user pass in custom age groups
+    def _get_age_groups(self) -> pd.DataFrame:
         """Get the age groups from the given DataFrame or from the artifact."""
-        if age_groups is None:
-            try:
-                age_groups = self._data_loader.get_dataset(
-                    "population.age_bins", DataSource.ARTIFACT
-                )
-            # If we can't find the age groups in the artifact, get them directly from vivarium inputs
-            except ArtifactException:
-                age_groups = vi.get_age_bins()
+        try:
+            age_groups = self._data_loader.get_dataset(
+                "population.age_bins", DataSource.ARTIFACT
+            )
+        # If we can't find the age groups in the artifact, get them directly from vivarium inputs
+        except ArtifactException:
+            age_groups = vi.get_age_bins()
 
-            # mypy wants this to do type narrowing
-            if age_groups is None:
-                raise ValueError(
-                    "No age groups found. Please provide a DataFrame or use the artifact."
-                )
+        # mypy wants this to do type narrowing
+        if age_groups is None:
+            raise ValueError(
+                "No age groups found. Please provide a DataFrame or use the artifact."
+            )
         return age_groups
 
     def _get_raw_datasets_from_source(
