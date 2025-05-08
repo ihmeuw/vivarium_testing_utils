@@ -204,14 +204,20 @@ class AgeSchema:
                     f"Gap between consecutive age groups: {self.age_groups[i]} and {self.age_groups[i + 1]}"
                 )
 
-    def validate_compatible(self, other: AgeSchema) -> None:
+    def can_coerce_to(self, other: AgeSchema) -> bool:
         """
-        Validate that two age schemas are compatible, that is, they span the same contiguous range.
+        Check whether this schema can be coerced to another schema. That is, this schema spans a sub-interval of the other schema.
         """
-        if self.range != other.range:
-            raise ValueError(
-                f"Age schemas have different ranges: {self.range} and {other.range}"
+        overlap_start = max(self.range[0], other.range[0])
+        overlap_end = min(self.range[1], other.range[1])
+        overlap = max(0, overlap_end - overlap_start)
+        if overlap < self.span:
+            return False
+        if self.span < other.span:
+            print(
+                "Warning: Age Groups span different total ranges. This could lead to unexpected results at extreme age ranges."
             )
+        return True
 
     def get_transform_matrix(self, other: AgeSchema) -> pd.DataFrame:
         """
@@ -233,6 +239,29 @@ class AgeSchema:
                     transform_matrix.loc[target_group.name, source_group.name] = fraction
         return transform_matrix
 
+    def format_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Format a DataFrame to match the target age schema.
+        Parameters:
+        - df: DataFrame with multi-index including 'age_group' level
+        Returns a new DataFrame with values redistributed to new age groups
+        """
+        source_age_schema = AgeSchema.from_dataframe(df)
+
+        if not source_age_schema.can_coerce_to(self):
+            raise ValueError(
+                f"Cannot coerce {source_age_schema} to {self}. "
+                "The source age interval must be a contained by the target interval of age groups."
+            )
+        if source_age_schema.is_subset(self):
+            # If the source schema is a subset of the target schema, we can just merge
+            # the data with the target age groups
+            if "age_group" in df.index.names:
+                df = df.droplevel("age_group")
+            return pd.merge(df, self.age_groups, left_index=True, right_index=True)
+        else:
+            return self.rebin_dataframe(df)
+
     def rebin_dataframe(
         self,
         df: pd.DataFrame,
@@ -242,14 +271,11 @@ class AgeSchema:
 
         Parameters:
         - df: DataFrame with multi-index including 'age_group' level
-        - target_age_schema: AgeSchema instance for the target age groups
 
         Returns a new DataFrame with values redistributed to new age groups
         """
-        source_age_schema = AgeSchema.from_dataframe(df)
-        source_age_schema.validate_compatible(self)
 
-        transform_matrix = self.get_transform_matrix(source_age_schema)
+        transform_matrix = self.get_transform_matrix(AgeSchema.from_dataframe(df))
 
         original_index_names = list(df.index.names)
 

@@ -213,17 +213,16 @@ def test_age_schema_is_subset() -> None:
     assert not schema1.is_subset(schema3)
 
 
-def test_age_schema_validate_compatible() -> None:
+def test_age_schema_can_coerce_to() -> None:
     """Test whether one schema can be transformed to another."""
     schema1 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
     schema2 = AgeSchema.from_tuples([("0_to_4", 0, 4), ("4_to_10", 4, 10)])
     schema3 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_15", 5, 15)])
-    schema1.validate_compatible(schema2)
-    with pytest.raises(
-        ValueError,
-        match="Age schemas have different ranges",
-    ):
-        schema1.validate_compatible(schema3)
+    assert schema1.can_coerce_to(schema2)
+    assert schema2.can_coerce_to(schema1)
+
+    assert schema1.can_coerce_to(schema3)
+    assert not schema3.can_coerce_to(schema1)
 
 
 def test_age_schema_get_transform_matrix() -> None:
@@ -240,6 +239,10 @@ def test_age_schema_get_transform_matrix() -> None:
         index=["0_to_2", "2_to_5"],
     )
     pd.testing.assert_frame_equal(transform_matrix, expected_matrix)
+
+
+def test_age_schema_format_dataframe() -> None:
+    pass
 
 
 def test_rebin_dataframe() -> None:

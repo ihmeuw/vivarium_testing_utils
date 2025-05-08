@@ -115,19 +115,11 @@ def _clean_artifact_draws(
 
 def resolve_age_groups(data: pd.DataFrame, age_groups: pd.DataFrame) -> pd.DataFrame:
     """Try to merge the age groups with the data. If it fails, just return the data."""
-    try:
-        data_age_schema = AgeSchema.from_dataframe(data)
-    except ValueError:
-        # if the data doesn't have any age information, just return it
-        return data
     context_age_schema = AgeSchema.from_dataframe(age_groups)
-    if data_age_schema.is_subset(context_age_schema):
-        if "age_group" in data.index.names:
-            data = data.droplevel("age_group")
-        return pd.merge(data, age_groups, left_index=True, right_index=True)
-
-    else:
+    try:
         return context_age_schema.rebin_dataframe(data)
+    except ValueError:
+        return data
 
 
 def align_datasets(
