@@ -118,6 +118,9 @@ class DataLoader:
     def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
+        # special case population.age_bins
+        if dataset_key == "population.age_bins":
+            return data
         return clean_artifact_data(dataset_key, data)
 
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
