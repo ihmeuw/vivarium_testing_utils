@@ -187,6 +187,17 @@ class AgeSchema:
                 "DataFrame must have either 'age_group' or 'age_start' and 'age_end' index levels."
             )
 
+    def to_dataframe(self) -> pd.DataFrame:
+        """
+        Convert the AgeSchema to a DataFrame with age group names and their start and end ages.
+        """
+        data = {
+            "age_group": [group.name for group in self.age_groups],
+            "age_start": [group.start for group in self.age_groups],
+            "age_end": [group.end for group in self.age_groups],
+        }
+        return pd.DataFrame(data).set_index(["age_group", "age_start", "age_end"])
+
     def _validate(self) -> None:
         """
         Validate the age groups to ensure they are non-overlapping and complete.
@@ -247,6 +258,7 @@ class AgeSchema:
         Returns a new DataFrame with values redistributed to new age groups
         """
         source_age_schema = AgeSchema.from_dataframe(df)
+        df = pd.merge(df, source_age_schema.to_dataframe(), left_index=True, right_index=True)
 
         if not source_age_schema.can_coerce_to(self):
             raise ValueError(
@@ -254,11 +266,7 @@ class AgeSchema:
                 "The source age interval must be a contained by the target interval of age groups."
             )
         if source_age_schema.is_subset(self):
-            # If the source schema is a subset of the target schema, we can just merge
-            # the data with the target age groups
-            if "age_group" in df.index.names:
-                df = df.droplevel("age_group")
-            return pd.merge(df, self.age_groups, left_index=True, right_index=True)
+            return df
         else:
             return self.rebin_dataframe(df)
 
@@ -274,8 +282,9 @@ class AgeSchema:
 
         Returns a new DataFrame with values redistributed to new age groups
         """
+        source_age_schema = AgeSchema.from_dataframe(df)
 
-        transform_matrix = self.get_transform_matrix(AgeSchema.from_dataframe(df))
+        transform_matrix = self.get_transform_matrix(source_age_schema)
 
         original_index_names = list(df.index.names)
 
