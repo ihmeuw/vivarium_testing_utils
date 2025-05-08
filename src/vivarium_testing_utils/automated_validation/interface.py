@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 import vivarium_inputs as vi
+from vivarium.framework.artifact.artifact import ArtifactException
 
 from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
@@ -15,10 +16,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     MEASURE_KEY_MAPPINGS,
     Measure,
 )
-from vivarium.framework.artifact.artifact import ArtifactException
+
 
 class ValidationContext:
-
     def __init__(self, results_dir: str | Path):
         self._data_loader = DataLoader(Path(results_dir))
         self.comparisons: dict[str, Comparison] = {}

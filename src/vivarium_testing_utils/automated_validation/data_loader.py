@@ -116,7 +116,7 @@ class DataLoader:
         return Artifact(artifact_path)
 
     def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
-        data = self._artifact.load(dataset_key)
+        data: pd.DataFrame = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
         # special case population.age_bins
         if dataset_key == "population.age_bins":
