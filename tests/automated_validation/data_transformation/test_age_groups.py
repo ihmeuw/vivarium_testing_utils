@@ -10,13 +10,56 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
 )
 
 
+@pytest.fixture
+def ex_age_tuples() -> list[tuple[str, float | int, float | int]]:
+    return [
+        ("0_to_5", 0, 5),
+        ("5_to_10", 5, 10),
+        ("10_to_15", 10, 15),
+    ]
+
+
+@pytest.fixture
+def ex_age_schema(ex_age_tuples) -> AgeSchema:
+    return AgeSchema.from_tuples(ex_age_tuples)
+
+
+@pytest.fixture
+def ex_age_df() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "age_group": ["0_to_5", "5_to_10", "10_to_15"],
+            "age_start": [0.0, 5.0, 10.0],
+            "age_end": [5.0, 10.0, 15.0],
+        }
+    ).set_index(["age_group", "age_start", "age_end"])
+
+
+@pytest.fixture
+def sample_df() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "foo": [1.0, 2.0, 3.0],
+            "bar": [4.0, 5.0, 6.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cause", "disease", "0_to_5", 0.0, 5.0),
+                ("cause", "disease", "5_to_10", 5.0, 10.0),
+                ("cause", "disease", "10_to_15", 10.0, 15.0),
+            ],
+            names=["cause", "disease", "age_group", "age_start", "age_end"],
+        ),
+    )
+
+
 def test_age_group() -> None:
     """Test the AgeGroup class instantiation."""
-    group = AgeGroup("0_to_5_years", 0, 5)
-    assert group.name == "0_to_5_years"
-    assert group.start == 0
-    assert group.end == 5
-    assert group.span == 5
+    group = AgeGroup("foo", 5, 13)
+    assert group.name == "foo"
+    assert group.start == 5
+    assert group.end == 13
+    assert group.span == 8
 
 
 @pytest.mark.parametrize(
@@ -104,14 +147,25 @@ def test_age_group_fraction_contained_by(
     assert group.fraction_contained_by(other_group) == fraction
 
 
-def test_age_schema() -> None:
+def check_example_age_schema(age_schema: AgeSchema) -> None:
+    """Check that the example age schema was instantiated correctly, regardless of method."""
+    assert len(age_schema) == 3
+    assert age_schema[0] == AgeGroup("0_to_5", 0, 5)
+    assert age_schema[1] == AgeGroup("5_to_10", 5, 10)
+    assert age_schema[2] == AgeGroup("10_to_15", 10, 15)
+    assert age_schema.range == (0, 15)
+    assert age_schema.span == 15
+
+
+def test_age_schema_instantiation(ex_age_tuples, sample_df) -> None:
     """Test the AgeSchema class instantiation."""
-    schema = AgeSchema([AgeGroup("0_to_5", 0, 5), AgeGroup("5_to_10", 5, 10)])
-    assert len(schema) == 2
-    assert schema[0] == AgeGroup("0_to_5", 0, 5)
-    assert schema[1] == AgeGroup("5_to_10", 5, 10)
-    assert schema.range == (0, 10)
-    assert schema.span == 10
+    for age_schema in [
+        AgeSchema.from_tuples(ex_age_tuples),
+        AgeSchema.from_ranges([(tuple[1], tuple[2]) for tuple in ex_age_tuples]),
+        AgeSchema.from_strings([tuple[0] for tuple in ex_age_tuples]),
+        AgeSchema.from_dataframe(sample_df),
+    ]:
+        check_example_age_schema(age_schema)
 
 
 @pytest.mark.parametrize(
@@ -130,72 +184,9 @@ def test_age_schema_validation(
         AgeSchema.from_tuples(age_groups)
 
 
-def test_age_schema_from_tuples() -> None:
-    """Test instantion of AgeSchema from tuples."""
-    schema = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
-    assert len(schema) == 2
-    assert schema[0] == AgeGroup("0_to_5", 0, 5)
-    assert schema[1] == AgeGroup("5_to_10", 5, 10)
-    assert schema.range == (0, 10)
-    assert schema.span == 10
-
-
-def test_age_schema_from_ranges() -> None:
-    """Test instantion of AgeSchema from ranges."""
-    schema = AgeSchema.from_ranges([(0, 5), (5, 10)])
-    assert len(schema) == 2
-    assert schema[0] == AgeGroup("0_to_5", 0, 5)
-    assert schema[1] == AgeGroup("5_to_10", 5, 10)
-    assert schema.range == (0, 10)
-    assert schema.span == 10
-
-
-def test_age_schema_from_strings() -> None:
-    """Test instantion of AgeSchema from strings."""
-    schema = AgeSchema.from_strings(["0_to_5", "5_to_10"])
-    assert len(schema) == 2
-    assert schema[0] == AgeGroup("0_to_5", 0, 5)
-    assert schema[1] == AgeGroup("5_to_10", 5, 10)
-    assert schema.range == (0, 10)
-    assert schema.span == 10
-
-
-def test_age_schema_from_dataframe() -> None:
-    """Test instantion of AgeSchema from a DataFrame."""
-    df = pd.DataFrame(
-        {
-            "foo": [1.0, 2.0, 3.0, 4.0],
-            "bar": [5.0, 6.0, 7.0, 8.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "0_to_5"),
-                ("cause", "disease", "5_to_10"),
-                ("cause", "disease", "10_to_15"),
-                ("cause", "disease", "15_to_20"),
-            ],
-            names=["cause", "disease", "age_group"],
-        ),
-    )
-
-    target_age_schema = AgeSchema.from_dataframe(df)
-    assert len(target_age_schema.age_groups) == 4
-    assert target_age_schema.range == (0, 20)
-    assert target_age_schema.span == 20
-
-
-def test_age_schema_to_dataframe() -> None:
+def test_age_schema_to_dataframe(ex_age_schema, ex_age_df) -> None:
     """Test we can convert an AgeSchema to a DataFrame."""
-    schema = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
-    df = schema.to_dataframe()
-    expected_df = pd.DataFrame(
-        {
-            "age_group": ["0_to_5", "5_to_10"],
-            "age_start": [0, 5],
-            "age_end": [5, 10],
-        }
-    ).set_index(["age_group", "age_start", "age_end"])
-    pd.testing.assert_frame_equal(df, expected_df)
+    pd.testing.assert_frame_equal(ex_age_schema.to_dataframe(), ex_age_df)
 
 
 def test_age_schema_eq() -> None:
@@ -203,6 +194,7 @@ def test_age_schema_eq() -> None:
     schema1 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
     schema2 = AgeSchema.from_tuples([("foo", 0, 5), ("bar", 5, 10)])
     schema3 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_15", 5, 15)])
+
     assert schema1 == schema2
     assert schema1 != schema3
 
@@ -216,15 +208,13 @@ def test_age_schema_contains() -> None:
     assert not AgeGroup("10_to_15", 10, 15) in schema
 
 
-def test_age_schema_is_subset() -> None:
+def test_age_schema_is_subset(ex_age_schema) -> None:
     """Test we can see whether one schema is a subset of another."""
-    schema1 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
-    schema2 = AgeSchema.from_tuples(
-        [("0_to_5", 0, 5), ("5_to_10", 5, 10), ("10_to_15", 10, 15)]
-    )
-    schema3 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_15", 5, 15)])
-    assert schema1.is_subset(schema2)
-    assert not schema1.is_subset(schema3)
+    subset_schema = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
+    not_subset_schema = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_15", 5, 15)])
+
+    assert subset_schema.is_subset(ex_age_schema)
+    assert not not_subset_schema.is_subset(ex_age_schema)
 
 
 def test_age_schema_can_coerce_to() -> None:
@@ -232,71 +222,39 @@ def test_age_schema_can_coerce_to() -> None:
     schema1 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
     schema2 = AgeSchema.from_tuples([("0_to_4", 0, 4), ("4_to_10", 4, 10)])
     schema3 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_15", 5, 15)])
+
     assert schema1.can_coerce_to(schema2)
     assert schema2.can_coerce_to(schema1)
-
     assert schema1.can_coerce_to(schema3)
     assert not schema3.can_coerce_to(schema1)
 
 
-def test_age_schema_get_transform_matrix() -> None:
+def test_age_schema_get_transform_matrix(ex_age_schema) -> None:
     """Test we can get a transform matrix between two schemas."""
-    schema1 = AgeSchema.from_tuples([("0_to_2", 0, 2), ("2_to_5", 2, 5)])
-    schema2 = AgeSchema.from_tuples([("0_to_1", 0, 1), ("1_to_3", 1, 3), ("3_to_5", 3, 5)])
-    transform_matrix = schema1.get_transform_matrix(schema2)
+    new_schema = AgeSchema.from_tuples([("0_to_7.5", 0, 7.5), ("7.5_to_15", 7.5, 15)])
+    transform_matrix = new_schema.get_transform_matrix(ex_age_schema)
     expected_matrix = pd.DataFrame(
         {
-            "0_to_1": [1.0, 0.0],
-            "1_to_3": [0.5, 0.5],
-            "3_to_5": [0.0, 1.0],
+            "0_to_5": [1.0, 0.0],
+            "5_to_10": [0.5, 0.5],
+            "10_to_15": [0.0, 1.0],
         },
-        index=["0_to_2", "2_to_5"],
+        index=["0_to_7.5", "7.5_to_15"],
     )
+
     pd.testing.assert_frame_equal(transform_matrix, expected_matrix)
 
 
-def test_age_schema_format_dataframe() -> None:
-    target_schema = AgeSchema.from_tuples(
-        [
-            ("0_to_5", 0, 5),
-            ("5_to_10", 5, 10),
-            ("10_to_15", 10, 15),
-            ("15_to_20", 15, 20),
-        ]
-    )
-    df = pd.DataFrame(
-        {
-            "foo": [1.0, 2.0, 3.0, 4.0],
-            "bar": [5.0, 6.0, 7.0, 8.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "25_to_30"),
-                ("cause", "disease", "35_to_40"),
-            ],
-            names=["cause", "disease", "age_group"],
-        ),
-    )
-    with pytest.raises(ValueError, match="Cannot coerce"):
-        target_schema.format_dataframe(df)
+def test_age_schema_format_cols(ex_age_schema, sample_df) -> None:
+    for dataframe in [
+        sample_df,
+        sample_df.droplevel(["age_start", "age_end"]),
+        sample_df.droplevel(["age_start", "age_end"]),
+    ]:
+        pd.testing.assert_frame_equal(ex_age_schema.format_dataframe(dataframe), sample_df)
 
-    df = pd.DataFrame(
-        {
-            "foo": [1.0, 2.0, 3.0, 4.0],
-            "bar": [5.0, 6.0, 7.0, 8.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "0_to_5"),
-                ("cause", "disease", "5_to_10"),
-                ("cause", "disease", "10_to_15"),
-            ],
-            names=["cause", "disease", "age_group"],
-        ),
-    )
-    formatted_df = target_schema.format_dataframe(df)
-    pd.testing.assert_frame_equal(formatted_df, df)
 
+def test_age_schema_format_dataframe_invalid(ex_age_schema) -> None:
     df = pd.DataFrame(
         {
             "foo": [1.0, 2.0],
@@ -304,95 +262,52 @@ def test_age_schema_format_dataframe() -> None:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("cause", "disease", "0_to_7"),
-                ("cause", "disease", "7_to_20"),
+                ("cause", "disease", "25_to_30"),
+                ("cause", "disease", "30_to_40"),
             ],
             names=["cause", "disease", "age_group"],
         ),
     )
-    formatted_df = target_schema.format_dataframe(df)
-    pd.testing.assert_frame_equal(formatted_df, target_schema.rebin_dataframe(df))
+    with pytest.raises(ValueError, match="Cannot coerce"):
+        ex_age_schema.format_dataframe(df)
 
 
-def test_rebin_dataframe() -> None:
-    """Test we can transform a DataFrame to a new age schema."""
-    df = pd.DataFrame(
-        {
-            "foo": [1.0, 2.0, 3.0, 4.0],
-            "bar": [5.0, 6.0, 7.0, 8.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "0_to_5"),
-                ("cause", "disease", "5_to_10"),
-                ("cause", "disease", "10_to_15"),
-                ("cause", "disease", "15_to_20"),
-            ],
-            names=["cause", "disease", "age_group"],
-        ),
-    )
-
+def test_age_schema_format_dataframe_rebin(sample_df) -> None:
     target_age_schema = AgeSchema.from_tuples(
         [
-            ("0_to_10", 0, 10),
-            ("10_to_20", 10, 20),
+            ("0_to_3", 0, 3),
+            ("3_to_4", 3, 4),
+            ("4_to_7", 4, 7),
+            ("7_to_15", 7, 15),
         ]
     )
-
-    rebinned_df = target_age_schema.rebin_dataframe(df)
-    expected_df = pd.DataFrame(
-        {
-            "foo": [3.0, 7.0],
-            "bar": [11.0, 15.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "0_to_10"),
-                ("cause", "disease", "10_to_20"),
-            ],
-            names=["cause", "disease", "age_group"],
-        ),
-    )
-    assert rebinned_df.equals(expected_df)
+    formatted_df = target_age_schema.format_dataframe(sample_df)
+    pd.testing.assert_frame_equal(formatted_df, target_age_schema.rebin_dataframe(sample_df))
 
 
-def test_rebin_dataframe_uneven() -> None:
+def test_rebin_dataframe(sample_df) -> None:
     """Test we can transform a DataFrame to a new age schema with uneven groups."""
-    df = pd.DataFrame(
-        {
-            "foo": [1.0, 2.0, 3.0, 4.0],
-            "bar": [5.0, 6.0, 7.0, 8.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "0_to_5"),
-                ("cause", "disease", "5_to_10"),
-                ("cause", "disease", "10_to_15"),
-                ("cause", "disease", "15_to_20"),
-            ],
-            names=["cause", "disease", "age_group"],
-        ),
-    )
+    df = sample_df.droplevel(["age_start", "age_end"])
 
     target_age_schema = AgeSchema.from_tuples(
         [
             ("0_to_3", 0, 3),
             ("3_to_4", 3, 4),
             ("4_to_7", 4, 7),
-            ("7_to_20", 7, 20),
+            ("7_to_15", 7, 15),
         ]
     )
     expected_foo = {
         "0_to_3": 1.0 * 3 / 5,
         "3_to_4": 1.0 * 1 / 5,
         "4_to_7": 1.0 * 1 / 5 + 2.0 * 2 / 5,
-        "7_to_20": 2.0 * 3 / 5 + 3.0 + 4.0,
+        "7_to_15": 2.0 * 3 / 5 + 3.0,
     }
     expected_bar = {
-        "0_to_3": 5.0 * 3 / 5,
-        "3_to_4": 5.0 * 1 / 5,
-        "4_to_7": 5.0 * 1 / 5 + 6.0 * 2 / 5,
-        "7_to_20": 6.0 * 3 / 5 + 7.0 + 8.0,
+        "0_to_3": 4.0 * 3 / 5,
+        "3_to_4": 4.0 * 1 / 5,
+        "4_to_7": 4.0 * 1 / 5 + 5.0 * 2 / 5,
+        "7_to_15": 5.0 * 3 / 5 + 6.0,
     }
 
     rebinned_df = target_age_schema.rebin_dataframe(df)
@@ -406,7 +321,7 @@ def test_rebin_dataframe_uneven() -> None:
                 ("cause", "disease", "0_to_3"),
                 ("cause", "disease", "3_to_4"),
                 ("cause", "disease", "4_to_7"),
-                ("cause", "disease", "7_to_20"),
+                ("cause", "disease", "7_to_15"),
             ],
             names=["cause", "disease", "age_group"],
         ),

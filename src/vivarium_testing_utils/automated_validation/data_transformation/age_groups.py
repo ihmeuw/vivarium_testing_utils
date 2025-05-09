@@ -8,6 +8,7 @@ AGE_GROUP_COLUMN = "age_group"
 AGE_START_COLUMN = "age_start"
 AGE_END_COLUMN = "age_end"
 
+
 class AgeGroup:
     """
     Class to represent a single age interval with start and end ages.
