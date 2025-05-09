@@ -10,7 +10,7 @@ from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    align_datasets,
+    resolve_age_groups,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     MEASURE_KEY_MAPPINGS,
@@ -70,7 +70,8 @@ class ValidationContext:
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
 
-        test_data, ref_data = align_datasets(test_data, ref_data, self.age_groups)
+        test_data = resolve_age_groups(test_data, self.age_groups)
+        ref_data = resolve_age_groups(ref_data, self.age_groups)
         comparison = FuzzyComparison(
             measure,
             test_data,
