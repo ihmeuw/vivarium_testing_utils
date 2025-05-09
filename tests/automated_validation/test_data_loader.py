@@ -123,6 +123,7 @@ def test__load_artifact(sim_result_dir: Path) -> None:
     assert set(artifact.keys) == {
         "metadata.keyspace",
         "cause.disease.incidence_rate",
+        "population.age_bins",
     }
 
 

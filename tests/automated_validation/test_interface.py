@@ -49,10 +49,14 @@ def test__get_age_groups_art(sim_result_dir: Path, mocker: MockFixture) -> None:
             "foo": ["bar"],
         },
     )
+
+    # mock dataloader to return age groups
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.interface.DataLoader._load_from_artifact",
+        return_value=age_groups,
+    )
     context = ValidationContext(sim_result_dir)
-    mocker.patch.object(context._data_loader, "get_dataset", return_value=age_groups)
-    test_age_groups = context._get_age_groups()
-    assert test_age_groups.equals(age_groups)
+    assert context.age_groups.equals(age_groups)
 
 
 def test__get_age_groups_gbd(sim_result_dir: Path, mocker: MockFixture) -> None:
@@ -62,10 +66,8 @@ def test__get_age_groups_gbd(sim_result_dir: Path, mocker: MockFixture) -> None:
             "foo": ["bar"],
         },
     )
-    context = ValidationContext(sim_result_dir)
-    mocker.patch.object(
-        context._data_loader,
-        "get_dataset",
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.interface.DataLoader._load_from_artifact",
         side_effect=ArtifactException(),
     )
 
@@ -73,8 +75,8 @@ def test__get_age_groups_gbd(sim_result_dir: Path, mocker: MockFixture) -> None:
         "vivarium_testing_utils.automated_validation.interface.vi.get_age_bins",
         return_value=age_groups,
     )
-    test_age_groups = context._get_age_groups()
-    assert test_age_groups.equals(age_groups)
+    context = ValidationContext(sim_result_dir)
+    assert context.age_groups.equals(age_groups)
 
 
 def test___get_raw_datasets_from_source(
