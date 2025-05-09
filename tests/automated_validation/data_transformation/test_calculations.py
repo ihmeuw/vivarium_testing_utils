@@ -1,10 +1,14 @@
 import pandas as pd
 import pytest
 
+from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
+    AgeSchema,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     aggregate_sum,
     linear_combination,
     ratio,
+    resolve_age_groups,
 )
 
 
@@ -82,11 +86,22 @@ def test_linear_combination(intermediate_data: pd.DataFrame) -> None:
         linear_combination(intermediate_data, 1, "a", 1, "foo")
 
 
-def test_resolve_ages() -> None:
-    """Test resolving ages to age groups"""
-    pass
+def test_resolve_age_groups(
+    sample_df_with_ages: pd.DataFrame,
+    sample_age_group_df: pd.DataFrame,
+    person_time_data: pd.DataFrame,
+) -> None:
+    """Test we can reconcile age groups with the data."""
+    # Ensure that if the age groups are in the data, we can format the data
+    formatted_df = resolve_age_groups(sample_df_with_ages, sample_age_group_df)
+    context_age_schema = AgeSchema.from_dataframe(sample_age_group_df)
+    pd.testing.assert_frame_equal(
+        formatted_df,
+        context_age_schema.format_dataframe(sample_df_with_ages),
+    )
 
-
-def test_align_datasets() -> None:
-    """Test aligning datasets"""
-    pass
+    formatted_df = resolve_age_groups(person_time_data, sample_age_group_df)
+    pd.testing.assert_frame_equal(
+        formatted_df,
+        person_time_data,
+    )
