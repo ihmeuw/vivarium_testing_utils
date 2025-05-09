@@ -5,52 +5,14 @@ import pandas as pd
 import pytest
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
+    AGE_END_COLUMN,
+    AGE_GROUP_COLUMN,
+    AGE_START_COLUMN,
     AgeGroup,
+    AgeRange,
     AgeSchema,
+    AgeTuple,
 )
-
-
-@pytest.fixture
-def ex_age_tuples() -> list[tuple[str, float | int, float | int]]:
-    return [
-        ("0_to_5", 0, 5),
-        ("5_to_10", 5, 10),
-        ("10_to_15", 10, 15),
-    ]
-
-
-@pytest.fixture
-def ex_age_schema(ex_age_tuples) -> AgeSchema:
-    return AgeSchema.from_tuples(ex_age_tuples)
-
-
-@pytest.fixture
-def ex_age_df() -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            "age_group": ["0_to_5", "5_to_10", "10_to_15"],
-            "age_start": [0.0, 5.0, 10.0],
-            "age_end": [5.0, 10.0, 15.0],
-        }
-    ).set_index(["age_group", "age_start", "age_end"])
-
-
-@pytest.fixture
-def sample_df() -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            "foo": [1.0, 2.0, 3.0],
-            "bar": [4.0, 5.0, 6.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "0_to_5", 0.0, 5.0),
-                ("cause", "disease", "5_to_10", 5.0, 10.0),
-                ("cause", "disease", "10_to_15", 10.0, 15.0),
-            ],
-            names=["cause", "disease", "age_group", "age_start", "age_end"],
-        ),
-    )
 
 
 def test_age_group() -> None:
@@ -94,7 +56,7 @@ def test_age_group_eq() -> None:
         ("14_to_17", (14, 17)),
     ],
 )
-def test_age_group_from_string(string: str, ages: tuple[int | float, int | float]) -> None:
+def test_age_group_from_string(string: str, ages: AgeRange) -> None:
     """Test AgeGroup instantiation from string."""
     group = AgeGroup.from_string(string)
     assert group.name == string
@@ -138,7 +100,7 @@ def test_age_group_from_range() -> None:
     ],
 )
 def test_age_group_fraction_contained_by(
-    group_name: str, group_ages: tuple[float | int, float | int], fraction: float
+    group_name: str, group_ages: AgeRange, fraction: float
 ) -> None:
     """Test that we get the correct amount of overlap between two age groups."""
     group = AgeGroup("0_to_5_years", 0, 5)
@@ -157,13 +119,16 @@ def check_example_age_schema(age_schema: AgeSchema) -> None:
     assert age_schema.span == 15
 
 
-def test_age_schema_instantiation(ex_age_tuples, sample_df) -> None:
+def test_age_schema_instantiation(
+    sample_age_tuples: list[AgeTuple],
+    sample_df_with_ages: pd.DataFrame,
+) -> None:
     """Test the AgeSchema class instantiation."""
     for age_schema in [
-        AgeSchema.from_tuples(ex_age_tuples),
-        AgeSchema.from_ranges([(tuple[1], tuple[2]) for tuple in ex_age_tuples]),
-        AgeSchema.from_strings([tuple[0] for tuple in ex_age_tuples]),
-        AgeSchema.from_dataframe(sample_df),
+        AgeSchema.from_tuples(sample_age_tuples),
+        AgeSchema.from_ranges([(tuple[1], tuple[2]) for tuple in sample_age_tuples]),
+        AgeSchema.from_strings([tuple[0] for tuple in sample_age_tuples]),
+        AgeSchema.from_dataframe(sample_df_with_ages),
     ]:
         check_example_age_schema(age_schema)
 
@@ -176,17 +141,17 @@ def test_age_schema_instantiation(ex_age_tuples, sample_df) -> None:
         ([], "No age groups provided"),
     ],
 )
-def test_age_schema_validation(
-    age_groups: list[tuple[str, float | int, float | int]], err_match: str
-) -> None:
+def test_age_schema_validation(age_groups: list[AgeTuple], err_match: str) -> None:
     """Test we get errors for invalid combinations of age groups."""
     with pytest.raises(ValueError, match=err_match):
         AgeSchema.from_tuples(age_groups)
 
 
-def test_age_schema_to_dataframe(ex_age_schema, ex_age_df) -> None:
+def test_age_schema_to_dataframe(
+    sample_age_schema: AgeSchema, sample_age_group_df: pd.DataFrame
+) -> None:
     """Test we can convert an AgeSchema to a DataFrame."""
-    pd.testing.assert_frame_equal(ex_age_schema.to_dataframe(), ex_age_df)
+    pd.testing.assert_frame_equal(sample_age_schema.to_dataframe(), sample_age_group_df)
 
 
 def test_age_schema_eq() -> None:
@@ -208,13 +173,13 @@ def test_age_schema_contains() -> None:
     assert not AgeGroup("10_to_15", 10, 15) in schema
 
 
-def test_age_schema_is_subset(ex_age_schema) -> None:
+def test_age_schema_is_subset(sample_age_schema: AgeSchema) -> None:
     """Test we can see whether one schema is a subset of another."""
     subset_schema = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
     not_subset_schema = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_15", 5, 15)])
 
-    assert subset_schema.is_subset(ex_age_schema)
-    assert not not_subset_schema.is_subset(ex_age_schema)
+    assert subset_schema.is_subset(sample_age_schema)
+    assert not not_subset_schema.is_subset(sample_age_schema)
 
 
 def test_age_schema_can_coerce_to() -> None:
@@ -229,10 +194,10 @@ def test_age_schema_can_coerce_to() -> None:
     assert not schema3.can_coerce_to(schema1)
 
 
-def test_age_schema_get_transform_matrix(ex_age_schema) -> None:
+def test_age_schema_get_transform_matrix(sample_age_schema: AgeSchema) -> None:
     """Test we can get a transform matrix between two schemas."""
     new_schema = AgeSchema.from_tuples([("0_to_7.5", 0, 7.5), ("7.5_to_15", 7.5, 15)])
-    transform_matrix = new_schema.get_transform_matrix(ex_age_schema)
+    transform_matrix = new_schema.get_transform_matrix(sample_age_schema)
     expected_matrix = pd.DataFrame(
         {
             "0_to_5": [1.0, 0.0],
@@ -245,16 +210,20 @@ def test_age_schema_get_transform_matrix(ex_age_schema) -> None:
     pd.testing.assert_frame_equal(transform_matrix, expected_matrix)
 
 
-def test_age_schema_format_cols(ex_age_schema, sample_df) -> None:
+def test_age_schema_format_cols(
+    sample_age_schema: AgeSchema, sample_df_with_ages: pd.DataFrame
+) -> None:
     for dataframe in [
-        sample_df,
-        sample_df.droplevel(["age_start", "age_end"]),
-        sample_df.droplevel(["age_start", "age_end"]),
+        sample_df_with_ages,
+        sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
+        sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
     ]:
-        pd.testing.assert_frame_equal(ex_age_schema.format_dataframe(dataframe), sample_df)
+        pd.testing.assert_frame_equal(
+            sample_age_schema.format_dataframe(dataframe), sample_df_with_ages
+        )
 
 
-def test_age_schema_format_dataframe_invalid(ex_age_schema) -> None:
+def test_age_schema_format_dataframe_invalid(sample_age_schema: AgeSchema) -> None:
     df = pd.DataFrame(
         {
             "foo": [1.0, 2.0],
@@ -265,14 +234,14 @@ def test_age_schema_format_dataframe_invalid(ex_age_schema) -> None:
                 ("cause", "disease", "25_to_30"),
                 ("cause", "disease", "30_to_40"),
             ],
-            names=["cause", "disease", "age_group"],
+            names=["cause", "disease", AGE_GROUP_COLUMN],
         ),
     )
     with pytest.raises(ValueError, match="Cannot coerce"):
-        ex_age_schema.format_dataframe(df)
+        sample_age_schema.format_dataframe(df)
 
 
-def test_age_schema_format_dataframe_rebin(sample_df) -> None:
+def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) -> None:
     target_age_schema = AgeSchema.from_tuples(
         [
             ("0_to_3", 0, 3),
@@ -281,13 +250,15 @@ def test_age_schema_format_dataframe_rebin(sample_df) -> None:
             ("7_to_15", 7, 15),
         ]
     )
-    formatted_df = target_age_schema.format_dataframe(sample_df)
-    pd.testing.assert_frame_equal(formatted_df, target_age_schema.rebin_dataframe(sample_df))
+    formatted_df = target_age_schema.format_dataframe(sample_df_with_ages)
+    pd.testing.assert_frame_equal(
+        formatted_df, target_age_schema.rebin_dataframe(sample_df_with_ages)
+    )
 
 
-def test_rebin_dataframe(sample_df) -> None:
+def test_rebin_dataframe(sample_df_with_ages: pd.DataFrame) -> None:
     """Test we can transform a DataFrame to a new age schema with uneven groups."""
-    df = sample_df.droplevel(["age_start", "age_end"])
+    df = sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
 
     target_age_schema = AgeSchema.from_tuples(
         [
@@ -323,7 +294,7 @@ def test_rebin_dataframe(sample_df) -> None:
                 ("cause", "disease", "4_to_7"),
                 ("cause", "disease", "7_to_15"),
             ],
-            names=["cause", "disease", "age_group"],
+            names=["cause", "disease", AGE_GROUP_COLUMN],
         ),
     )
     pd.testing.assert_frame_equal(rebinned_df, expected_df)

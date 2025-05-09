@@ -5,6 +5,9 @@ import pandas as pd
 import pytest
 
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
+    AGE_GROUP_COLUMN,
+)
 
 
 def test_get_sim_outputs(sim_result_dir: Path) -> None:
@@ -106,7 +109,7 @@ def test__load_from_sim(
         "entity_type",
         "entity",
         "sub_entity",
-        "age_group",
+        AGE_GROUP_COLUMN,
         "sex",
         "input_draw",
         "random_seed",

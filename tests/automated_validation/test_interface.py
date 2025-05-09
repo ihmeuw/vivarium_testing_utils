@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
@@ -41,7 +42,7 @@ def test_show_raw_dataset(
     )
 
 
-def test__get_age_groups_art(sim_result_dir, mocker) -> None:
+def test__get_age_groups_art(sim_result_dir: Path, mocker: MockFixture) -> None:
     """Ensure that we grab age groups 'from the artifact' when available"""
     age_groups = pd.DataFrame(
         {
@@ -54,7 +55,7 @@ def test__get_age_groups_art(sim_result_dir, mocker) -> None:
     assert test_age_groups.equals(age_groups)
 
 
-def test__get_age_groups_gbd(sim_result_dir, mocker) -> None:
+def test__get_age_groups_gbd(sim_result_dir: Path, mocker: MockFixture) -> None:
     """Test that if age groups are not available from the artifact, we get them from vivarium_inputs"""
     age_groups = pd.DataFrame(
         {

@@ -8,6 +8,9 @@ AGE_GROUP_COLUMN = "age_group"
 AGE_START_COLUMN = "age_start"
 AGE_END_COLUMN = "age_end"
 
+AgeTuple = tuple[str, int | float, int | float]
+AgeRange = tuple[int | float, int | float]
+
 
 class AgeGroup:
     """
@@ -127,7 +130,7 @@ class AgeSchema:
         return all(group in other for group in self.age_groups)
 
     @classmethod
-    def from_tuples(cls, age_tuples: list[tuple[str, int | float, int | float]]) -> AgeSchema:
+    def from_tuples(cls, age_tuples: list[AgeTuple]) -> AgeSchema:
         """group
         Create an AgeSchema from a list of age tuples.
         """
@@ -137,7 +140,7 @@ class AgeSchema:
         return cls(age_groups)
 
     @classmethod
-    def from_ranges(cls, age_ranges: list[tuple[int | float, int | float]]) -> AgeSchema:
+    def from_ranges(cls, age_ranges: list[AgeRange]) -> AgeSchema:
         """
         Create an AgeSchema from a list of age ranges.
         """
