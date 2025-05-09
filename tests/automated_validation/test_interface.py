@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from vivarium.framework.artifact.artifact import ArtifactException
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
@@ -40,9 +41,39 @@ def test_show_raw_dataset(
     )
 
 
-def test__get_age_groups() -> None:
-    """Ensure that we can get age groups"""
-    pass
+def test__get_age_groups_art(sim_result_dir, mocker) -> None:
+    """Ensure that we grab age groups 'from the artifact' when available"""
+    age_groups = pd.DataFrame(
+        {
+            "foo": ["bar"],
+        },
+    )
+    context = ValidationContext(sim_result_dir)
+    mocker.patch.object(context._data_loader, "get_dataset", return_value=age_groups)
+    test_age_groups = context._get_age_groups()
+    assert test_age_groups.equals(age_groups)
+
+
+def test__get_age_groups_gbd(sim_result_dir, mocker) -> None:
+    """Test that if age groups are not available from the artifact, we get them from vivarium_inputs"""
+    age_groups = pd.DataFrame(
+        {
+            "foo": ["bar"],
+        },
+    )
+    context = ValidationContext(sim_result_dir)
+    mocker.patch.object(
+        context._data_loader,
+        "get_dataset",
+        side_effect=ArtifactException(),
+    )
+
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.interface.vi.get_age_bins",
+        return_value=age_groups,
+    )
+    test_age_groups = context._get_age_groups()
+    assert test_age_groups.equals(age_groups)
 
 
 def test___get_raw_datasets_from_source(
