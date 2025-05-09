@@ -4,6 +4,9 @@ import re
 
 import pandas as pd
 
+AGE_GROUP_COLUMN = "age_group"
+AGE_START_COLUMN = "age_start"
+AGE_END_COLUMN = "age_end"
 
 class AgeGroup:
     """
@@ -157,10 +160,10 @@ class AgeSchema:
         """
         Create an AgeSchema from a DataFrame with age group names.
         """
-        has_names = "age_group" in df.index.names
-        has_ranges = "age_start" in df.index.names and "age_end" in df.index.names
+        has_names = AGE_GROUP_COLUMN in df.index.names
+        has_ranges = AGE_START_COLUMN in df.index.names and AGE_END_COLUMN in df.index.names
         if has_names and has_ranges:
-            levels = ["age_group", "age_start", "age_end"]
+            levels = [AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN]
             age_groups = list(
                 df.index.droplevel(list(set(df.index.names) - set(levels)))
                 .reorder_levels(levels)
@@ -169,7 +172,7 @@ class AgeSchema:
 
             return cls.from_tuples(age_groups)
         elif has_ranges:
-            levels = ["age_start", "age_end"]
+            levels = [AGE_START_COLUMN, AGE_END_COLUMN]
             age_groups = (
                 df.index.droplevel(list(set(df.index.names) - set(levels)))
                 .reorder_levels(levels)
@@ -177,7 +180,7 @@ class AgeSchema:
             )
             return cls.from_ranges(age_groups)
         elif has_names:
-            levels = ["age_group"]
+            levels = [AGE_GROUP_COLUMN]
             age_groups = list(
                 df.index.droplevel(list(set(df.index.names) - set(levels))).unique()
             )
@@ -192,11 +195,13 @@ class AgeSchema:
         Convert the AgeSchema to a DataFrame with age group names and their start and end ages.
         """
         data = {
-            "age_group": [group.name for group in self.age_groups],
-            "age_start": [group.start for group in self.age_groups],
-            "age_end": [group.end for group in self.age_groups],
+            AGE_GROUP_COLUMN: [group.name for group in self.age_groups],
+            AGE_START_COLUMN: [group.start for group in self.age_groups],
+            AGE_END_COLUMN: [group.end for group in self.age_groups],
         }
-        return pd.DataFrame(data).set_index(["age_group", "age_start", "age_end"])
+        return pd.DataFrame(data).set_index(
+            [AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN]
+        )
 
     def _validate(self) -> None:
         """
@@ -255,7 +260,13 @@ class AgeSchema:
         Format a DataFrame to match the current schema.
         """
         source_age_schema = AgeSchema.from_dataframe(df)
-        df = pd.merge(df, source_age_schema.to_dataframe(), left_index=True, right_index=True)
+        index_names = list(df.index.names)
+        for age_group_indices in [AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN]:
+            if age_group_indices not in index_names:
+                index_names.append(age_group_indices)
+        df = pd.merge(
+            df, source_age_schema.to_dataframe(), left_index=True, right_index=True
+        ).reorder_levels(index_names)
 
         if not source_age_schema.can_coerce_to(self):
             raise ValueError(
@@ -274,10 +285,8 @@ class AgeSchema:
         """
         Rebin a DataFrame to match the target age schema.
 
-        Parameters:
-        - df: DataFrame with multi-index including 'age_group' level
-
-        Returns a new DataFrame with values redistributed to new age groups
+        The basic operation is to unstack the DataFrame, multiply by the transform matrix, and stack it back.
+        This is done for each value column in the DataFrame.
         """
         source_age_schema = AgeSchema.from_dataframe(df)
 
@@ -292,19 +301,19 @@ class AgeSchema:
             # Unstack the DataFrame to get the age groups as columns
             unstacked_series = (
                 df[val_col]
-                .unstack(level="age_group", fill_value=0)
+                .unstack(level=AGE_GROUP_COLUMN, fill_value=0)
                 .reindex(columns=transform_matrix.columns, fill_value=0)
             )
 
             # Perform the dot product
             result_matrix_for_col = unstacked_series.dot(transform_matrix.T)
 
-            # Name the column "age_group" for re-stacking
-            result_matrix_for_col.columns.name = "age_group"
+            # Name the column AGE_GROUP_COLUMN for re-stacking
+            result_matrix_for_col.columns.name = AGE_GROUP_COLUMN
 
             # Stack the new age group columns into the index
             stacked_series_for_col = result_matrix_for_col.stack(
-                level="age_group", dropna=False
+                level=AGE_GROUP_COLUMN, dropna=False
             )
             stacked_series_for_col.name = val_col
 
