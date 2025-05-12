@@ -216,6 +216,7 @@ def test_age_schema_get_transform_matrix(sample_age_schema: AgeSchema) -> None:
 def test_age_schema_format_cols(
     sample_age_schema: AgeSchema, sample_df_with_ages: pd.DataFrame
 ) -> None:
+    """Test we can format a DataFrame with only age groups."""
     for dataframe in [
         sample_df_with_ages,
         sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
@@ -228,6 +229,7 @@ def test_age_schema_format_cols(
 
 
 def test_age_schema_format_dataframe_invalid(sample_age_schema: AgeSchema) -> None:
+    """Test we get an error if we try to format a DataFrame with invalid age groups."""
     df = pd.DataFrame(
         {
             "foo": [1.0, 2.0],
@@ -246,6 +248,7 @@ def test_age_schema_format_dataframe_invalid(sample_age_schema: AgeSchema) -> No
 
 
 def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) -> None:
+    """Test we that format_dataframe rebins the dataframe when necessary."""
     target_age_schema = AgeSchema.from_tuples(
         [
             ("0_to_3", 0, 3),
