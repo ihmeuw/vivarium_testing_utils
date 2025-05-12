@@ -19,6 +19,21 @@ class AgeGroup:
     """
 
     def __init__(self, name: str, start: int | float, end: int | float):
+        """
+
+        Parameters
+        ----------
+        name
+            The name of the age group.
+        start
+            The start age of the age group.
+        end
+            The end age of the age group.
+        Raises
+        ------
+        ValueError
+            If the start or end age is negative, or if the end age is less than or equal to the start age.
+        """
         self.name = name
         if start < 0:
             raise ValueError(f"Negative start age.")
@@ -31,7 +46,17 @@ class AgeGroup:
         self.span = float(end - start)
 
     def __eq__(self, other: object) -> bool:
-        """True if two age groups have the same start and end ages."""
+        """Define equality between two age groups.
+
+        Parameters
+        ----------
+        other
+            The other object to compare to.
+
+        Returns
+        -------
+            True if the two age groups have the same start and end ages, False otherwise.
+        """
         if not isinstance(other, AgeGroup):
             return NotImplemented
         return (self.start, self.end) == (other.start, other.end)
@@ -39,6 +64,15 @@ class AgeGroup:
     def fraction_contained_by(self, other: AgeGroup) -> float:
         """
         Return the amount of this group that is contained within another group.
+
+        Parameters
+        ----------
+        other
+            The other age group to compare to.
+
+        Returns
+        -------
+            The fraction of this age group that is contained within the other age group.
         """
         overlap_start = max(self.start, other.start)
         overlap_end = min(self.end, other.end)
@@ -50,6 +84,20 @@ class AgeGroup:
         """
         Parse age group names to extract start and end ages and their units.
         Supports formats like '0_to_6_months', '12_to_15_years', '0_to_8_days', '14_to_17'
+
+        Parameters
+        ----------
+        name
+            The name of the age group.
+
+        Returns
+        -------
+            An AgeGroup object with the parsed name, start, and end ages.
+
+        Raises
+        ------
+            ValueError
+                If the name does not match the expected format.
         """
         # Extract numbers and unit from the group name
         pattern = r"(\d+(?:\.\d+)?)_to_(\d+(?:\.\d+)?)(?:_(\w+))?"
@@ -82,6 +130,18 @@ class AgeGroup:
 
     @classmethod
     def from_range(cls, start: float | int, end: float | int) -> AgeGroup:
+        """
+        Create an AgeGroup from a start and end age.
+        Parameters
+        ----------
+        start
+            The start age of the age group.
+        end
+            The end age of the age group.
+        Returns
+        -------
+            An AgeGroup object with the specified start and end ages.
+        """
         return cls(f"{start}_to_{end}", start, end)
 
 
@@ -91,6 +151,17 @@ class AgeSchema:
     """
 
     def __init__(self, age_groups: list[AgeGroup]) -> None:
+        """
+        Parameters
+        ----------
+        age_groups
+            A list of AgeGroup objects representing the age groups in the schema.
+
+        Raises
+        ------
+        ValueError
+            If there are no age groups provided, or if the age groups are overlapping or not contiguous.
+        """
         self.age_groups = age_groups
         self.age_groups.sort(key=lambda x: x.start)
         self._validate()
@@ -98,7 +169,17 @@ class AgeSchema:
         self.span = self.range[1] - self.range[0]
 
     def __getitem__(self, index: int) -> AgeGroup:
-        """Get an age group by index."""
+        """Get an age group by index.
+
+        Parameters
+        ----------
+        index
+            The index of the age group to get.
+
+        Returns
+        -------
+            The age group at the specified index.
+        """
         return self.age_groups[index]
 
     def __len__(self) -> int:
@@ -106,7 +187,17 @@ class AgeSchema:
         return len(self.age_groups)
 
     def __eq__(self, other: object) -> bool:
-        """True if two schemas have the same age groups."""
+        """Define equality between two age schemas.
+
+        Parameters
+        ----------
+        other
+            The other object to compare to.
+
+        Returns
+        -------
+            True if the two age groups have an equivalent set of age groups, False otherwise.
+        """
         if not isinstance(other, AgeSchema):
             return NotImplemented
         if len(self.age_groups) != len(other.age_groups):
@@ -119,6 +210,15 @@ class AgeSchema:
     def __contains__(self, item: AgeGroup) -> bool:
         """
         Check if an age group is contained in the schema.
+
+        Parameters
+        ----------
+        item
+            The age group to check for.
+
+        Returns
+        -------
+            True if the age group is contained in the schema, False otherwise.
         """
         return any(item == group for group in self.age_groups)
 
@@ -130,8 +230,16 @@ class AgeSchema:
 
     @classmethod
     def from_tuples(cls, age_tuples: list[AgeTuple]) -> AgeSchema:
-        """group
-        Create an AgeSchema from a list of age tuples.
+        """Create an AgeSchema from a list of age tuples.
+
+        Parameters
+        ----------
+        age_tuples
+            A list of tuples containing the name, start, and end ages of the age groups.
+
+        Returns
+        -------
+            An AgeSchema with the specified age groups.
         """
         age_groups = []
         for group_tuple in age_tuples:
@@ -142,6 +250,15 @@ class AgeSchema:
     def from_ranges(cls, age_ranges: list[AgeRange]) -> AgeSchema:
         """
         Create an AgeSchema from a list of age ranges.
+
+        Parameters
+        ----------
+        age_ranges
+            A list of tuples containing the start and end ages of the age groups.
+
+        Returns
+        -------
+            An AgeSchema with the specified age groups.
         """
         age_groups = []
         for start, end in age_ranges:
@@ -152,6 +269,15 @@ class AgeSchema:
     def from_strings(cls, age_strings: list[str]) -> AgeSchema:
         """
         Create an AgeSchema from a list of age group names.
+
+        Parameters
+        ----------
+        age_strings
+            A list of strings representing the names of the age groups.
+
+        Returns
+        -------
+            An AgeSchema with the specified age groups.
         """
         age_groups = []
         for name in age_strings:
@@ -162,6 +288,17 @@ class AgeSchema:
     def from_dataframe(cls, df: pd.DataFrame) -> AgeSchema:
         """
         Create an AgeSchema from a DataFrame with age group names.
+
+        The DataFrame must have either 'age_group' or 'age_start' and 'age_end' index levels.
+
+        Parameters
+        ----------
+        df
+            A DataFrame with age group names and/or their start and end ages.
+
+        Returns
+        -------
+            An AgeSchema with the specified age groups.
         """
         has_names = AGE_GROUP_COLUMN in df.index.names
         has_ranges = AGE_START_COLUMN in df.index.names and AGE_END_COLUMN in df.index.names
@@ -229,7 +366,18 @@ class AgeSchema:
 
     def can_coerce_to(self, other: AgeSchema) -> bool:
         """
-        Check whether this schema can be coerced to another schema. That is, this schema spans a sub-interval of the other schema.
+        Check whether this schema can be coerced to another schema.
+
+        That is, this schema spans a sub-interval of the other schema.
+
+        Parameters
+        ----------
+        other
+            The other age schema to check against.
+        Returns
+        -------
+            True if this schema can be coerced to the other schema, False otherwise.
+
         """
         overlap_start = max(self.range[0], other.range[0])
         overlap_end = min(self.range[1], other.range[1])
@@ -246,8 +394,17 @@ class AgeSchema:
 def get_transform_matrix(source_schema: AgeSchema, target_schema: AgeSchema) -> pd.DataFrame:
     """
     Get a converter mapping between this source schema and target schema.
-    Returns a dataframe with the target age groups as rows and the source age groups as columns,
-    with the values representing the fraction of the source age group that should go into the target age group.
+
+    Parameters
+    ----------
+    source_schema
+        The source age schema to convert from.
+    target_schema
+        The target age schema to convert to.
+    Returns
+    -------
+        A dataframe with the target age groups as rows and the source age groups as columns,
+        with the values representing the fraction of the source age group that should go into the target age group.
     """
     source_age_groups = [group.name for group in source_schema.age_groups]
     target_age_groups = [group.name for group in target_schema.age_groups]
@@ -265,6 +422,21 @@ def get_transform_matrix(source_schema: AgeSchema, target_schema: AgeSchema) -> 
 def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame:
     """
     Format a DataFrame to match the current schema.
+
+    Parameters
+    ----------
+    target_schema
+        The target age schema to convert to.
+    df
+        The DataFrame to format.
+    Returns
+    -------
+        A DataFrame with the target age schema in the index and transformed values, if rebinning is necessary.
+
+    Raises
+    ------
+        ValueError
+            If the source age schema cannot be coerced to the target schema.
     """
     source_age_schema = AgeSchema.from_dataframe(df)
     index_names = list(df.index.names)
@@ -295,6 +467,16 @@ def rebin_dataframe(
 
     The basic operation is to unstack the DataFrame, multiply by the transform matrix, and stack it back.
     This is done for each value column in the DataFrame.
+
+    Parameters
+    ----------
+    target_schema
+        The target age schema to convert to.
+    df
+        The DataFrame to rebin.
+    Returns
+    -------
+        A DataFrame with the target age schema in the index and transformed values.
     """
     source_age_schema = AgeSchema.from_dataframe(df)
 
