@@ -455,6 +455,9 @@ def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame
     if source_age_schema.is_subset(target_schema):
         return df
     else:
+        logger.info(
+            f"Rebinning DataFrame age groups from {source_age_schema} to {target_schema}."
+        )
         return rebin_dataframe(target_schema, df)
 
 
