@@ -52,10 +52,7 @@ if __name__ == "__main__":
         "tables",
         "networkx",
         "loguru",
-        "pandera",
         "pyarrow",
-        "vivarium",
-        "vivarium-inputs",
         # Type stubs
         "pandas-stubs",
         "networkx-stubs",
@@ -65,6 +62,12 @@ if __name__ == "__main__":
     ]
 
     setup_requires = ["setuptools_scm"]
+
+    validation_requirements = [
+        "vivarium",
+        "vivarium-inputs",
+        "pandera",
+    ]
 
     interactive_requirements = [
         "IPython",
@@ -131,10 +134,12 @@ if __name__ == "__main__":
             "docs": doc_requirements,
             "test": test_requirements,
             "interactive": interactive_requirements,
+            "validation": validation_requirements,
             "dev": doc_requirements
             + test_requirements
             + interactive_requirements
-            + lint_requirements,
+            + lint_requirements
+            + validation_requirements,
         },
         # entry_points="""
         #         [console_scripts]
