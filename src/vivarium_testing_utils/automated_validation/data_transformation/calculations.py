@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+from loguru import logger
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,
@@ -14,7 +15,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     check_io,
     series_to_dataframe,
 )
-from loguru import logger
 
 DRAW_PREFIX = "draw_"
 

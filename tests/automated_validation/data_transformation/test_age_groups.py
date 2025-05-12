@@ -13,8 +13,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     AgeSchema,
     AgeTuple,
     format_dataframe,
-    rebin_dataframe,
     get_transform_matrix,
+    rebin_dataframe,
 )
 
 
