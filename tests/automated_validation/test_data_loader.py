@@ -7,6 +7,7 @@ import pytest
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AGE_GROUP_COLUMN,
+    AgeSchema,
 )
 
 
@@ -140,3 +141,15 @@ def test__load_from_artifact(
         "draw",
     }
     assert set(art_dataset.columns) == {"value"}
+
+
+def test__load_nonstandard_artifact(
+    sim_result_dir: Path, sample_age_schema: AgeSchema
+) -> None:
+    """Ensure that we can load age bins from the artifact directory"""
+    data_loader = DataLoader(sim_result_dir)
+    age_bins = data_loader._load_age_bins("population.age_bins")
+    pd.testing.assert_frame_equal(
+        age_bins,
+        sample_age_schema.to_dataframe(),
+    )
