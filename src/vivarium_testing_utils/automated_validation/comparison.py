@@ -3,10 +3,6 @@ from typing import Collection
 
 import pandas as pd
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    RatioData,
-    SingleNumericColumn,
-)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
     RatioMeasure,
@@ -14,11 +10,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     stratify,
     align_indexes,
-)
-from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AgeSchema,
-    rebin_dataframe,
-    reformat_artifact_dataframe,
 )
 
 
@@ -62,13 +53,7 @@ class FuzzyComparison(Comparison):
         self.test_source = test_source
         self.test_data = test_data
         self.reference_source = reference_source
-        reference_data = reformat_artifact_dataframe(
-            reference_data,
-        )
-        reference_data = rebin_dataframe(
-            reference_data, AgeSchema.from_dataframe(test_data)
-        ).rename(columns={"value": "Reference Rate"})
-        self.reference_data = reference_data
+        self.reference_data = reference_data.rename(columns={"value": "Reference Rate"})
         self.stratifications = stratifications
 
     def verify(self, stratifications: Collection[str] = ()):
