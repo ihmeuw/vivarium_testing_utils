@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 
 import pandas as pd
+from loguru import logger
 
 AGE_GROUP_COLUMN = "age_group"
 AGE_START_COLUMN = "age_start"
@@ -41,9 +42,7 @@ class AgeGroup:
         """
         overlap_start = max(self.start, other.start)
         overlap_end = min(self.end, other.end)
-        overlap = max(0, overlap_end - overlap_start)
-        if overlap <= 0:
-            return 0.0
+        overlap = max(0.0, overlap_end - overlap_start)
         return overlap / self.span
 
     @classmethod
@@ -234,7 +233,7 @@ class AgeSchema:
         if overlap < self.span:
             return False
         if self.span < other.span:
-            print(
+            logger.warning(
                 "Warning: Age Groups span different total ranges. This could lead to unexpected results at extreme age ranges."
             )
         return True
