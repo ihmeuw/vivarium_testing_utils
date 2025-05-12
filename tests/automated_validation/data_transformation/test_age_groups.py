@@ -12,6 +12,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     AgeRange,
     AgeSchema,
     AgeTuple,
+    format_dataframe,
+    rebin_dataframe,
+    get_transform_matrix,
 )
 
 
@@ -197,7 +200,7 @@ def test_age_schema_can_coerce_to() -> None:
 def test_age_schema_get_transform_matrix(sample_age_schema: AgeSchema) -> None:
     """Test we can get a transform matrix between two schemas."""
     new_schema = AgeSchema.from_tuples([("0_to_7.5", 0, 7.5), ("7.5_to_15", 7.5, 15)])
-    transform_matrix = new_schema.get_transform_matrix(sample_age_schema)
+    transform_matrix = get_transform_matrix(sample_age_schema, new_schema)
     expected_matrix = pd.DataFrame(
         {
             "0_to_5": [1.0, 0.0],
@@ -219,7 +222,8 @@ def test_age_schema_format_cols(
         sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
     ]:
         pd.testing.assert_frame_equal(
-            sample_age_schema.format_dataframe(dataframe), sample_df_with_ages
+            format_dataframe(sample_age_schema, dataframe),
+            sample_df_with_ages,
         )
 
 
@@ -238,7 +242,7 @@ def test_age_schema_format_dataframe_invalid(sample_age_schema: AgeSchema) -> No
         ),
     )
     with pytest.raises(ValueError, match="Cannot coerce"):
-        sample_age_schema.format_dataframe(df)
+        format_dataframe(sample_age_schema, df)
 
 
 def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) -> None:
@@ -250,9 +254,9 @@ def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) ->
             ("7_to_15", 7, 15),
         ]
     )
-    formatted_df = target_age_schema.format_dataframe(sample_df_with_ages)
+    formatted_df = format_dataframe(target_age_schema, sample_df_with_ages)
     pd.testing.assert_frame_equal(
-        formatted_df, target_age_schema.rebin_dataframe(sample_df_with_ages)
+        formatted_df, rebin_dataframe(target_age_schema, sample_df_with_ages)
     )
 
 
@@ -281,7 +285,7 @@ def test_rebin_dataframe(sample_df_with_ages: pd.DataFrame) -> None:
         "7_to_15": 5.0 * 3 / 5 + 6.0,
     }
 
-    rebinned_df = target_age_schema.rebin_dataframe(df)
+    rebinned_df = rebin_dataframe(target_age_schema, df)
     expected_df = pd.DataFrame(
         {
             "foo": expected_foo.values(),

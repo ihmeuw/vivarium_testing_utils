@@ -239,90 +239,91 @@ class AgeSchema:
             )
         return True
 
-    def get_transform_matrix(self, other: AgeSchema) -> pd.DataFrame:
-        """
-        Get a converter mapping between this schema (target) and another schema (source).
-        Returns a datafrme with the target age groups as rows and the source age groups as columns,
-        with the values representing the fraction of the source age group that should go into the target age group.
-        """
-        source_age_groups = [group.name for group in other.age_groups]
-        target_age_groups = [group.name for group in self.age_groups]
 
-        transform_matrix = pd.DataFrame(
-            0.0, index=target_age_groups, columns=source_age_groups
+def get_transform_matrix(source_schema: AgeSchema, target_schema: AgeSchema) -> pd.DataFrame:
+    """
+    Get a converter mapping between this source schema and target schema.
+    Returns a dataframe with the target age groups as rows and the source age groups as columns,
+    with the values representing the fraction of the source age group that should go into the target age group.
+    """
+    source_age_groups = [group.name for group in source_schema.age_groups]
+    target_age_groups = [group.name for group in target_schema.age_groups]
+
+    transform_matrix = pd.DataFrame(0.0, index=target_age_groups, columns=source_age_groups)
+    for target_group in target_schema.age_groups:
+        for source_group in source_schema.age_groups:
+            # Calculate what fraction of the source group should go into the target group
+            fraction = source_group.fraction_contained_by(target_group)
+            if fraction > 0:
+                transform_matrix.loc[target_group.name, source_group.name] = fraction
+    return transform_matrix
+
+
+def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Format a DataFrame to match the current schema.
+    """
+    source_age_schema = AgeSchema.from_dataframe(df)
+    index_names = list(df.index.names)
+    for age_group_indices in [AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN]:
+        if age_group_indices not in index_names:
+            index_names.append(age_group_indices)
+    df = pd.merge(
+        df, source_age_schema.to_dataframe(), left_index=True, right_index=True
+    ).reorder_levels(index_names)
+
+    if not source_age_schema.can_coerce_to(target_schema):
+        raise ValueError(
+            f"Cannot coerce {source_age_schema} to {target_schema}. "
+            "The source age interval must be a contained by the target interval of age groups."
         )
-        for target_group in self.age_groups:
-            for source_group in other.age_groups:
-                # Calculate what fraction of the source group should go into the target group
-                fraction = source_group.fraction_contained_by(target_group)
-                if fraction > 0:
-                    transform_matrix.loc[target_group.name, source_group.name] = fraction
-        return transform_matrix
+    if source_age_schema.is_subset(target_schema):
+        return df
+    else:
+        return rebin_dataframe(target_schema, df)
 
-    def format_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Format a DataFrame to match the current schema.
-        """
-        source_age_schema = AgeSchema.from_dataframe(df)
-        index_names = list(df.index.names)
-        for age_group_indices in [AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN]:
-            if age_group_indices not in index_names:
-                index_names.append(age_group_indices)
-        df = pd.merge(
-            df, source_age_schema.to_dataframe(), left_index=True, right_index=True
-        ).reorder_levels(index_names)
 
-        if not source_age_schema.can_coerce_to(self):
-            raise ValueError(
-                f"Cannot coerce {source_age_schema} to {self}. "
-                "The source age interval must be a contained by the target interval of age groups."
-            )
-        if source_age_schema.is_subset(self):
-            return df
-        else:
-            return self.rebin_dataframe(df)
+def rebin_dataframe(
+    target_schema: AgeSchema,
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Rebin a DataFrame to match the target age schema.
 
-    def rebin_dataframe(
-        self,
-        df: pd.DataFrame,
-    ) -> pd.DataFrame:
-        """
-        Rebin a DataFrame to match the target age schema.
+    The basic operation is to unstack the DataFrame, multiply by the transform matrix, and stack it back.
+    This is done for each value column in the DataFrame.
+    """
+    source_age_schema = AgeSchema.from_dataframe(df)
 
-        The basic operation is to unstack the DataFrame, multiply by the transform matrix, and stack it back.
-        This is done for each value column in the DataFrame.
-        """
-        source_age_schema = AgeSchema.from_dataframe(df)
+    transform_matrix = get_transform_matrix(source_age_schema, target_schema)
 
-        transform_matrix = self.get_transform_matrix(source_age_schema)
+    original_index_names = list(df.index.names)
 
-        original_index_names = list(df.index.names)
+    all_results_series = []
 
-        all_results_series = []
+    for val_col in df.columns.tolist():
 
-        for val_col in df.columns.tolist():
+        # Unstack the DataFrame to get the age groups as columns
+        unstacked_series = (
+            df[val_col]
+            .unstack(level=AGE_GROUP_COLUMN, fill_value=0)
+            .reindex(columns=transform_matrix.columns, fill_value=0)
+        )
 
-            # Unstack the DataFrame to get the age groups as columns
-            unstacked_series = (
-                df[val_col]
-                .unstack(level=AGE_GROUP_COLUMN, fill_value=0)
-                .reindex(columns=transform_matrix.columns, fill_value=0)
-            )
+        # Perform the dot product
+        result_matrix_for_col = unstacked_series.dot(transform_matrix.T)
 
-            # Perform the dot product
-            result_matrix_for_col = unstacked_series.dot(transform_matrix.T)
+        # Name the column AGE_GROUP_COLUMN for re-stacking
+        result_matrix_for_col.columns.name = AGE_GROUP_COLUMN
 
-            # Name the column AGE_GROUP_COLUMN for re-stacking
-            result_matrix_for_col.columns.name = AGE_GROUP_COLUMN
+        # Stack the new age group columns into the index
+        stacked_series_for_col = result_matrix_for_col.stack(
+            level=AGE_GROUP_COLUMN, dropna=False
+        )
+        stacked_series_for_col.name = val_col
 
-            # Stack the new age group columns into the index
-            stacked_series_for_col = result_matrix_for_col.stack(
-                level=AGE_GROUP_COLUMN, dropna=False
-            )
-            stacked_series_for_col.name = val_col
+        all_results_series.append(stacked_series_for_col)
 
-            all_results_series.append(stacked_series_for_col)
+    output_df = pd.concat(all_results_series, axis=1).reorder_levels(original_index_names)
 
-        output_df = pd.concat(all_results_series, axis=1).reorder_levels(original_index_names)
-
-        return output_df.sort_index()
+    return output_df.sort_index()

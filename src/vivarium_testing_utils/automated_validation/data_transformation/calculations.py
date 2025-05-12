@@ -4,6 +4,7 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,
+    format_dataframe,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
@@ -117,6 +118,6 @@ def resolve_age_groups(data: pd.DataFrame, age_groups: pd.DataFrame) -> pd.DataF
     """Try to merge the age groups with the data. If it fails, just return the data."""
     context_age_schema = AgeSchema.from_dataframe(age_groups)
     try:
-        return context_age_schema.format_dataframe(data)
+        return format_dataframe(context_age_schema, data)
     except ValueError:
         return data

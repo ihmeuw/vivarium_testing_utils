@@ -3,6 +3,7 @@ import pytest
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,
+    format_dataframe,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     aggregate_sum,
@@ -97,7 +98,7 @@ def test_resolve_age_groups(
     context_age_schema = AgeSchema.from_dataframe(sample_age_group_df)
     pd.testing.assert_frame_equal(
         formatted_df,
-        context_age_schema.format_dataframe(sample_df_with_ages),
+        format_dataframe(context_age_schema, sample_df_with_ages),
     )
 
     formatted_df = resolve_age_groups(person_time_data, sample_age_group_df)
