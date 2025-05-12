@@ -52,7 +52,7 @@ def test__get_age_groups_art(sim_result_dir: Path, mocker: MockFixture) -> None:
 
     # mock dataloader to return age groups
     mocker.patch(
-        "vivarium_testing_utils.automated_validation.interface.DataLoader._load_from_artifact",
+        "vivarium_testing_utils.automated_validation.interface.DataLoader._load_from_source",
         return_value=age_groups,
     )
     context = ValidationContext(sim_result_dir)
@@ -67,7 +67,7 @@ def test__get_age_groups_gbd(sim_result_dir: Path, mocker: MockFixture) -> None:
         },
     )
     mocker.patch(
-        "vivarium_testing_utils.automated_validation.interface.DataLoader._load_from_artifact",
+        "vivarium_testing_utils.automated_validation.interface.DataLoader._load_from_source",
         side_effect=ArtifactException(),
     )
 

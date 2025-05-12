@@ -148,7 +148,7 @@ def test__load_nonstandard_artifact(
 ) -> None:
     """Ensure that we can load age bins from the artifact directory"""
     data_loader = DataLoader(sim_result_dir)
-    age_bins = data_loader._load_age_bins("population.age_bins")
+    age_bins = data_loader._load_nonstandard_artifact("population.age_bins")
     pd.testing.assert_frame_equal(
         age_bins,
         sample_age_schema.to_dataframe(),
