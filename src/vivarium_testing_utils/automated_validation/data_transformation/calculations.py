@@ -14,6 +14,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     check_io,
     series_to_dataframe,
 )
+from loguru import logger
 
 DRAW_PREFIX = "draw_"
 
@@ -120,4 +121,7 @@ def resolve_age_groups(data: pd.DataFrame, age_groups: pd.DataFrame) -> pd.DataF
     try:
         return format_dataframe(context_age_schema, data)
     except ValueError:
+        logger.info(
+            "Could not resolve age groups. The DataFrame likely has no age data. Returning dataframe as-is."
+        )
         return data

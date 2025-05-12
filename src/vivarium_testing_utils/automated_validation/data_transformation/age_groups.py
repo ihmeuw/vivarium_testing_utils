@@ -165,6 +165,8 @@ class AgeSchema:
         """
         has_names = AGE_GROUP_COLUMN in df.index.names
         has_ranges = AGE_START_COLUMN in df.index.names and AGE_END_COLUMN in df.index.names
+
+        # Usually this occurs for the artifact population.age_bins
         if has_names and has_ranges:
             levels = [AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN]
             age_groups = list(
@@ -174,6 +176,7 @@ class AgeSchema:
             )
 
             return cls.from_tuples(age_groups)
+        # Most artifact dataframes have age start/end but not age group
         elif has_ranges:
             levels = [AGE_START_COLUMN, AGE_END_COLUMN]
             age_groups = (
@@ -182,6 +185,7 @@ class AgeSchema:
                 .unique()
             )
             return cls.from_ranges(age_groups)
+        # Most simulation dataframes have age group but not start/end
         elif has_names:
             levels = [AGE_GROUP_COLUMN]
             age_groups = list(
