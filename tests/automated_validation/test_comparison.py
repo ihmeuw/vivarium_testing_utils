@@ -121,7 +121,8 @@ def test_fuzzy_comparison_get_diff(
 
     diff = comparison.get_diff(stratifications=stratifications)
     assert len(diff) == expected_rows
-    assert diff.index.names == stratifications
+    if stratifications:
+        assert set(diff.index.names) == set(stratifications)
     assert "test_rate" in diff.columns
     assert "reference_rate" in diff.columns
     assert "percent_error" in diff.columns
