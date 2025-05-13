@@ -34,6 +34,14 @@ class Comparison(ABC):
     @property
     @abstractmethod
     def metadata(self) -> pd.DataFrame:
+        """A summary of the test data and reference data, including:
+        - the measure key
+        - source
+        - index columns
+        - size
+        - number of draws
+        - a sample of the input draws.
+        """
         pass
 
     @abstractmethod
@@ -44,6 +52,22 @@ class Comparison(ABC):
         sort_by: str = "percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
+        """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
+
+        Parameters:
+        -----------
+        stratifications
+            The stratifications to use for the comparison
+        num_rows
+            The number of rows to return. If "all", return all rows.
+        sort_by
+            The column to sort by. Default is "percent_error".
+        ascending
+            Whether to sort in ascending order. Default is False.
+        Returns:
+        --------
+        A DataFrame of the comparison data.
+        """
         pass
 
     @abstractmethod
