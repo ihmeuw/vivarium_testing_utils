@@ -36,10 +36,6 @@ class Comparison(ABC):
         pass
 
     @abstractmethod
-    def verify(self, stratifications: Collection[str] = ()):
-        pass
-
-    @abstractmethod
     def get_diff(
         self,
         stratifications: Collection[str] = (),
@@ -47,6 +43,10 @@ class Comparison(ABC):
         sort_by: str = "percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
+        pass
+
+    @abstractmethod
+    def verify(self, stratifications: Collection[str] = ()):
         pass
 
 
