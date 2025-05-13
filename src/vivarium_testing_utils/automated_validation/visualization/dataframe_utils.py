@@ -68,6 +68,20 @@ def format_metadata_pandas(
 
 
 def _get_display_formatting(measure_key: str, data_info: dict[str, Any]) -> list[str]:
+    """Helper function to format the data information for display, which we can pass to a higher
+    level data visualization
+    .
+    Parameters:
+    -----------
+    measure_key
+        The key of the measure being compared
+    data_info
+        Information about the data to be displayed
+
+    Returns:
+    --------
+        A list of strings containing the formatted data information
+    """
     source = data_info.get("source", "Unknown")
     size = data_info.get("size", (0, 0))
     num_draws = data_info.get("num_draws", 0)
@@ -93,6 +107,7 @@ def _format_draws_sample(draw_index: Any, max_display: int = 5) -> str:
     max_display
         The maximum number of draws to display. If the number of draws exceeds this, the
         function will display the first and last max_display draws, separated by ellipses.
+
     Returns:
     --------
         A string representation of the draws sample.
