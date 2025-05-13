@@ -1,7 +1,6 @@
 from typing import Any
 
 import pandas as pd
-from pandas.io.formats.style import Styler as DfStyler
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 
@@ -36,9 +35,9 @@ def get_metadata_from_dataset(source: DataSource, dataframe: pd.DataFrame) -> di
 
 def format_metadata_pandas(
     measure_key: str, test_info: dict[str, Any], reference_info: dict[str, Any]
-) -> DfStyler:
+) -> pd.DataFrame:
     """
-    Format the comparison data as a styled pandas DataFrame
+    Format the comparison data as a pandas DataFrame
 
     Parameters:
     -----------
@@ -50,69 +49,22 @@ def format_metadata_pandas(
         Information about the reference data to be displayed
     Returns:
     --------
-        Styled DataFrame for display
+        DataFrame for display
     """
-    # Extract necessary data
-
-    # Create data for summary table
-    data = {
-        "Property": [
-            "Measure Key",
-            "Source",
-            "Index Columns",
-            "Size",
-            "Number of Draws",
-            "Draw Sample",
-        ],
-        "Test Data": _get_display_formatting(measure_key, test_info),
-        "Reference Data": _get_display_formatting(measure_key, reference_info),
-    }
-
-    # Create and style DataFrame
-    df = pd.DataFrame(data)
-
-    # Apply styling
-    styled_df = df.style.set_properties(
-        **{"text-align": "left", "padding": "10px", "border": "1px solid #dddddd"}  # type: ignore[arg-type]
+    return pd.DataFrame(
+        {
+            "Property": [
+                "Measure Key",
+                "Source",
+                "Index Columns",
+                "Size",
+                "Number of Draws",
+                "Draw Sample",
+            ],
+            "Test Data": _get_display_formatting(measure_key, test_info),
+            "Reference Data": _get_display_formatting(measure_key, reference_info),
+        }
     )
-
-    # Add title as caption
-    styled_df = styled_df.set_caption("Comparison Summary").set_table_styles(
-        [
-            {
-                "selector": "caption",
-                "props": [
-                    ("caption-side", "top"),
-                    ("font-size", "16px"),
-                    ("font-weight", "bold"),
-                ],
-            }
-        ]
-    )
-
-    # Color headers
-    styled_df = styled_df.set_table_styles(
-        [
-            {
-                "selector": "th",
-                "props": [
-                    ("background-color", "#1E1E1E"),
-                    ("color", "white"),
-                    ("font-weight", "bold"),
-                    ("text-align", "left"),
-                    ("padding", "10px"),
-                ],
-            }
-        ]
-    )
-
-    # Alternate row colors
-    styled_df = styled_df.apply(
-        lambda x: ["background-color: #E6F0FF" if i % 2 == 0 else "" for i in range(len(x))],
-        axis=0,
-    )
-
-    return styled_df
 
 
 def _get_display_formatting(measure_key: str, data_info: dict[str, Any]) -> list[str]:

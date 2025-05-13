@@ -73,7 +73,7 @@ def test_fuzzy_comparison_metadata(
         mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
     )
 
-    metadata = comparison.metadata.data
+    metadata = comparison.metadata
 
     assert metadata["Property"][0] == "Measure Key"
     assert metadata["Test Data"][0] == "mock_measure"
