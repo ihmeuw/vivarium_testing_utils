@@ -34,7 +34,7 @@ class SimDataFormatter:
                 value,
             )
         if self.filter_value == "total":
-            dataset = marginalize(dataset, [self.filter_column])
+            dataset = marginalize(dataset, [self.filter_column], agg="sum")
         else:
             dataset = filter_data(dataset, {self.filter_column: [self.filter_value]})
         dataset = dataset.rename(columns={"value": self.new_value_column_name})

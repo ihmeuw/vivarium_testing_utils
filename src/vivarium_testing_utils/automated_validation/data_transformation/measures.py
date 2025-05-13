@@ -120,7 +120,9 @@ class RatioMeasure(Measure, ABC):
         denominator_data: pd.DataFrame,
     ) -> pd.DataFrame:
         """Process raw incidence data into a format suitable for calculations."""
-        numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
+        numerator_data, denominator_data = align_indexes(
+            [numerator_data, denominator_data], agg="sum"
+        )
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
         return pd.concat([numerator_data, denominator_data], axis=1)
