@@ -1,8 +1,12 @@
+from typing import Any
+
 import pandas as pd
+from pandas.io.formats.style import Styler as DfStyler
+
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 
 
-def data_info(source: DataSource, dataframe: pd.DataFrame) -> dict[str, str]:
+def data_info(source: DataSource, dataframe: pd.DataFrame) -> dict[str, Any]:
     """Organize the data information into a dictionary for display by a styled pandas DataFrame.
 
     Parameters:
@@ -16,7 +20,7 @@ def data_info(source: DataSource, dataframe: pd.DataFrame) -> dict[str, str]:
     A dictionary containing the data information.
 
     """
-    data_info: dict[str, str] = {}
+    data_info: dict[str, Any] = {}
     data_info["source"] = source.value
     data_info["index_columns"] = dataframe.index.names
     data_info["size"] = dataframe.shape
@@ -31,8 +35,8 @@ def data_info(source: DataSource, dataframe: pd.DataFrame) -> dict[str, str]:
 
 
 def format_metadata_pandas(
-    measure_key: str, test_info: dict[str, str], reference_info: dict[str, str]
-):
+    measure_key: str, test_info: dict[str, Any], reference_info: dict[str, Any]
+) -> DfStyler:
     """
     Format the comparison data as a styled pandas DataFrame
 
@@ -50,21 +54,6 @@ def format_metadata_pandas(
     """
     # Extract necessary data
 
-    def get_display_formatting(data_info):
-        source = data_info.get("source", "Unknown")
-        size = data_info.get("size", (0, 0))
-        num_draws = data_info.get("num_draws", 0)
-        index_cols = data_info.get("index_columns", [])
-
-        return [
-            measure_key,
-            source,
-            ", ".join(str(col) for col in index_cols),
-            f"{size[0]:,} rows × {size[1]:,} columns",
-            f"{num_draws:,}",
-            _format_draws_sample(data_info.get("input_draw", [])),
-        ]
-
     # Create data for summary table
     data = {
         "Property": [
@@ -75,8 +64,8 @@ def format_metadata_pandas(
             "Number of Draws",
             "Draw Sample",
         ],
-        "Test Data": get_display_formatting(test_info),
-        "Reference Data": get_display_formatting(reference_info),
+        "Test Data": _get_display_formatting(measure_key, test_info),
+        "Reference Data": _get_display_formatting(measure_key, reference_info),
     }
 
     # Create and style DataFrame
@@ -84,7 +73,7 @@ def format_metadata_pandas(
 
     # Apply styling
     styled_df = df.style.set_properties(
-        **{"text-align": "left", "padding": "10px", "border": "1px solid #dddddd"}
+        **{"text-align": "left", "padding": "10px", "border": "1px solid #dddddd"}  # type: ignore[arg-type]
     )
 
     # Add title as caption
@@ -126,7 +115,23 @@ def format_metadata_pandas(
     return styled_df
 
 
-def _format_draws_sample(draw_index, max_display=5) -> str:
+def _get_display_formatting(measure_key: str, data_info: dict[str, Any]) -> list[str]:
+    source = data_info.get("source", "Unknown")
+    size = data_info.get("size", (0, 0))
+    num_draws = data_info.get("num_draws", 0)
+    index_cols: list[str] = data_info.get("index_columns", [])
+
+    return [
+        measure_key,
+        source,
+        ", ".join(str(col) for col in index_cols),
+        f"{size[0]:,} rows × {size[1]:,} columns",
+        f"{num_draws:,}",
+        _format_draws_sample(data_info.get("input_draw", [])),
+    ]
+
+
+def _format_draws_sample(draw_index: Any, max_display: int = 5) -> str:
     """Helper function to format draw samples for display.
 
     Parameters:

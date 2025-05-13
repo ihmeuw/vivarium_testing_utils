@@ -4,13 +4,13 @@ from pathlib import Path
 
 import pandas as pd
 
-from vivarium_testing_utils.automated_validation.visualization import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     MEASURE_KEY_MAPPINGS,
     Measure,
 )
+from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
 
 class ValidationContext:
@@ -65,9 +65,9 @@ class ValidationContext:
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
         comparison = FuzzyComparison(
             measure,
-            test_source,
+            test_source_enum,
             test_data,
-            ref_source,
+            ref_source_enum,
             ref_data,
             stratifications,
         )
@@ -91,10 +91,11 @@ class ValidationContext:
         random_string = isinstance(num_rows, str) and num_rows != "all"
         if neg_int or random_string:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
+        else:
 
-        return self.comparisons[comparison_key].get_diff(
-            stratifications, num_rows, sort_by, ascending
-        )
+            return self.comparisons[comparison_key].get_diff(
+                stratifications, num_rows, sort_by, ascending
+            )
 
     def plot_comparison(self, comparison_key: str, type: str, **kwargs):  # type: ignore[no-untyped-def]
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)

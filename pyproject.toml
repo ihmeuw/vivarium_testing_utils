@@ -31,7 +31,7 @@ exclude = [
     "setup.py",
     "docs/source/conf.py",
     "src/vivarium_testing_utils/automated_validation/comparison.py", # Only stubbed out currently
-    "src/vivarium_testing_utils/automated_validation/plot_utils.py", # Only stubbed out currently
+    "src/vivarium_testing_utils/automated_validation/visualization/plot_utils.py", # Only stubbed out currently
 ]
 plugins = ["pandera.mypy"]
 

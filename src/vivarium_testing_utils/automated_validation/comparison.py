@@ -2,13 +2,14 @@ from abc import ABC, abstractmethod
 from typing import Collection, Literal
 
 import pandas as pd
+
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    stratify,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
     RatioMeasure,
-)
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    stratify,
 )
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
     data_info,
@@ -42,7 +43,7 @@ class Comparison(ABC):
     def get_diff(
         self,
         stratifications: Collection[str] = (),
-        num_rows: int | Literal["all"] = 10,
+        num_rows: int | str = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
@@ -53,6 +54,7 @@ class FuzzyComparison(Comparison):
     """A FuzzyComparison is a comparison that requires statistical hypothesis testing
     to determine if the distributions of the datasets are the same. We require both the numerator and
     denominator for the test data, to be able to calculate the statistical power."""
+
     def __init__(
         self,
         measure: RatioMeasure,
@@ -87,7 +89,7 @@ class FuzzyComparison(Comparison):
     def get_diff(
         self,
         stratifications: list[str],
-        num_rows: int | Literal["all"] = 10,
+        num_rows: int | str = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
