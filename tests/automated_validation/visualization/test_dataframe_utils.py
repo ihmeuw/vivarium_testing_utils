@@ -14,6 +14,7 @@ MEASURE_KEY = "test_measure"
 
 @pytest.fixture
 def test_info() -> dict[str, Any]:
+    """Info dictionary with draws."""
     return {
         "source": "sim",
         "index_columns": ["year", "sex", "age", "input_draw"],
@@ -25,6 +26,7 @@ def test_info() -> dict[str, Any]:
 
 @pytest.fixture
 def reference_info() -> dict[str, Any]:
+    """Info dictionary without draws."""
     return {
         "source": "artifact",
         "index_columns": ["year", "sex", "age"],
@@ -35,13 +37,13 @@ def reference_info() -> dict[str, Any]:
 
 @pytest.fixture
 def sample_dataframe() -> pd.DataFrame:
-    """Create a multi-index dataframe with input_draw and random_seed."""
+    """A multi-index dataframe with input_draw and random_seed."""
     index = pd.MultiIndex.from_product(
         [
             [2019, 2020],
             ["male", "female"],
-            [0, 1, 2],  # input_draw
-            [0, 1],  # random_seed
+            [0, 1, 2],
+            [0, 1],
         ],
         names=["year", "sex", "input_draw", "random_seed"],
     )
@@ -50,8 +52,7 @@ def sample_dataframe() -> pd.DataFrame:
 
 @pytest.fixture
 def sample_dataframe_no_draws() -> pd.DataFrame:
-    """Create a sample dataframe without input_draw and random_seed."""
-    # Create a multi-index dataframe without input_draw
+    """A sample dataframe without input_draw and random_seed."""
     index = pd.MultiIndex.from_product(
         [
             [2019, 2020],
@@ -74,7 +75,7 @@ def sample_dataframe_no_draws() -> pd.DataFrame:
 def test_get_metadata_from_dataset(
     source: DataSource, expected_source: str, sample_dataframe: pd.DataFrame
 ) -> None:
-    """Test the data_info function for data with draws."""
+    """Test we can extract metadata from a dataframe with draws."""
 
     result = get_metadata_from_dataset(source, sample_dataframe)
 
@@ -90,7 +91,7 @@ def test_get_metadata_from_dataset(
 
 
 def test_get_metadata_from_dataset_no_draws(sample_dataframe_no_draws: pd.DataFrame) -> None:
-    """Test the data_info function for data without draws."""
+    """Test we can extract metadata from a dataframe with draws."""
 
     result = get_metadata_from_dataset(DataSource.GBD, sample_dataframe_no_draws)
 
@@ -105,7 +106,7 @@ def test_get_metadata_from_dataset_no_draws(sample_dataframe_no_draws: pd.DataFr
 def test_format_metadata_pandas_basic(
     test_info: dict[str, Any], reference_info: dict[str, Any]
 ) -> None:
-    """Test the format_metadata_pandas function with basic data."""
+    """Test we can format metadata into a pandas DataFrame."""
     df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
 
     # Check the data in the underlying DataFrame
@@ -134,7 +135,7 @@ def test_format_metadata_pandas_basic(
 
 
 def test_format_metadata_pandas_missing_fields() -> None:
-
+    """Test we can format metadata into a pandas DataFrame wtih missing fields."""
     test_info = {"source": "sim"}
     reference_info = {"source": "artifact"}
 
@@ -158,6 +159,7 @@ def test_format_metadata_pandas_missing_fields() -> None:
 
 
 def test_format_metadata_pandas_many_draws() -> None:
+    """Test the formatted draw sample for many draws."""
     test_info = {
         "source": "sim",
         "index_columns": ["year", "sex", "age"],
@@ -184,6 +186,7 @@ def test_format_metadata_pandas_many_draws() -> None:
 def test_format_metadata_pandas_with_empty_draws(
     test_info: dict[str, Any], reference_info: dict[str, Any]
 ) -> None:
+    """Test we can format metadata into a pandas DataFrame with no draws."""
     # Set num_draws to 0 in test_info
     test_info["num_draws"] = 0
     test_info["input_draw"] = []  # No input_draws
