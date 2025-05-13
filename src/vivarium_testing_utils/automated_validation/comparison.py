@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Collection
+from typing import Collection, Literal
 
 import pandas as pd
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
@@ -47,6 +47,9 @@ class Comparison(ABC):
 
 
 class FuzzyComparison(Comparison):
+    """A FuzzyComparison is a comparison that requires statistical hypothesis testing
+    to determine if the distributions of the datasets are the same. We require both the numerator and
+    denominator for the test data, to be able to calculate the statistical power."""
     def __init__(
         self,
         measure: RatioMeasure,
@@ -65,14 +68,21 @@ class FuzzyComparison(Comparison):
 
     @property
     def metadata(self) -> pd.DataFrame:
+        """A summary of the test data and reference data, including:
+        - the measure key
+        - source
+        - index columns
+        - size
+        - number of draws
+        - a sample of the input draws.
+        """
         measure_key = self.measure.measure_key
         test_info = self._data_info(self.test_source, self.test_data)
         reference_info = self._data_info(self.reference_source, self.reference_data)
-        return {
-            "measure_key": measure_key,
-            "test_source": test_info,
-            "reference_source": reference_info,
-        }
+        return _format_metadata_pandas(measure_key, test_info, reference_info)
+
+    def verify(self, stratifications: Collection[str] = ()):
+        raise NotImplementedError
 
     def get_frame(
         self,
