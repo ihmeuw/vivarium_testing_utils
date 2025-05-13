@@ -12,6 +12,7 @@ from vivarium_testing_utils.automated_validation.comparison import (
 
 @pytest.fixture
 def test_data() -> pd.DataFrame:
+    """A sample test data DataFrame with draws."""
     return pd.DataFrame(
         {"numerator": [10, 20, 30], "denominator": [100, 100, 100]},
         index=pd.MultiIndex.from_tuples(
@@ -22,7 +23,20 @@ def test_data() -> pd.DataFrame:
 
 
 @pytest.fixture
+def reference_data() -> pd.DataFrame:
+    """A sample test data DataFrame without draws."""
+    return pd.DataFrame(
+        {"value": [0.11, 0.21, 0.29]},
+        index=pd.MultiIndex.from_tuples(
+            [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
+            names=["year", "sex", "age"],
+        ),
+    )
+
+
+@pytest.fixture
 def mock_ratio_measure(test_data: pd.DataFrame) -> RatioMeasure:
+    """Create generic mock RatioMeasure for testing."""
     measure_data = test_data.copy()
     measure_data["value"] = measure_data["numerator"] / measure_data["denominator"]
     measure_data = measure_data.drop(columns=["numerator", "denominator"])
@@ -33,21 +47,10 @@ def mock_ratio_measure(test_data: pd.DataFrame) -> RatioMeasure:
     return measure
 
 
-@pytest.fixture
-def reference_data() -> pd.DataFrame:
-    return pd.DataFrame(
-        {"value": [0.11, 0.21, 0.29]},
-        index=pd.MultiIndex.from_tuples(
-            [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
-            names=["year", "sex", "age"],
-        ),
-    )
-
-
 def test_fuzzy_comparison_init(
     mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
 ) -> None:
-    # Test initialization
+    """Test the initialization of the FuzzyComparison class."""
     comparison = FuzzyComparison(
         mock_ratio_measure,
         DataSource.SIM,
@@ -69,6 +72,7 @@ def test_fuzzy_comparison_init(
 def test_fuzzy_comparison_metadata(
     mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
 ) -> None:
+    """Test the metadata property of the FuzzyComparison class."""
     comparison = FuzzyComparison(
         mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
     )
@@ -115,6 +119,7 @@ def test_fuzzy_comparison_get_diff(
     stratifications: list[str],
     expected_rows: int,
 ) -> None:
+    """Test the get_diff method of the FuzzyComparison class."""
     comparison = FuzzyComparison(
         mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
     )
@@ -146,6 +151,7 @@ def test_fuzzy_comparison_get_diff(
 def test_fuzzy_comparison_verify_not_implemented(
     mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
 ) -> None:
+    """ "FuzzyComparison.verify() is not implemented."""
     comparison = FuzzyComparison(
         mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
     )
