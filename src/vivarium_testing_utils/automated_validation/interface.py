@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
-import vivarium_inputs as vi
-from vivarium.framework.artifact.artifact import ArtifactException
 
 from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
@@ -108,12 +106,16 @@ class ValidationContext:
     # TODO MIC-6047 Let user pass in custom age groups
     def _get_age_groups(self) -> pd.DataFrame:
         """Get the age groups from the given DataFrame or from the artifact."""
+        from vivarium.framework.artifact.artifact import ArtifactException
+
         try:
             age_groups = self._data_loader.get_dataset(
                 "population.age_bins", DataSource.ARTIFACT
             )
         # If we can't find the age groups in the artifact, get them directly from vivarium inputs
         except ArtifactException:
+            import vivarium_inputs as vi
+
             age_groups = vi.get_age_bins()
 
         # mypy wants this to do type narrowing
