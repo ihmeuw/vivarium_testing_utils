@@ -1,18 +1,19 @@
 from abc import ABC, abstractmethod
-from typing import Collection, Literal
+from typing import Collection
 
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     stratify,
+    align_indexes,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
     RatioMeasure,
 )
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
-    data_info,
+    get_metadata_from_dataset,
     format_metadata_pandas,
 )
 
@@ -82,8 +83,8 @@ class FuzzyComparison(Comparison):
         - a sample of the input draws.
         """
         measure_key = self.measure.measure_key
-        test_info = data_info(self.test_source, self.test_data)
-        reference_info = data_info(self.reference_source, self.reference_data)
+        test_info = get_metadata_from_dataset(self.test_source, self.test_data)
+        reference_info = get_metadata_from_dataset(self.reference_source, self.reference_data)
         return format_metadata_pandas(measure_key, test_info, reference_info)
 
     def get_diff(

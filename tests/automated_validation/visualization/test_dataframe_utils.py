@@ -5,7 +5,7 @@ import pytest
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
-    data_info,
+    get_metadata_from_dataset,
     format_metadata_pandas,
 )
 
@@ -66,7 +66,7 @@ def sample_dataframe_no_draws() -> pd.DataFrame:
 def test_data_info_sim_with_draws(sample_dataframe: pd.DataFrame) -> None:
     """Test the data_info function for SIM data with draws."""
 
-    result = data_info(DataSource.SIM, sample_dataframe)
+    result = get_metadata_from_dataset(DataSource.SIM, sample_dataframe)
 
     assert result["source"] == "sim"
     assert result["index_columns"] == ["year", "sex", "input_draw", "random_seed"]
@@ -82,7 +82,7 @@ def test_data_info_sim_with_draws(sample_dataframe: pd.DataFrame) -> None:
 def test_data_info_artifact_with_draws(sample_dataframe: pd.DataFrame) -> None:
     """Test the data_info function for ARTIFACT data with draws."""
 
-    result = data_info(DataSource.ARTIFACT, sample_dataframe)
+    result = get_metadata_from_dataset(DataSource.ARTIFACT, sample_dataframe)
 
     assert result["source"] == "artifact"
     assert result["index_columns"] == ["year", "sex", "input_draw", "random_seed"]
@@ -96,7 +96,7 @@ def test_data_info_artifact_with_draws(sample_dataframe: pd.DataFrame) -> None:
 def test_data_info_no_draws(sample_dataframe_no_draws: pd.DataFrame) -> None:
     """Test the data_info function for data without draws."""
 
-    result = data_info(DataSource.GBD, sample_dataframe_no_draws)
+    result = get_metadata_from_dataset(DataSource.GBD, sample_dataframe_no_draws)
 
     assert result["source"] == "gbd"
     assert result["index_columns"] == ["year", "sex", "age"]

@@ -6,7 +6,7 @@ from pandas.io.formats.style import Styler as DfStyler
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 
 
-def data_info(source: DataSource, dataframe: pd.DataFrame) -> dict[str, Any]:
+def get_metadata_from_dataset(source: DataSource, dataframe: pd.DataFrame) -> dict[str, Any]:
     """Organize the data information into a dictionary for display by a styled pandas DataFrame.
 
     Parameters:
