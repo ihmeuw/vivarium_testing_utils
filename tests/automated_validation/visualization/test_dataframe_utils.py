@@ -16,7 +16,7 @@ MEASURE_KEY = "test_measure"
 def test_info() -> dict[str, Any]:
     return {
         "source": "sim",
-        "index_columns": ["year", "sex", "age"],
+        "index_columns": ["year", "sex", "age", "input_draw"],
         "size": (100, 5),
         "num_draws": 10,
         "input_draw": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -63,12 +63,22 @@ def sample_dataframe_no_draws() -> pd.DataFrame:
     return pd.DataFrame({"value": range(len(index))}, index=index)
 
 
-def test_data_info_sim_with_draws(sample_dataframe: pd.DataFrame) -> None:
-    """Test the data_info function for SIM data with draws."""
+@pytest.mark.parametrize(
+    "source, expected_source",
+    [
+        (DataSource.SIM, "sim"),
+        (DataSource.GBD, "gbd"),
+        (DataSource.ARTIFACT, "artifact"),
+    ],
+)
+def test_get_metadata_from_dataset(
+    source: DataSource, expected_source: str, sample_dataframe: pd.DataFrame
+) -> None:
+    """Test the data_info function for data with draws."""
 
-    result = get_metadata_from_dataset(DataSource.SIM, sample_dataframe)
+    result = get_metadata_from_dataset(source, sample_dataframe)
 
-    assert result["source"] == "sim"
+    assert result["source"] == expected_source
     assert result["index_columns"] == ["year", "sex", "input_draw", "random_seed"]
     assert result["size"] == (
         24,
@@ -79,21 +89,7 @@ def test_data_info_sim_with_draws(sample_dataframe: pd.DataFrame) -> None:
     assert result["num_seeds"] == 2
 
 
-def test_data_info_artifact_with_draws(sample_dataframe: pd.DataFrame) -> None:
-    """Test the data_info function for ARTIFACT data with draws."""
-
-    result = get_metadata_from_dataset(DataSource.ARTIFACT, sample_dataframe)
-
-    assert result["source"] == "artifact"
-    assert result["index_columns"] == ["year", "sex", "input_draw", "random_seed"]
-    assert result["size"] == (24, 1)
-    assert result["num_draws"] == 3
-    assert list(result["input_draw"]) == [0, 1, 2]
-    # Should not have num_seeds since source is not SIM
-    assert "num_seeds" not in result
-
-
-def test_data_info_no_draws(sample_dataframe_no_draws: pd.DataFrame) -> None:
+def test_get_metadata_from_dataset_no_draws(sample_dataframe_no_draws: pd.DataFrame) -> None:
     """Test the data_info function for data without draws."""
 
     result = get_metadata_from_dataset(DataSource.GBD, sample_dataframe_no_draws)
@@ -123,7 +119,7 @@ def test_format_metadata_pandas_basic(
     assert data["Reference Data"][1] == "artifact"
 
     # Check index columns
-    assert data["Test Data"][2] == "year, sex, age"
+    assert data["Test Data"][2] == "year, sex, age, input_draw"
     assert data["Reference Data"][2] == "year, sex, age"
 
     # Check size
@@ -190,19 +186,6 @@ def test_format_metadata_pandas_many_draws() -> None:
     assert "[95, 96, 97, 98, 99]" in draw_sample
 
 
-def test_format_metadata_pandas_styling(
-    test_info: dict[str, Any], reference_info: dict[str, Any]
-) -> None:
-
-    styled_df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
-
-    table_styles = styled_df.table_styles  # type: ignore[attr-defined]
-
-    # Check header styling
-    header_styles = [style for style in table_styles if style.get("selector") == "th"]
-    assert len(header_styles) > 0
-
-
 def test_format_metadata_pandas_with_empty_draws(
     test_info: dict[str, Any], reference_info: dict[str, Any]
 ) -> None:
@@ -217,3 +200,16 @@ def test_format_metadata_pandas_with_empty_draws(
     # Check draw sample with empty draws
     assert data["Test Data"][5] == "[]"
     assert data["Reference Data"][5] == "[]"
+
+
+def test_format_metadata_pandas_styling(
+    test_info: dict[str, Any], reference_info: dict[str, Any]
+) -> None:
+
+    styled_df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
+
+    table_styles = styled_df.table_styles  # type: ignore[attr-defined]
+
+    # Check header styling
+    header_styles = [style for style in table_styles if style.get("selector") == "th"]
+    assert len(header_styles) > 0

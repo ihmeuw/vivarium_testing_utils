@@ -29,7 +29,7 @@ def get_metadata_from_dataset(source: DataSource, dataframe: pd.DataFrame) -> di
         data_info["input_draw"] = dataframe.index.get_level_values("input_draw").unique()
     else:
         data_info["num_draws"] = 0
-    if source == DataSource.SIM and "random_seed" in dataframe.index.names:
+    if "random_seed" in dataframe.index.names:
         data_info["num_seeds"] = dataframe.index.get_level_values("random_seed").nunique()
     return data_info
 
