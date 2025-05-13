@@ -11,20 +11,6 @@ from vivarium_testing_utils.automated_validation.comparison import (
 
 
 @pytest.fixture
-def mock_ratio_measure() -> RatioMeasure:
-    measure = mock.Mock(spec=RatioMeasure)
-    measure.measure_key = "mock_measure"
-    measure.get_measure_data_from_ratio.return_value = pd.DataFrame(
-        {"value": [0.1, 0.2, 0.3]},
-        index=pd.MultiIndex.from_tuples(
-            [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
-            names=["year", "sex", "age"],
-        ),
-    )
-    return measure
-
-
-@pytest.fixture
 def test_data() -> pd.DataFrame:
     return pd.DataFrame(
         {"numerator": [10, 20, 30], "denominator": [100, 100, 100]},
@@ -33,6 +19,18 @@ def test_data() -> pd.DataFrame:
             names=["year", "sex", "age", "input_draw"],
         ),
     )
+
+
+@pytest.fixture
+def mock_ratio_measure(test_data: pd.DataFrame) -> RatioMeasure:
+    measure_data = test_data.copy()
+    measure_data["value"] = measure_data["numerator"] / measure_data["denominator"]
+    measure_data = measure_data.drop(columns=["numerator", "denominator"])
+
+    measure = mock.Mock(spec=RatioMeasure)
+    measure.measure_key = "mock_measure"
+    measure.get_measure_data_from_ratio.return_value = measure_data
+    return measure
 
 
 @pytest.fixture
@@ -64,6 +62,7 @@ def test_fuzzy_comparison_init(
     assert comparison.test_data.equals(test_data)
     assert comparison.reference_source == DataSource.GBD
     assert "reference_rate" in comparison.reference_data.columns
+    assert not "value" in comparison.reference_data.columns
     assert list(comparison.stratifications) == ["year", "sex"]
 
 
@@ -74,21 +73,30 @@ def test_fuzzy_comparison_metadata(
         mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
     )
 
-    metadata = comparison.metadata
-    assert metadata is not None
-    # The metadata returns a styled dataframe, check the underlying data
-    data = metadata.data
-    assert data["Property"][0] == "Measure Key"
-    assert data["Test Data"][0] == "mock_measure"
-    assert data["Reference Data"][0] == "mock_measure"
+    metadata = comparison.metadata.data
+
+    assert metadata["Property"][0] == "Measure Key"
+    assert metadata["Test Data"][0] == "mock_measure"
+    assert metadata["Reference Data"][0] == "mock_measure"
 
     # Check sources
-    assert data["Test Data"][1] == "sim"
-    assert data["Reference Data"][1] == "gbd"
+    assert metadata["Test Data"][1] == "sim"
+    assert metadata["Reference Data"][1] == "gbd"
+
+    # Check index columns
+    assert metadata["Test Data"][2] == "year, sex, age, input_draw"
+    assert metadata["Reference Data"][2] == "year, sex, age"
+    # Check size
+    assert metadata["Test Data"][3] == "3 rows × 2 columns"
+    assert metadata["Reference Data"][3] == "3 rows × 1 columns"
 
     # Check num_draws
-    assert data["Test Data"][4] == "1"
-    assert data["Reference Data"][4] == "0"
+    assert metadata["Test Data"][4] == "1"
+    assert metadata["Reference Data"][4] == "0"
+
+    # Check draw sample
+    assert metadata["Test Data"][5] == "[0]"
+    assert metadata["Reference Data"][5] == "[]"
 
 
 @pytest.mark.parametrize(
@@ -112,7 +120,8 @@ def test_fuzzy_comparison_get_diff(
     )
 
     diff = comparison.get_diff(stratifications=stratifications)
-    assert len(diff) == min(expected_rows, 10)  # Default num_rows is 10
+    assert len(diff) == expected_rows
+    assert diff.index.names == stratifications
     assert "test_rate" in diff.columns
     assert "reference_rate" in diff.columns
     assert "percent_error" in diff.columns
@@ -122,6 +131,11 @@ def test_fuzzy_comparison_get_diff(
     assert len(all_diff) == expected_rows
 
     # Test sorting
+    # descending order
+    sorted_desc = comparison.get_diff(
+        stratifications=stratifications, sort_by="percent_error", ascending=False
+    )
+    assert sorted_desc.iloc[0]["percent_error"] >= sorted_desc.iloc[-1]["percent_error"]
     sorted_asc = comparison.get_diff(
         stratifications=stratifications, sort_by="percent_error", ascending=True
     )
