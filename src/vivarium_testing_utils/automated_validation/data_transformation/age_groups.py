@@ -113,7 +113,7 @@ class AgeGroup:
         if unit is None:
             unit = "years"
 
-        # Convert all to months for consistent comparison
+        # Convert all to years for consistent comparison
         if unit == "days":
             start_years = start / 365  # Approximate
             end_years = end / 365
