@@ -26,16 +26,23 @@ class Comparison(ABC):
     reference_data: pd.DataFrame
     stratifications: list[str]
 
+    @property
+    @abstractmethod
+    def metadata(self) -> pd.DataFrame:
+        pass
+
     @abstractmethod
     def verify(self, stratifications: Collection[str] = ()):
         pass
 
     @abstractmethod
-    def summarize(self, stratifications: Collection[str] = ()):
-        pass
-
-    @abstractmethod
-    def heads(self, stratifications: Collection[str] = ()):
+    def get_frame(
+        self,
+        stratifications: Collection[str] = (),
+        num_rows: int | Literal["all"] = 10,
+        sort_by: str = "percent_error",
+        ascending: bool = False,
+    ) -> pd.DataFrame:
         pass
 
 
@@ -56,10 +63,8 @@ class FuzzyComparison(Comparison):
         self.reference_data = reference_data.rename(columns={"value": "reference_rate"})
         self.stratifications = stratifications
 
-    def verify(self, stratifications: Collection[str] = ()):
-        raise NotImplementedError
-
-    def summarize(self):
+    @property
+    def metadata(self) -> pd.DataFrame:
         measure_key = self.measure.measure_key
         test_info = self._data_info(self.test_source, self.test_data)
         reference_info = self._data_info(self.reference_source, self.reference_data)

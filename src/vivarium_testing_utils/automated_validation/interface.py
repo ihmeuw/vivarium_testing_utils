@@ -76,11 +76,25 @@ class ValidationContext:
     def verify(self, comparison_key: str, stratifications: list[str] = []):  # type: ignore[no-untyped-def]
         self.comparisons[comparison_key].verify(stratifications)
 
-    def summarize(self, comparison_key: str, stratifications: list[str] = []):  # type: ignore[no-untyped-def]
-        return self.comparisons[comparison_key].summarize(stratifications)
+    def metadata(self, comparison_key: str) -> pd.DataFrame:
+        return self.comparisons[comparison_key].metadata
 
-    def heads(self, comparison_key: str, stratifications: list[str] = []):  # type: ignore[no-untyped-def]
-        self.comparisons[comparison_key].heads(stratifications)
+    def get_frame(
+        self,
+        comparison_key: str,
+        stratifications: list[str],
+        num_rows: int | str = 10,
+        sort_by: str = "percent_error",
+        ascending: bool = False,
+    ) -> pd.DataFrame:
+        neg_int = isinstance(num_rows, int) and num_rows < 1
+        random_string = isinstance(num_rows, str) and num_rows != "all"
+        if neg_int or random_string:
+            raise ValueError("num_rows must be a positive integer or literal 'all'")
+
+        return self.comparisons[comparison_key].get_frame(
+            stratifications, num_rows, sort_by, ascending
+        )
 
     def plot_comparison(self, comparison_key: str, type: str, **kwargs):  # type: ignore[no-untyped-def]
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
