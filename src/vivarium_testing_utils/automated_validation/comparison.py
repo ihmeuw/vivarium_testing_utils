@@ -5,16 +5,16 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    stratify,
     align_indexes,
+    stratify,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
     RatioMeasure,
 )
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
-    get_metadata_from_dataset,
     format_metadata_pandas,
+    get_metadata_from_dataset,
 )
 
 

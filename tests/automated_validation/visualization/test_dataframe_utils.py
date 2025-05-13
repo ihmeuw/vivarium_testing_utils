@@ -5,8 +5,8 @@ import pytest
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
-    get_metadata_from_dataset,
     format_metadata_pandas,
+    get_metadata_from_dataset,
 )
 
 MEASURE_KEY = "test_measure"
