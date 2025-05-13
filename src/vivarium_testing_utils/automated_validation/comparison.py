@@ -53,7 +53,7 @@ class FuzzyComparison(Comparison):
         self.test_source = test_source
         self.test_data = test_data
         self.reference_source = reference_source
-        self.reference_data = reference_data.rename(columns={"value": "Reference Rate"})
+        self.reference_data = reference_data.rename(columns={"value": "reference_rate"})
         self.stratifications = stratifications
 
     def verify(self, stratifications: Collection[str] = ()):
@@ -73,7 +73,7 @@ class FuzzyComparison(Comparison):
         self,
         stratifications: list[str],
         num_rows: int = 10,
-        sort_by: str = "Percent Error",
+        sort_by: str = "percent_error",
         ascending: bool = False,
     ):
         aligned_ratio_data, aligned_reference_data = align_indexes(
@@ -81,16 +81,16 @@ class FuzzyComparison(Comparison):
         )
         converted_test_data = self.measure.get_measure_data_from_ratio(
             aligned_ratio_data
-        ).rename(columns={"value": "Test Rate"})
+        ).rename(columns={"value": "test_rate"})
         converted_test_data = stratify(
             converted_test_data,
             stratifications,
         )
         converted_reference_data = stratify(aligned_reference_data, stratifications)
         merged_data = pd.concat([converted_test_data, converted_reference_data], axis=1)
-        merged_data["Percent Error"] = (
-            (merged_data["Test Rate"] - merged_data["Reference Rate"])
-            / merged_data["Reference Rate"]
+        merged_data["percent_error"] = (
+            (merged_data["test_rate"] - merged_data["reference_rate"])
+            / merged_data["reference_rate"]
         ) * 100
         return merged_data.sort_values(
             by=sort_by,
