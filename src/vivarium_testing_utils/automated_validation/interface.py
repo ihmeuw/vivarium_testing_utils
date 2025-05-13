@@ -92,7 +92,7 @@ class ValidationContext:
         if neg_int or random_string:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
 
-        return self.comparisons[comparison_key].get_frame(
+        return self.comparisons[comparison_key].get_diff(
             stratifications, num_rows, sort_by, ascending
         )
 

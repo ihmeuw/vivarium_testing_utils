@@ -36,7 +36,7 @@ class Comparison(ABC):
         pass
 
     @abstractmethod
-    def get_frame(
+    def get_diff(
         self,
         stratifications: Collection[str] = (),
         num_rows: int | Literal["all"] = 10,
@@ -84,7 +84,7 @@ class FuzzyComparison(Comparison):
     def verify(self, stratifications: Collection[str] = ()):
         raise NotImplementedError
 
-    def get_frame(
+    def get_diff(
         self,
         stratifications: list[str],
         num_rows: int | Literal["all"] = 10,
