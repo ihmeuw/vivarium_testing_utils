@@ -107,18 +107,13 @@ class FuzzyComparison(Comparison):
         --------
         A DataFrame of the comparison data.
         """
-        aligned_ratio_data, aligned_reference_data = align_indexes(
-            [self.test_data, self.reference_data],
+        converted_test_data = self.measure.get_measure_data_from_ratio(self.test_data).rename(
+            columns={"value": "test_rate"}
         )
-        converted_test_data = self.measure.get_measure_data_from_ratio(
-            aligned_ratio_data
-        ).rename(columns={"value": "test_rate"})
-        converted_test_data = stratify(
-            converted_test_data,
-            stratifications,
-        )
-        converted_reference_data = stratify(aligned_reference_data, stratifications)
-        merged_data = pd.concat([converted_test_data, converted_reference_data], axis=1)
+        stratified_test_data = stratify(converted_test_data, stratifications, agg="mean")
+        stratified_reference_data = stratify(self.reference_data, stratifications, agg="mean")
+
+        merged_data = pd.concat([stratified_test_data, stratified_reference_data], axis=1)
         merged_data["percent_error"] = (
             (merged_data["test_rate"] - merged_data["reference_rate"])
             / merged_data["reference_rate"]
