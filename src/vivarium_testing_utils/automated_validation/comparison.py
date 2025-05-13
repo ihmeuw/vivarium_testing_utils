@@ -114,7 +114,9 @@ class FuzzyComparison(Comparison):
         )
         stratified_test_data = stratify(converted_test_data, stratifications, agg="mean")
         stratified_reference_data = stratify(self.reference_data, stratifications, agg="mean")
-
+        stratified_test_data, stratified_reference_data = align_indexes(
+            [stratified_test_data, stratified_reference_data]
+        )
         merged_data = pd.concat([stratified_test_data, stratified_reference_data], axis=1)
         merged_data["percent_error"] = (
             (merged_data["test_rate"] - merged_data["reference_rate"])
