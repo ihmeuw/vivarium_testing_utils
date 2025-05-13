@@ -69,13 +69,29 @@ class FuzzyComparison(Comparison):
             "reference_source": reference_info,
         }
 
-    def heads(
+    def get_frame(
         self,
         stratifications: list[str],
-        num_rows: int = 10,
+        num_rows: int | Literal["all"] = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
-    ):
+    ) -> pd.DataFrame:
+        """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
+
+        Parameters:
+        -----------
+        stratifications
+            The stratifications to use for the comparison
+        num_rows
+            The number of rows to return. If "all", return all rows.
+        sort_by
+            The column to sort by. Default is "percent_error".
+        ascending
+            Whether to sort in ascending order. Default is False.
+        Returns:
+        --------
+        A DataFrame of the comparison data.
+        """
         aligned_ratio_data, aligned_reference_data = align_indexes(
             [self.test_data, self.reference_data],
         )
@@ -92,13 +108,29 @@ class FuzzyComparison(Comparison):
             (merged_data["test_rate"] - merged_data["reference_rate"])
             / merged_data["reference_rate"]
         ) * 100
-        return merged_data.sort_values(
+        sorted_data = merged_data.sort_values(
             by=sort_by,
             ascending=ascending,
-        ).head(num_rows)
+        )
+        if num_rows == "all":
+            return sorted_data
+        else:
+            return sorted_data.head(n=num_rows)
 
     def _data_info(self, source: DataSource, dataframe: pd.DataFrame) -> dict[str, str]:
-        """Return a dictionary of the data source and the dataframe."""
+        """Organize the data information into a dictionary for display by a styled pandas DataFrame.
+
+        Parameters:
+        -----------
+        source
+            The source of the data (i.e. sim, artifact, or gbd)
+        dataframe
+            The DataFrame containing the data to be displayed
+        Returns:
+        --------
+        A dictionary containing the data information.
+
+        """
         data_info: dict[str, str] = {}
         data_info["source"] = source.value
         data_info["index_columns"] = dataframe.index.names
@@ -111,3 +143,127 @@ class FuzzyComparison(Comparison):
         if source == DataSource.SIM:
             data_info["num_seeds"] = dataframe.index.get_level_values("random_seed").nunique()
         return data_info
+
+
+def _format_metadata_pandas(
+    measure_key: str, test_info: dict[str, str], reference_info: dict[str, str]
+):
+    """
+    Format the comparison data as a styled pandas DataFrame
+
+    Parameters:
+    -----------
+    measure_key
+        The key of the measure being compared
+    test_info
+        Information about the test data to be displayed
+    reference_info
+        Information about the reference data to be displayed
+    Returns:
+    --------
+        Styled DataFrame for display
+    """
+    # Extract necessary data
+
+    def get_display_formatting(data_info):
+        source = data_info.get("source", "Unknown")
+        size = data_info.get("size", (0, 0))
+        num_draws = data_info.get("num_draws", 0)
+        index_cols = data_info.get("index_columns", [])
+
+        return [
+            measure_key,
+            source,
+            ", ".join(str(col) for col in index_cols),
+            f"{size[0]:,} rows × {size[1]:,} columns",
+            f"{num_draws:,}",
+            _format_draws_sample(data_info.get("input_draw", [])),
+        ]
+
+    # Create data for summary table
+    data = {
+        "Property": [
+            "Measure Key",
+            "Source",
+            "Index Columns",
+            "Size",
+            "Number of Draws",
+            "Draw Sample",
+        ],
+        "Test Data": get_display_formatting(test_info),
+        "Reference Data": get_display_formatting(reference_info),
+    }
+
+    # Create and style DataFrame
+    df = pd.DataFrame(data)
+
+    # Apply styling
+    styled_df = df.style.set_properties(
+        **{"text-align": "left", "padding": "10px", "border": "1px solid #dddddd"}
+    )
+
+    # Add title as caption
+    styled_df = styled_df.set_caption("Comparison Summary").set_table_styles(
+        [
+            {
+                "selector": "caption",
+                "props": [
+                    ("caption-side", "top"),
+                    ("font-size", "16px"),
+                    ("font-weight", "bold"),
+                ],
+            }
+        ]
+    )
+
+    # Color headers
+    styled_df = styled_df.set_table_styles(
+        [
+            {
+                "selector": "th",
+                "props": [
+                    ("background-color", "#1E1E1E"),
+                    ("color", "white"),
+                    ("font-weight", "bold"),
+                    ("text-align", "left"),
+                    ("padding", "10px"),
+                ],
+            }
+        ]
+    )
+
+    # Alternate row colors
+    styled_df = styled_df.apply(
+        lambda x: ["background-color: #E6F0FF" if i % 2 == 0 else "" for i in range(len(x))],
+        axis=0,
+    )
+
+    return styled_df
+
+
+def _format_draws_sample(draw_index, max_display=5) -> str:
+    """Helper function to format draw samples for display.
+
+    Parameters:
+    -----------
+    draw_index
+        The index of the draws to be formatted
+    max_display
+        The maximum number of draws to display. If the number of draws exceeds this, the
+        function will display the first and last max_display draws, separated by ellipses.
+    Returns:
+    --------
+        A string representation of the draws sample.
+    """
+    if hasattr(draw_index, "__iter__"):
+        # Convert to list if it's any iterable
+        draw_list = list(draw_index)
+
+        if len(draw_list) <= max_display * 2:
+            return str(draw_list)
+        else:
+            first = draw_list[:max_display]
+            last = draw_list[-max_display:]
+            return f"{first} ... {last}"
+    else:
+        return str(draw_index)
