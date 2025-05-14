@@ -72,7 +72,7 @@ def test__get_age_groups_gbd(sim_result_dir: Path, mocker: MockFixture) -> None:
     )
 
     mocker.patch(
-        "vivarium_testing_utils.automated_validation.interface.vi.get_age_bins",
+        "vivarium_inputs.get_age_bins",
         return_value=age_groups,
     )
     context = ValidationContext(sim_result_dir)

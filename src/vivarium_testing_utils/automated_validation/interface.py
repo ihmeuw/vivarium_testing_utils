@@ -114,9 +114,9 @@ class ValidationContext:
             )
         # If we can't find the age groups in the artifact, get them directly from vivarium inputs
         except ArtifactException:
-            import vivarium_inputs as vi
+            from vivarium_inputs import get_age_bins
 
-            age_groups = vi.get_age_bins()
+            age_groups = get_age_bins()
 
         # mypy wants this to do type narrowing
         if age_groups is None:
