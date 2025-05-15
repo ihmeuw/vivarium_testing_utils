@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import TypeVar
-
 import pandas as pd
-import pandera as pa
+from loguru import logger
 
+from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
+    AgeSchema,
+    format_dataframe,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
     SingleNumericColumn,
@@ -23,8 +25,8 @@ def align_indexes(datasets: list[pd.DataFrame]) -> list[pd.DataFrame]:
     # Get the common index columns
     common_index = list(set.intersection(*(set(data.index.names) for data in datasets)))
 
-    # Marginalize over the rest
-    return [marginalize(data, common_index) for data in datasets]
+    # stratify over the rest
+    return [stratify(data, common_index) for data in datasets]
 
 
 def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.DataFrame:
@@ -111,3 +113,15 @@ def _clean_artifact_draws(
     data["draw"] = data["draw"].astype(int)
     data = data.set_index("draw", append=True).sort_index()
     return data
+
+
+def resolve_age_groups(data: pd.DataFrame, age_groups: pd.DataFrame) -> pd.DataFrame:
+    """Try to merge the age groups with the data. If it fails, just return the data."""
+    context_age_schema = AgeSchema.from_dataframe(age_groups)
+    try:
+        return format_dataframe(context_age_schema, data)
+    except ValueError:
+        logger.info(
+            "Could not resolve age groups. The DataFrame likely has no age data. Returning dataframe as-is."
+        )
+        return data
