@@ -31,7 +31,7 @@ class DataSource(Enum):
             raise ValueError(f"Source {source} not recognized. Must be one of {DataSource}")
 
 
-NONSTANDARD_ARTIFACT_KEYS = {"population.age_bins"}
+NONSTANDARD_ARTIFACT_KEYS = {"population.age_bins", "population.demographic_dimensions"}
 
 
 class DataLoader:
