@@ -7,6 +7,7 @@ from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     align_indexes,
     stratify,
+    marginalize,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
@@ -142,11 +143,18 @@ class FuzzyComparison(Comparison):
             raise NotImplementedError(
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
-        converted_test_data = self.measure.get_measure_data_from_ratio(self.test_data).rename(
-            columns={"value": "test_rate"}
-        )
 
-        merged_data = pd.concat([stratified_test_data, stratified_reference_data], axis=1)
+        non_ref_indexes = [
+            index
+            for index in self.test_data.index.names
+            if index not in self.reference_data.index.names
+        ]
+        stratified_test_data = marginalize(self.test_data, non_ref_indexes)
+        converted_test_data = self.measure.get_measure_data_from_ratio(
+            stratified_test_data
+        ).rename(columns={"value": "test_rate"})
+
+        merged_data = pd.concat([converted_test_data, self.reference_data], axis=1)
         merged_data["percent_error"] = (
             (merged_data["test_rate"] - merged_data["reference_rate"])
             / merged_data["reference_rate"]

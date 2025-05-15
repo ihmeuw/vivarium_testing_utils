@@ -443,11 +443,9 @@ def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame
     for age_group_indices in [AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN]:
         if age_group_indices not in index_names:
             index_names.append(age_group_indices)
-    df = (
-        pd.merge(df, source_age_schema.to_dataframe(), left_index=True, right_index=True)
-        .reorder_levels(index_names)
-        .droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
-    )
+    df = pd.merge(
+        df, source_age_schema.to_dataframe(), left_index=True, right_index=True
+    ).reorder_levels(index_names)
 
     if not source_age_schema.can_coerce_to(target_schema):
         raise ValueError(
@@ -455,12 +453,23 @@ def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame
             "The source age interval must be a contained by the target interval of age groups."
         )
     if source_age_schema.is_subset(target_schema):
-        return df
+        return (
+            pd.merge(
+                df.droplevel([AGE_GROUP_COLUMN]),
+                target_schema.to_dataframe(),
+                left_index=True,
+                right_index=True,
+            )
+            .reorder_levels(index_names)
+            .droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
+        )
     else:
         logger.info(
             f"Rebinning DataFrame age groups from {source_age_schema} to {target_schema}."
         )
-        return rebin_dataframe(target_schema, df)
+        return rebin_dataframe(
+            target_schema, df.droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
+        )
 
 
 def rebin_dataframe(

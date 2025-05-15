@@ -57,7 +57,7 @@ def test_fuzzy_comparison_init(
         test_data,
         DataSource.GBD,
         reference_data,
-        stratifications=["year", "sex"],
+        stratifications=[],
     )
 
     assert comparison.measure == mock_ratio_measure
@@ -66,7 +66,7 @@ def test_fuzzy_comparison_init(
     assert comparison.reference_source == DataSource.GBD
     assert "reference_rate" in comparison.reference_data.columns
     assert not "value" in comparison.reference_data.columns
-    assert list(comparison.stratifications) == ["year", "sex"]
+    assert list(comparison.stratifications) == []
 
 
 def test_fuzzy_comparison_metadata(
@@ -103,48 +103,31 @@ def test_fuzzy_comparison_metadata(
     assert metadata["Reference Data"][5] == "[]"
 
 
-@pytest.mark.parametrize(
-    "stratifications, expected_rows",
-    [
-        (["year"], 2),  # Stratify by year only (2020, 2025)
-        (["sex"], 2),  # Stratify by sex only (male, female)
-        (["year", "sex"], 3),  # Stratify by year and sex (all original combinations)
-        ([], 3),  # No stratification, return all rows
-    ],
-)
 def test_fuzzy_comparison_get_diff(
     mock_ratio_measure: RatioMeasure,
     test_data: pd.DataFrame,
     reference_data: pd.DataFrame,
-    stratifications: list[str],
-    expected_rows: int,
 ) -> None:
     """Test the get_diff method of the FuzzyComparison class."""
     comparison = FuzzyComparison(
         mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
     )
 
-    diff = comparison.get_diff(stratifications=stratifications)
-    assert len(diff) == expected_rows
-    if stratifications:
-        assert set(diff.index.names) == set(stratifications)
+    diff = comparison.get_diff(stratifications=[], num_rows=1)
+    assert len(diff) == 1
     assert "test_rate" in diff.columns
     assert "reference_rate" in diff.columns
     assert "percent_error" in diff.columns
 
     # Test returning all rows
-    all_diff = comparison.get_diff(stratifications=stratifications, num_rows="all")
-    assert len(all_diff) == expected_rows
+    all_diff = comparison.get_diff(stratifications=[], num_rows="all")
+    assert len(all_diff) == 3
 
     # Test sorting
     # descending order
-    sorted_desc = comparison.get_diff(
-        stratifications=stratifications, sort_by="percent_error", ascending=False
-    )
+    sorted_desc = comparison.get_diff(sort_by="percent_error", ascending=False)
     assert sorted_desc.iloc[0]["percent_error"] >= sorted_desc.iloc[-1]["percent_error"]
-    sorted_asc = comparison.get_diff(
-        stratifications=stratifications, sort_by="percent_error", ascending=True
-    )
+    sorted_asc = comparison.get_diff(sort_by="percent_error", ascending=True)
     assert sorted_asc.iloc[0]["percent_error"] <= sorted_asc.iloc[-1]["percent_error"]
 
 
