@@ -19,16 +19,14 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
 DRAW_PREFIX = "draw_"
 
 
-def align_indexes(datasets: list[pd.DataFrame], agg: str = "sum") -> list[pd.DataFrame]:
+def align_indexes(datasets: list[pd.DataFrame], agg: str) -> list[pd.DataFrame]:
     """Put each dataframe on a common index by choosing the intersection of index columns
     and marginalizing over the rest."""
     # Get the common index columns
     common_index = list(set.intersection(*(set(data.index.names) for data in datasets)))
 
-
     # Marginalize over the rest
     return [stratify(data, common_index, agg) for data in datasets]
-
 
 
 def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.DataFrame:
@@ -58,6 +56,13 @@ def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.Dat
 def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
     """Return a series of the ratio of two columns in a DataFrame,
     where the columns are specified by their names."""
+    zero_denominator = data[denominator] == 0
+    if zero_denominator.any():
+        logger.warning(
+            f"Denominator {denominator} has zero values. "
+            f"Removing these rows from the dataframe before calculating the ratio."
+        )
+        data = data[data[denominator] != 0]
     return series_to_dataframe(data[numerator] / data[denominator])
 
 
