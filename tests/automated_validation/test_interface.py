@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from pytest_mock import MockFixture
+from vivarium.framework.artifact.artifact import ArtifactException
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
@@ -11,14 +13,14 @@ from vivarium_testing_utils.automated_validation.interface import ValidationCont
 @pytest.mark.skip("Not implemented")
 def test_add_comparison_bad_source(sim_result_dir: Path) -> None:
     """Ensure that we raise an error if the source is not recognized"""
-    context = ValidationContext(sim_result_dir, None)
+    context = ValidationContext(sim_result_dir)
     with pytest.raises(ValueError, match="Source bad_source not recognized"):
         context.add_comparison("cause.disease.incidence", "bad_source", "gbd")
 
 
 def test_upload_custom_data(sim_result_dir: Path) -> None:
     """Ensure that we can upload custom data and retrieve it"""
-    context = ValidationContext(sim_result_dir, None)
+    context = ValidationContext(sim_result_dir)
     df = pd.DataFrame({"baz": [1, 2, 3]})
     context.upload_custom_data("foo", df)
     assert context.get_raw_dataset("foo", "custom").equals(df)
@@ -28,7 +30,7 @@ def test_show_raw_dataset(
     sim_result_dir: Path, artifact_disease_incidence: pd.DataFrame
 ) -> None:
     """Ensure that we can show the raw dataset"""
-    context = ValidationContext(sim_result_dir, None)
+    context = ValidationContext(sim_result_dir)
     df = pd.DataFrame({"baz": [1, 2, 3]})
     context.upload_custom_data("foo", df)
 
@@ -40,6 +42,43 @@ def test_show_raw_dataset(
     )
 
 
+def test__get_age_groups_art(sim_result_dir: Path, mocker: MockFixture) -> None:
+    """Ensure that we grab age groups 'from the artifact' when available"""
+    age_groups = pd.DataFrame(
+        {
+            "foo": ["bar"],
+        },
+    )
+
+    # mock dataloader to return age groups
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.interface.DataLoader._load_from_source",
+        return_value=age_groups,
+    )
+    context = ValidationContext(sim_result_dir)
+    assert context.age_groups.equals(age_groups)
+
+
+def test__get_age_groups_gbd(sim_result_dir: Path, mocker: MockFixture) -> None:
+    """Test that if age groups are not available from the artifact, we get them from vivarium_inputs"""
+    age_groups = pd.DataFrame(
+        {
+            "foo": ["bar"],
+        },
+    )
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.interface.DataLoader._load_from_source",
+        side_effect=ArtifactException(),
+    )
+
+    mocker.patch(
+        "vivarium_inputs.get_age_bins",
+        return_value=age_groups,
+    )
+    context = ValidationContext(sim_result_dir)
+    assert context.age_groups.equals(age_groups)
+
+
 def test___get_raw_datasets_from_source(
     sim_result_dir: Path,
     transition_count_data: pd.DataFrame,
@@ -47,7 +86,7 @@ def test___get_raw_datasets_from_source(
     artifact_disease_incidence: pd.DataFrame,
 ) -> None:
     """Ensure that we can get raw datasets from a source"""
-    context = ValidationContext(sim_result_dir, None)
+    context = ValidationContext(sim_result_dir)
     measure = Incidence("disease")
     test_raw_datasets = context._get_raw_datasets_from_source(measure, DataSource.SIM)
     ref_raw_datasets = context._get_raw_datasets_from_source(measure, DataSource.ARTIFACT)
@@ -62,7 +101,7 @@ def test_add_comparison(
 ) -> None:
     """Ensure that we can add a comparison"""
     measure_key = "cause.disease.incidence_rate"
-    context = ValidationContext(sim_result_dir, None)
+    context = ValidationContext(sim_result_dir)
     context.add_comparison(measure_key, "sim", "artifact", [])
     assert measure_key in context.comparisons
     comparison = context.comparisons[measure_key]
@@ -80,6 +119,7 @@ def test_add_comparison(
         ),
     )
     assert comparison.test_data.equals(expected_ratio_data)
+    # group by stratify column, because we don't have draw data in the test_data
     assert comparison.reference_data.equals(artifact_disease_incidence)
 
 
