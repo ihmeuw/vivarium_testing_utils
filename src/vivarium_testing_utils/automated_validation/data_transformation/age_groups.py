@@ -443,9 +443,11 @@ def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame
     for age_group_indices in [AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN]:
         if age_group_indices not in index_names:
             index_names.append(age_group_indices)
-    df = pd.merge(
-        df, source_age_schema.to_dataframe(), left_index=True, right_index=True
-    ).reorder_levels(index_names)
+    df = (
+        pd.merge(df, source_age_schema.to_dataframe(), left_index=True, right_index=True)
+        .reorder_levels(index_names)
+        .droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
+    )
 
     if not source_age_schema.can_coerce_to(target_schema):
         raise ValueError(
