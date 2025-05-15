@@ -6,6 +6,9 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    resolve_age_groups,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     MEASURE_KEY_MAPPINGS,
     Measure,
@@ -14,9 +17,10 @@ from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
 
 class ValidationContext:
-    def __init__(self, results_dir: str | Path, age_groups: pd.DataFrame | None):
+    def __init__(self, results_dir: str | Path):
         self._data_loader = DataLoader(Path(results_dir))
         self.comparisons: dict[str, Comparison] = {}
+        self.age_groups = self._get_age_groups()
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -63,6 +67,9 @@ class ValidationContext:
         ref_source_enum = DataSource.from_str(ref_source)
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
+
+        test_data = resolve_age_groups(test_data, self.age_groups)
+        ref_data = resolve_age_groups(ref_data, self.age_groups)
         comparison = FuzzyComparison(
             measure,
             test_source_enum,
@@ -112,6 +119,28 @@ class ValidationContext:
 
     def get_results(self, verbose: bool = False):  # type: ignore[no-untyped-def]
         raise NotImplementedError
+
+    # TODO MIC-6047 Let user pass in custom age groups
+    def _get_age_groups(self) -> pd.DataFrame:
+        """Get the age groups from the given DataFrame or from the artifact."""
+        from vivarium.framework.artifact.artifact import ArtifactException
+
+        try:
+            age_groups = self._data_loader.get_dataset(
+                "population.age_bins", DataSource.ARTIFACT
+            )
+        # If we can't find the age groups in the artifact, get them directly from vivarium inputs
+        except ArtifactException:
+            from vivarium_inputs import get_age_bins
+
+            age_groups = get_age_bins()
+
+        # mypy wants this to do type narrowing
+        if age_groups is None:
+            raise ValueError(
+                "No age groups found. Please provide a DataFrame or use the artifact."
+            )
+        return age_groups
 
     def _get_raw_datasets_from_source(
         self, measure: Measure, source: DataSource

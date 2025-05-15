@@ -5,6 +5,10 @@ import pandas as pd
 import pytest
 
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
+    AGE_GROUP_COLUMN,
+    AgeSchema,
+)
 
 
 def test_get_sim_outputs(sim_result_dir: Path) -> None:
@@ -106,7 +110,7 @@ def test__load_from_sim(
         "entity_type",
         "entity",
         "sub_entity",
-        "age_group",
+        AGE_GROUP_COLUMN,
         "sex",
         "input_draw",
         "random_seed",
@@ -120,6 +124,7 @@ def test__load_artifact(sim_result_dir: Path) -> None:
     assert set(artifact.keys) == {
         "metadata.keyspace",
         "cause.disease.incidence_rate",
+        "population.age_bins",
     }
 
 
@@ -136,3 +141,15 @@ def test__load_from_artifact(
         "input_draw",
     }
     assert set(art_dataset.columns) == {"value"}
+
+
+def test__load_nonstandard_artifact(
+    sim_result_dir: Path, sample_age_schema: AgeSchema
+) -> None:
+    """Ensure that we can load age bins from the artifact directory"""
+    data_loader = DataLoader(sim_result_dir)
+    age_bins = data_loader._load_nonstandard_artifact("population.age_bins")
+    pd.testing.assert_frame_equal(
+        age_bins,
+        sample_age_schema.to_dataframe(),
+    )
