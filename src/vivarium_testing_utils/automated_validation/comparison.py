@@ -94,6 +94,10 @@ class FuzzyComparison(Comparison):
         self.test_data = test_data
         self.reference_source = reference_source
         self.reference_data = reference_data.rename(columns={"value": "reference_rate"})
+        if stratifications:
+            raise NotImplementedError(
+                "Non-default stratifications require rate aggregations, which are not currently supported."
+            )
         self.stratifications = stratifications
 
     @property
