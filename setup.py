@@ -47,12 +47,17 @@ if __name__ == "__main__":
         "vivarium_dependencies[pandas,numpy,pyyaml,scipy,click,tables,loguru,networkx]",
         "vivarium_build_utils>=2.0.1,<3.0.0",
         "pyarrow",
-        "vivarium",
         # Type stubs
         "types-setuptools",
     ]
 
     setup_requires = ["setuptools_scm"]
+
+    validation_requirements = [
+        "vivarium",
+        "vivarium-inputs",
+        "pandera",
+    ]
 
     interactive_requirements = [
         "vivarium_dependencies[interactive]",
@@ -108,10 +113,12 @@ if __name__ == "__main__":
             "docs": doc_requirements,
             "test": test_requirements,
             "interactive": interactive_requirements,
+            "validation": validation_requirements,
             "dev": doc_requirements
             + test_requirements
             + interactive_requirements
-            + lint_requirements,
+            + lint_requirements
+            + validation_requirements,
         },
         zip_safe=False,
         use_scm_version={
