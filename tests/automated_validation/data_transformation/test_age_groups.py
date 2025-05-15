@@ -220,11 +220,10 @@ def test_age_schema_format_cols(
     for dataframe in [
         sample_df_with_ages,
         sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
-        sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
     ]:
         pd.testing.assert_frame_equal(
             format_dataframe(sample_age_schema, dataframe),
-            sample_df_with_ages,
+            sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
         )
 
 
@@ -259,7 +258,11 @@ def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) ->
     )
     formatted_df = format_dataframe(target_age_schema, sample_df_with_ages)
     pd.testing.assert_frame_equal(
-        formatted_df, rebin_dataframe(target_age_schema, sample_df_with_ages)
+        formatted_df,
+        rebin_dataframe(
+            target_age_schema,
+            sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
+        ),
     )
 
 

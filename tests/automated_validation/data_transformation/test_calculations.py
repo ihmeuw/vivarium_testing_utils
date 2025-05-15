@@ -38,8 +38,9 @@ def test_ratio(intermediate_data: pd.DataFrame) -> None:
     assert ratio(intermediate_data, "a", "b").equals(
         pd.DataFrame({"value": [1 / 4, 2 / 5, 3 / 6, 4 / 7]}, index=intermediate_data.index)
     )
-    assert ratio(intermediate_data, "a", "c").equals(
-        pd.DataFrame({"value": [1, 2, float("inf"), 4]}, index=intermediate_data.index)
+    pd.testing.assert_frame_equal(
+        ratio(intermediate_data, "a", "c"),
+        pd.DataFrame({"value": [1.0, 2.0, 4.0]}, index=intermediate_data.index[[0, 1, 3]]),
     )
     # test non-existent column
     with pytest.raises(KeyError):

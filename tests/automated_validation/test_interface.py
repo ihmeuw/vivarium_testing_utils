@@ -124,7 +124,6 @@ def test_add_comparison(
     )
 
 
-
 @pytest.mark.skip("Not implemented")
 def test_metadata() -> None:
     """Ensure that we can summarize a comparison"""
