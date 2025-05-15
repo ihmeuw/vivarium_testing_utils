@@ -19,14 +19,14 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
 DRAW_PREFIX = "draw_"
 
 
-def align_indexes(datasets: list[pd.DataFrame], agg: str) -> list[pd.DataFrame]:
+def align_indexes(datasets: list[pd.DataFrame]) -> list[pd.DataFrame]:
     """Put each dataframe on a common index by choosing the intersection of index columns
     and marginalizing over the rest."""
     # Get the common index columns
     common_index = list(set.intersection(*(set(data.index.names) for data in datasets)))
 
     # Marginalize over the rest
-    return [stratify(data, common_index, agg) for data in datasets]
+    return [stratify(data, common_index) for data in datasets]
 
 
 def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.DataFrame:
@@ -66,28 +66,21 @@ def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
     return series_to_dataframe(data[numerator] / data[denominator])
 
 
-def aggregate(data: pd.DataFrame, groupby_cols: list[str], agg: str) -> pd.DataFrame:
+def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str]) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
     if not groupby_cols:
         return data
-    if agg == "sum":
-        return data.groupby(groupby_cols).sum()
-    elif agg == "mean":
-        return data.groupby(groupby_cols).mean()
-    else:
-        raise ValueError(
-            f"Unsupported aggregation method: {agg}. Supported methods are 'sum' and 'mean'."
-        )
+    return data.groupby(groupby_cols).sum()
 
 
-def stratify(data: pd.DataFrame, stratification_cols: list[str], agg: str) -> pd.DataFrame:
+def stratify(data: pd.DataFrame, stratification_cols: list[str]) -> pd.DataFrame:
     """Stratify the data by the index columns, summing over everything else. Syntactic sugar for aggregate."""
-    return aggregate(data, stratification_cols, agg)
+    return aggregate_sum(data, stratification_cols)
 
 
-def marginalize(data: pd.DataFrame, marginalize_cols: list[str], agg: str) -> pd.DataFrame:
+def marginalize(data: pd.DataFrame, marginalize_cols: list[str]) -> pd.DataFrame:
     """Sum over marginalize columns, keeping the rest. Syntactic sugar for aggregate."""
-    return aggregate(data, [x for x in data.index.names if x not in marginalize_cols], agg)
+    return aggregate_sum(data, [x for x in data.index.names if x not in marginalize_cols])
 
 
 def linear_combination(

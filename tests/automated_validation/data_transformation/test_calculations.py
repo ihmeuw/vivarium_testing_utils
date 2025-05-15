@@ -6,7 +6,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     format_dataframe,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    aggregate,
+    aggregate_sum,
     linear_combination,
     ratio,
     resolve_age_groups,
@@ -47,9 +47,9 @@ def test_ratio(intermediate_data: pd.DataFrame) -> None:
         ratio(intermediate_data, "a", "foo")
 
 
-def test_aggregate(intermediate_data: pd.DataFrame) -> None:
+def test_aggregate_sum(intermediate_data: pd.DataFrame) -> None:
     """Test aggregating over different combinations of value columns."""
-    assert aggregate(intermediate_data, ["group"], agg="sum").equals(
+    assert aggregate_sum(intermediate_data, ["group"]).equals(
         pd.DataFrame(
             {
                 "a": [3, 7],
@@ -59,7 +59,7 @@ def test_aggregate(intermediate_data: pd.DataFrame) -> None:
             index=pd.Index(["x", "y"], name="group"),
         )
     )
-    assert aggregate(intermediate_data, ["time"], agg="sum").equals(
+    assert aggregate_sum(intermediate_data, ["time"]).equals(
         pd.DataFrame(
             {
                 "a": [4, 6],
@@ -69,12 +69,10 @@ def test_aggregate(intermediate_data: pd.DataFrame) -> None:
             index=pd.Index([0, 1], name="time"),
         )
     )
-    assert aggregate(intermediate_data, ["group", "time"], agg="sum").equals(
-        intermediate_data
-    )
+    assert aggregate_sum(intermediate_data, ["group", "time"]).equals(intermediate_data)
     # test non-existent index column
     with pytest.raises(KeyError):
-        aggregate(intermediate_data, ["foo"], agg="sum")
+        aggregate_sum(intermediate_data, ["foo"])
 
 
 def test_linear_combination(intermediate_data: pd.DataFrame) -> None:

@@ -134,14 +134,14 @@ class FuzzyComparison(Comparison):
         --------
         A DataFrame of the comparison data.
         """
+        if stratifications:
+            raise NotImplementedError(
+                "Non-default stratifications require rate aggregations, which are not currently supported."
+            )
         converted_test_data = self.measure.get_measure_data_from_ratio(self.test_data).rename(
             columns={"value": "test_rate"}
         )
-        stratified_test_data = stratify(converted_test_data, stratifications, agg="mean")
-        stratified_reference_data = stratify(self.reference_data, stratifications, agg="mean")
-        stratified_test_data, stratified_reference_data = align_indexes(
-            [stratified_test_data, stratified_reference_data], agg="mean"
-        )
+
         merged_data = pd.concat([stratified_test_data, stratified_reference_data], axis=1)
         merged_data["percent_error"] = (
             (merged_data["test_rate"] - merged_data["reference_rate"])
