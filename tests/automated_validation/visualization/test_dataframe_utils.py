@@ -5,9 +5,9 @@ import pytest
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
+    _format_draws_sample,
     format_metadata_pandas,
     get_metadata_from_dataset,
-    _format_draws_sample,
 )
 
 MEASURE_KEY = "test_measure"
@@ -64,6 +64,7 @@ def sample_dataframe_no_draws() -> pd.DataFrame:
         names=["year", "sex", "age"],
     )
     return pd.DataFrame({"value": range(len(index))}, index=index)
+
 
 @pytest.mark.parametrize(
     "source, expected_source",
