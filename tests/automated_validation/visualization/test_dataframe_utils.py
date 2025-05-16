@@ -17,10 +17,10 @@ def test_info() -> dict[str, Any]:
     """Info dictionary with draws."""
     return {
         "source": "sim",
-        "index_columns": ["year", "sex", "age", "input_draw"],
-        "size": (100, 5),
-        "num_draws": 10,
-        "input_draws": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "index_columns": "year, sex, age, input_draw",
+        "size": "100 rows × 5 columns",
+        "num_draws": "10",
+        "input_draws": "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]",
     }
 
 
@@ -29,9 +29,10 @@ def reference_info() -> dict[str, Any]:
     """Info dictionary without draws."""
     return {
         "source": "artifact",
-        "index_columns": ["year", "sex", "age"],
-        "size": (50, 3),
-        "num_draws": 0,
+        "index_columns": "year, sex, age",
+        "size": "50 rows × 3 columns",
+        "num_draws": "0",
+        "input_draws": "[]",
     }
 
 
@@ -80,14 +81,13 @@ def test_get_metadata_from_dataset(
     result = get_metadata_from_dataset(source, sample_dataframe)
 
     assert result["source"] == expected_source
-    assert result["index_columns"] == ["year", "sex", "input_draw", "random_seed"]
-    assert result["size"] == (
-        24,
-        1,
+    assert result["index_columns"] == "year, sex, input_draw, random_seed"
+    assert (
+        result["size"] == "24 rows × 1 columns"
     )  # 2 years * 2 sexes * 3 draws * 2 seeds = 24 rows, 1 column
-    assert result["num_draws"] == 3
-    assert list(result["input_draws"]) == [0, 1, 2]
-    assert result["num_seeds"] == 2
+    assert result["num_draws"] == "3"
+    assert result["input_draws"] == "[0, 1, 2]"
+    assert result["num_seeds"] == "2"
 
 
 def test_get_metadata_from_dataset_no_draws(sample_dataframe_no_draws: pd.DataFrame) -> None:
@@ -96,11 +96,12 @@ def test_get_metadata_from_dataset_no_draws(sample_dataframe_no_draws: pd.DataFr
     result = get_metadata_from_dataset(DataSource.GBD, sample_dataframe_no_draws)
 
     assert result["source"] == "gbd"
-    assert result["index_columns"] == ["year", "sex", "age"]
-    assert result["size"] == (12, 1)  # 2 years * 2 sexes * 3 ages = 12 rows, 1 column
-    assert result["num_draws"] == 0
-    assert "input_draws" not in result
-    assert "num_seeds" not in result
+    assert result["index_columns"] == "year, sex, age"
+    assert (
+        result["size"] == "12 rows × 1 columns"
+    )  # 2 years * 2 sexes * 3 ages = 12 rows, 1 column
+    assert result["num_draws"] == "0"
+    assert result["input_draws"] == "[]"  # Now includes empty input_draws
 
 
 def test_format_metadata_pandas_basic(
@@ -131,46 +132,33 @@ def test_format_metadata_pandas_missing_fields() -> None:
 
     df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
 
-    # Default index columns
-    assert df["Test Data"][2] == ""
-    assert df["Reference Data"][2] == ""
-
-    # Default size
-    assert df["Test Data"][3] == "0 rows × 0 columns"
-    assert df["Reference Data"][3] == "0 rows × 0 columns"
-
-    # Default num_draws
-    assert df["Test Data"][4] == "0"
-    assert df["Reference Data"][4] == "0"
-
-    # Default draw sample
-    assert df["Test Data"][5] == "[]"
-    assert df["Reference Data"][5] == "[]"
+    for i in range(2, 6):
+        assert df["Test Data"][i] == "N/A"
+        assert df["Reference Data"][i] == "N/A"
 
 
 def test_format_metadata_pandas_many_draws() -> None:
     """Test the formatted draw sample for many draws."""
     test_info = {
         "source": "sim",
-        "index_columns": ["year", "sex", "age"],
-        "size": (1000, 5),
-        "num_draws": 100,
-        "input_draws": list(range(100)),
+        "index_columns": "year, sex, age",
+        "size": "1,000 rows × 5 columns",
+        "num_draws": "100",
+        "input_draws": "[0, 1, 2, 3, 4] ... [95, 96, 97, 98, 99]",  # Pre-formatted draws
     }
     reference_info = {
         "source": "gbd",
-        "index_columns": ["year", "sex", "age"],
-        "size": (50, 3),
-        "num_draws": 0,
+        "index_columns": "year, sex, age",
+        "size": "50 rows × 3 columns",
+        "num_draws": "0",
+        "input_draws": "[]",
     }
 
     df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
 
     # Check the formatted draw sample for many draws
     draw_sample = df["Test Data"][5]
-    assert "[0, 1, 2, 3, 4]" in draw_sample
-    assert "..." in draw_sample
-    assert "[95, 96, 97, 98, 99]" in draw_sample
+    assert draw_sample == "[0, 1, 2, 3, 4] ... [95, 96, 97, 98, 99]"
 
 
 def test_format_metadata_pandas_with_empty_draws(
@@ -178,10 +166,10 @@ def test_format_metadata_pandas_with_empty_draws(
 ) -> None:
     """Test we can format metadata into a pandas DataFrame with no draws."""
     # Set num_draws to 0 in test_info
-    test_info["num_draws"] = 0
-    test_info["input_draws"] = []  # No input_draws
-    reference_info["num_draws"] = 0
-    reference_info["input_draws"] = []  # No input_draws
+    test_info["num_draws"] = "0"
+    test_info["input_draws"] = "[]"  # Empty input_draws already formatted
+    reference_info["num_draws"] = "0"
+    reference_info["input_draws"] = "[]"  # Empty input_draws already formatted
     df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
 
     # Check draw sample with empty draws

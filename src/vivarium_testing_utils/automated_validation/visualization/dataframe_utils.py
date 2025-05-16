@@ -9,6 +9,7 @@ REQUIRED_KEYS = ["measure_key", "source", "index_columns", "size", "num_draws", 
 
 def get_metadata_from_dataset(source: DataSource, dataframe: pd.DataFrame) -> dict[str, Any]:
     """Organize the data information into a dictionary for display by a styled pandas DataFrame.
+    Apply formatting to values that need special handling.
 
     Parameters:
     -----------
@@ -18,20 +19,37 @@ def get_metadata_from_dataset(source: DataSource, dataframe: pd.DataFrame) -> di
         The DataFrame containing the data to be displayed
     Returns:
     --------
-    A dictionary containing the data information.
+    A dictionary containing the formatted data information.
 
     """
     data_info: dict[str, Any] = {}
+
+    # Source as string
     data_info["source"] = source.value
-    data_info["index_columns"] = dataframe.index.names
-    data_info["size"] = dataframe.shape
+
+    # Index columns as comma-separated string
+    index_cols = dataframe.index.names
+    data_info["index_columns"] = ", ".join(str(col) for col in index_cols)
+
+    # Size as formatted string
+    size = dataframe.shape
+    data_info["size"] = f"{size[0]:,} rows × {size[1]:,} columns"
+
+    # Draw information
     if "input_draw" in dataframe.index.names:
-        data_info["num_draws"] = dataframe.index.get_level_values("input_draw").nunique()
-        data_info["input_draws"] = dataframe.index.get_level_values("input_draw").unique()
+        num_draws = dataframe.index.get_level_values("input_draw").nunique()
+        data_info["num_draws"] = f"{num_draws:,}"
+        draw_values = dataframe.index.get_level_values("input_draw").unique()
+        data_info["input_draws"] = _format_draws_sample(draw_values)
     else:
-        data_info["num_draws"] = 0
+        data_info["num_draws"] = "0"
+        data_info["input_draws"] = "[]"
+
+    # Seeds information
     if "random_seed" in dataframe.index.names:
-        data_info["num_seeds"] = dataframe.index.get_level_values("random_seed").nunique()
+        num_seeds = dataframe.index.get_level_values("random_seed").nunique()
+        data_info["num_seeds"] = f"{num_seeds:,}"
+
     return data_info
 
 
@@ -53,8 +71,10 @@ def format_metadata_pandas(
     --------
         DataFrame for display
     """
+    # Start with the required keys in the specified order
     display_keys = list(REQUIRED_KEYS)
-    # Get all unique keys from both dictionaries
+
+    # Get all unique keys from both dictionaries that aren't in REQUIRED_KEYS
     non_standard_keys = sorted(
         (set(test_info.keys()) | set(reference_info.keys())).difference(set(REQUIRED_KEYS))
     )
@@ -65,66 +85,28 @@ def format_metadata_pandas(
     # Format the keys by replacing underscores with spaces and capitalizing each word
     properties = []
     for key in display_keys:
-        # Replace underscores with spaces and capitalize each word
         formatted_key = " ".join(word.capitalize() for word in key.split("_"))
         properties.append(formatted_key)
+
+    # Add measure key to both test and reference data dictionaries
+    test_data = test_info.copy()
+    test_data["measure_key"] = measure_key
+
+    reference_data = reference_info.copy()
+    reference_data["measure_key"] = measure_key
+
+    # Create the rows for the DataFrame
+    test_values = [test_data.get(key, "N/A") for key in display_keys]
+    reference_values = [reference_data.get(key, "N/A") for key in display_keys]
 
     # Create the DataFrame
     return pd.DataFrame(
         {
             "Property": properties,
-            "Test Data": _get_display_formatting(measure_key, test_info, display_keys),
-            "Reference Data": _get_display_formatting(
-                measure_key, reference_info, display_keys
-            ),
+            "Test Data": test_values,
+            "Reference Data": reference_values,
         }
     )
-
-
-def _get_display_formatting(
-    measure_key: str, data_info: dict[str, Any], display_keys: list[str]
-) -> list[str]:
-    """Helper function to format the data information for display dynamically based on available keys.
-
-    Parameters:
-    -----------
-    measure_key
-        The key of the measure being compared
-    data_info
-        Information about the data to be displayed
-    display_keys
-        List of keys to display in the specified order
-
-    Returns:
-    --------
-        A list of strings containing the formatted data information
-    """
-    result = []
-
-    for key in display_keys:
-        if key == "measure_key":
-            # Special case for measure_key
-            result.append(measure_key)
-        elif key == "input_draws":
-            # Format draw sample
-            result.append(_format_draws_sample(data_info.get("input_draws", [])))
-        elif key == "size":
-            # Format size as "rows × columns"
-            size = data_info.get("size", (0, 0))
-            result.append(f"{size[0]:,} rows × {size[1]:,} columns")
-        elif key == "index_columns":
-            # Format index columns as comma-separated string
-            index_cols = data_info.get("index_columns", [])
-            result.append(", ".join(str(col) for col in index_cols))
-        elif key == "num_draws":
-            # Format number with comma separators
-            num = data_info.get(key, 0)
-            result.append(f"{num:,}")
-        else:
-            # Default formatting for other keys
-            result.append(str(data_info.get(key, "N/A")))
-
-    return result
 
 
 def _format_draws_sample(draw_index: Any, max_display: int = 5) -> str:
