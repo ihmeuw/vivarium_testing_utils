@@ -119,10 +119,12 @@ def test_format_metadata_pandas_basic(
         ("Input Draws", "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]", "[]"),
     ]
 
-    for i, (property_name, test_value, reference_value) in enumerate(expected_metadata):
-        assert df["Property"][i] == property_name
-        assert df["Test Data"][i] == test_value
-        assert df["Reference Data"][i] == reference_value
+    assert df.index.name == "Property"
+    assert df.shape == (6, 2)
+    assert df.columns.tolist() == ["Test Data", "Reference Data"]
+    for property_name, test_value, reference_value in expected_metadata:
+        assert df.loc[property_name]["Test Data"] == test_value
+        assert df.loc[property_name]["Reference Data"] == reference_value
 
 
 def test_format_metadata_pandas_missing_fields() -> None:

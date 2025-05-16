@@ -106,7 +106,7 @@ def format_metadata_pandas(
             "Test Data": test_values,
             "Reference Data": reference_values,
         }
-    )
+    ).set_index(["Property"])
 
 
 def _format_draws_sample(draw_index: Any, max_display: int = 5) -> str:

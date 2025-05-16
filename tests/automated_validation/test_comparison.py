@@ -90,11 +90,12 @@ def test_fuzzy_comparison_metadata(
         ("Num Draws", "1", "0"),
         ("Input Draws", "[0]", "[]"),
     ]
-
-    for i, (property_name, test_value, reference_value) in enumerate(expected_metadata):
-        assert metadata.iloc[i]["Property"] == property_name
-        assert metadata.iloc[i]["Test Data"] == test_value
-        assert metadata.iloc[i]["Reference Data"] == reference_value
+    assert metadata.index.name == "Property"
+    assert metadata.shape == (6, 2)
+    assert metadata.columns.tolist() == ["Test Data", "Reference Data"]
+    for property_name, test_value, reference_value in expected_metadata:
+        assert metadata.loc[property_name]["Test Data"] == test_value
+        assert metadata.loc[property_name]["Reference Data"] == reference_value
 
 
 def test_fuzzy_comparison_get_diff(
