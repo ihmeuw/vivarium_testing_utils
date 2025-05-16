@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pandas as pd
 from loguru import logger
-from typing import Any
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-
 from typing import Collection
+
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison

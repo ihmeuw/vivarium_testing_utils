@@ -5,8 +5,8 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    marginalize,
     get_singular_indices,
+    marginalize,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
