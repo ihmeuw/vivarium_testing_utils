@@ -7,6 +7,7 @@ from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
     format_metadata_pandas,
     get_metadata_from_dataset,
+    _format_draws_sample,
 )
 
 MEASURE_KEY = "test_measure"
@@ -20,7 +21,7 @@ def test_info() -> dict[str, Any]:
         "index_columns": "year, sex, age, input_draw",
         "size": "100 rows × 5 columns",
         "num_draws": "10",
-        "input_draws": "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]",
+        "input_draws": "[0, 1, 2, 3]",
     }
 
 
@@ -63,7 +64,6 @@ def sample_dataframe_no_draws() -> pd.DataFrame:
         names=["year", "sex", "age"],
     )
     return pd.DataFrame({"value": range(len(index))}, index=index)
-
 
 @pytest.mark.parametrize(
     "source, expected_source",
@@ -116,7 +116,7 @@ def test_format_metadata_pandas_basic(
         ("Index Columns", "year, sex, age, input_draw", "year, sex, age"),
         ("Size", "100 rows × 5 columns", "50 rows × 3 columns"),
         ("Num Draws", "10", "0"),
-        ("Input Draws", "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]", "[]"),
+        ("Input Draws", "[0, 1, 2, 3]", "[]"),
     ]
 
     assert df.index.name == "Property"
@@ -139,41 +139,33 @@ def test_format_metadata_pandas_missing_fields() -> None:
         assert df["Reference Data"][i] == "N/A"
 
 
-def test_format_metadata_pandas_many_draws() -> None:
-    """Test the formatted draw sample for many draws."""
-    test_info = {
-        "source": "sim",
-        "index_columns": "year, sex, age",
-        "size": "1,000 rows × 5 columns",
-        "num_draws": "100",
-        "input_draws": "[0, 1, 2, 3, 4] ... [95, 96, 97, 98, 99]",  # Pre-formatted draws
-    }
-    reference_info = {
-        "source": "gbd",
-        "index_columns": "year, sex, age",
-        "size": "50 rows × 3 columns",
-        "num_draws": "0",
-        "input_draws": "[]",
-    }
-
-    df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
-
-    # Check the formatted draw sample for many draws
-    draw_sample = df["Test Data"][5]
-    assert draw_sample == "[0, 1, 2, 3, 4] ... [95, 96, 97, 98, 99]"
+def test_format_draws_sample_small():
+    """Test formatting a small number of draws."""
+    # Test with a small list of draws (less than 2 * max_display)
+    draws = [0, 1, 2, 3]
+    result = _format_draws_sample(draws)
+    assert result == "[0, 1, 2, 3]"
 
 
-def test_format_metadata_pandas_with_empty_draws(
-    test_info: dict[str, Any], reference_info: dict[str, Any]
-) -> None:
-    """Test we can format metadata into a pandas DataFrame with no draws."""
-    # Set num_draws to 0 in test_info
-    test_info["num_draws"] = "0"
-    test_info["input_draws"] = "[]"  # Empty input_draws already formatted
-    reference_info["num_draws"] = "0"
-    reference_info["input_draws"] = "[]"  # Empty input_draws already formatted
-    df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
+def test_format_draws_sample_large():
+    """Test formatting a large number of draws."""
+    # Test with a large list of draws (more than 2 * max_display)
+    draws = list(range(20))
+    result = _format_draws_sample(draws)
+    assert result == "[0, 1, 2, 3, 4] ... [15, 16, 17, 18, 19]"
 
-    # Check draw sample with empty draws
-    assert df["Test Data"][5] == "[]"
-    assert df["Reference Data"][5] == "[]"
+
+def test_format_draws_sample_empty():
+    """Test formatting an empty list of draws."""
+    # Test with an empty list
+    draws = []
+    result = _format_draws_sample(draws)
+    assert result == "[]"
+
+
+def test_format_draws_sample_custom_max_display():
+    """Test formatting with a custom max_display value."""
+    # Test with a custom max_display
+    draws = list(range(20))
+    result = _format_draws_sample(draws, max_display=3)
+    assert result == "[0, 1, 2] ... [17, 18, 19]"

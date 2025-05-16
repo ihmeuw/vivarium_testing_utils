@@ -39,7 +39,7 @@ def get_metadata_from_dataset(source: DataSource, dataframe: pd.DataFrame) -> di
     if "input_draw" in dataframe.index.names:
         num_draws = dataframe.index.get_level_values("input_draw").nunique()
         data_info["num_draws"] = f"{num_draws:,}"
-        draw_values = dataframe.index.get_level_values("input_draw").unique()
+        draw_values = list(dataframe.index.get_level_values("input_draw").unique())
         data_info["input_draws"] = _format_draws_sample(draw_values)
     else:
         data_info["num_draws"] = "0"
@@ -109,13 +109,13 @@ def format_metadata_pandas(
     ).set_index(["Property"])
 
 
-def _format_draws_sample(draw_index: Any, max_display: int = 5) -> str:
+def _format_draws_sample(draw_list: list[int], max_display: int = 5) -> str:
     """Helper function to format draw samples for display.
 
     Parameters:
     -----------
-    draw_index
-        The index of the draws to be formatted
+    draw_list
+        The list of draws to be formatted
     max_display
         The maximum number of draws to display. If the number of draws exceeds this, the
         function will display the first and last max_display draws, separated by ellipses.
@@ -124,15 +124,9 @@ def _format_draws_sample(draw_index: Any, max_display: int = 5) -> str:
     --------
         A string representation of the draws sample.
     """
-    if hasattr(draw_index, "__iter__"):
-        # Convert to list if it's any iterable
-        draw_list = list(draw_index)
-
-        if len(draw_list) <= max_display * 2:
-            return str(draw_list)
-        else:
-            first = draw_list[:max_display]
-            last = draw_list[-max_display:]
-            return f"{first} ... {last}"
+    if len(draw_list) <= max_display * 2:
+        return str(draw_list)
     else:
-        return str(draw_index)
+        first = draw_list[:max_display]
+        last = draw_list[-max_display:]
+        return f"{first} ... {last}"
