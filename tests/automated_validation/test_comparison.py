@@ -35,15 +35,18 @@ def reference_data() -> pd.DataFrame:
 
 
 @pytest.fixture
-def mock_ratio_measure(test_data: pd.DataFrame) -> RatioMeasure:
+def mock_ratio_measure() -> RatioMeasure:
     """Create generic mock RatioMeasure for testing."""
-    measure_data = test_data.copy()
-    measure_data["value"] = measure_data["numerator"] / measure_data["denominator"]
-    measure_data = measure_data.drop(columns=["numerator", "denominator"])
+
+    def _get_measure_data_from_ratio(test_data):
+        measure_data = test_data.copy()
+        measure_data["value"] = measure_data["numerator"] / measure_data["denominator"]
+        measure_data = measure_data.drop(columns=["numerator", "denominator"])
+        return measure_data
 
     measure = mock.Mock(spec=RatioMeasure)
     measure.measure_key = "mock_measure"
-    measure.get_measure_data_from_ratio.return_value = measure_data
+    measure.get_measure_data_from_ratio.side_effect = _get_measure_data_from_ratio
     return measure
 
 
