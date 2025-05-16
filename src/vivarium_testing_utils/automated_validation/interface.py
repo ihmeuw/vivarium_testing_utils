@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from typing import Collection
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
@@ -80,7 +81,7 @@ class ValidationContext:
         )
         self.comparisons[measure_key] = comparison
 
-    def verify(self, comparison_key: str, stratifications: list[str] = []):  # type: ignore[no-untyped-def]
+    def verify(self, comparison_key: str, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         self.comparisons[comparison_key].verify(stratifications)
 
     def metadata(self, comparison_key: str) -> pd.DataFrame:
@@ -89,7 +90,7 @@ class ValidationContext:
     def get_frame(
         self,
         comparison_key: str,
-        stratifications: list[str],
+        stratifications: Collection[str] = (),
         num_rows: int | str = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
