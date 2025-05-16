@@ -92,7 +92,7 @@ class ValidationContext:
         comparison_key: str,
         stratifications: Collection[str] = (),
         num_rows: int | str = 10,
-        sort_by: str = "percent_error",
+        sort_by: str = "abs_percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
         neg_int = isinstance(num_rows, int) and num_rows < 1
