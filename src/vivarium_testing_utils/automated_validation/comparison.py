@@ -5,9 +5,8 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    align_indexes,
-    stratify,
     marginalize,
+    get_singular_indices,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
@@ -146,17 +145,8 @@ class FuzzyComparison(Comparison):
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
 
-        non_ref_indexes = [
-            index
-            for index in self.test_data.index.names
-            if index not in self.reference_data.index.names
-        ]
-        stratified_test_data = marginalize(self.test_data, non_ref_indexes)
-        converted_test_data = self.measure.get_measure_data_from_ratio(
-            stratified_test_data
-        ).rename(columns={"value": "test_rate"})
-
-        merged_data = pd.concat([converted_test_data, self.reference_data], axis=1)
+        test_data, reference_data = self._align_datasets()
+        merged_data = pd.concat([test_data, reference_data], axis=1)
         merged_data["percent_error"] = (
             (merged_data["test_rate"] - merged_data["reference_rate"])
             / merged_data["reference_rate"]
@@ -172,3 +162,39 @@ class FuzzyComparison(Comparison):
 
     def verify(self, stratifications: Collection[str] = ()):
         raise NotImplementedError
+
+    def _align_datasets(self) -> None:
+        """Resolve any index mismatches between the test and reference datasets."""
+        test_data = self.test_data.copy()
+        reference_data = self.reference_data.copy()
+        # If the test data has any index levels that are not in the reference data, marginalize
+        # over those index levels.
+        test_only_indexes = [
+            index
+            for index in self.test_data.index.names
+            if index not in self.reference_data.index.names
+        ]
+        stratified_test_data = marginalize(test_data, test_only_indexes)
+
+        # Drop any singular index levels from the reference data if they are not in the test data.
+        # If any ref-only index level is not singular, raise an error.
+        ref_only_indexes = [
+            index
+            for index in self.reference_data.index.names
+            if index not in self.test_data.index.names
+        ]
+        redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
+        for index_name in ref_only_indexes:
+            if not index_name in redundant_ref_indexes:
+                # TODO: MIC-6075
+                raise ValueError(
+                    f"Reference data has non-trivial index {index_name} that is not in the test data."
+                    "We cannot currently marginalize over this index."
+                )
+            else:
+                reference_data = reference_data.droplevel(index_name)
+
+        converted_test_data = self.measure.get_measure_data_from_ratio(
+            stratified_test_data
+        ).rename(columns={"value": "test_rate"})
+        return converted_test_data, reference_data
