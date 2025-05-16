@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 from loguru import logger
+from typing import Any
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,
@@ -132,3 +133,12 @@ def resolve_age_groups(data: pd.DataFrame, age_groups: pd.DataFrame) -> pd.DataF
             "Could not resolve age groups. The DataFrame likely has no age data. Returning dataframe as-is."
         )
         return data
+
+
+def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
+    """Drop index levels that have only one unique value."""
+    singular_metadata: dict[str, Any] = {}
+    for index_level in data.index.names:
+        if data.index.get_level_values(index_level).nunique() == 1:
+            singular_metadata[index_level] = data.index.get_level_values(index_level)[0]
+    return singular_metadata
