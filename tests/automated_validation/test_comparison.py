@@ -111,7 +111,7 @@ def test_fuzzy_comparison_get_diff(
     assert len(diff) == 1
     assert "test_rate" in diff.columns
     assert "reference_rate" in diff.columns
-    assert "percent_error" in diff.columns
+    assert "abs_percent_error" in diff.columns
 
     # Test returning all rows
     all_diff = comparison.get_diff(stratifications=[], num_rows="all")
@@ -119,10 +119,12 @@ def test_fuzzy_comparison_get_diff(
 
     # Test sorting
     # descending order
-    sorted_desc = comparison.get_diff(sort_by="percent_error", ascending=False)
-    assert sorted_desc.iloc[0]["percent_error"] >= sorted_desc.iloc[-1]["percent_error"]
-    sorted_asc = comparison.get_diff(sort_by="percent_error", ascending=True)
-    assert sorted_asc.iloc[0]["percent_error"] <= sorted_asc.iloc[-1]["percent_error"]
+    sorted_desc = comparison.get_diff(sort_by="abs_percent_error", ascending=False)
+    assert (
+        sorted_desc.iloc[0]["abs_percent_error"] >= sorted_desc.iloc[-1]["abs_percent_error"]
+    )
+    sorted_asc = comparison.get_diff(sort_by="abs_percent_error", ascending=True)
+    assert sorted_asc.iloc[0]["abs_percent_error"] <= sorted_asc.iloc[-1]["abs_percent_error"]
 
 
 def test_fuzzy_comparison_verify_not_implemented(
