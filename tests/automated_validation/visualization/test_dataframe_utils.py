@@ -20,7 +20,7 @@ def test_info() -> dict[str, Any]:
         "index_columns": ["year", "sex", "age", "input_draw"],
         "size": (100, 5),
         "num_draws": 10,
-        "input_draw": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "input_draws": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
     }
 
 
@@ -86,7 +86,7 @@ def test_get_metadata_from_dataset(
         1,
     )  # 2 years * 2 sexes * 3 draws * 2 seeds = 24 rows, 1 column
     assert result["num_draws"] == 3
-    assert list(result["input_draw"]) == [0, 1, 2]
+    assert list(result["input_draws"]) == [0, 1, 2]
     assert result["num_seeds"] == 2
 
 
@@ -99,7 +99,7 @@ def test_get_metadata_from_dataset_no_draws(sample_dataframe_no_draws: pd.DataFr
     assert result["index_columns"] == ["year", "sex", "age"]
     assert result["size"] == (12, 1)  # 2 years * 2 sexes * 3 ages = 12 rows, 1 column
     assert result["num_draws"] == 0
-    assert "input_draw" not in result
+    assert "input_draws" not in result
     assert "num_seeds" not in result
 
 
@@ -109,29 +109,19 @@ def test_format_metadata_pandas_basic(
     """Test we can format metadata into a pandas DataFrame."""
     df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
 
-    # Check the data in the underlying DataFrame
-    assert df["Property"][0] == "Measure Key"
-    assert df["Test Data"][0] == "test_measure"
-    assert df["Reference Data"][0] == "test_measure"
+    expected_metadata = [
+        ("Measure Key", "test_measure", "test_measure"),
+        ("Source", "sim", "artifact"),
+        ("Index Columns", "year, sex, age, input_draw", "year, sex, age"),
+        ("Size", "100 rows × 5 columns", "50 rows × 3 columns"),
+        ("Num Draws", "10", "0"),
+        ("Input Draws", "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]", "[]"),
+    ]
 
-    # Check sources
-    assert df["Test Data"][1] == "sim"
-    assert df["Reference Data"][1] == "artifact"
-
-    # Check index columns
-    assert df["Test Data"][2] == "year, sex, age, input_draw"
-    assert df["Reference Data"][2] == "year, sex, age"
-
-    # Check size
-    assert df["Test Data"][3] == "100 rows × 5 columns"
-    assert df["Reference Data"][3] == "50 rows × 3 columns"
-
-    # Check num_draws
-    assert df["Test Data"][4] == "10"
-    assert df["Reference Data"][4] == "0"
-
-    # Check draw sample
-    assert df["Test Data"][5] == "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]"
+    for i, (property_name, test_value, reference_value) in enumerate(expected_metadata):
+        assert df["Property"][i] == property_name
+        assert df["Test Data"][i] == test_value
+        assert df["Reference Data"][i] == reference_value
 
 
 def test_format_metadata_pandas_missing_fields() -> None:
@@ -165,7 +155,7 @@ def test_format_metadata_pandas_many_draws() -> None:
         "index_columns": ["year", "sex", "age"],
         "size": (1000, 5),
         "num_draws": 100,
-        "input_draw": list(range(100)),
+        "input_draws": list(range(100)),
     }
     reference_info = {
         "source": "gbd",
@@ -189,9 +179,9 @@ def test_format_metadata_pandas_with_empty_draws(
     """Test we can format metadata into a pandas DataFrame with no draws."""
     # Set num_draws to 0 in test_info
     test_info["num_draws"] = 0
-    test_info["input_draw"] = []  # No input_draws
+    test_info["input_draws"] = []  # No input_draws
     reference_info["num_draws"] = 0
-    reference_info["input_draw"] = []  # No input_draws
+    reference_info["input_draws"] = []  # No input_draws
     df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
 
     # Check draw sample with empty draws

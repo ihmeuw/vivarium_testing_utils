@@ -82,28 +82,19 @@ def test_fuzzy_comparison_metadata(
 
     metadata = comparison.metadata
 
-    assert metadata["Property"][0] == "Measure Key"
-    assert metadata["Test Data"][0] == "mock_measure"
-    assert metadata["Reference Data"][0] == "mock_measure"
+    expected_metadata = [
+        ("Measure Key", "mock_measure", "mock_measure"),
+        ("Source", "sim", "gbd"),
+        ("Index Columns", "year, sex, age, input_draw", "year, sex, age"),
+        ("Size", "3 rows × 2 columns", "3 rows × 1 columns"),
+        ("Num Draws", "1", "0"),
+        ("Input Draws", "[0]", "[]"),
+    ]
 
-    # Check sources
-    assert metadata["Test Data"][1] == "sim"
-    assert metadata["Reference Data"][1] == "gbd"
-
-    # Check index columns
-    assert metadata["Test Data"][2] == "year, sex, age, input_draw"
-    assert metadata["Reference Data"][2] == "year, sex, age"
-    # Check size
-    assert metadata["Test Data"][3] == "3 rows × 2 columns"
-    assert metadata["Reference Data"][3] == "3 rows × 1 columns"
-
-    # Check num_draws
-    assert metadata["Test Data"][4] == "1"
-    assert metadata["Reference Data"][4] == "0"
-
-    # Check draw sample
-    assert metadata["Test Data"][5] == "[0]"
-    assert metadata["Reference Data"][5] == "[]"
+    for i, (property_name, test_value, reference_value) in enumerate(expected_metadata):
+        assert metadata.iloc[i]["Property"] == property_name
+        assert metadata.iloc[i]["Test Data"] == test_value
+        assert metadata.iloc[i]["Reference Data"] == reference_value
 
 
 def test_fuzzy_comparison_get_diff(
