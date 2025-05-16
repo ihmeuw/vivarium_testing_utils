@@ -38,7 +38,7 @@ def reference_data() -> pd.DataFrame:
 def mock_ratio_measure() -> RatioMeasure:
     """Create generic mock RatioMeasure for testing."""
 
-    def _get_measure_data_from_ratio(test_data):
+    def _get_measure_data_from_ratio(test_data: pd.DataFrame) -> pd.DataFrame:
         measure_data = test_data.copy()
         measure_data["value"] = measure_data["numerator"] / measure_data["denominator"]
         measure_data = measure_data.drop(columns=["numerator", "denominator"])
