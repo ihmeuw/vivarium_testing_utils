@@ -96,6 +96,7 @@ class FuzzyComparison(Comparison):
         self.reference_source = reference_source
         self.reference_data = reference_data.rename(columns={"value": "reference_rate"})
         if stratifications:
+            # TODO: MIC-6075
             raise NotImplementedError(
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
@@ -118,7 +119,7 @@ class FuzzyComparison(Comparison):
 
     def get_diff(
         self,
-        stratifications: list[str],
+        stratifications: Collection[str] = (),
         num_rows: int | str = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
@@ -140,6 +141,7 @@ class FuzzyComparison(Comparison):
         A DataFrame of the comparison data.
         """
         if stratifications:
+            # TODO: MIC-6075
             raise NotImplementedError(
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
