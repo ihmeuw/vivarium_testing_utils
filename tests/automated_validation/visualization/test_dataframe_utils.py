@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from pytest_check import check
 
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
     format_draws_sample,
@@ -52,9 +53,11 @@ def test_format_metadata_basic(
     assert df.index.name == "Property"
     assert df.shape == (6, 2)
     assert df.columns.tolist() == ["Test Data", "Reference Data"]
-    for property_name, test_value, reference_value in expected_metadata:
-        assert df.loc[property_name]["Test Data"] == test_value
-        assert df.loc[property_name]["Reference Data"] == reference_value
+
+    with check:
+        for property_name, test_value, reference_value in expected_metadata:
+            assert df.loc[property_name]["Test Data"] == test_value
+            assert df.loc[property_name]["Reference Data"] == reference_value
 
 
 def test_format_metadata_missing_fields() -> None:
@@ -64,9 +67,10 @@ def test_format_metadata_missing_fields() -> None:
 
     df = format_metadata(MEASURE_KEY, test_info, reference_info)
 
-    for i in range(2, 6):
-        assert df["Test Data"][i] == "N/A"
-        assert df["Reference Data"][i] == "N/A"
+    with check:
+        for i in range(2, 6):
+            assert df["Test Data"][i] == "N/A"
+            assert df["Reference Data"][i] == "N/A"
 
 
 @pytest.mark.parametrize(
@@ -88,8 +92,9 @@ def test_format_draws_sample_large() -> None:
     """Test formatting a large number of draws."""
     # Test with a large list of draws (more than 2 * max_display)
     draws = list(range(20))
-    result = format_draws_sample(draws)
-    assert result == "[0, 1, 2] ... [17, 18, 19]"
-
-    result = format_draws_sample(draws, max_display=5)
-    assert result == "[0, 1, 2, 3, 4] ... [15, 16, 17, 18, 19]"
+    with check:
+        assert format_draws_sample(draws) == "[0, 1, 2] ... [17, 18, 19]"
+        assert (
+            format_draws_sample(draws, max_display=5)
+            == "[0, 1, 2, 3, 4] ... [15, 16, 17, 18, 19]"
+        )

@@ -2,6 +2,7 @@ from unittest import mock
 
 import pandas as pd
 import pytest
+from pytest_check import check
 
 from vivarium_testing_utils.automated_validation.comparison import (
     DataSource,
@@ -70,13 +71,14 @@ def test_fuzzy_comparison_init(
         stratifications=[],
     )
 
-    assert comparison.measure == mock_ratio_measure
-    assert comparison.test_source == DataSource.SIM
-    assert comparison.test_data.equals(test_data)
-    assert comparison.reference_source == DataSource.GBD
-    assert "reference_rate" in comparison.reference_data.columns
-    assert not "value" in comparison.reference_data.columns
-    assert list(comparison.stratifications) == []
+    with check:
+        assert comparison.measure == mock_ratio_measure
+        assert comparison.test_source == DataSource.SIM
+        assert comparison.test_data.equals(test_data)
+        assert comparison.reference_source == DataSource.GBD
+        assert "reference_rate" in comparison.reference_data.columns
+        assert not "value" in comparison.reference_data.columns
+        assert list(comparison.stratifications) == []
 
 
 def test_fuzzy_comparison_metadata(
@@ -117,10 +119,14 @@ def test_fuzzy_comparison_get_diff(
     )
 
     diff = comparison.get_diff(stratifications=[], num_rows=1)
-    assert len(diff) == 1
-    assert "test_rate" in diff.columns
-    assert "reference_rate" in diff.columns
-    assert "percent_error" in diff.columns
+
+    with check:
+        assert len(diff) == 1
+        assert "test_rate" in diff.columns
+        assert "reference_rate" in diff.columns
+        assert "percent_error" in diff.columns
+        assert "input_draw" not in diff.index.names
+        assert "random_seed" not in diff.index.names
 
     # Test returning all rows
     all_diff = comparison.get_diff(stratifications=[], num_rows="all")
@@ -139,7 +145,7 @@ def test_fuzzy_comparison_get_diff(
             sorted_asc.iloc[i + 1]["percent_error"]
         )
 
-    # Tes sorting by reference rate
+    # Test sorting by reference rate
     sorted_by_ref = comparison.get_diff(sort_by="reference_rate", ascending=True)
     for i in range(len(sorted_by_ref) - 1):
         assert (
@@ -199,15 +205,15 @@ def test_get_metadata_from_dataset(
         mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
     )
     result = comparison._get_metadata_from_dataset("test")
-
-    assert result["source"] == DataSource.SIM.value
-    assert result["index_columns"] == "year, sex, age, input_draw, random_seed"
-    assert (
-        result["size"] == "3 rows × 2 columns"
-    )  # 2 years * 2 sexes * 3 draws * 2 seeds = 24 rows, 1 column
-    assert result["num_draws"] == "3"
-    assert result["input_draws"] == "[1, 2, 5]"
-    assert result["num_seeds"] == "2"
+    with check:
+        assert result["source"] == DataSource.SIM.value
+        assert result["index_columns"] == "year, sex, age, input_draw, random_seed"
+        assert (
+            result["size"] == "3 rows × 2 columns"
+        )  # 2 years * 2 sexes * 3 draws * 2 seeds = 24 rows, 1 column
+        assert result["num_draws"] == "3"
+        assert result["input_draws"] == "[1, 2, 5]"
+        assert result["num_seeds"] == "2"
 
 
 def test_get_metadata_from_dataset_no_draws(
@@ -222,15 +228,15 @@ def test_get_metadata_from_dataset_no_draws(
         reference_data,
     )
     result = comparison._get_metadata_from_dataset("reference")
-
-    assert result["source"] == DataSource.GBD.value
-    assert result["index_columns"] == "year, sex, age"
-    assert (
-        result["size"] == "3 rows × 1 columns"
-    )  # 2 years * 2 sexes * 3 ages = 12 rows, 1 column
-    assert "num_draws" not in result
-    assert "input_draws" not in result
-    assert "num_seeds" not in result
+    with check:
+        assert result["source"] == DataSource.GBD.value
+        assert result["index_columns"] == "year, sex, age"
+        assert (
+            result["size"] == "3 rows × 1 columns"
+        )  # 2 years * 2 sexes * 3 ages = 12 rows, 1 column
+        assert "num_draws" not in result
+        assert "input_draws" not in result
+        assert "num_seeds" not in result
 
 
 def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
