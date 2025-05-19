@@ -8,6 +8,9 @@ from vivarium_testing_utils.automated_validation.comparison import (
     FuzzyComparison,
     RatioMeasure,
 )
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    get_singular_indices,
+)
 
 
 @pytest.fixture
@@ -128,6 +131,37 @@ def test_fuzzy_comparison_get_diff(
     assert sorted_asc.iloc[0]["abs_percent_error"] <= sorted_asc.iloc[-1]["abs_percent_error"]
 
 
+def test_fuzzy_comparison_init_with_stratifications(
+    mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
+) -> None:
+    """Test that FuzzyComparison raises NotImplementedError when initialized with non-empty stratifications."""
+    with pytest.raises(
+        NotImplementedError, match="Non-default stratifications require rate aggregations"
+    ):
+        FuzzyComparison(
+            mock_ratio_measure,
+            DataSource.SIM,
+            test_data,
+            DataSource.GBD,
+            reference_data,
+            stratifications=["year"],
+        )
+
+
+def test_fuzzy_comparison_get_diff_with_stratifications(
+    mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
+) -> None:
+    """Test that FuzzyComparison.get_diff raises NotImplementedError when called with non-empty stratifications."""
+    comparison = FuzzyComparison(
+        mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
+    )
+
+    with pytest.raises(
+        NotImplementedError, match="Non-default stratifications require rate aggregations"
+    ):
+        comparison.get_diff(stratifications=["year"])
+
+
 def test_fuzzy_comparison_verify_not_implemented(
     mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
 ) -> None:
@@ -138,3 +172,70 @@ def test_fuzzy_comparison_verify_not_implemented(
 
     with pytest.raises(NotImplementedError):
         comparison.verify()
+
+
+def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
+    mock_ratio_measure: RatioMeasure,
+    test_data: pd.DataFrame,
+    reference_data: pd.DataFrame,
+) -> None:
+    """Test that _align_datasets correctly handles singular reference-only indices."""
+    reference_data_with_singular_index = reference_data.copy()
+    reference_data_with_singular_index["location"] = ["Global", "Global", "Global"]
+    reference_data_with_singular_index.set_index("location", append=True, inplace=True)
+
+    comparison = FuzzyComparison(
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data_with_singular_index,
+    )
+
+    # Verify the singular index exists
+    assert "location" in comparison.reference_data.index.names
+    assert "location" not in comparison.test_data.index.names
+
+    # Verify it's detected as a singular index
+    singular_indices = get_singular_indices(comparison.reference_data)
+    assert "location" in singular_indices
+    assert singular_indices["location"] == "Global"
+
+    # Execute
+    test_data, reference_data = comparison._align_datasets()
+
+    # Verify the singular index was dropped
+    assert "location" not in reference_data.index.names
+    assert test_data.shape[0] == reference_data.shape[0]
+
+
+def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
+    mock_ratio_measure: RatioMeasure,
+    test_data: pd.DataFrame,
+    reference_data: pd.DataFrame,
+) -> None:
+    """Test that _align_datasets raises ValueError for non-singular reference-only indices."""
+    reference_data_with_non_singular_index = reference_data.copy()
+    reference_data_with_non_singular_index["location"] = ["Global", "USA", "USA"]
+    reference_data_with_non_singular_index.set_index("location", append=True, inplace=True)
+
+    # Setup
+    comparison = FuzzyComparison(
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data_with_non_singular_index,
+    )
+
+    # Verify the non-singular index exists
+    assert "location" in comparison.reference_data.index.names
+    assert "location" not in comparison.test_data.index.names
+
+    # Verify it's not detected as a singular index
+    singular_indices = get_singular_indices(comparison.reference_data)
+    assert "location" not in singular_indices
+
+    # Execute and verify error is raised with correct message
+    with pytest.raises(ValueError, match="Reference data has non-trivial index location"):
+        comparison._align_datasets()

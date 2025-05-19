@@ -124,6 +124,28 @@ def test_add_comparison(
     )
 
 
+######################################
+# Tests for NotImplementedError cases#
+######################################
+
+
+def test_not_implemented(sim_result_dir: Path) -> None:
+    """Test that ValidationContext.add_comparison raises NotImplementedError when test_source is not 'sim'."""
+    context = ValidationContext(sim_result_dir)
+
+    with pytest.raises(
+        NotImplementedError,
+        match="Comparison for artifact source not implemented. Must be SIM.",
+    ):
+        context.add_comparison("cause.disease.incidence_rate", "artifact", "gbd")
+
+    with pytest.raises(
+        NotImplementedError, match="Non-default stratifications require rate aggregations"
+    ):
+        context.add_comparison("cause.disease.incidence_rate", "sim", "artifact")
+        context.get_frame("cause.disease.incidence_rate", stratifications=["foo", "bar"])
+
+
 @pytest.mark.skip("Not implemented")
 def test_metadata() -> None:
     """Ensure that we can summarize a comparison"""
