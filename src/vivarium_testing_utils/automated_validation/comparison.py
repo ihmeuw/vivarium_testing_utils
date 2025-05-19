@@ -149,14 +149,13 @@ class FuzzyComparison(Comparison):
 
         merged_data = pd.merge(test_data, reference_data, left_index=True, right_index=True)
         merged_data["percent_error"] = (
-            abs(
-                (merged_data["test_rate"] - merged_data["reference_rate"])
-                / merged_data["reference_rate"]
-            )
-            * 100
-        )
+            (merged_data["test_rate"] - merged_data["reference_rate"])
+            / merged_data["reference_rate"]
+        ) * 100
+        sort_key = abs if sort_by == "percent_error" else None
         sorted_data = merged_data.sort_values(
             by=sort_by,
+            key=sort_key,
             ascending=ascending,
         )
         if num_rows == "all":

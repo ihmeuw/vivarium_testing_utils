@@ -33,7 +33,7 @@ def test_data() -> pd.DataFrame:
 def reference_data() -> pd.DataFrame:
     """A sample test data DataFrame without draws."""
     return pd.DataFrame(
-        {"value": [0.11, 0.21, 0.29]},
+        {"value": [0.12, 0.2, 0.29]},
         index=pd.MultiIndex.from_tuples(
             [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
             names=["year", "sex", "age"],
@@ -129,9 +129,23 @@ def test_fuzzy_comparison_get_diff(
     # Test sorting
     # descending order
     sorted_desc = comparison.get_diff(sort_by="percent_error", ascending=False)
-    assert sorted_desc.iloc[0]["percent_error"] >= sorted_desc.iloc[-1]["percent_error"]
+    for i in range(len(sorted_desc) - 1):
+        assert abs(sorted_desc.iloc[i]["percent_error"]) >= abs(
+            sorted_desc.iloc[i + 1]["percent_error"]
+        )
     sorted_asc = comparison.get_diff(sort_by="percent_error", ascending=True)
-    assert sorted_asc.iloc[0]["percent_error"] <= sorted_asc.iloc[-1]["percent_error"]
+    for i in range(len(sorted_asc) - 1):
+        assert abs(sorted_asc.iloc[i]["percent_error"]) <= abs(
+            sorted_asc.iloc[i + 1]["percent_error"]
+        )
+
+    # Tes sorting by reference rate
+    sorted_by_ref = comparison.get_diff(sort_by="reference_rate", ascending=True)
+    for i in range(len(sorted_by_ref) - 1):
+        assert (
+            sorted_by_ref.iloc[i]["reference_rate"]
+            <= sorted_by_ref.iloc[i + 1]["reference_rate"]
+        )
 
 
 def test_fuzzy_comparison_init_with_stratifications(
