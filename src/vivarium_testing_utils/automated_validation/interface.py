@@ -92,7 +92,7 @@ class ValidationContext:
         comparison_key: str,
         stratifications: Collection[str] = (),
         num_rows: int | Literal["all"] = 10,
-        sort_by: str = "abs_percent_error",
+        sort_by: str = "percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
         """Get a DataFrame of the comparison data, with naive comparison of the test and reference.

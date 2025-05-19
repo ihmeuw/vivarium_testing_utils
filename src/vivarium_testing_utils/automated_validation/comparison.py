@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Collection
+from typing import Collection, Any
 
 import pandas as pd
 
@@ -122,7 +122,7 @@ class FuzzyComparison(Comparison):
         self,
         stratifications: Collection[str] = (),
         num_rows: int | str = 10,
-        sort_by: str = "abs_percent_error",
+        sort_by: str = "percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
         """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
@@ -150,7 +150,7 @@ class FuzzyComparison(Comparison):
         test_data, reference_data = self._align_datasets()
 
         merged_data = pd.merge(test_data, reference_data, left_index=True, right_index=True)
-        merged_data["abs_percent_error"] = (
+        merged_data["percent_error"] = (
             abs(
                 (merged_data["test_rate"] - merged_data["reference_rate"])
                 / merged_data["reference_rate"]
