@@ -452,7 +452,9 @@ def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame
             )
         except pa.errors.SchemaError:
             # TODO: MIC-6075
-            raise ValueError("Age Group rebinning can only be performed on count data.")
+            raise NotImplementedError(
+                "Age Group rebinning can only be performed on count data."
+            )
         return data
 
 
