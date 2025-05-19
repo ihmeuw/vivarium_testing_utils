@@ -7,53 +7,7 @@ from vivarium_testing_utils.automated_validation.data_loader import DataSource
 REQUIRED_KEYS = ("measure_key", "source", "index_columns", "size", "num_draws", "input_draws")
 
 
-def get_metadata_from_dataset(source: DataSource, dataframe: pd.DataFrame) -> dict[str, Any]:
-    """Organize the data information into a dictionary for display by a styled pandas DataFrame.
-    Apply formatting to values that need special handling.
-
-    Parameters:
-    -----------
-    source
-        The source of the data (i.e. sim, artifact, or gbd)
-    dataframe
-        The DataFrame containing the data to be displayed
-    Returns:
-    --------
-    A dictionary containing the formatted data information.
-
-    """
-    data_info: dict[str, Any] = {}
-
-    # Source as string
-    data_info["source"] = source.value
-
-    # Index columns as comma-separated string
-    index_cols = dataframe.index.names
-    data_info["index_columns"] = ", ".join(str(col) for col in index_cols)
-
-    # Size as formatted string
-    size = dataframe.shape
-    data_info["size"] = f"{size[0]:,} rows × {size[1]:,} columns"
-
-    # Draw information
-    if "input_draw" in dataframe.index.names:
-        num_draws = dataframe.index.get_level_values("input_draw").nunique()
-        data_info["num_draws"] = f"{num_draws:,}"
-        draw_values = list(dataframe.index.get_level_values("input_draw").unique())
-        data_info["input_draws"] = _format_draws_sample(draw_values)
-    else:
-        data_info["num_draws"] = "0"
-        data_info["input_draws"] = "[]"
-
-    # Seeds information
-    if "random_seed" in dataframe.index.names:
-        num_seeds = dataframe.index.get_level_values("random_seed").nunique()
-        data_info["num_seeds"] = f"{num_seeds:,}"
-
-    return data_info
-
-
-def format_metadata_pandas(
+def format_metadata(
     measure_key: str, test_info: dict[str, Any], reference_info: dict[str, Any]
 ) -> pd.DataFrame:
     """
@@ -109,7 +63,7 @@ def format_metadata_pandas(
     ).set_index(["Property"])
 
 
-def _format_draws_sample(draw_list: list[int], max_display: int = 5) -> str:
+def format_draws_sample(draw_list: list[int], max_display: int = 3) -> str:
     """Helper function to format draw samples for display.
 
     Parameters:
