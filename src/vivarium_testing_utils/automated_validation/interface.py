@@ -117,6 +117,8 @@ class ValidationContext:
             return self.comparisons[comparison_key].get_diff(
                 stratifications, num_rows, sort_by, ascending
             )
+        else:
+            raise ValueError("num_rows must be a positive integer or literal 'all'")
 
     def plot_comparison(self, comparison_key: str, type: str, **kwargs):  # type: ignore[no-untyped-def]
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
