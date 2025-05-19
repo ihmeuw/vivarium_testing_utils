@@ -137,7 +137,7 @@ def resolve_age_groups(data: pd.DataFrame, age_groups: pd.DataFrame) -> pd.DataF
 
 
 def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
-    """Drop index levels that have only one unique value."""
+    """Get index levels and their values that are singular (i.e. have only one unique value)."""
     singular_metadata: dict[str, Any] = {}
     for index_level in data.index.names:
         if data.index.get_level_values(index_level).nunique() == 1:
