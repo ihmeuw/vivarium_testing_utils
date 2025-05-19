@@ -19,8 +19,12 @@ def test_data() -> pd.DataFrame:
     return pd.DataFrame(
         {"numerator": [10, 20, 30], "denominator": [100, 100, 100]},
         index=pd.MultiIndex.from_tuples(
-            [("2020", "male", 0, 0), ("2020", "female", 0, 0), ("2025", "male", 0, 0)],
-            names=["year", "sex", "age", "input_draw"],
+            [
+                ("2020", "male", 0, 1, 1337),
+                ("2020", "female", 0, 5, 1337),
+                ("2025", "male", 0, 2, 42),
+            ],
+            names=["year", "sex", "age", "input_draw", "random_seed"],
         ),
     )
 
@@ -88,13 +92,14 @@ def test_fuzzy_comparison_metadata(
     expected_metadata = [
         ("Measure Key", "mock_measure", "mock_measure"),
         ("Source", "sim", "gbd"),
-        ("Index Columns", "year, sex, age, input_draw", "year, sex, age"),
+        ("Index Columns", "year, sex, age, input_draw, random_seed", "year, sex, age"),
         ("Size", "3 rows × 2 columns", "3 rows × 1 columns"),
-        ("Num Draws", "1", "0"),
-        ("Input Draws", "[0]", "[]"),
+        ("Num Draws", "3", "N/A"),
+        ("Input Draws", "[1, 2, 5]", "N/A"),
+        ("Num Seeds", "2", "N/A"),
     ]
     assert metadata.index.name == "Property"
-    assert metadata.shape == (6, 2)
+    assert metadata.shape == (7, 2)
     assert metadata.columns.tolist() == ["Test Data", "Reference Data"]
     for property_name, test_value, reference_value in expected_metadata:
         assert metadata.loc[property_name]["Test Data"] == test_value
@@ -182,12 +187,12 @@ def test_get_metadata_from_dataset(
     result = comparison._get_metadata_from_dataset("test")
 
     assert result["source"] == DataSource.SIM.value
-    assert result["index_columns"] == "year, sex, input_draw, random_seed"
+    assert result["index_columns"] == "year, sex, age, input_draw, random_seed"
     assert (
-        result["size"] == "24 rows × 1 columns"
+        result["size"] == "3 rows × 2 columns"
     )  # 2 years * 2 sexes * 3 draws * 2 seeds = 24 rows, 1 column
     assert result["num_draws"] == "3"
-    assert result["input_draws"] == "[0, 1, 2]"
+    assert result["input_draws"] == "[1, 2, 5]"
     assert result["num_seeds"] == "2"
 
 
@@ -207,11 +212,11 @@ def test_get_metadata_from_dataset_no_draws(
     assert result["source"] == DataSource.GBD.value
     assert result["index_columns"] == "year, sex, age"
     assert (
-        result["size"] == "12 rows × 1 columns"
+        result["size"] == "3 rows × 1 columns"
     )  # 2 years * 2 sexes * 3 ages = 12 rows, 1 column
-    assert "num_draws" not in result.columns
-    assert "input_draws" not in result.columns
-    assert "num_seeds" not in result.columns
+    assert "num_draws" not in result
+    assert "input_draws" not in result
+    assert "num_seeds" not in result
 
 
 def test_fuzzy_comparison_align_datasets_with_singular_reference_index(

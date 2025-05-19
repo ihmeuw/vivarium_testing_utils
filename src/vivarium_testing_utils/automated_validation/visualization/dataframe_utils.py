@@ -78,6 +78,7 @@ def format_draws_sample(draw_list: list[int], max_display: int = 3) -> str:
     --------
         A string representation of the draws sample.
     """
+    draw_list = sorted(draw_list)
     if len(draw_list) <= max_display * 2:
         return str(draw_list)
     else:
