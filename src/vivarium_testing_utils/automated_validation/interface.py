@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Collection
+from typing import Collection, Literal
 
 import pandas as pd
 
@@ -91,7 +91,7 @@ class ValidationContext:
         self,
         comparison_key: str,
         stratifications: Collection[str] = (),
-        num_rows: int | str = 10,
+        num_rows: int | Literal["all"] = 10,
         sort_by: str = "abs_percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
