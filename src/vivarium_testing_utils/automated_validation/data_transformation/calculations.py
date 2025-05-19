@@ -62,9 +62,8 @@ def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
     if zero_denominator.any():
         logger.warning(
             f"Denominator {denominator} has zero values. "
-            f"Removing these rows from the dataframe before calculating the ratio."
+            f"These will be put into the ratio dataframe as NaN."
         )
-        data = data[data[denominator] != 0]
     return series_to_dataframe(data[numerator] / data[denominator])
 
 
