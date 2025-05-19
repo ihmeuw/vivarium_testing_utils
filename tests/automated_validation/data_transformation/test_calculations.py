@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import pytest
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
@@ -40,7 +41,7 @@ def test_ratio(intermediate_data: pd.DataFrame) -> None:
     )
     pd.testing.assert_frame_equal(
         ratio(intermediate_data, "a", "c"),
-        pd.DataFrame({"value": [1.0, 2.0, 4.0]}, index=intermediate_data.index[[0, 1, 3]]),
+        pd.DataFrame({"value": [1.0, 2.0, np.nan, 4.0]}, index=intermediate_data.index),
     )
     # test non-existent column
     with pytest.raises(KeyError):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-
+import numpy as np
 import pandas as pd
 from loguru import logger
 
@@ -64,7 +64,9 @@ def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
             f"Denominator {denominator} has zero values. "
             f"These will be put into the ratio dataframe as NaN."
         )
-    return series_to_dataframe(data[numerator] / data[denominator])
+    ratio = data[numerator] / data[denominator]
+    ratio[zero_denominator] = np.nan
+    return series_to_dataframe(ratio)
 
 
 def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str]) -> pd.DataFrame:

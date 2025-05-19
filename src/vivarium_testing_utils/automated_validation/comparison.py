@@ -252,4 +252,5 @@ class FuzzyComparison(Comparison):
         converted_test_data = self.measure.get_measure_data_from_ratio(
             stratified_test_data
         ).rename(columns={"value": "test_rate"})
+        converted_test_data.dropna(inplace=True)
         return converted_test_data, reference_data
