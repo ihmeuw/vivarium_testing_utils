@@ -95,12 +95,25 @@ class ValidationContext:
         sort_by: str = "abs_percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
-        neg_int = isinstance(num_rows, int) and num_rows < 1
-        random_string = isinstance(num_rows, str) and num_rows != "all"
-        if neg_int or random_string:
-            raise ValueError("num_rows must be a positive integer or literal 'all'")
-        else:
+        """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
 
+        Parameters:
+        -----------
+        comparison_key
+            The key of the comparison for which to get the data
+        stratifications
+            The stratifications to use for the comparison
+        num_rows
+            The number of rows to return. If "all", return all rows.
+        sort_by
+            The column to sort by. Default is "percent_error".
+        ascending
+            Whether to sort in ascending order. Default is False.
+        Returns:
+        --------
+        A DataFrame of the comparison data.
+        """
+        if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
             return self.comparisons[comparison_key].get_diff(
                 stratifications, num_rows, sort_by, ascending
             )
