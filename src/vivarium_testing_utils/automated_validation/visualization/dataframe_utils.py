@@ -4,7 +4,7 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 
-REQUIRED_KEYS = ["measure_key", "source", "index_columns", "size", "num_draws", "input_draws"]
+REQUIRED_KEYS = ("measure_key", "source", "index_columns", "size", "num_draws", "input_draws")
 
 
 def get_metadata_from_dataset(source: DataSource, dataframe: pd.DataFrame) -> dict[str, Any]:
