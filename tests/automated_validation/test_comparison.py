@@ -172,6 +172,48 @@ def test_fuzzy_comparison_verify_not_implemented(
         comparison.verify()
 
 
+def test_get_metadata_from_dataset(
+    mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
+) -> None:
+    """Test we can extract metadata from a dataframe with draws."""
+    comparison = FuzzyComparison(
+        mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
+    )
+    result = comparison._get_metadata_from_dataset("test")
+
+    assert result["source"] == DataSource.SIM.value
+    assert result["index_columns"] == "year, sex, input_draw, random_seed"
+    assert (
+        result["size"] == "24 rows × 1 columns"
+    )  # 2 years * 2 sexes * 3 draws * 2 seeds = 24 rows, 1 column
+    assert result["num_draws"] == "3"
+    assert result["input_draws"] == "[0, 1, 2]"
+    assert result["num_seeds"] == "2"
+
+
+def test_get_metadata_from_dataset_no_draws(
+    mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
+) -> None:
+    """Test we can extract metadata from a dataframe with draws."""
+    comparison = FuzzyComparison(
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data,
+    )
+    result = comparison._get_metadata_from_dataset("reference")
+
+    assert result["source"] == DataSource.GBD.value
+    assert result["index_columns"] == "year, sex, age"
+    assert (
+        result["size"] == "12 rows × 1 columns"
+    )  # 2 years * 2 sexes * 3 ages = 12 rows, 1 column
+    assert "num_draws" not in result.columns
+    assert "input_draws" not in result.columns
+    assert "num_seeds" not in result.columns
+
+
 def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
     mock_ratio_measure: RatioMeasure,
     test_data: pd.DataFrame,

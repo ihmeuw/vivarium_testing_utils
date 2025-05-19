@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Collection, Any
+from typing import Collection, Any, Literal
 
 import pandas as pd
 
@@ -112,10 +112,8 @@ class FuzzyComparison(Comparison):
         - a sample of the input draws.
         """
         measure_key = self.measure.measure_key
-        test_info = self._get_metadata_from_dataset(self.test_source, self.test_data)
-        reference_info = self._get_metadata_from_dataset(
-            self.reference_source, self.reference_data
-        )
+        test_info = self._get_metadata_from_dataset("test")
+        reference_info = self._get_metadata_from_dataset("reference")
         return format_metadata(measure_key, test_info, reference_info)
 
     def get_diff(
@@ -170,22 +168,29 @@ class FuzzyComparison(Comparison):
         raise NotImplementedError
 
     def _get_metadata_from_dataset(
-        self, source: DataSource, dataframe: pd.DataFrame
+        self, dataset_key: Literal["test", "reference"]
     ) -> dict[str, Any]:
         """Organize the data information into a dictionary for display by a styled pandas DataFrame.
         Apply formatting to values that need special handling.
 
         Parameters:
         -----------
-        source
-            The source of the data (i.e. sim, artifact, or gbd)
-        dataframe
-            The DataFrame containing the data to be displayed
+        dataset
+            The dataset to get the metadata from. Either "test" or "reference".
         Returns:
         --------
         A dictionary containing the formatted data information.
 
         """
+        if dataset_key == "test":
+            source = self.test_source
+            dataframe = self.test_data
+        elif dataset_key == "reference":
+            source = self.reference_source
+            dataframe = self.reference_data
+        else:
+            raise ValueError("dataset must be either 'test' or 'reference'")
+
         data_info: dict[str, Any] = {}
 
         # Source as string
