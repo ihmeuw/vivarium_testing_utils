@@ -169,6 +169,50 @@ class FuzzyComparison(Comparison):
     def verify(self, stratifications: Collection[str] = ()):
         raise NotImplementedError
 
+    def _get_metadata_from_dataset(
+        self, source: DataSource, dataframe: pd.DataFrame
+    ) -> dict[str, Any]:
+        """Organize the data information into a dictionary for display by a styled pandas DataFrame.
+        Apply formatting to values that need special handling.
+
+        Parameters:
+        -----------
+        source
+            The source of the data (i.e. sim, artifact, or gbd)
+        dataframe
+            The DataFrame containing the data to be displayed
+        Returns:
+        --------
+        A dictionary containing the formatted data information.
+
+        """
+        data_info: dict[str, Any] = {}
+
+        # Source as string
+        data_info["source"] = source.value
+
+        # Index columns as comma-separated string
+        index_cols = dataframe.index.names
+        data_info["index_columns"] = ", ".join(str(col) for col in index_cols)
+
+        # Size as formatted string
+        size = dataframe.shape
+        data_info["size"] = f"{size[0]:,} rows × {size[1]:,} columns"
+
+        # Draw information
+        if "input_draw" in dataframe.index.names:
+            num_draws = dataframe.index.get_level_values("input_draw").nunique()
+            data_info["num_draws"] = f"{num_draws:,}"
+            draw_values = list(dataframe.index.get_level_values("input_draw").unique())
+            data_info["input_draws"] = format_draws_sample(draw_values)
+
+        # Seeds information
+        if "random_seed" in dataframe.index.names:
+            num_seeds = dataframe.index.get_level_values("random_seed").nunique()
+            data_info["num_seeds"] = f"{num_seeds:,}"
+
+        return data_info
+
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
         test_data = self.test_data.copy()
