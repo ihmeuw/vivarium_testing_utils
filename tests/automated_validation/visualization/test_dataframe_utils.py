@@ -140,7 +140,7 @@ def test_format_metadata_pandas_missing_fields() -> None:
         assert df["Reference Data"][i] == "N/A"
 
 
-def test_format_draws_sample_small():
+def test_format_draws_sample_small() -> None:
     """Test formatting a small number of draws."""
     # Test with a small list of draws (less than 2 * max_display)
     draws = [0, 1, 2, 3]
@@ -148,7 +148,7 @@ def test_format_draws_sample_small():
     assert result == "[0, 1, 2, 3]"
 
 
-def test_format_draws_sample_large():
+def test_format_draws_sample_large() -> None:
     """Test formatting a large number of draws."""
     # Test with a large list of draws (more than 2 * max_display)
     draws = list(range(20))
@@ -156,15 +156,15 @@ def test_format_draws_sample_large():
     assert result == "[0, 1, 2, 3, 4] ... [15, 16, 17, 18, 19]"
 
 
-def test_format_draws_sample_empty():
+def test_format_draws_sample_empty() -> None:
     """Test formatting an empty list of draws."""
     # Test with an empty list
-    draws = []
+    draws: list[int] = []
     result = _format_draws_sample(draws)
     assert result == "[]"
 
 
-def test_format_draws_sample_custom_max_display():
+def test_format_draws_sample_custom_max_display() -> None:
     """Test formatting with a custom max_display value."""
     # Test with a custom max_display
     draws = list(range(20))

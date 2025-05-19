@@ -167,7 +167,7 @@ class FuzzyComparison(Comparison):
     def verify(self, stratifications: Collection[str] = ()):
         raise NotImplementedError
 
-    def _align_datasets(self) -> None:
+    def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
         test_data = self.test_data.copy()
         reference_data = self.reference_data.copy()
