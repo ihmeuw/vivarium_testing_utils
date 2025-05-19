@@ -5,8 +5,8 @@ import pytest
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
-    _format_draws_sample,
-    format_metadata_pandas,
+    format_draws_sample,
+    format_metadata,
     get_metadata_from_dataset,
 )
 
@@ -105,11 +105,11 @@ def test_get_metadata_from_dataset_no_draws(sample_dataframe_no_draws: pd.DataFr
     assert result["input_draws"] == "[]"  # Now includes empty input_draws
 
 
-def test_format_metadata_pandas_basic(
+def test_format_metadata_basic(
     test_info: dict[str, Any], reference_info: dict[str, Any]
 ) -> None:
     """Test we can format metadata into a pandas DataFrame."""
-    df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
+    df = format_metadata(MEASURE_KEY, test_info, reference_info)
 
     expected_metadata = [
         ("Measure Key", "test_measure", "test_measure"),
@@ -128,12 +128,12 @@ def test_format_metadata_pandas_basic(
         assert df.loc[property_name]["Reference Data"] == reference_value
 
 
-def test_format_metadata_pandas_missing_fields() -> None:
+def test_format_metadata_missing_fields() -> None:
     """Test we can format metadata into a pandas DataFrame wtih missing fields."""
     test_info = {"source": "sim"}
     reference_info = {"source": "artifact"}
 
-    df = format_metadata_pandas(MEASURE_KEY, test_info, reference_info)
+    df = format_metadata(MEASURE_KEY, test_info, reference_info)
 
     for i in range(2, 6):
         assert df["Test Data"][i] == "N/A"
@@ -152,15 +152,15 @@ def test_format_metadata_pandas_missing_fields() -> None:
 def test_format_draws(draws: list[int]) -> None:
     """Test formatting a small number of draws."""
     # Test with a small list of draws (less than 2 * max_display)
-    assert _format_draws_sample(draws) == str(draws)
+    assert format_draws_sample(draws) == str(draws)
 
 
 def test_format_draws_sample_large() -> None:
     """Test formatting a large number of draws."""
     # Test with a large list of draws (more than 2 * max_display)
     draws = list(range(20))
-    result = _format_draws_sample(draws)
-    assert result == "[0, 1, 2, 3, 4] ... [15, 16, 17, 18, 19]"
-
-    result = _format_draws_sample(draws, max_display=3)
+    result = format_draws_sample(draws)
     assert result == "[0, 1, 2] ... [17, 18, 19]"
+
+    result = format_draws_sample(draws, max_display=5)
+    assert result == "[0, 1, 2, 3, 4] ... [15, 16, 17, 18, 19]"
