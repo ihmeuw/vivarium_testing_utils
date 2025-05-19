@@ -31,6 +31,9 @@ class DataSource(Enum):
             raise ValueError(f"Source {source} not recognized. Must be one of {DataSource}")
 
 
+NONSTANDARD_ARTIFACT_KEYS = {"population.age_bins"}
+
+
 class DataLoader:
     def __init__(self, sim_output_dir: Path, cache_size_mb: int = 1000):
         self._sim_output_dir = sim_output_dir
@@ -74,6 +77,9 @@ class DataLoader:
 
     def _load_from_source(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Load the data from the given source via the loader mapping."""
+        if source == DataSource.ARTIFACT and dataset_key in NONSTANDARD_ARTIFACT_KEYS:
+            # Load nonstandard artifact keys from the artifact
+            return self._load_nonstandard_artifact(dataset_key)
         return self._loader_mapping[source](dataset_key)
 
     def _add_to_cache(self, dataset_key: str, source: DataSource, data: pd.DataFrame) -> None:
@@ -115,9 +121,16 @@ class DataLoader:
         ]["artifact_path"]
         return Artifact(artifact_path)
 
+    def _load_nonstandard_artifact(self, dataset_key: str) -> pd.DataFrame:
+        """Load artifact data for nonstandard (e.g. not draw or single numeric) keys."""
+        data: pd.DataFrame = self._artifact.load(dataset_key)
+        self._artifact.clear_cache()
+        return data
+
     @check_io(out=SingleNumericColumn)
     def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
-        data = self._artifact.load(dataset_key)
+        """Load data directly from artifact, assuming correctly formatted data."""
+        data: pd.DataFrame = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
         return clean_artifact_data(dataset_key, data)
 
