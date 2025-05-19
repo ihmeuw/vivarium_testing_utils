@@ -10,6 +10,10 @@ source = ["vivarium_testing_utils"]
 
 [tool.coverage.report]
 show_missing = true
+exclude_also = [
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod",
+    ]
 
 [tool.black]
 line_length = 94
