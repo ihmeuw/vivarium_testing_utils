@@ -140,12 +140,19 @@ def test_format_metadata_pandas_missing_fields() -> None:
         assert df["Reference Data"][i] == "N/A"
 
 
-def test_format_draws_sample_small() -> None:
+@pytest.mark.parametrize(
+    "draws",
+    [
+        [0, 1, 2, 3],
+        [0, 1, 2],
+        [0],
+        [],
+    ],
+)
+def test_format_draws(draws: list[int]) -> None:
     """Test formatting a small number of draws."""
     # Test with a small list of draws (less than 2 * max_display)
-    draws = [0, 1, 2, 3]
-    result = _format_draws_sample(draws)
-    assert result == "[0, 1, 2, 3]"
+    assert _format_draws_sample(draws) == str(draws)
 
 
 def test_format_draws_sample_large() -> None:
@@ -155,18 +162,5 @@ def test_format_draws_sample_large() -> None:
     result = _format_draws_sample(draws)
     assert result == "[0, 1, 2, 3, 4] ... [15, 16, 17, 18, 19]"
 
-
-def test_format_draws_sample_empty() -> None:
-    """Test formatting an empty list of draws."""
-    # Test with an empty list
-    draws: list[int] = []
-    result = _format_draws_sample(draws)
-    assert result == "[]"
-
-
-def test_format_draws_sample_custom_max_display() -> None:
-    """Test formatting with a custom max_display value."""
-    # Test with a custom max_display
-    draws = list(range(20))
     result = _format_draws_sample(draws, max_display=3)
     assert result == "[0, 1, 2] ... [17, 18, 19]"
