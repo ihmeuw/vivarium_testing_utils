@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Collection, Any, Literal
+from typing import Any, Collection, Literal
 
 import pandas as pd
 
@@ -13,8 +13,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     RatioMeasure,
 )
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
-    format_metadata,
     format_draws_sample,
+    format_metadata,
 )
 
 
