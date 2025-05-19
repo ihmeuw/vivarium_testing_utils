@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pandas as pd
 from loguru import logger
 
@@ -25,7 +27,7 @@ def align_indexes(datasets: list[pd.DataFrame]) -> list[pd.DataFrame]:
     # Get the common index columns
     common_index = list(set.intersection(*(set(data.index.names) for data in datasets)))
 
-    # stratify over the rest
+    # Marginalize over the rest
     return [stratify(data, common_index) for data in datasets]
 
 
@@ -56,6 +58,13 @@ def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.Dat
 def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
     """Return a series of the ratio of two columns in a DataFrame,
     where the columns are specified by their names."""
+    zero_denominator = data[denominator] == 0
+    if zero_denominator.any():
+        logger.warning(
+            f"Denominator {denominator} has zero values. "
+            f"Removing these rows from the dataframe before calculating the ratio."
+        )
+        data = data[data[denominator] != 0]
     return series_to_dataframe(data[numerator] / data[denominator])
 
 
@@ -105,13 +114,13 @@ def _clean_artifact_draws(
     # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
     # and melt the data into long format
     data = data.melt(
-        var_name="draw",
+        var_name="input_draw",
         value_name="value",
         ignore_index=False,
     )
-    data["draw"] = data["draw"].str.replace(DRAW_PREFIX, "", regex=False)
-    data["draw"] = data["draw"].astype(int)
-    data = data.set_index("draw", append=True).sort_index()
+    data["input_draw"] = data["input_draw"].str.replace(DRAW_PREFIX, "", regex=False)
+    data["input_draw"] = data["input_draw"].astype(int)
+    data = data.set_index("input_draw", append=True).sort_index()
     return data
 
 
@@ -125,3 +134,12 @@ def resolve_age_groups(data: pd.DataFrame, age_groups: pd.DataFrame) -> pd.DataF
             "Could not resolve age groups. The DataFrame likely has no age data. Returning dataframe as-is."
         )
         return data
+
+
+def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
+    """Drop index levels that have only one unique value."""
+    singular_metadata: dict[str, Any] = {}
+    for index_level in data.index.names:
+        if data.index.get_level_values(index_level).nunique() == 1:
+            singular_metadata[index_level] = data.index.get_level_values(index_level)[0]
+    return singular_metadata

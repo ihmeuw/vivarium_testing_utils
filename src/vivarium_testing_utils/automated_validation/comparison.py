@@ -3,9 +3,18 @@ from typing import Collection
 
 import pandas as pd
 
+from vivarium_testing_utils.automated_validation.data_loader import DataSource
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    get_singular_indices,
+    marginalize,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
     RatioMeasure,
+)
+from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
+    format_metadata_pandas,
+    get_metadata_from_dataset,
 )
 
 
@@ -16,41 +25,180 @@ class Comparison(ABC):
     typically a derived quantity of the test data such as incidence rate or prevalence."""
 
     measure: Measure
+    test_source: DataSource
     test_data: pd.DataFrame
+    reference_source: DataSource
     reference_data: pd.DataFrame
     stratifications: list[str]
 
+    @property
+    @abstractmethod
+    def metadata(self) -> pd.DataFrame:
+        """A summary of the test data and reference data, including:
+        - the measure key
+        - source
+        - index columns
+        - size
+        - number of draws
+        - a sample of the input draws.
+        """
+        pass
+
+    @abstractmethod
+    def get_diff(
+        self,
+        stratifications: Collection[str] = (),
+        num_rows: int | str = 10,
+        sort_by: str = "percent_error",
+        ascending: bool = False,
+    ) -> pd.DataFrame:
+        """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
+
+        Parameters:
+        -----------
+        stratifications
+            The stratifications to use for the comparison
+        num_rows
+            The number of rows to return. If "all", return all rows.
+        sort_by
+            The column to sort by. Default is "percent_error".
+        ascending
+            Whether to sort in ascending order. Default is False.
+        Returns:
+        --------
+        A DataFrame of the comparison data.
+        """
+        pass
+
     @abstractmethod
     def verify(self, stratifications: Collection[str] = ()):
-        pass
-
-    @abstractmethod
-    def summarize(self, stratifications: Collection[str] = ()):
-        pass
-
-    @abstractmethod
-    def heads(self, stratifications: Collection[str] = ()):
         pass
 
 
 class FuzzyComparison(Comparison):
+    """A FuzzyComparison is a comparison that requires statistical hypothesis testing
+    to determine if the distributions of the datasets are the same. We require both the numerator and
+    denominator for the test data, to be able to calculate the statistical power."""
+
     def __init__(
         self,
         measure: RatioMeasure,
+        test_source: DataSource,
         test_data: pd.DataFrame,
+        reference_source: DataSource,
         reference_data: pd.DataFrame,
         stratifications: Collection[str] = (),
     ):
         self.measure = measure
+        self.test_source = test_source
         self.test_data = test_data
-        self.reference_data = reference_data
+        self.reference_source = reference_source
+        self.reference_data = reference_data.rename(columns={"value": "reference_rate"})
+        if stratifications:
+            # TODO: MIC-6075
+            raise NotImplementedError(
+                "Non-default stratifications require rate aggregations, which are not currently supported."
+            )
         self.stratifications = stratifications
+
+    @property
+    def metadata(self) -> pd.DataFrame:
+        """A summary of the test data and reference data, including:
+        - the measure key
+        - source
+        - index columns
+        - size
+        - number of draws
+        - a sample of the input draws.
+        """
+        measure_key = self.measure.measure_key
+        test_info = get_metadata_from_dataset(self.test_source, self.test_data)
+        reference_info = get_metadata_from_dataset(self.reference_source, self.reference_data)
+        return format_metadata_pandas(measure_key, test_info, reference_info)
+
+    def get_diff(
+        self,
+        stratifications: Collection[str] = (),
+        num_rows: int | str = 10,
+        sort_by: str = "abs_percent_error",
+        ascending: bool = False,
+    ) -> pd.DataFrame:
+        """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
+
+        Parameters:
+        -----------
+        stratifications
+            The stratifications to use for the comparison
+        num_rows
+            The number of rows to return. If "all", return all rows.
+        sort_by
+            The column to sort by. Default is "percent_error".
+        ascending
+            Whether to sort in ascending order. Default is False.
+        Returns:
+        --------
+        A DataFrame of the comparison data.
+        """
+        if stratifications:
+            # TODO: MIC-6075
+            raise NotImplementedError(
+                "Non-default stratifications require rate aggregations, which are not currently supported."
+            )
+
+        test_data, reference_data = self._align_datasets()
+
+        merged_data = pd.merge(test_data, reference_data, left_index=True, right_index=True)
+        merged_data["abs_percent_error"] = (
+            abs(
+                (merged_data["test_rate"] - merged_data["reference_rate"])
+                / merged_data["reference_rate"]
+            )
+            * 100
+        )
+        sorted_data = merged_data.sort_values(
+            by=sort_by,
+            ascending=ascending,
+        )
+        if num_rows == "all":
+            return sorted_data
+        else:
+            return sorted_data.head(n=num_rows)
 
     def verify(self, stratifications: Collection[str] = ()):
         raise NotImplementedError
 
-    def summarize(self, stratifications: Collection[str] = ()):
-        raise NotImplementedError
+    def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Resolve any index mismatches between the test and reference datasets."""
+        test_data = self.test_data.copy()
+        reference_data = self.reference_data.copy()
+        # If the test data has any index levels that are not in the reference data, marginalize
+        # over those index levels.
+        test_only_indexes = [
+            index
+            for index in self.test_data.index.names
+            if index not in self.reference_data.index.names
+        ]
+        stratified_test_data = marginalize(test_data, test_only_indexes)
 
-    def heads(self, stratifications: Collection[str] = ()):
-        raise NotImplementedError
+        # Drop any singular index levels from the reference data if they are not in the test data.
+        # If any ref-only index level is not singular, raise an error.
+        ref_only_indexes = [
+            index
+            for index in self.reference_data.index.names
+            if index not in self.test_data.index.names
+        ]
+        redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
+        for index_name in ref_only_indexes:
+            if not index_name in redundant_ref_indexes:
+                # TODO: MIC-6075
+                raise ValueError(
+                    f"Reference data has non-trivial index {index_name} that is not in the test data."
+                    "We cannot currently marginalize over this index."
+                )
+            else:
+                reference_data = reference_data.droplevel(index_name)
+
+        converted_test_data = self.measure.get_measure_data_from_ratio(
+            stratified_test_data
+        ).rename(columns={"value": "test_rate"})
+        return converted_test_data, reference_data
