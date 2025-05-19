@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Collection
 
 import pandas as pd
+from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
@@ -105,7 +107,7 @@ class ValidationContext:
                 stratifications, num_rows, sort_by, ascending
             )
 
-    def plot_comparison(self, comparison_key: str, type: str, **kwargs):  # type: ignore[no-untyped-def]
+    def plot_comparison(self, comparison_key: str, type: str, **kwargs) -> Figure:  # type: ignore[no-untyped-def]
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
 
     def generate_comparisons(self):  # type: ignore[no-untyped-def]

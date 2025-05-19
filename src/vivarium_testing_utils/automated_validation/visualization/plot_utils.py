@@ -3,6 +3,7 @@ from vivarium_testing_utils.automated_validation.data_loader import DataSource
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 import seaborn as sns
 
 RELPLOT_KWARGS = {
@@ -10,12 +11,45 @@ RELPLOT_KWARGS = {
     "aspect": 1.3,
     "marker": "o",
     "markers": True,
-    "errorbar": ("ci", 97.5),
     "facet_kws": {"sharex": False, "sharey": True},
 }
 
-def plot_comparison(comparison: Comparison, type: str, kwargs):
-    raise NotImplementedError
+
+def plot_comparison(comparison: Comparison, type: str, kwargs) -> Figure:
+    """Create a plot for the given comparison.
+
+    Args:
+        comparison (Comparison): The comparison object to plot.
+        type (str): Type of plot to create.
+        kwargs: Additional keyword arguments for specific plot types.
+
+    Returns:
+        matplotlib.figure.Figure: The generated figure.
+    """
+    PLOT_TYPE_MAPPING = {
+        "line": line_plot,
+        "bar": bar_plot,
+        "box": box_plot,
+        "heatmap": heatmap,
+    }
+    if type not in PLOT_TYPE_MAPPING:
+        raise ValueError(
+            f"Unsupported plot type: {type}. Supported types are: {list(PLOT_TYPE_MAPPING.keys())}"
+        )
+
+    title = " ".join(comparison.measure.measure_key.split(".")[1:]).capitalize()
+    test_data, reference_data = comparison._align_datasets()
+
+    default_kwargs = {
+        "title": title,
+        "test_data": test_data,
+        "test_source": comparison.test_source,
+        "reference_data": reference_data,
+        "reference_source": comparison.reference_source,
+    }
+    default_kwargs.update(kwargs)
+
+    return PLOT_TYPE_MAPPING[type](**default_kwargs)
 
 
 def plot_data(dataset: pd.DataFrame, type: str, kwargs):
@@ -30,7 +64,7 @@ def line_plot(
     reference_source: DataSource,
     x_axis: str,
     stratifications: list[str],
-):
+) -> Figure:
     """Create a stratified line plot using Seaborn's relplot.
 
     Args:
@@ -51,9 +85,15 @@ def line_plot(
     # Prepare data
     test_data_with_source = test_data.copy()
     test_data_with_source["source"] = test_source.name.lower().capitalize()
+    test_data_with_source.set_index("source", append=True, inplace=True)
 
     reference_data_with_source = reference_data.copy()
     reference_data_with_source["source"] = reference_source.name.lower().capitalize()
+    reference_data_with_source.set_index("source", append=True, inplace=True)
+
+    test_data_with_source = test_data_with_source.reorder_levels(
+        reference_data_with_source.index.names
+    )
 
     # Combine datasets
     combined_data = pd.concat(
@@ -66,7 +106,8 @@ def line_plot(
     relplot_kwargs["hue"] = "source"
     relplot_kwargs["x"] = x_axis
     relplot_kwargs["y"] = "value"  # Assuming 'value' is the y-axis variable
-    relplot_kwargs["kind"] = "line"
+    relplot_kwargs["kind"] = "scatter"
+    # relplot_kwargs["errorbar"] = ("ci", 97.5)
 
     # Add stratifications
     if stratifications:
@@ -89,15 +130,39 @@ def line_plot(
     return g
 
 
-def bar_plot(comparison: Comparison, x_axis: str, stratifications: list[str]):
+def bar_plot(
+    title: str,
+    test_data: pd.DataFrame,
+    test_source: DataSource,
+    reference_data: pd.DataFrame,
+    reference_source: DataSource,
+    x_axis: str,
+    stratifications: list[str],
+):
     raise NotImplementedError
 
 
-def box_plot(comparison: Comparison, cat: str, stratifications: list[str]):
+def box_plot(
+    title: str,
+    test_data: pd.DataFrame,
+    test_source: DataSource,
+    reference_data: pd.DataFrame,
+    reference_source: DataSource,
+    cat: str,
+    stratifications: list[str],
+):
     raise NotImplementedError
 
 
-def heatmap(comparison: Comparison, row: str, col: str):
+def heatmap(
+    title: str,
+    test_data: pd.DataFrame,
+    test_source: DataSource,
+    reference_data: pd.DataFrame,
+    reference_source: DataSource,
+    row: str,
+    col: str,
+):
     raise NotImplementedError
 
 
