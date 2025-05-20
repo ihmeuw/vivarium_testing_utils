@@ -65,6 +65,7 @@ if __name__ == "__main__":
 
     test_requirements = [
         "vivarium_dependencies[pytest]",
+        "pytest-check",
     ]
 
     doc_requirements = [

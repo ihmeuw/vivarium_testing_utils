@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Collection, Literal
 
 import pandas as pd
 
-from vivarium_testing_utils.automated_validation import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
@@ -14,6 +14,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     MEASURE_KEY_MAPPINGS,
     Measure,
 )
+from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
 
 class ValidationContext:
@@ -72,20 +73,52 @@ class ValidationContext:
         ref_data = resolve_age_groups(ref_data, self.age_groups)
         comparison = FuzzyComparison(
             measure,
+            test_source_enum,
             test_data,
+            ref_source_enum,
             ref_data,
             stratifications,
         )
         self.comparisons[measure_key] = comparison
 
-    def verify(self, comparison_key: str, stratifications: list[str] = []):  # type: ignore[no-untyped-def]
+    def verify(self, comparison_key: str, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         self.comparisons[comparison_key].verify(stratifications)
 
-    def summarize(self, comparison_key: str, stratifications: list[str] = []):  # type: ignore[no-untyped-def]
-        return self.comparisons[comparison_key].summarize(stratifications)
+    def metadata(self, comparison_key: str) -> pd.DataFrame:
+        return self.comparisons[comparison_key].metadata
 
-    def heads(self, comparison_key: str, stratifications: list[str] = []):  # type: ignore[no-untyped-def]
-        self.comparisons[comparison_key].heads(stratifications)
+    def get_frame(
+        self,
+        comparison_key: str,
+        stratifications: Collection[str] = (),
+        num_rows: int | Literal["all"] = 10,
+        sort_by: str = "percent_error",
+        ascending: bool = False,
+    ) -> pd.DataFrame:
+        """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
+
+        Parameters:
+        -----------
+        comparison_key
+            The key of the comparison for which to get the data
+        stratifications
+            The stratifications to use for the comparison
+        num_rows
+            The number of rows to return. If "all", return all rows.
+        sort_by
+            The column to sort by. Default is "percent_error".
+        ascending
+            Whether to sort in ascending order. Default is False.
+        Returns:
+        --------
+        A DataFrame of the comparison data.
+        """
+        if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
+            return self.comparisons[comparison_key].get_diff(
+                stratifications, num_rows, sort_by, ascending
+            )
+        else:
+            raise ValueError("num_rows must be a positive integer or literal 'all'")
 
     def plot_comparison(self, comparison_key: str, type: str, **kwargs):  # type: ignore[no-untyped-def]
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
@@ -123,7 +156,9 @@ class ValidationContext:
             raise ValueError(
                 "No age groups found. Please provide a DataFrame or use the artifact."
             )
-        return age_groups
+            # relabel index level age_group_name to age_group
+
+        return age_groups.rename_axis(index={"age_group_name": "age_group"})
 
     def _get_raw_datasets_from_source(
         self, measure: Measure, source: DataSource

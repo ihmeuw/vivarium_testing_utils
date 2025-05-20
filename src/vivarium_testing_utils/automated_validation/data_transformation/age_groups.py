@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 
 import pandas as pd
+import pandera as pa
 from loguru import logger
 
 AGE_GROUP_COLUMN = "age_group"
@@ -11,6 +12,11 @@ AGE_END_COLUMN = "age_end"
 
 AgeTuple = tuple[str, int | float, int | float]
 AgeRange = tuple[int | float, int | float]
+
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    RatioData,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
 
 
 class AgeGroup:
@@ -391,34 +397,6 @@ class AgeSchema:
         return True
 
 
-def get_transform_matrix(source_schema: AgeSchema, target_schema: AgeSchema) -> pd.DataFrame:
-    """
-    Get a converter mapping between this source schema and target schema.
-
-    Parameters
-    ----------
-    source_schema
-        The source age schema to convert from.
-    target_schema
-        The target age schema to convert to.
-    Returns
-    -------
-        A dataframe with the target age groups as rows and the source age groups as columns,
-        with the values representing the fraction of the source age group that should go into the target age group.
-    """
-    source_age_groups = [group.name for group in source_schema.age_groups]
-    target_age_groups = [group.name for group in target_schema.age_groups]
-
-    transform_matrix = pd.DataFrame(0.0, index=target_age_groups, columns=source_age_groups)
-    for target_group in target_schema.age_groups:
-        for source_group in source_schema.age_groups:
-            # Calculate what fraction of the source group should go into the target group
-            fraction = source_group.fraction_contained_by(target_group)
-            if fraction > 0:
-                transform_matrix.loc[target_group.name, source_group.name] = fraction
-    return transform_matrix
-
-
 def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame:
     """
     Format a DataFrame to match the current schema.
@@ -453,15 +431,35 @@ def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame
             "The source age interval must be a contained by the target interval of age groups."
         )
     if source_age_schema.is_subset(target_schema):
-        return df
+        return (
+            pd.merge(
+                df.droplevel([AGE_GROUP_COLUMN]),
+                target_schema.to_dataframe(),
+                left_index=True,
+                right_index=True,
+            )
+            .reorder_levels(index_names)
+            .droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
+        )
     else:
         logger.info(
             f"Rebinning DataFrame age groups from {source_age_schema} to {target_schema}."
         )
-        return rebin_dataframe(target_schema, df)
+        # if we don't fit pandera schema SimOutputData, assume the data is rate data and raise an error.
+        try:
+            data = rebin_count_dataframe(
+                target_schema, df.droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
+            )
+        except pa.errors.SchemaError:
+            # TODO: MIC-6075
+            raise NotImplementedError(
+                "Age Group rebinning can only be performed on count data."
+            )
+        return data
 
 
-def rebin_dataframe(
+@check_io(df=RatioData)
+def rebin_count_dataframe(
     target_schema: AgeSchema,
     df: pd.DataFrame,
 ) -> pd.DataFrame:
@@ -483,7 +481,7 @@ def rebin_dataframe(
     """
     source_age_schema = AgeSchema.from_dataframe(df)
 
-    transform_matrix = get_transform_matrix(source_age_schema, target_schema)
+    transform_matrix = _get_transform_matrix(source_age_schema, target_schema)
 
     original_index_names = list(df.index.names)
 
@@ -515,3 +513,32 @@ def rebin_dataframe(
     output_df = pd.concat(all_results_series, axis=1).reorder_levels(original_index_names)
 
     return output_df.sort_index()
+
+
+def _get_transform_matrix(source_schema: AgeSchema, target_schema: AgeSchema) -> pd.DataFrame:
+    """
+    Get a linear converter mapping between this source schema and target schema.
+
+    Parameters
+    ----------
+    source_schema
+        The source age schema to convert from.
+    target_schema
+        The target age schema to convert to.
+    Returns
+    -------
+        A dataframe with the target age groups as rows and the source age groups as columns,
+        with the values representing the fraction of the source age group that should go into the target age group. Currently,
+        this only supports an unweighted allocation--it is therefore NOT appropriate for transforming data in rate space.
+    """
+    source_age_groups = [group.name for group in source_schema.age_groups]
+    target_age_groups = [group.name for group in target_schema.age_groups]
+
+    transform_matrix = pd.DataFrame(0.0, index=target_age_groups, columns=source_age_groups)
+    for target_group in target_schema.age_groups:
+        for source_group in source_schema.age_groups:
+            # Calculate what fraction of the source group should go into the target group
+            fraction = source_group.fraction_contained_by(target_group)
+            if fraction > 0:
+                transform_matrix.loc[target_group.name, source_group.name] = fraction
+    return transform_matrix
