@@ -106,8 +106,8 @@ def line_plot(
     relplot_kwargs["hue"] = "source"
     relplot_kwargs["x"] = x_axis
     relplot_kwargs["y"] = "value"  # Assuming 'value' is the y-axis variable
-    relplot_kwargs["kind"] = "scatter"
-    # relplot_kwargs["errorbar"] = ("ci", 97.5)
+    relplot_kwargs["kind"] = "line"
+    relplot_kwargs["errorbar"] = "pi"  # Nonparametric 95% CI
 
     # Add stratifications
     if stratifications:
