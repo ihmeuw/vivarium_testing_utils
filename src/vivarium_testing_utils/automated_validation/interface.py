@@ -18,6 +18,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     Measure,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
+from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
+    AgeSchema,
+)
 
 
 class ValidationContext:
@@ -75,12 +78,13 @@ class ValidationContext:
         test_data = resolve_age_groups(test_data, self.age_groups)
         ref_data = resolve_age_groups(ref_data, self.age_groups)
         comparison = FuzzyComparison(
-            measure,
-            test_source_enum,
-            test_data,
-            ref_source_enum,
-            ref_data,
-            stratifications,
+            measure=measure,
+            test_source=test_source_enum,
+            test_data=test_data,
+            reference_source=ref_source_enum,
+            reference_data=ref_data,
+            stratifications=stratifications,
+            age_schema=AgeSchema.from_dataframe(self.age_groups),
         )
         self.comparisons[measure_key] = comparison
 

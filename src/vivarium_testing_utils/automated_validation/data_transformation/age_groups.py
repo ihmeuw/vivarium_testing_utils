@@ -397,6 +397,17 @@ class AgeSchema:
         return True
 
 
+def sort_dataframe_by_age(age_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame:
+    # Create a mapping for ordering age groups according to target schema
+    age_order_map = {
+        name: i for i, name in enumerate([group.name for group in age_schema.age_groups])
+    }
+    # Sort the output by the target schema's age group order using sort_index with a key function
+    return df.sort_index(
+        level=AGE_GROUP_COLUMN, key=lambda x: x.map(age_order_map), sort_remaining=False
+    )
+
+
 def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame:
     """
     Format a DataFrame to match the current schema.
@@ -512,7 +523,7 @@ def rebin_count_dataframe(
 
     output_df = pd.concat(all_results_series, axis=1).reorder_levels(original_index_names)
 
-    return output_df.sort_index()
+    return output_df
 
 
 def _get_transform_matrix(source_schema: AgeSchema, target_schema: AgeSchema) -> pd.DataFrame:

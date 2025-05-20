@@ -16,6 +16,11 @@ from vivarium_testing_utils.automated_validation.visualization.dataframe_utils i
     format_draws_sample,
     format_metadata,
 )
+from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
+    AgeSchema,
+    sort_dataframe_by_age,
+    AGE_GROUP_COLUMN,
+)
 
 
 class Comparison(ABC):
@@ -30,6 +35,7 @@ class Comparison(ABC):
     reference_source: DataSource
     reference_data: pd.DataFrame
     stratifications: list[str]
+    age_schema: AgeSchema | None = None
 
     @property
     @abstractmethod
@@ -88,6 +94,7 @@ class FuzzyComparison(Comparison):
         reference_source: DataSource,
         reference_data: pd.DataFrame,
         stratifications: Collection[str] = (),
+        age_schema: AgeSchema | None = None,
     ):
         self.measure = measure
         self.test_source = test_source
@@ -100,6 +107,7 @@ class FuzzyComparison(Comparison):
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
         self.stratifications = stratifications
+        self.age_schema = age_schema
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -146,6 +154,7 @@ class FuzzyComparison(Comparison):
             )
 
         test_data, reference_data = self._align_datasets()
+
         test_data = test_data.rename(columns={"value": "test_rate"})
         reference_data = reference_data.rename(columns={"value": "reference_rate"})
         test_data.dropna(inplace=True)
@@ -252,4 +261,7 @@ class FuzzyComparison(Comparison):
                 reference_data = reference_data.droplevel(index_name)
 
         converted_test_data = self.measure.get_measure_data_from_ratio(stratified_test_data)
+
+        if AGE_GROUP_COLUMN in converted_test_data.index.names and self.age_schema:
+            converted_test_data = sort_dataframe_by_age(self.age_schema, converted_test_data)
         return converted_test_data, reference_data
