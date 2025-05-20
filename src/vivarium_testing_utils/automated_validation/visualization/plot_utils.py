@@ -1,6 +1,6 @@
 import pandas as pd
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
-
+from typing import Any
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
@@ -36,16 +36,15 @@ def plot_comparison(comparison: Comparison, type: str, kwargs) -> Figure:
         raise ValueError(
             f"Unsupported plot type: {type}. Supported types are: {list(PLOT_TYPE_MAPPING.keys())}"
         )
-
-    title = " ".join(comparison.measure.measure_key.split(".")[1:]).capitalize()
+    title = titleify(comparison.measure.measure_key)
     test_data, reference_data = comparison._align_datasets()
+    test_data = _append_source(test_data, comparison.test_source)
+    reference_data = _append_source(reference_data, comparison.reference_source)
 
     default_kwargs = {
         "title": title,
         "test_data": test_data,
-        "test_source": comparison.test_source,
         "reference_data": reference_data,
-        "reference_source": comparison.reference_source,
     }
     default_kwargs.update(kwargs)
 
@@ -59,11 +58,9 @@ def plot_data(dataset: pd.DataFrame, type: str, kwargs):
 def line_plot(
     title: str,
     test_data: pd.DataFrame,
-    test_source: DataSource,
     reference_data: pd.DataFrame,
-    reference_source: DataSource,
-    x_axis: str,
-    stratifications: list[str],
+    x_axis: str = "age_group",
+    condition: dict[str, Any] = {},
 ) -> Figure:
     """Create a stratified line plot using Seaborn's relplot.
 
@@ -79,26 +76,27 @@ def line_plot(
     Returns:
         matplotlib.figure.Figure: The generated figure
     """
-    if len(stratifications) > 2:
-        raise ValueError("Maximum of 2 stratifications supported")
-
-    # Prepare data
-    test_data_with_source = test_data.copy()
-    test_data_with_source["source"] = test_source.name.lower().capitalize()
-    test_data_with_source.set_index("source", append=True, inplace=True)
-
-    reference_data_with_source = reference_data.copy()
-    reference_data_with_source["source"] = reference_source.name.lower().capitalize()
-    reference_data_with_source.set_index("source", append=True, inplace=True)
-
-    test_data_with_source = test_data_with_source.reorder_levels(
-        reference_data_with_source.index.names
+    ALLOWED_STRATIFICATIONS = 2
+    all_indexes = test_data.index.names
+    stat_cols = ["input_draw", "random_seed"]
+    plotted_cols = [x_axis, "source"]
+    condition_cols = condition.keys()
+    unconditioned = list(
+        set(all_indexes) - set(stat_cols) - set(condition_cols) - set(plotted_cols)
     )
 
+    if len(unconditioned) > ALLOWED_STRATIFICATIONS:
+        raise ValueError(
+            "Maximum of {ALLOWED_STRATIFICATIONS} stratification levels supported."
+            f"Please conditionalize {len(unconditioned) - ALLOWED_STRATIFICATIONS} of levels {unconditioned}."
+        )
+
+    test_data = test_data.reorder_levels(reference_data.index.names)
+
     # Combine datasets
-    combined_data = pd.concat(
-        [test_data_with_source, reference_data_with_source]
-    ).reset_index()
+    combined_data = pd.concat([test_data, reference_data]).reset_index()
+    for condition_col, condition_value in condition.items():
+        combined_data = combined_data[combined_data[condition_col] == condition_value]
 
     # Set up relplot parameters based on stratifications
     relplot_kwargs = RELPLOT_KWARGS.copy()
@@ -109,14 +107,23 @@ def line_plot(
     relplot_kwargs["kind"] = "line"
     relplot_kwargs["errorbar"] = "pi"  # Nonparametric 95% CI
 
-    # Add stratifications
-    if stratifications:
-        if len(stratifications) == 1:
-            relplot_kwargs["col"] = stratifications[0]
-            relplot_kwargs["col_wrap"] = min(3, combined_data[stratifications[0]].nunique())
+    if unconditioned:
+        title
+        # make the unconditioned column with more unique values the row
+        # and the one with fewer unique values the column
+        if len(unconditioned) == 2:
+            first, second = unconditioned
+            if (
+                test_data.index.get_level_values(first).nunique()
+                > test_data.index.get_level_values(second).nunique()
+            ):
+                relplot_kwargs["row"] = first
+                relplot_kwargs["col"] = second
+            else:
+                relplot_kwargs["row"] = second
+                relplot_kwargs["col"] = first
         else:
-            relplot_kwargs["row"] = stratifications[0]
-            relplot_kwargs["col"] = stratifications[1]
+            relplot_kwargs["row"] = unconditioned[0]
 
     # Create the plot
     g = sns.relplot(**relplot_kwargs)
@@ -124,6 +131,12 @@ def line_plot(
     # Customize
     g.set_axis_labels(x_axis, "Proportion")
     # Add overall title
+    # Add subtitle for conditions
+    if condition:
+        # Add to title for each condition
+        condition_text = f"{' | '.join([f'{k} = {v}' for k, v in condition.items()])}"
+        title += f"\n given {condition_text}"
+
     g.figure.suptitle(title, y=1.02, fontsize=16)
     g.map(plt.grid, alpha=0.5, color="gray")
     g.tight_layout()
@@ -168,3 +181,26 @@ def heatmap(
 
 def save_plot(fig, name, format):
     raise NotImplementedError
+
+##################
+# Helper Methods #
+##################
+
+
+def _append_source(
+    data: pd.DataFrame,
+    source: DataSource,
+) -> pd.DataFrame:
+    """Append a source column to the DataFrame."""
+    data_with_source = data.copy()
+    data_with_source["source"] = source.name.lower().capitalize()
+    data_with_source.set_index("source", append=True, inplace=True)
+    return data_with_source
+
+
+def titleify(measure_key: str) -> str:
+    """Convert a measure key to a more readable format."""
+    title = " ".join(measure_key.split(".")[1:])
+    title = title.replace("_", " ")
+    title = " ".join([word.capitalize() for word in title.split()])
+    return title
