@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -38,15 +39,16 @@ def test_ratio(intermediate_data: pd.DataFrame) -> None:
     assert ratio(intermediate_data, "a", "b").equals(
         pd.DataFrame({"value": [1 / 4, 2 / 5, 3 / 6, 4 / 7]}, index=intermediate_data.index)
     )
-    assert ratio(intermediate_data, "a", "c").equals(
-        pd.DataFrame({"value": [1, 2, float("inf"), 4]}, index=intermediate_data.index)
+    pd.testing.assert_frame_equal(
+        ratio(intermediate_data, "a", "c"),
+        pd.DataFrame({"value": [1.0, 2.0, np.nan, 4.0]}, index=intermediate_data.index),
     )
     # test non-existent column
     with pytest.raises(KeyError):
         ratio(intermediate_data, "a", "foo")
 
 
-def test_aggregate(intermediate_data: pd.DataFrame) -> None:
+def test_aggregate_sum(intermediate_data: pd.DataFrame) -> None:
     """Test aggregating over different combinations of value columns."""
     assert aggregate_sum(intermediate_data, ["group"]).equals(
         pd.DataFrame(
