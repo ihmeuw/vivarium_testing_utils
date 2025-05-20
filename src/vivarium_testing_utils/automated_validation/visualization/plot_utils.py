@@ -87,7 +87,7 @@ def line_plot(
 
     if len(unconditioned) > ALLOWED_STRATIFICATIONS:
         raise ValueError(
-            "Maximum of {ALLOWED_STRATIFICATIONS} stratification levels supported."
+            "Maximum of {ALLOWED_STRATIFICATIONS} stratification levels supported with ."
             f"Please conditionalize {len(unconditioned) - ALLOWED_STRATIFICATIONS} of levels {unconditioned}."
         )
 
@@ -108,9 +108,6 @@ def line_plot(
     relplot_kwargs["errorbar"] = "pi"  # Nonparametric 95% CI
 
     if unconditioned:
-        title
-        # make the unconditioned column with more unique values the row
-        # and the one with fewer unique values the column
         if len(unconditioned) == 2:
             first, second = unconditioned
             if (
@@ -146,9 +143,7 @@ def line_plot(
 def bar_plot(
     title: str,
     test_data: pd.DataFrame,
-    test_source: DataSource,
     reference_data: pd.DataFrame,
-    reference_source: DataSource,
     x_axis: str,
     stratifications: list[str],
 ):
@@ -158,9 +153,7 @@ def bar_plot(
 def box_plot(
     title: str,
     test_data: pd.DataFrame,
-    test_source: DataSource,
     reference_data: pd.DataFrame,
-    reference_source: DataSource,
     cat: str,
     stratifications: list[str],
 ):
@@ -170,9 +163,7 @@ def box_plot(
 def heatmap(
     title: str,
     test_data: pd.DataFrame,
-    test_source: DataSource,
     reference_data: pd.DataFrame,
-    reference_source: DataSource,
     row: str,
     col: str,
 ):
