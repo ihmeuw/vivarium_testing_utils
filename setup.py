@@ -75,11 +75,7 @@ if __name__ == "__main__":
         "jupyter",
     ]
 
-    test_requirements = [
-        "pytest",
-        "pytest-mock",
-        "pytest-cov",
-    ]
+    test_requirements = ["pytest", "pytest-mock", "pytest-cov", "pytest-check"]
 
     doc_requirements = [
         "sphinx>=4.0",

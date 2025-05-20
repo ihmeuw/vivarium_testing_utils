@@ -12,9 +12,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     AgeRange,
     AgeSchema,
     AgeTuple,
+    _get_transform_matrix,
     format_dataframe,
-    get_transform_matrix,
-    rebin_dataframe,
+    rebin_count_dataframe,
 )
 
 
@@ -200,7 +200,7 @@ def test_age_schema_can_coerce_to() -> None:
 def test_age_schema_get_transform_matrix(sample_age_schema: AgeSchema) -> None:
     """Test we can get a transform matrix between two schemas."""
     new_schema = AgeSchema.from_tuples([("0_to_7.5", 0, 7.5), ("7.5_to_15", 7.5, 15)])
-    transform_matrix = get_transform_matrix(sample_age_schema, new_schema)
+    transform_matrix = _get_transform_matrix(sample_age_schema, new_schema)
     expected_matrix = pd.DataFrame(
         {
             "0_to_5": [1.0, 0.0],
@@ -220,11 +220,10 @@ def test_age_schema_format_cols(
     for dataframe in [
         sample_df_with_ages,
         sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
-        sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
     ]:
         pd.testing.assert_frame_equal(
             format_dataframe(sample_age_schema, dataframe),
-            sample_df_with_ages,
+            sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
         )
 
 
@@ -259,7 +258,11 @@ def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) ->
     )
     formatted_df = format_dataframe(target_age_schema, sample_df_with_ages)
     pd.testing.assert_frame_equal(
-        formatted_df, rebin_dataframe(target_age_schema, sample_df_with_ages)
+        formatted_df,
+        rebin_count_dataframe(
+            target_age_schema,
+            sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
+        ),
     )
 
 
@@ -288,7 +291,7 @@ def test_rebin_dataframe(sample_df_with_ages: pd.DataFrame) -> None:
         "7_to_15": 5.0 * 3 / 5 + 6.0,
     }
 
-    rebinned_df = rebin_dataframe(target_age_schema, df)
+    rebinned_df = rebin_count_dataframe(target_age_schema, df)
     expected_df = pd.DataFrame(
         {
             "foo": expected_foo.values(),
