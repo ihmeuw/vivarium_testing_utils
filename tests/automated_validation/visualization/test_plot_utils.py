@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.testing.compare import compare_images
 import os
 from vivarium_testing_utils.automated_validation.visualization.plot_utils import (
-    line_plot,
+    rel_plot,
     RELPLOT_KWARGS,
 )
 import seaborn as sns

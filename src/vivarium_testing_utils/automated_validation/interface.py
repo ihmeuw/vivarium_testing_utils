@@ -127,7 +127,7 @@ class ValidationContext:
         else:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
 
-    def plot_comparison(self, comparison_key: str, type: str, **kwargs) -> Figure:  # type: ignore[no-untyped-def]
+    def plot_comparison(self, comparison_key: str, type: str, **kwargs) -> Figure | list[Figure]:  # type: ignore[no-untyped-def]
         return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
 
     def generate_comparisons(self):  # type: ignore[no-untyped-def]

@@ -15,7 +15,7 @@ RELPLOT_KWARGS = {
 }
 
 
-def plot_comparison(comparison: Comparison, type: str, kwargs) -> Figure:
+def plot_comparison(comparison: Comparison, type: str, kwargs) -> Figure | list[Figure]:
     """Create a plot for the given comparison.
 
     Args:
@@ -24,7 +24,7 @@ def plot_comparison(comparison: Comparison, type: str, kwargs) -> Figure:
         kwargs: Additional keyword arguments for specific plot types.
 
     Returns:
-        matplotlib.figure.Figure: The generated figure.
+        matplotlib.figure.Figure | list[Figure]: The generated figure or list of figures.
     """
     PLOT_TYPE_MAPPING = {
         "line": line_plot,
@@ -56,6 +56,117 @@ def plot_data(dataset: pd.DataFrame, type: str, kwargs):
 
 
 def line_plot(
+    title: str,
+    test_data: pd.DataFrame,
+    reference_data: pd.DataFrame,
+    x_axis: str,
+    subplots: bool = True,
+) -> Figure | list[Figure]:
+    if subplots:
+        return rel_plot(
+            title=title,
+            test_data=test_data,
+            reference_data=reference_data,
+            x_axis=x_axis,
+        )
+    else:
+        all_indexes = test_data.index.names
+        stat_cols = ["input_draw", "random_seed"]
+        plotted_cols = [x_axis, "source"]
+        unconditioned = list(set(all_indexes) - set(stat_cols) - set(plotted_cols))
+
+        # Get all the grouped data
+        groups = list(
+            zip(
+                test_data.groupby(level=unconditioned),
+                reference_data.groupby(level=unconditioned),
+            )
+        )
+
+        # Close any existing figures to avoid conflicts
+        plt.close("all")
+
+        # List to store individual figures
+        figures = []
+
+        # Create individual figures for each condition
+        for (
+            (test_grouped_idx, test_grouped_df),
+            (ref_grouped_idx, ref_grouped_df),
+        ) in groups:
+            # Create a new figure for each condition
+            fig = plt.figure(figsize=(10, 6))
+            ax = fig.add_subplot(111)
+
+            condition_text = f"{' | '.join([f'{col} = {val}' for col, val in zip(unconditioned, test_grouped_idx)])}"
+            condition_title = f"{title}\n given {condition_text}"
+
+            # Create the plot
+            test_grouped_df = test_grouped_df.reorder_levels(ref_grouped_df.index.names)
+            combined_data = pd.concat([test_grouped_df, ref_grouped_df]).reset_index()
+
+            sns.lineplot(
+                data=combined_data,
+                x=x_axis,
+                y="value",
+                hue="source",
+                marker="o",
+                markers=True,
+                ax=ax,
+            )
+
+            ax.set_title(condition_title)
+            ax.set_xlabel(x_axis)
+            ax.set_ylabel("Proportion")
+            ax.grid(alpha=0.5, color="gray")
+
+            # Finalize the figure
+            plt.tight_layout()
+
+            # Add to our list of figures
+            figures.append(fig)
+
+        return figures
+
+
+def line_plot_flat(
+    title: str, test_data: pd.DataFrame, reference_data: pd.DataFrame, x_axis: str
+) -> Figure:
+    """Create a 1-d line plot"""
+    # ensure that apart from the x-axis, all other columns have only one value.
+    all_indexes = test_data.index.names
+    stat_cols = ["input_draw", "random_seed"]
+    plotted_cols = [x_axis, "source"]
+    unconditioned = list(set(all_indexes) - set(stat_cols) - set(plotted_cols))
+    for col in unconditioned:
+        if test_data.index.get_level_values(col).nunique() > 1:
+            raise ValueError(
+                f"Column {col} has more than one unique value. "
+                "Please condition on this column before plotting."
+            )
+    test_data = test_data.reorder_levels(reference_data.index.names)
+    # Combine datasets
+    combined_data = pd.concat([test_data, reference_data]).reset_index()
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    g = sns.lineplot(
+        data=combined_data,
+        x=x_axis,
+        y="value",  # Assuming 'value' is the y-axis variable
+        hue="source",
+        marker="o",
+        markers=True,
+        ax=ax,
+    )
+    ax.set_title(title)
+    ax.set_xlabel(x_axis)
+    ax.set_ylabel("Proportion")
+    ax.grid(alpha=0.5, color="gray")
+
+    return fig
+
+
+def rel_plot(
     title: str,
     test_data: pd.DataFrame,
     reference_data: pd.DataFrame,
