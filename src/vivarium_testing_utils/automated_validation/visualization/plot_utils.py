@@ -6,7 +6,10 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 import seaborn as sns
 
-def plot_comparison(comparison: Comparison, type: str, kwargs) -> Figure | list[Figure]:
+
+def plot_comparison(
+    comparison: Comparison, type: str, condition: dict[str, Any] = {}, **kwargs: Any
+) -> Figure | list[Figure]:
     """Create a plot for the given comparison.
 
     Args:
@@ -31,6 +34,8 @@ def plot_comparison(comparison: Comparison, type: str, kwargs) -> Figure | list[
 
     combined_data = get_combined_data(comparison)
 
+    title, combined_data = conditionalize(condition, title, combined_data)
+
     default_kwargs = {
         "title": title,
         "combined_data": combined_data,
@@ -54,9 +59,7 @@ def line_plot(
     LINEPLOT_KWARGS = {
         "marker": "o",
         "markers": True,
-        "data": combined_data.reset_index(),
         "hue": "source",
-        "x": x_axis,
         "y": "value",  # Assuming 'value' is the y-axis variable
         "errorbar": "pi",  # Nonparametric 95% CI
     }
@@ -79,6 +82,8 @@ def line_plot(
 
         # Create individual figures for each condition
         for grouped_idx, grouped_df in combined_data.groupby(level=unconditioned):
+            if not isinstance(grouped_idx, tuple):
+                grouped_idx = (grouped_idx,)
             # Create a new figure for each condition
             fig = plt.figure(figsize=(10, 6))
             ax = fig.add_subplot(111)
@@ -87,8 +92,10 @@ def line_plot(
             condition_title = f"{title}\n {condition_text}"
 
             sns.lineplot(
-                **LINEPLOT_KWARGS,
+                data=grouped_df.reset_index(),
+                x=x_axis,
                 ax=ax,
+                **LINEPLOT_KWARGS,
             )
 
             ax.set_title(condition_title)
@@ -109,7 +116,6 @@ def rel_plot(
     title: str,
     combined_data: pd.DataFrame,
     x_axis: str = "age_group",
-    condition: dict[str, Any] = {},
     plot_args: dict[str, Any] = {},
 ) -> Figure:
     """Create a stratified line plot using Seaborn's relplot.
@@ -135,9 +141,6 @@ def rel_plot(
             f"Please conditionalize {len(unconditioned) - ALLOWED_STRATIFICATIONS} of levels {unconditioned}."
         )
 
-    for condition_col, condition_value in condition.items():
-        combined_data = combined_data[combined_data[condition_col] == condition_value]
-
     # Set up relplot parameters based on stratifications
     relplot_kwargs = plot_args.copy()
     relplot_kwargs["facet_kws"] = {"sharex": False, "sharey": True}
@@ -159,16 +162,11 @@ def rel_plot(
             relplot_kwargs["row"] = unconditioned[0]
 
     # Create the plot
-    g = sns.relplot(**relplot_kwargs)
+    g = sns.relplot(data=combined_data.reset_index(), x=x_axis, **relplot_kwargs)
 
     # Customize
     g.set_axis_labels(x_axis, "Proportion")
     g.set_xticklabels(rotation=30)
-
-    if condition:
-        # Add to title for each condition
-        condition_text = f"{' | '.join([f'{k} = {v}' for k, v in condition.items()])}"
-        title += f"\n {condition_text}"
 
     g.figure.suptitle(title, y=1.02, fontsize=16)
     g.map(plt.grid, alpha=0.5, color="gray")
@@ -254,3 +252,16 @@ def get_combined_data(comparison: Comparison) -> pd.DataFrame:
     test_data = test_data.reorder_levels(reference_data.index.names)
     combined_data = pd.concat([test_data, reference_data])
     return combined_data
+
+
+def conditionalize(
+    condition_dict: dict[str, Any], title: str, data: pd.DataFrame
+) -> pd.DataFrame:
+    """Filter the data based on the condition dictionary."""
+    for condition_level, condition_value in condition_dict.items():
+        data = data.query(f"{condition_level} == '{condition_value}'")
+        data = data.droplevel(condition_level)
+
+    if condition_dict:
+        title += f"\n{' | '.join([f'{k} = {v}' for k, v in condition_dict.items()])}"
+    return title, data
