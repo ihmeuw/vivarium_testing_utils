@@ -145,3 +145,14 @@ def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
         if data.index.get_level_values(index_level).nunique() == 1:
             singular_metadata[index_level] = data.index.get_level_values(index_level)[0]
     return singular_metadata
+
+
+def custom_sort_dataframe_by_level(
+    level: str, order: list[Any], df: pd.DataFrame
+) -> pd.DataFrame:
+    # Create a mapping for ordering age groups according to target schema
+    order_map = {name: i for i, name in enumerate(order)}
+    if set(order_map.keys()) != set(df.index.get_level_values(level).unique()):
+        raise ValueError("DataFrame {level} values do not match target values {order}.")
+    # Sort the output by the target schema's age group order using sort_index with a key function
+    return df.sort_index(level=level, key=lambda x: x.map(order_map), sort_remaining=False)

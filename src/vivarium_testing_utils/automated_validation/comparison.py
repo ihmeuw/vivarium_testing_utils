@@ -7,11 +7,11 @@ from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AGE_GROUP_COLUMN,
     AgeSchema,
-    sort_dataframe_by_age,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     get_singular_indices,
     marginalize,
+    custom_sort_dataframe_by_level,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
@@ -263,5 +263,9 @@ class FuzzyComparison(Comparison):
         converted_test_data = self.measure.get_measure_data_from_ratio(stratified_test_data)
 
         if AGE_GROUP_COLUMN in converted_test_data.index.names and self._age_schema:
-            converted_test_data = sort_dataframe_by_age(self._age_schema, converted_test_data)
+            converted_test_data = custom_sort_dataframe_by_level(
+                level=AGE_GROUP_COLUMN,
+                order=[group.name for group in self._age_schema.age_groups],
+                df=converted_test_data,
+            )
         return converted_test_data, reference_data
