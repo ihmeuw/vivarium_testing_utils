@@ -15,7 +15,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     _get_transform_matrix,
     format_dataframe,
     rebin_count_dataframe,
-    sort_dataframe_by_age,
 )
 
 
@@ -226,72 +225,6 @@ def test_age_schema_format_cols(
             format_dataframe(sample_age_schema, dataframe),
             sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
         )
-
-
-def test_sort_dataframe_by_age(sample_age_schema: AgeSchema) -> None:
-    """Test sorting a DataFrame by age according to a schema."""
-    # Create a DataFrame with age groups in random order
-    df = pd.DataFrame(
-        {
-            "foo": [3.0, 1.0, 2.0],
-            "bar": [6.0, 4.0, 5.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "10_to_15"),
-                ("cause", "disease", "0_to_5"),
-                ("cause", "disease", "5_to_10"),
-            ],
-            names=["cause", "disease", AGE_GROUP_COLUMN],
-        ),
-    )
-
-    # Sort the DataFrame by age according to the schema
-    sorted_df = sort_dataframe_by_age(sample_age_schema, df)
-
-    # Create the expected DataFrame with age groups in the order defined by the schema
-    expected_df = pd.DataFrame(
-        {
-            "foo": [1.0, 2.0, 3.0],
-            "bar": [4.0, 5.0, 6.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "0_to_5"),
-                ("cause", "disease", "5_to_10"),
-                ("cause", "disease", "10_to_15"),
-            ],
-            names=["cause", "disease", AGE_GROUP_COLUMN],
-        ),
-    )
-
-    pd.testing.assert_frame_equal(sorted_df, expected_df)
-
-
-def test_sort_dataframe_by_age_invalid() -> None:
-    """Test sorting a DataFrame by age with invalid age groups."""
-    # Create a DataFrame with age groups not in the schema
-    df = pd.DataFrame(
-        {
-            "foo": [3.0, 1.0, 2.0],
-            "bar": [6.0, 4.0, 5.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("cause", "disease", "10_to_15"),
-                ("cause", "disease", "0_to_5"),
-                ("cause", "disease", "invalid_age_group"),
-            ],
-            names=["cause", "disease", AGE_GROUP_COLUMN],
-        ),
-    )
-
-    # Create an AgeSchema without the invalid age group
-    schema = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
-
-    # Check that sorting raises a ValueError
-    with pytest.raises(ValueError, match="DataFrame age groups do not match target schema."):
-        sort_dataframe_by_age(schema, df)
 
 
 def test_age_schema_format_dataframe_invalid(sample_age_schema: AgeSchema) -> None:
