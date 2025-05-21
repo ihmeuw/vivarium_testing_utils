@@ -76,9 +76,9 @@ def test_fuzzy_comparison_init(
         assert comparison.test_source == DataSource.SIM
         assert comparison.test_data.equals(test_data)
         assert comparison.reference_source == DataSource.GBD
-        assert "reference_rate" in comparison.reference_data.columns
-        assert not "value" in comparison.reference_data.columns
+        assert comparison.reference_data.equals(reference_data)
         assert list(comparison.stratifications) == []
+        assert comparison.age_schema is None
 
 
 def test_fuzzy_comparison_metadata(
