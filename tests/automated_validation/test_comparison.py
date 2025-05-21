@@ -78,7 +78,7 @@ def test_fuzzy_comparison_init(
         assert comparison.reference_source == DataSource.GBD
         assert comparison.reference_data.equals(reference_data)
         assert list(comparison.stratifications) == []
-        assert comparison.age_schema is None
+        assert comparison._age_schema is None
 
 
 def test_fuzzy_comparison_metadata(

@@ -35,7 +35,7 @@ class Comparison(ABC):
     reference_source: DataSource
     reference_data: pd.DataFrame
     stratifications: list[str]
-    age_schema: AgeSchema | None = None
+    _age_schema: AgeSchema | None = None
 
     @property
     @abstractmethod
@@ -107,7 +107,7 @@ class FuzzyComparison(Comparison):
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
         self.stratifications = stratifications
-        self.age_schema = age_schema
+        self._age_schema = age_schema
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -262,6 +262,6 @@ class FuzzyComparison(Comparison):
 
         converted_test_data = self.measure.get_measure_data_from_ratio(stratified_test_data)
 
-        if AGE_GROUP_COLUMN in converted_test_data.index.names and self.age_schema:
-            converted_test_data = sort_dataframe_by_age(self.age_schema, converted_test_data)
+        if AGE_GROUP_COLUMN in converted_test_data.index.names and self._age_schema:
+            converted_test_data = sort_dataframe_by_age(self._age_schema, converted_test_data)
         return converted_test_data, reference_data
