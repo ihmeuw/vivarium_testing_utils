@@ -6,15 +6,6 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 import seaborn as sns
 
-RELPLOT_KWARGS = {
-    "height": 5,
-    "aspect": 1.3,
-    "marker": "o",
-    "markers": True,
-    "facet_kws": {"sharex": False, "sharey": True},
-}
-
-
 def plot_comparison(comparison: Comparison, type: str, kwargs) -> Figure | list[Figure]:
     """Create a plot for the given comparison.
 
@@ -37,14 +28,12 @@ def plot_comparison(comparison: Comparison, type: str, kwargs) -> Figure | list[
             f"Unsupported plot type: {type}. Supported types are: {list(PLOT_TYPE_MAPPING.keys())}"
         )
     title = titleify(comparison.measure.measure_key)
-    test_data, reference_data = comparison._align_datasets()
-    test_data = _append_source(test_data, comparison.test_source)
-    reference_data = _append_source(reference_data, comparison.reference_source)
+
+    combined_data = get_combined_data(comparison)
 
     default_kwargs = {
         "title": title,
-        "test_data": test_data,
-        "reference_data": reference_data,
+        "combined_data": combined_data,
     }
     default_kwargs.update(kwargs)
 
@@ -57,31 +46,30 @@ def plot_data(dataset: pd.DataFrame, type: str, kwargs):
 
 def line_plot(
     title: str,
-    test_data: pd.DataFrame,
-    reference_data: pd.DataFrame,
+    combined_data: pd.DataFrame,
     x_axis: str,
     subplots: bool = True,
 ) -> Figure | list[Figure]:
+
+    LINEPLOT_KWARGS = {
+        "marker": "o",
+        "markers": True,
+        "data": combined_data.reset_index(),
+        "hue": "source",
+        "x": x_axis,
+        "y": "value",  # Assuming 'value' is the y-axis variable
+        "errorbar": "pi",  # Nonparametric 95% CI
+    }
+
     if subplots:
         return rel_plot(
             title=title,
-            test_data=test_data,
-            reference_data=reference_data,
+            combined_data=combined_data,
             x_axis=x_axis,
+            plot_args=LINEPLOT_KWARGS,
         )
     else:
-        all_indexes = test_data.index.names
-        stat_cols = ["input_draw", "random_seed"]
-        plotted_cols = [x_axis, "source"]
-        unconditioned = list(set(all_indexes) - set(stat_cols) - set(plotted_cols))
-
-        # Get all the grouped data
-        groups = list(
-            zip(
-                test_data.groupby(level=unconditioned),
-                reference_data.groupby(level=unconditioned),
-            )
-        )
+        unconditioned = get_unconditioned_index_names(combined_data.index, x_axis)
 
         # Close any existing figures to avoid conflicts
         plt.close("all")
@@ -90,28 +78,16 @@ def line_plot(
         figures = []
 
         # Create individual figures for each condition
-        for (
-            (test_grouped_idx, test_grouped_df),
-            (ref_grouped_idx, ref_grouped_df),
-        ) in groups:
+        for grouped_idx, grouped_df in combined_data.groupby(level=unconditioned):
             # Create a new figure for each condition
             fig = plt.figure(figsize=(10, 6))
             ax = fig.add_subplot(111)
 
-            condition_text = f"{' | '.join([f'{col} = {val}' for col, val in zip(unconditioned, test_grouped_idx)])}"
-            condition_title = f"{title}\n given {condition_text}"
-
-            # Create the plot
-            test_grouped_df = test_grouped_df.reorder_levels(ref_grouped_df.index.names)
-            combined_data = pd.concat([test_grouped_df, ref_grouped_df]).reset_index()
+            condition_text = f"{' | '.join([f'{col} = {val}' for col, val in zip(unconditioned, grouped_idx)])}"
+            condition_title = f"{title}\n {condition_text}"
 
             sns.lineplot(
-                data=combined_data,
-                x=x_axis,
-                y="value",
-                hue="source",
-                marker="o",
-                markers=True,
+                **LINEPLOT_KWARGS,
                 ax=ax,
             )
 
@@ -129,49 +105,12 @@ def line_plot(
         return figures
 
 
-def line_plot_flat(
-    title: str, test_data: pd.DataFrame, reference_data: pd.DataFrame, x_axis: str
-) -> Figure:
-    """Create a 1-d line plot"""
-    # ensure that apart from the x-axis, all other columns have only one value.
-    all_indexes = test_data.index.names
-    stat_cols = ["input_draw", "random_seed"]
-    plotted_cols = [x_axis, "source"]
-    unconditioned = list(set(all_indexes) - set(stat_cols) - set(plotted_cols))
-    for col in unconditioned:
-        if test_data.index.get_level_values(col).nunique() > 1:
-            raise ValueError(
-                f"Column {col} has more than one unique value. "
-                "Please condition on this column before plotting."
-            )
-    test_data = test_data.reorder_levels(reference_data.index.names)
-    # Combine datasets
-    combined_data = pd.concat([test_data, reference_data]).reset_index()
-
-    fig, ax = plt.subplots(figsize=(10, 6))
-    g = sns.lineplot(
-        data=combined_data,
-        x=x_axis,
-        y="value",  # Assuming 'value' is the y-axis variable
-        hue="source",
-        marker="o",
-        markers=True,
-        ax=ax,
-    )
-    ax.set_title(title)
-    ax.set_xlabel(x_axis)
-    ax.set_ylabel("Proportion")
-    ax.grid(alpha=0.5, color="gray")
-
-    return fig
-
-
 def rel_plot(
     title: str,
-    test_data: pd.DataFrame,
-    reference_data: pd.DataFrame,
+    combined_data: pd.DataFrame,
     x_axis: str = "age_group",
     condition: dict[str, Any] = {},
+    plot_args: dict[str, Any] = {},
 ) -> Figure:
     """Create a stratified line plot using Seaborn's relplot.
 
@@ -188,13 +127,7 @@ def rel_plot(
         matplotlib.figure.Figure: The generated figure
     """
     ALLOWED_STRATIFICATIONS = 2
-    all_indexes = test_data.index.names
-    stat_cols = ["input_draw", "random_seed"]
-    plotted_cols = [x_axis, "source"]
-    condition_cols = condition.keys()
-    unconditioned = list(
-        set(all_indexes) - set(stat_cols) - set(condition_cols) - set(plotted_cols)
-    )
+    unconditioned = get_unconditioned_index_names(combined_data.index, x_axis)
 
     if len(unconditioned) > ALLOWED_STRATIFICATIONS:
         raise ValueError(
@@ -202,28 +135,20 @@ def rel_plot(
             f"Please conditionalize {len(unconditioned) - ALLOWED_STRATIFICATIONS} of levels {unconditioned}."
         )
 
-    test_data = test_data.reorder_levels(reference_data.index.names)
-
-    # Combine datasets
-    combined_data = pd.concat([test_data, reference_data]).reset_index()
     for condition_col, condition_value in condition.items():
         combined_data = combined_data[combined_data[condition_col] == condition_value]
 
     # Set up relplot parameters based on stratifications
-    relplot_kwargs = RELPLOT_KWARGS.copy()
-    relplot_kwargs["data"] = combined_data
-    relplot_kwargs["hue"] = "source"
-    relplot_kwargs["x"] = x_axis
-    relplot_kwargs["y"] = "value"  # Assuming 'value' is the y-axis variable
+    relplot_kwargs = plot_args.copy()
+    relplot_kwargs["facet_kws"] = {"sharex": False, "sharey": True}
     relplot_kwargs["kind"] = "line"
-    relplot_kwargs["errorbar"] = "pi"  # Nonparametric 95% CI
 
     if unconditioned:
         if len(unconditioned) == 2:
             first, second = unconditioned
             if (
-                test_data.index.get_level_values(first).nunique()
-                > test_data.index.get_level_values(second).nunique()
+                combined_data.index.get_level_values(first).nunique()
+                > combined_data.index.get_level_values(second).nunique()
             ):
                 relplot_kwargs["row"] = first
                 relplot_kwargs["col"] = second
@@ -238,12 +163,12 @@ def rel_plot(
 
     # Customize
     g.set_axis_labels(x_axis, "Proportion")
-    # Add overall title
-    # Add subtitle for conditions
+    g.set_xticklabels(rotation=30)
+
     if condition:
         # Add to title for each condition
         condition_text = f"{' | '.join([f'{k} = {v}' for k, v in condition.items()])}"
-        title += f"\n given {condition_text}"
+        title += f"\n {condition_text}"
 
     g.figure.suptitle(title, y=1.02, fontsize=16)
     g.map(plt.grid, alpha=0.5, color="gray")
@@ -284,6 +209,7 @@ def heatmap(
 def save_plot(fig, name, format):
     raise NotImplementedError
 
+
 ##################
 # Helper Methods #
 ##################
@@ -306,3 +232,25 @@ def titleify(measure_key: str) -> str:
     title = title.replace("_", " ")
     title = " ".join([word.capitalize() for word in title.split()])
     return title
+
+
+def get_unconditioned_index_names(
+    index: pd.Index,
+    x_axis: str,
+) -> list[str]:
+    """Get the columns that are not conditioned on."""
+    all_index_names = index.names
+    stat_cols = ["input_draw", "random_seed"]
+    plotted_cols = ["source", x_axis]
+    unconditioned = list(set(all_index_names) - set(stat_cols) - set(plotted_cols))
+    return unconditioned
+
+
+def get_combined_data(comparison: Comparison) -> pd.DataFrame:
+    """Get the combined data from the test and reference datasets."""
+    test_data, reference_data = comparison._align_datasets()
+    test_data = _append_source(test_data, comparison.test_source)
+    reference_data = _append_source(reference_data, comparison.reference_source)
+    test_data = test_data.reorder_levels(reference_data.index.names)
+    combined_data = pd.concat([test_data, reference_data])
+    return combined_data
