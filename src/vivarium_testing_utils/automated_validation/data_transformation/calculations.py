@@ -152,7 +152,7 @@ def custom_sort_dataframe_by_level(
 ) -> pd.DataFrame:
     # Create a mapping for ordering age groups according to target schema
     order_map = {name: i for i, name in enumerate(order)}
-    if set(order_map.keys()) != set(df.index.get_level_values(level).unique()):
+    if not set(df.index.get_level_values(level).unique()) <= set(order_map.keys()):
         raise ValueError(f"DataFrame {level} values do not match target values {order}.")
     # Sort the output by the target schema's age group order using sort_index with a key function
     return df.sort_index(level=level, key=lambda x: x.map(order_map), sort_remaining=False)
