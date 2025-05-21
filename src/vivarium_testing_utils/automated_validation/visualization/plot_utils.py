@@ -168,6 +168,10 @@ def rel_plot(
     g.set_axis_labels(x_axis, "Proportion")
     g.set_xticklabels(rotation=30)
 
+    # Custom Legend
+    g._legend.remove()  # Remove the default legend
+    g.figure.legend(loc="upper right")
+
     g.figure.suptitle(title, y=1.02, fontsize=16)
     g.map(plt.grid, alpha=0.5, color="gray")
     g.tight_layout()
