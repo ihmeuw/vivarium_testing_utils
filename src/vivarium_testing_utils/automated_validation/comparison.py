@@ -4,9 +4,6 @@ from typing import Any, Collection, Literal
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AgeSchema,
-)
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     get_singular_indices,
     marginalize,
