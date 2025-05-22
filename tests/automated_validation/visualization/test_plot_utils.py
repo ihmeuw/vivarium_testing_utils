@@ -19,7 +19,7 @@ from vivarium_testing_utils.automated_validation.visualization.plot_utils import
 
 
 @pytest.fixture
-def sample_multi_index_data():
+def sample_multi_index_data() -> pd.DataFrame:
     index = pd.MultiIndex.from_product(
         [
             ["male", "female"],  # sex
@@ -38,7 +38,7 @@ def sample_multi_index_data():
 
 
 @pytest.fixture
-def sample_comparison():
+def sample_comparison() -> Comparison:
     # Create test and reference data
     test_data = pd.DataFrame(
         {"value": [0.1, 0.2, 0.3, 0.4]},
@@ -73,7 +73,7 @@ def sample_comparison():
     return mock_comparison
 
 
-def test_line_plot_subplots_true():
+def test_line_plot_subplots_true() -> None:
     # Setup
     plt.close("all")
     title = "Test Title"
@@ -107,7 +107,7 @@ def test_line_plot_subplots_true():
         assert isinstance(kwargs["plot_args"], dict)
 
 
-def test_line_plot_subplots_false():
+def test_line_plot_subplots_false() -> None:
     # Setup
     plt.close("all")
     title = "Test Title"
@@ -140,7 +140,7 @@ def test_line_plot_subplots_false():
         assert all(isinstance(fig, plt.Figure) for fig in figures)
 
 
-def test_rel_plot_basic():
+def test_rel_plot_basic() -> None:
     # Setup
     plt.close("all")
     title = "Test Title"
@@ -169,7 +169,7 @@ def test_rel_plot_basic():
         mock_relplot.assert_called_once()
 
 
-def test_rel_plot_too_many_stratifications(sample_multi_index_data):
+def test_rel_plot_too_many_stratifications(sample_multi_index_data: pd.DataFrame) -> None:
     # Setup data with 3 stratification levels (excluding input_draw and source)
     # This should fail because we allow max 2 stratification levels
     with pytest.raises(ValueError, match="Maximum of.*stratification levels supported"):
@@ -180,7 +180,7 @@ def test_rel_plot_too_many_stratifications(sample_multi_index_data):
         )
 
 
-def test_plot_comparison(sample_comparison):
+def test_plot_comparison(sample_comparison: Comparison) -> None:
     # Setup
     with patch(
         "vivarium_testing_utils.automated_validation.visualization.plot_utils.line_plot"
@@ -202,17 +202,17 @@ def test_plot_comparison(sample_comparison):
         assert mock_line_plot.call_args[1]["x_axis"] == "age_group"
 
 
-def test_plot_comparison_invalid_type(sample_comparison):
+def test_plot_comparison_invalid_type(sample_comparison: Comparison) -> None:
     with pytest.raises(ValueError, match="Unsupported plot type"):
         plot_comparison(comparison=sample_comparison, type="invalid")
 
 
-def test_titleify():
+def test_titleify() -> None:
     assert titleify("measure.test_measure") == "Test Measure"
     assert titleify("measure.compound_name_example") == "Compound Name Example"
 
 
-def test_get_unconditioned_index_names():
+def test_get_unconditioned_index_names() -> None:
     # Setup
     index = pd.MultiIndex.from_tuples(
         [("male", "A", "Test", 0, 42)],
@@ -224,7 +224,7 @@ def test_get_unconditioned_index_names():
     assert set(get_unconditioned_index_names(index, "sex")) == {"age_group"}
 
 
-def test_append_source():
+def test_append_source() -> None:
     # Setup
     data = pd.DataFrame(
         {"value": [0.1, 0.2]},
@@ -243,7 +243,7 @@ def test_append_source():
     assert "Test_source" in result.index.get_level_values("source").unique()
 
 
-def test_conditionalize():
+def test_conditionalize() -> None:
     # Setup
     data = pd.DataFrame(
         {"value": [0.1, 0.2, 0.3, 0.4]},
@@ -263,7 +263,7 @@ def test_conditionalize():
     assert len(filtered_data) == 2
 
 
-def test_get_combined_data(sample_comparison):
+def test_get_combined_data(sample_comparison: Comparison) -> None:
     # Call the function
     result = get_combined_data(sample_comparison)
 
@@ -274,7 +274,7 @@ def test_get_combined_data(sample_comparison):
 
 
 @pytest.fixture
-def data_with_two_unconditioned_first_larger():
+def data_with_two_unconditioned_first_larger() -> pd.DataFrame:
     """Create test data with two unconditioned variables where the first has more unique values."""
     # First variable (sex) has 3 values, second (age_group) has 2
     index = pd.MultiIndex.from_product(
@@ -295,7 +295,7 @@ def data_with_two_unconditioned_first_larger():
 
 
 @pytest.fixture
-def data_with_two_unconditioned_second_larger():
+def data_with_two_unconditioned_second_larger() -> pd.DataFrame:
     """Create test data with two unconditioned variables where the second has more unique values."""
     # First variable (sex) has 2 values, second (age_group) has 3
     index = pd.MultiIndex.from_product(
@@ -316,7 +316,7 @@ def data_with_two_unconditioned_second_larger():
 
 
 @pytest.fixture
-def data_with_one_unconditioned():
+def data_with_one_unconditioned() -> pd.DataFrame:
     """Create test data with one unconditioned variable."""
     index = pd.MultiIndex.from_product(
         [
@@ -334,7 +334,9 @@ def data_with_one_unconditioned():
     return data
 
 
-def test_rel_plot_two_unconditioned_first_larger(data_with_two_unconditioned_first_larger):
+def test_rel_plot_two_unconditioned_first_larger(
+    data_with_two_unconditioned_first_larger: pd.DataFrame,
+) -> None:
     """Test rel_plot with two unconditioned variables where the first has more unique values."""
     plt.close("all")
     title = "Test Title"
@@ -359,7 +361,9 @@ def test_rel_plot_two_unconditioned_first_larger(data_with_two_unconditioned_fir
         assert kwargs["col"] == "age_group"
 
 
-def test_rel_plot_two_unconditioned_second_larger(data_with_two_unconditioned_second_larger):
+def test_rel_plot_two_unconditioned_second_larger(
+    data_with_two_unconditioned_second_larger: pd.DataFrame,
+) -> None:
     """Test rel_plot with two unconditioned variables where the second has more unique values."""
     plt.close("all")
     title = "Test Title"
@@ -384,7 +388,7 @@ def test_rel_plot_two_unconditioned_second_larger(data_with_two_unconditioned_se
         assert kwargs["col"] == "sex"
 
 
-def test_rel_plot_one_unconditioned(data_with_one_unconditioned):
+def test_rel_plot_one_unconditioned(data_with_one_unconditioned: pd.DataFrame) -> None:
     """Test rel_plot with a single unconditioned variable."""
     plt.close("all")
     title = "Test Title"
