@@ -1,4 +1,4 @@
-# ignore: file
+# mypy: ignore-errors
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison
