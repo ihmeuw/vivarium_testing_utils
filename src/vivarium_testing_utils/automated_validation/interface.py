@@ -7,9 +7,6 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AgeSchema,
-)
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     resolve_age_groups,
 )

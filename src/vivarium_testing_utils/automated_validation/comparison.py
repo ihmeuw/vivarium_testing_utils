@@ -147,9 +147,8 @@ class FuzzyComparison(Comparison):
 
         test_data, reference_data = self._align_datasets()
 
-        test_data = test_data.rename(columns={"value": "test_rate"})
-        reference_data = reference_data.rename(columns={"value": "reference_rate"})
-        test_data.dropna(inplace=True)
+        test_data = test_data.rename(columns={"value": "test_rate"}).dropna()
+        reference_data = reference_data.rename(columns={"value": "reference_rate"}).dropna()
 
         merged_data = pd.merge(test_data, reference_data, left_index=True, right_index=True)
         merged_data["percent_error"] = (
