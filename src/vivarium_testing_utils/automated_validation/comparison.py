@@ -29,7 +29,7 @@ class Comparison(ABC):
     test_data: pd.DataFrame
     reference_source: DataSource
     reference_data: pd.DataFrame
-    stratifications: list[str]
+    stratifications: Collection[str]
 
     @property
     @abstractmethod
@@ -48,7 +48,7 @@ class Comparison(ABC):
     def get_diff(
         self,
         stratifications: Collection[str] = (),
-        num_rows: int | str = 10,
+        num_rows: int | Literal["all"] = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
@@ -71,7 +71,7 @@ class Comparison(ABC):
         pass
 
     @abstractmethod
-    def verify(self, stratifications: Collection[str] = ()):
+    def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         pass
 
 
@@ -89,7 +89,7 @@ class FuzzyComparison(Comparison):
         reference_data: pd.DataFrame,
         stratifications: Collection[str] = (),
     ):
-        self.measure = measure
+        self.measure: RatioMeasure = measure
         self.test_source = test_source
         self.test_data = test_data
         self.reference_source = reference_source
@@ -119,7 +119,7 @@ class FuzzyComparison(Comparison):
     def get_diff(
         self,
         stratifications: Collection[str] = (),
-        num_rows: int | str = 10,
+        num_rows: int | Literal["all"] = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
@@ -166,7 +166,7 @@ class FuzzyComparison(Comparison):
         else:
             return sorted_data.head(n=num_rows)
 
-    def verify(self, stratifications: Collection[str] = ()):
+    def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
     def _get_metadata_from_dataset(
