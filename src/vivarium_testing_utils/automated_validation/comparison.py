@@ -34,8 +34,7 @@ class Comparison(ABC):
     test_data: pd.DataFrame
     reference_source: DataSource
     reference_data: pd.DataFrame
-    stratifications: list[str]
-    age_schema: AgeSchema | None = None
+    stratifications: Collection[str]
 
     @property
     @abstractmethod
@@ -54,7 +53,7 @@ class Comparison(ABC):
     def get_diff(
         self,
         stratifications: Collection[str] = (),
-        num_rows: int | str = 10,
+        num_rows: int | Literal["all"] = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
@@ -77,7 +76,7 @@ class Comparison(ABC):
         pass
 
     @abstractmethod
-    def verify(self, stratifications: Collection[str] = ()):
+    def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         pass
 
 
@@ -96,7 +95,7 @@ class FuzzyComparison(Comparison):
         stratifications: Collection[str] = (),
         age_schema: AgeSchema | None = None,
     ):
-        self.measure = measure
+        self.measure: RatioMeasure = measure
         self.test_source = test_source
         self.test_data = test_data
         self.reference_source = reference_source
@@ -127,7 +126,7 @@ class FuzzyComparison(Comparison):
     def get_diff(
         self,
         stratifications: Collection[str] = (),
-        num_rows: int | str = 10,
+        num_rows: int | Literal["all"] = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
     ) -> pd.DataFrame:
@@ -155,9 +154,8 @@ class FuzzyComparison(Comparison):
 
         test_data, reference_data = self._align_datasets()
 
-        test_data = test_data.rename(columns={"value": "test_rate"})
-        reference_data = reference_data.rename(columns={"value": "reference_rate"})
-        test_data.dropna(inplace=True)
+        test_data = test_data.rename(columns={"value": "test_rate"}).dropna()
+        reference_data = reference_data.rename(columns={"value": "reference_rate"}).dropna()
 
         merged_data = pd.merge(test_data, reference_data, left_index=True, right_index=True)
         merged_data["percent_error"] = (
@@ -175,7 +173,7 @@ class FuzzyComparison(Comparison):
         else:
             return sorted_data.head(n=num_rows)
 
-    def verify(self, stratifications: Collection[str] = ()):
+    def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
     def _get_metadata_from_dataset(
@@ -261,7 +259,4 @@ class FuzzyComparison(Comparison):
                 reference_data = reference_data.droplevel(index_name)
 
         converted_test_data = self.measure.get_measure_data_from_ratio(stratified_test_data)
-
-        if AGE_GROUP_COLUMN in converted_test_data.index.names and self.age_schema:
-            converted_test_data = sort_dataframe_by_age(self.age_schema, converted_test_data)
         return converted_test_data, reference_data

@@ -84,7 +84,6 @@ class ValidationContext:
             reference_source=ref_source_enum,
             reference_data=ref_data,
             stratifications=stratifications,
-            age_schema=AgeSchema.from_dataframe(self.age_groups),
         )
         self.comparisons[measure_key] = comparison
 

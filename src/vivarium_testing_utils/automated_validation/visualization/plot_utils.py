@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 import pandas as pd
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from typing import Any
