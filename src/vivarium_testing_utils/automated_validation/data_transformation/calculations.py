@@ -76,7 +76,8 @@ def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str]) -> pd.DataFrame:
         return data
     # Use observed=True to avoid sorting categorical levels
     # This is a hack, because we're not technically using pd.Categorical here.
-    # TODO:  Use the right abstractions for categorical index columns
+    # TODO: MIC-6090  Use the right abstractions for categorical index columns.
+    # You might need to keep this observed=True even after doing that.
     return data.groupby(groupby_cols, sort=False, observed=True).sum()
 
 
