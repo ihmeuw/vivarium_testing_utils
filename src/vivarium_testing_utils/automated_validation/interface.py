@@ -18,9 +18,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     Measure,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
-from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AgeSchema,
-)
 
 
 class ValidationContext:
