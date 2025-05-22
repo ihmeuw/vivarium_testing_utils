@@ -16,11 +16,6 @@ from vivarium_testing_utils.automated_validation.visualization.dataframe_utils i
     format_draws_sample,
     format_metadata,
 )
-from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AgeSchema,
-    sort_dataframe_by_age,
-    AGE_GROUP_COLUMN,
-)
 
 
 class Comparison(ABC):
@@ -93,7 +88,6 @@ class FuzzyComparison(Comparison):
         reference_source: DataSource,
         reference_data: pd.DataFrame,
         stratifications: Collection[str] = (),
-        age_schema: AgeSchema | None = None,
     ):
         self.measure: RatioMeasure = measure
         self.test_source = test_source
@@ -106,7 +100,6 @@ class FuzzyComparison(Comparison):
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
         self.stratifications = stratifications
-        self.age_schema = age_schema
 
     @property
     def metadata(self) -> pd.DataFrame:
