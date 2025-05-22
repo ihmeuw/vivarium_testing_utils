@@ -72,12 +72,12 @@ class ValidationContext:
         test_data = resolve_age_groups(test_data, self.age_groups)
         ref_data = resolve_age_groups(ref_data, self.age_groups)
         comparison = FuzzyComparison(
-            measure,
-            test_source_enum,
-            test_data,
-            ref_source_enum,
-            ref_data,
-            stratifications,
+            measure=measure,
+            test_source=test_source_enum,
+            test_data=test_data,
+            reference_source=ref_source_enum,
+            reference_data=ref_data,
+            stratifications=stratifications,
         )
         self.comparisons[measure_key] = comparison
 
