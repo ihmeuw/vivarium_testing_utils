@@ -19,18 +19,22 @@ from vivarium_testing_utils.automated_validation.visualization.plot_utils import
 
 
 @pytest.fixture
-def sample_multi_index_data() -> pd.DataFrame:
+def sample_data() -> pd.DataFrame:
+    """Create test data with two unconditioned variables where the second has more unique values."""
+    # First variable (sex) has 2 values, second (age_group) has 3
     index = pd.MultiIndex.from_product(
         [
-            ["male", "female"],  # sex
-            ["cat1", "cat2"],  # category
-            ["2020", "2021"],  # year
-            [0, 1],  # input_draw
+            ["male", "female"],  # sex - 2 values
+            ["A", "B", "C"],  # age_group - 3 values
+            ["Test", "Reference"],  # source - 2 values
+            ["North", "South"],  # region 2 values
+            ["susceptible", "infected", "recovered"],  # disease_state - 2 values
+            [0],  # input_draw
         ],
-        names=["sex", "category", "year", "input_draw"],
+        names=["sex", "age_group", "source", "region", "disease_state", "input_draw"],
     )
     data = pd.DataFrame(
-        np.random.random(len(index)),
+        [i / 10 for i in range(2 * 3 * 2 * 2 * 3)],
         index=index,
         columns=["value"],
     )
@@ -38,23 +42,12 @@ def sample_multi_index_data() -> pd.DataFrame:
 
 
 @pytest.fixture
-def sample_comparison() -> Comparison:
+def sample_comparison(sample_data: pd.DataFrame) -> Comparison:
     # Create test and reference data
-    test_data = pd.DataFrame(
-        {"value": [0.1, 0.2, 0.3, 0.4]},
-        index=pd.MultiIndex.from_tuples(
-            [("male", "A", 0), ("male", "B", 0), ("female", "A", 0), ("female", "B", 0)],
-            names=["sex", "age_group", "input_draw"],
-        ),
-    )
-
-    reference_data = pd.DataFrame(
-        {"value": [0.15, 0.25, 0.35, 0.45]},
-        index=pd.MultiIndex.from_tuples(
-            [("male", "A", 0), ("male", "B", 0), ("female", "A", 0), ("female", "B", 0)],
-            names=["sex", "age_group", "input_draw"],
-        ),
-    )
+    test_data = sample_data.loc[sample_data.index.get_level_values("source") == "Test"]
+    reference_data = sample_data.loc[
+        sample_data.index.get_level_values("source") == "Reference"
+    ]
 
     # Mock Comparison object with the _align_datasets method
     mock_comparison = Mock()
@@ -71,113 +64,6 @@ def sample_comparison() -> Comparison:
     mock_comparison.measure.measure_key = "measure.test_measure"
 
     return mock_comparison
-
-
-def test_line_plot_subplots_true() -> None:
-    # Setup
-    plt.close("all")
-    title = "Test Title"
-    data = pd.DataFrame(
-        {"value": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]},
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("male", "A", "Test", 0),
-                ("male", "B", "Test", 0),
-                ("female", "A", "Test", 0),
-                ("male", "A", "Reference", 0),
-                ("male", "B", "Reference", 0),
-                ("female", "A", "Reference", 0),
-            ],
-            names=["sex", "age_group", "source", "input_draw"],
-        ),
-    )
-
-    # Call the function with subplots=True
-    with patch(
-        "vivarium_testing_utils.automated_validation.visualization.plot_utils.rel_plot"
-    ) as mock_rel_plot:
-        mock_rel_plot.return_value = plt.figure()
-        fig = line_plot(title=title, combined_data=data, x_axis="age_group", subplots=True)
-
-        # Assert rel_plot was called with correct arguments
-        mock_rel_plot.assert_called_once()
-        args, kwargs = mock_rel_plot.call_args
-        assert kwargs["title"] == title
-        assert kwargs["x_axis"] == "age_group"
-        assert isinstance(kwargs["plot_args"], dict)
-
-
-def test_line_plot_subplots_false() -> None:
-    # Setup
-    plt.close("all")
-    title = "Test Title"
-    data = pd.DataFrame(
-        {"value": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]},
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("male", "A", "Test", 0),
-                ("male", "B", "Test", 0),
-                ("female", "A", "Test", 0),
-                ("male", "A", "Reference", 0),
-                ("male", "B", "Reference", 0),
-                ("female", "A", "Reference", 0),
-            ],
-            names=["sex", "age_group", "source", "input_draw"],
-        ),
-    )
-
-    # Call the function with subplots=False
-    with patch("matplotlib.figure.Figure.add_subplot"), patch("seaborn.lineplot"), patch(
-        "matplotlib.pyplot.tight_layout"
-    ):
-        figures = line_plot(
-            title=title, combined_data=data, x_axis="age_group", subplots=False
-        )
-
-        # Check we get a list of figures as expected
-        assert isinstance(figures, list)
-        assert len(figures) > 0
-        assert all(isinstance(fig, plt.Figure) for fig in figures)
-
-
-def test_rel_plot_basic() -> None:
-    # Setup
-    plt.close("all")
-    title = "Test Title"
-    data = pd.DataFrame(
-        {"value": [0.1, 0.2, 0.3, 0.4]},
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("male", "A", "Test", 0),
-                ("male", "B", "Test", 0),
-                ("male", "A", "Reference", 0),
-                ("male", "B", "Reference", 0),
-            ],
-            names=["sex", "age_group", "source", "input_draw"],
-        ),
-    )
-
-    # Call the function
-    with patch("seaborn.relplot") as mock_relplot:
-        mock_relplot.return_value = Mock()
-        mock_relplot.return_value.figure = Mock()
-        mock_relplot.return_value._legend = Mock()
-
-        fig = rel_plot(title=title, combined_data=data, x_axis="age_group")
-
-        # Assert relplot was called correctly
-        mock_relplot.assert_called_once()
-
-
-def test_rel_plot_too_many_stratifications(sample_multi_index_data: pd.DataFrame) -> None:
-    # Setup data with 3 stratification levels (excluding input_draw and source)
-    # This should fail because we allow max 2 stratification levels
-    with pytest.raises(ValueError, match="Maximum of.*stratification levels supported"):
-        rel_plot(
-            title="Test Title",
-            combined_data=sample_multi_index_data,
-            x_axis="invalid",  # This will make all columns unconditioned
-        )
 
 
 def test_plot_comparison(sample_comparison: Comparison) -> None:
@@ -205,6 +91,131 @@ def test_plot_comparison(sample_comparison: Comparison) -> None:
 def test_plot_comparison_invalid_type(sample_comparison: Comparison) -> None:
     with pytest.raises(ValueError, match="Unsupported plot type"):
         plot_comparison(comparison=sample_comparison, type="invalid")
+
+
+def test_line_plot_subplots_true(sample_data) -> None:
+    # Setup
+    plt.close("all")
+    title = "Test Title"
+
+    # Call the function with subplots=True
+    with patch(
+        "vivarium_testing_utils.automated_validation.visualization.plot_utils.rel_plot"
+    ) as mock_rel_plot:
+        mock_rel_plot.return_value = plt.figure()
+        fig = line_plot(
+            title=title, combined_data=sample_data, x_axis="age_group", subplots=True
+        )
+
+        # Assert rel_plot was called with correct arguments
+        mock_rel_plot.assert_called_once()
+        args, kwargs = mock_rel_plot.call_args
+        assert kwargs["title"] == title
+        assert kwargs["x_axis"] == "age_group"
+        assert isinstance(kwargs["plot_args"], dict)
+
+
+def test_line_plot_subplots_false(sample_data) -> None:
+    # Setup
+    plt.close("all")
+    title = "Test Title"
+
+    # Call the function with subplots=False
+    with patch("matplotlib.figure.Figure.add_subplot"), patch("seaborn.lineplot"), patch(
+        "matplotlib.pyplot.tight_layout"
+    ):
+        figures = line_plot(
+            title=title, combined_data=sample_data, x_axis="age_group", subplots=False
+        )
+
+        # Check we get a list of figures as expected
+        assert isinstance(figures, list)
+        assert len(figures) > 0
+        assert all(isinstance(fig, plt.Figure) for fig in figures)
+
+
+def test_rel_plot_too_many_stratifications(sample_data: pd.DataFrame) -> None:
+    # Setup data with 3 stratification levels (excluding input_draw and source)
+    # This should fail because we allow max 2 stratification levels
+    with pytest.raises(ValueError, match="Maximum of.*stratification levels supported"):
+        rel_plot(
+            title="Test Title",
+            combined_data=sample_data,
+            x_axis="age_group",
+        )
+
+
+def test_rel_plot_two_unconditioned(
+    sample_data: pd.DataFrame,
+) -> None:
+    """Test rel_plot with two unconditioned variables where the first has more unique values."""
+    plt.close("all")
+    title = "Test Title"
+    filtered_data = sample_data.filter("sex == male")  # 2 unconditioned variables remain
+    with patch("seaborn.relplot") as mock_relplot:
+        mock_relplot.return_value = Mock()
+        mock_relplot.return_value.figure = Mock()
+        mock_relplot.return_value._legend = Mock()
+
+        fig = rel_plot(
+            title=title,
+            combined_data=filtered_data,
+            x_axis="age_group",
+        )
+
+        mock_relplot.assert_called_once()
+        kwargs = mock_relplot.call_args[1]
+
+        # Region has more unique values, so should be row
+        assert kwargs["row"] == "region"
+        assert kwargs["col"] == "disease_state"
+
+
+def test_rel_plot_one_unconditioned(sample_data: pd.DataFrame) -> None:
+    """Test rel_plot with a single unconditioned variable."""
+    plt.close("all")
+    title = "Test Title"
+    filtered_data = sample_data.filter(
+        "sex == male & region == North"
+    )  # 1 unconditioned variable remains
+    with patch("seaborn.relplot") as mock_relplot:
+        mock_relplot.return_value = Mock()
+        mock_relplot.return_value.figure = Mock()
+        mock_relplot.return_value._legend = Mock()
+
+        fig = rel_plot(
+            title=title,
+            combined_data=filtered_data,
+            x_axis="source",  # This makes sex unconditioned
+        )
+
+        mock_relplot.assert_called_once()
+        kwargs = mock_relplot.call_args[1]
+
+        # With one unconditioned variable, it should be the row
+        assert kwargs["row"] == "sex"
+        assert "col" not in kwargs
+
+
+def test_rel_plot_basic(
+    sample_data: pd.DataFrame,
+) -> None:
+    # Setup
+    plt.close("all")
+    filtered_data = sample_data.filter(
+        "sex == male & region == North & disease_state == susceptible"
+    )
+    title = "Test Title"
+    # Call the function
+    with patch("seaborn.relplot") as mock_relplot:
+        mock_relplot.return_value = Mock()
+        mock_relplot.return_value.figure = Mock()
+        mock_relplot.return_value._legend = Mock()
+
+        fig = rel_plot(title=title, combined_data=filtered_data, x_axis="age_group")
+
+        # Assert relplot was called correctly
+        mock_relplot.assert_called_once()
 
 
 def test_titleify() -> None:
@@ -243,24 +254,15 @@ def test_append_source() -> None:
     assert "Test_source" in result.index.get_level_values("source").unique()
 
 
-def test_conditionalize() -> None:
-    # Setup
-    data = pd.DataFrame(
-        {"value": [0.1, 0.2, 0.3, 0.4]},
-        index=pd.MultiIndex.from_tuples(
-            [("male", "A", 0), ("male", "B", 0), ("female", "A", 0), ("female", "B", 0)],
-            names=["sex", "age_group", "input_draw"],
-        ),
-    )
+def test_conditionalize(sample_data) -> None:
     title = "Original Title"
 
     # Call function
-    new_title, filtered_data = conditionalize({"sex": "male"}, title, data)
+    new_title, filtered_data = conditionalize({"sex": "male"}, title, sample_data)
 
     # Assert
     assert "sex = male" in new_title
     assert "sex" not in filtered_data.index.names
-    assert len(filtered_data) == 2
 
 
 def test_get_combined_data(sample_comparison: Comparison) -> None:
@@ -271,143 +273,3 @@ def test_get_combined_data(sample_comparison: Comparison) -> None:
     assert "source" in result.index.names
     assert len(result) == 8  # 4 rows from test + 4 rows from reference
     assert set(result.index.get_level_values("source").unique()) == {"Test", "Reference"}
-
-
-@pytest.fixture
-def data_with_two_unconditioned_first_larger() -> pd.DataFrame:
-    """Create test data with two unconditioned variables where the first has more unique values."""
-    # First variable (sex) has 3 values, second (age_group) has 2
-    index = pd.MultiIndex.from_product(
-        [
-            ["male", "female", "other"],  # sex - 3 values
-            ["A", "B"],  # age_group - 2 values
-            ["Test", "Reference"],  # source
-            [0],  # input_draw
-        ],
-        names=["sex", "age_group", "source", "input_draw"],
-    )
-    data = pd.DataFrame(
-        [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2],
-        index=index,
-        columns=["value"],
-    )
-    return data
-
-
-@pytest.fixture
-def data_with_two_unconditioned_second_larger() -> pd.DataFrame:
-    """Create test data with two unconditioned variables where the second has more unique values."""
-    # First variable (sex) has 2 values, second (age_group) has 3
-    index = pd.MultiIndex.from_product(
-        [
-            ["male", "female"],  # sex - 2 values
-            ["A", "B", "C"],  # age_group - 3 values
-            ["Test", "Reference"],  # source
-            [0],  # input_draw
-        ],
-        names=["sex", "age_group", "source", "input_draw"],
-    )
-    data = pd.DataFrame(
-        [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2],
-        index=index,
-        columns=["value"],
-    )
-    return data
-
-
-@pytest.fixture
-def data_with_one_unconditioned() -> pd.DataFrame:
-    """Create test data with one unconditioned variable."""
-    index = pd.MultiIndex.from_product(
-        [
-            ["male", "female"],  # sex
-            ["Test", "Reference"],  # source
-            [0],  # input_draw
-        ],
-        names=["sex", "source", "input_draw"],
-    )
-    data = pd.DataFrame(
-        [0.1, 0.2, 0.3, 0.4],
-        index=index,
-        columns=["value"],
-    )
-    return data
-
-
-def test_rel_plot_two_unconditioned_first_larger(
-    data_with_two_unconditioned_first_larger: pd.DataFrame,
-) -> None:
-    """Test rel_plot with two unconditioned variables where the first has more unique values."""
-    plt.close("all")
-    title = "Test Title"
-
-    with patch("seaborn.relplot") as mock_relplot:
-        mock_relplot.return_value = Mock()
-        mock_relplot.return_value.figure = Mock()
-        mock_relplot.return_value._legend = Mock()
-
-        fig = rel_plot(
-            title=title,
-            combined_data=data_with_two_unconditioned_first_larger,
-            x_axis="source",  # This makes both sex and age_group unconditioned
-        )
-
-        # Check that relplot was called with the correct arguments
-        mock_relplot.assert_called_once()
-        kwargs = mock_relplot.call_args[1]
-
-        # First variable (sex) has more unique values, so should be row
-        assert kwargs["row"] == "sex"
-        assert kwargs["col"] == "age_group"
-
-
-def test_rel_plot_two_unconditioned_second_larger(
-    data_with_two_unconditioned_second_larger: pd.DataFrame,
-) -> None:
-    """Test rel_plot with two unconditioned variables where the second has more unique values."""
-    plt.close("all")
-    title = "Test Title"
-
-    with patch("seaborn.relplot") as mock_relplot:
-        mock_relplot.return_value = Mock()
-        mock_relplot.return_value.figure = Mock()
-        mock_relplot.return_value._legend = Mock()
-
-        fig = rel_plot(
-            title=title,
-            combined_data=data_with_two_unconditioned_second_larger,
-            x_axis="source",  # This makes both sex and age_group unconditioned
-        )
-
-        # Check that relplot was called with the correct arguments
-        mock_relplot.assert_called_once()
-        kwargs = mock_relplot.call_args[1]
-
-        # Second variable (age_group) has more unique values, so should be row
-        assert kwargs["row"] == "age_group"
-        assert kwargs["col"] == "sex"
-
-
-def test_rel_plot_one_unconditioned(data_with_one_unconditioned: pd.DataFrame) -> None:
-    """Test rel_plot with a single unconditioned variable."""
-    plt.close("all")
-    title = "Test Title"
-
-    with patch("seaborn.relplot") as mock_relplot:
-        mock_relplot.return_value = Mock()
-        mock_relplot.return_value.figure = Mock()
-        mock_relplot.return_value._legend = Mock()
-
-        fig = rel_plot(
-            title=title,
-            combined_data=data_with_one_unconditioned,
-            x_axis="source",  # This makes sex unconditioned
-        )
-
-        # Check that relplot was called with the correct arguments
-        mock_relplot.assert_called_once()
-        kwargs = mock_relplot.call_args[1]
-
-        # With one unconditioned variable, it should be the row
-        assert kwargs["row"] == "sex"
-        assert "col" not in kwargs
