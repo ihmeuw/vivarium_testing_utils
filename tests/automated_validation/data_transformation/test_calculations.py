@@ -108,3 +108,17 @@ def test_resolve_age_groups(
         formatted_df,
         person_time_data,
     )
+
+
+def test_aggregate_sum_preserves_string_order() -> None:
+    """Test that aggregate_sum preserves the order of string index levels."""
+    # Create a dataframe with string index that has a non-alphabetical order
+    df = pd.DataFrame(
+        {"value": [1, 2, 3, 4]},
+        index=pd.Index(["c", "a", "d", "b"], name="category"),
+    )
+
+    # The result should maintain the original order
+    result = aggregate_sum(df, ["category"])
+    expected_order = pd.Index(["c", "a", "d", "b"], name="category")
+    assert list(result.index) == list(expected_order)
