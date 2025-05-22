@@ -4,8 +4,6 @@ from pathlib import Path
 from typing import Collection, Literal
 
 import pandas as pd
-from matplotlib import pyplot as plt
-from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource

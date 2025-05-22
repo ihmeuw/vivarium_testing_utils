@@ -5,14 +5,12 @@ import pytest
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,
     format_dataframe,
-    AGE_GROUP_COLUMN,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     aggregate_sum,
     linear_combination,
     ratio,
     resolve_age_groups,
-    custom_sort_dataframe_by_level,
 )
 
 
