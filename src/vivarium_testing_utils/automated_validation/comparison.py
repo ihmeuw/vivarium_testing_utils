@@ -5,13 +5,11 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AGE_GROUP_COLUMN,
     AgeSchema,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     get_singular_indices,
     marginalize,
-    custom_sort_dataframe_by_level,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
@@ -35,7 +33,6 @@ class Comparison(ABC):
     reference_source: DataSource
     reference_data: pd.DataFrame
     stratifications: list[str]
-    _age_schema: AgeSchema | None = None
 
     @property
     @abstractmethod
@@ -94,7 +91,6 @@ class FuzzyComparison(Comparison):
         reference_source: DataSource,
         reference_data: pd.DataFrame,
         stratifications: Collection[str] = (),
-        age_schema: AgeSchema | None = None,
     ):
         self.measure = measure
         self.test_source = test_source
@@ -107,7 +103,6 @@ class FuzzyComparison(Comparison):
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
         self.stratifications = stratifications
-        self._age_schema = age_schema
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -261,11 +256,4 @@ class FuzzyComparison(Comparison):
                 reference_data = reference_data.droplevel(index_name)
 
         converted_test_data = self.measure.get_measure_data_from_ratio(stratified_test_data)
-
-        if AGE_GROUP_COLUMN in converted_test_data.index.names and self._age_schema:
-            converted_test_data = custom_sort_dataframe_by_level(
-                level=AGE_GROUP_COLUMN,
-                order=[group.name for group in self._age_schema.age_groups],
-                df=converted_test_data,
-            )
         return converted_test_data, reference_data

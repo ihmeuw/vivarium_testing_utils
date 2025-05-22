@@ -74,7 +74,10 @@ def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str]) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
     if not groupby_cols:
         return data
-    return data.groupby(groupby_cols).sum()
+    # Use observed=True to avoid sorting categorical levels
+    # This is a hack, because we're not technically using pd.Categorical here.
+    # TODO:  Use the right abstractions for categorical index columns
+    return data.groupby(groupby_cols, sort=False, observed=True).sum()
 
 
 def stratify(data: pd.DataFrame, stratification_cols: list[str]) -> pd.DataFrame:
