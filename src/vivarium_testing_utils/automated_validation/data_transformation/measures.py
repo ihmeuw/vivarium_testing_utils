@@ -107,7 +107,7 @@ class RatioMeasure(Measure, ABC):
 
     @check_io(out=SingleNumericColumn)
     def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
-        """Process raw simulation data into a format suitable for comparison."""
+        """Process raw simulation data into a format suitable for calculations."""
         return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
 
     @check_io(
@@ -120,7 +120,7 @@ class RatioMeasure(Measure, ABC):
         numerator_data: pd.DataFrame,
         denominator_data: pd.DataFrame,
     ) -> pd.DataFrame:
-        """Process raw data into ratio dataframe."""
+        """Process raw simulation data into a RatioData frame with count columns to be divided later."""
         numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
