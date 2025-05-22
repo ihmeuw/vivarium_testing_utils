@@ -56,6 +56,15 @@ def line_plot(
     x_axis: str,
     subplots: bool = True,
 ) -> Figure | list[Figure]:
+    """
+    Create a line plot for the given data.
+    Args:
+        title: Intended plot title.
+        combined_data: Test and Reference data to plot.
+        x_axis: Column to use for the x-axis.
+        subplots: Whether to create subplots for each condition.
+    Returns:
+         The generated figure or list of figures."""
 
     LINEPLOT_KWARGS = {
         "marker": "o",
