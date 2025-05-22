@@ -512,7 +512,7 @@ def rebin_count_dataframe(
 
     output_df = pd.concat(all_results_series, axis=1).reorder_levels(original_index_names)
 
-    return output_df.sort_index()
+    return output_df
 
 
 def _get_transform_matrix(source_schema: AgeSchema, target_schema: AgeSchema) -> pd.DataFrame:

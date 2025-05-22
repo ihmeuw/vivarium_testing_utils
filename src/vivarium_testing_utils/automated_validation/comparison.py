@@ -93,7 +93,7 @@ class FuzzyComparison(Comparison):
         self.test_source = test_source
         self.test_data = test_data
         self.reference_source = reference_source
-        self.reference_data = reference_data.rename(columns={"value": "reference_rate"})
+        self.reference_data = reference_data
         if stratifications:
             # TODO: MIC-6075
             raise NotImplementedError(
@@ -146,6 +146,9 @@ class FuzzyComparison(Comparison):
             )
 
         test_data, reference_data = self._align_datasets()
+
+        test_data = test_data.rename(columns={"value": "test_rate"}).dropna()
+        reference_data = reference_data.rename(columns={"value": "reference_rate"}).dropna()
 
         merged_data = pd.merge(test_data, reference_data, left_index=True, right_index=True)
         merged_data["percent_error"] = (
@@ -248,8 +251,5 @@ class FuzzyComparison(Comparison):
             else:
                 reference_data = reference_data.droplevel(index_name)
 
-        converted_test_data = self.measure.get_measure_data_from_ratio(
-            stratified_test_data
-        ).rename(columns={"value": "test_rate"})
-        converted_test_data.dropna(inplace=True)
+        converted_test_data = self.measure.get_measure_data_from_ratio(stratified_test_data)
         return converted_test_data, reference_data
