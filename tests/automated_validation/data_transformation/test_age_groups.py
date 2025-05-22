@@ -15,7 +15,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     _get_transform_matrix,
     format_dataframe,
     rebin_count_dataframe,
-    sort_dataframe_by_age,
 )
 
 
