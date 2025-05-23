@@ -113,16 +113,28 @@ def test_line_plot_subplots_true(sample_data) -> None:
         assert kwargs["x_axis"] == "age_group"
         assert isinstance(kwargs["plot_args"], dict)
 
+        # Verify lineplot specific arguments
+        assert kwargs["plot_args"]["marker"] == "o"
+        assert kwargs["plot_args"]["markers"] is True
+        assert kwargs["plot_args"]["hue"] == "source"
+        assert kwargs["plot_args"]["y"] == "value"
+        assert kwargs["plot_args"]["errorbar"] == "pi"
+
 
 def test_line_plot_subplots_false(sample_data) -> None:
     # Setup
     plt.close("all")
     title = "Test Title"
 
+    # Create mocks for matplotlib components
+    mock_fig = Mock()
+    mock_ax = Mock()
+    mock_fig.add_subplot.return_value = mock_ax
+
     # Call the function with subplots=False
-    with patch("matplotlib.figure.Figure.add_subplot"), patch("seaborn.lineplot"), patch(
-        "matplotlib.pyplot.tight_layout"
-    ):
+    with patch("matplotlib.pyplot.figure", return_value=mock_fig), patch(
+        "seaborn.lineplot"
+    ) as mock_lineplot, patch("matplotlib.pyplot.tight_layout"):
         figures = line_plot(
             title=title, combined_data=sample_data, x_axis="age_group", subplots=False
         )
@@ -130,7 +142,21 @@ def test_line_plot_subplots_false(sample_data) -> None:
         # Check we get a list of figures as expected
         assert isinstance(figures, list)
         assert len(figures) > 0
-        assert all(isinstance(fig, plt.Figure) for fig in figures)
+
+        # Test that the axis was properly configured
+        assert mock_ax.set_title.called
+        assert mock_ax.set_xlabel.called
+        assert mock_ax.set_ylabel.called
+        assert mock_ax.grid.called
+
+        # Assert lineplot was called with expected args
+        assert mock_lineplot.called
+        kwargs = mock_lineplot.call_args[1]
+        assert kwargs["marker"] == "o"
+        assert kwargs["markers"] is True
+        assert kwargs["hue"] == "source"
+        assert kwargs["y"] == "value"
+        assert kwargs["errorbar"] == "pi"
 
 
 def test_rel_plot_too_many_stratifications(sample_data: pd.DataFrame) -> None:
@@ -152,9 +178,29 @@ def test_rel_plot_two_unconditioned(
     title = "Test Title"
     filtered_data = sample_data.xs("male", level="sex")  # 2 unconditioned variables remain
     with patch("seaborn.relplot") as mock_relplot:
+        # Create a mock with trackable attributes for testing
+        mock_figure = Mock()
+        mock_figure._test_attributes = {}
+
+        # Mock the methods we want to test
+        mock_figure.suptitle = Mock(
+            side_effect=lambda title, y=None, fontsize=None, **kwargs: mock_figure._test_attributes.update(
+                {"title": title, "title_y": y, "title_fontsize": fontsize}
+            )
+        )
+
+        mock_figure.legend = Mock(
+            side_effect=lambda **kwargs: mock_figure._test_attributes.update(
+                {"legend_params": kwargs}
+            )
+        )
+
+        # Set up the return value
         mock_relplot.return_value = Mock()
-        mock_relplot.return_value.figure = Mock()
+        mock_relplot.return_value.figure = mock_figure
         mock_relplot.return_value._legend = Mock()
+        mock_relplot.return_value.set_axis_labels = Mock()
+        mock_relplot.return_value.set_xticklabels = Mock()
 
         fig = rel_plot(
             title=title,
@@ -169,6 +215,26 @@ def test_rel_plot_two_unconditioned(
         assert kwargs["row"] == "disease_state"
         assert kwargs["col"] == "region"
 
+        # Test that title was set correctly
+        assert mock_figure.suptitle.called
+        assert mock_figure._test_attributes.get("title") == title
+        assert mock_figure._test_attributes.get("title_y") == 1.02
+        assert mock_figure._test_attributes.get("title_fontsize") == 16
+
+        # Test legend configuration
+        assert mock_figure.legend.called
+        assert (
+            mock_figure._test_attributes.get("legend_params", {}).get("loc") == "upper right"
+        )
+
+        # Test axis labels were set
+        mock_relplot.return_value.set_axis_labels.assert_called_once_with(
+            "age_group", "Proportion"
+        )
+
+        # Test that xtick labels were rotated
+        mock_relplot.return_value.set_xticklabels.assert_called_once_with(rotation=30)
+
 
 def test_rel_plot_one_unconditioned(sample_data: pd.DataFrame) -> None:
     """Test rel_plot with a single unconditioned variable."""
@@ -178,9 +244,29 @@ def test_rel_plot_one_unconditioned(sample_data: pd.DataFrame) -> None:
         ("male", "North"), level=["sex", "region"]
     )  # 1 unconditioned variable remains
     with patch("seaborn.relplot") as mock_relplot:
+        # Create a mock with trackable attributes for testing
+        mock_figure = Mock()
+        mock_figure._test_attributes = {}
+
+        # Mock the methods we want to test
+        mock_figure.suptitle = Mock(
+            side_effect=lambda title, y=None, fontsize=None, **kwargs: mock_figure._test_attributes.update(
+                {"title": title, "title_y": y, "title_fontsize": fontsize}
+            )
+        )
+
+        mock_figure.legend = Mock(
+            side_effect=lambda **kwargs: mock_figure._test_attributes.update(
+                {"legend_params": kwargs}
+            )
+        )
+
+        # Set up the return value
         mock_relplot.return_value = Mock()
-        mock_relplot.return_value.figure = Mock()
+        mock_relplot.return_value.figure = mock_figure
         mock_relplot.return_value._legend = Mock()
+        mock_relplot.return_value.set_axis_labels = Mock()
+        mock_relplot.return_value.set_xticklabels = Mock()
 
         fig = rel_plot(
             title=title,
@@ -195,6 +281,26 @@ def test_rel_plot_one_unconditioned(sample_data: pd.DataFrame) -> None:
         assert kwargs["row"] == "disease_state"
         assert "col" not in kwargs
 
+        # Test that title was set correctly
+        assert mock_figure.suptitle.called
+        assert mock_figure._test_attributes.get("title") == title
+        assert mock_figure._test_attributes.get("title_y") == 1.02
+        assert mock_figure._test_attributes.get("title_fontsize") == 16
+
+        # Test legend configuration
+        assert mock_figure.legend.called
+        assert (
+            mock_figure._test_attributes.get("legend_params", {}).get("loc") == "upper right"
+        )
+
+        # Test axis labels were set
+        mock_relplot.return_value.set_axis_labels.assert_called_once_with(
+            "age_group", "Proportion"
+        )
+
+        # Test that xtick labels were rotated
+        mock_relplot.return_value.set_xticklabels.assert_called_once_with(rotation=30)
+
 
 def test_rel_plot_basic(
     sample_data: pd.DataFrame,
@@ -207,14 +313,63 @@ def test_rel_plot_basic(
     title = "Test Title"
     # Call the function
     with patch("seaborn.relplot") as mock_relplot:
+        # Create a mock with trackable attributes for testing
+        mock_figure = Mock()
+        mock_figure._test_attributes = {}
+
+        # Mock the methods we want to test
+        mock_figure.suptitle = Mock(
+            side_effect=lambda title, y=None, fontsize=None, **kwargs: mock_figure._test_attributes.update(
+                {"title": title, "title_y": y, "title_fontsize": fontsize}
+            )
+        )
+
+        mock_figure.legend = Mock(
+            side_effect=lambda **kwargs: mock_figure._test_attributes.update(
+                {"legend_params": kwargs}
+            )
+        )
+
+        # Set up the return value
         mock_relplot.return_value = Mock()
-        mock_relplot.return_value.figure = Mock()
+        mock_relplot.return_value.figure = mock_figure
         mock_relplot.return_value._legend = Mock()
+        mock_relplot.return_value.set_axis_labels = Mock()
+        mock_relplot.return_value.set_xticklabels = Mock()
+        mock_relplot.return_value.map = Mock()
+        mock_relplot.return_value.tight_layout = Mock()
 
         fig = rel_plot(title=title, combined_data=filtered_data, x_axis="age_group")
 
         # Assert relplot was called correctly
         mock_relplot.assert_called_once()
+
+        # Test that title was set correctly
+        assert mock_figure.suptitle.called
+        assert mock_figure._test_attributes.get("title") == title
+        assert mock_figure._test_attributes.get("title_y") == 1.02
+        assert mock_figure._test_attributes.get("title_fontsize") == 16
+
+        # Test legend configuration
+        assert mock_figure.legend.called
+        assert (
+            mock_figure._test_attributes.get("legend_params", {}).get("loc") == "upper right"
+        )
+
+        # Test axis labels were set
+        mock_relplot.return_value.set_axis_labels.assert_called_once_with(
+            "age_group", "Proportion"
+        )
+
+        # Test that xtick labels were rotated
+        mock_relplot.return_value.set_xticklabels.assert_called_once_with(rotation=30)
+
+        # Test that grid was applied
+        mock_relplot.return_value.map.assert_called_once()
+        assert mock_relplot.return_value.map.call_args[0][0] == plt.grid
+
+        # Test that tight_layout was called
+        mock_relplot.return_value.tight_layout.assert_called_once()
 
 
 def test_format_title() -> None:
