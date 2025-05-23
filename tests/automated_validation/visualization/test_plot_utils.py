@@ -179,7 +179,6 @@ class TestPlotComparison:
 
 
 class TestLinePlot:
-
     def test_subplots_true(
         self, test_title: str, sample_data: pd.DataFrame, mocker: MockerFixture
     ) -> None:
