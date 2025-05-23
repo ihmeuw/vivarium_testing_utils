@@ -34,9 +34,7 @@ def plot_comparison(
             f"Unsupported plot type: {type}. Supported types are: {list(PLOT_TYPE_MAPPING.keys())}"
         )
     title = format_title(comparison.measure.measure_key)
-
     combined_data = get_combined_data(comparison)
-
     title, combined_data = conditionalize(condition, title, combined_data)
 
     default_kwargs = {
@@ -85,18 +83,12 @@ def line_plot(
         )
     else:
         unconditioned = get_unconditioned_index_names(combined_data.index, x_axis)
-
-        # Close any existing figures to avoid conflicts
-        plt.close("all")
-
-        # List to store individual figures
         figures = []
 
         # Create individual figures for each condition
         for grouped_idx, grouped_df in combined_data.groupby(level=unconditioned):
             if not isinstance(grouped_idx, tuple):
                 grouped_idx = (grouped_idx,)
-            # Create a new figure for each condition
             fig = plt.figure(figsize=(10, 6))
             ax = fig.add_subplot(111)
 
@@ -114,11 +106,8 @@ def line_plot(
             ax.set_xlabel(x_axis)
             ax.set_ylabel("Proportion")
             ax.grid(alpha=0.5, color="gray")
-
-            # Finalize the figure
             plt.tight_layout()
 
-            # Add to our list of figures
             figures.append(fig)
 
         return figures
@@ -173,15 +162,13 @@ def rel_plot(
         else:
             relplot_kwargs["row"] = unconditioned[0]
 
-    # Create the plot
     g = sns.relplot(data=combined_data.reset_index(), x=x_axis, **relplot_kwargs)
 
-    # Customize
     g.set_axis_labels(x_axis, "Proportion")
     g.set_xticklabels(rotation=30)
 
     # Custom Legend
-    g._legend.remove()  # Remove the default legend
+    g._legend.remove()
     g.figure.legend(loc="upper right")
 
     g.figure.suptitle(title, y=1.02, fontsize=16)
