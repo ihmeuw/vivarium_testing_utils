@@ -1,8 +1,9 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
@@ -17,10 +18,10 @@ from vivarium_testing_utils.automated_validation.visualization.plot_utils import
     rel_plot,
 )
 
-
 # ==================
 # Shared Fixtures
 # ==================
+
 
 @pytest.fixture
 def sample_data() -> pd.DataFrame:
@@ -46,59 +47,63 @@ def sample_data() -> pd.DataFrame:
 
 
 @pytest.fixture
-def sample_comparison(sample_data: pd.DataFrame) -> Comparison:
+def sample_comparison(sample_data: pd.DataFrame, mocker: MockerFixture) -> Mock:
     # Create test and reference data
     test_data = sample_data.xs("Test", level="source")
     reference_data = sample_data.xs("Reference", level="source")
 
     # Mock Comparison object with the _align_datasets method
-    mock_comparison = Mock()
-    mock_comparison._align_datasets = Mock(return_value=(test_data, reference_data))
+    mock_comparison = mocker.Mock(spec=Comparison)
+    mock_comparison._align_datasets = mocker.Mock(return_value=(test_data, reference_data))
 
     # Set up sources
-    mock_comparison.test_source = Mock(spec=DataSource)
+    mock_comparison.test_source = mocker.Mock(spec=DataSource)
     mock_comparison.test_source.name = "test"
-    mock_comparison.reference_source = Mock(spec=DataSource)
+    mock_comparison.reference_source = mocker.Mock(spec=DataSource)
     mock_comparison.reference_source.name = "reference"
 
     # Set up measure
-    mock_comparison.measure = Mock()
+    mock_comparison.measure = mocker.Mock()
     mock_comparison.measure.measure_key = "measure.test_measure"
+
+    # Type narrow for mypy
+    assert isinstance(mock_comparison, Mock)
 
     return mock_comparison
 
 
 @pytest.fixture
-def mock_relplot_setup():
+def mock_relplot_setup(mocker: MockerFixture) -> tuple[Mock, Mock]:
     """Set up mocked seaborn relplot with trackable figure attributes."""
-    with patch("seaborn.relplot") as mock_relplot:
-        # Create a mock with trackable attributes for testing
-        mock_figure = Mock()
-        mock_figure._test_attributes = {}
+    mock_relplot = mocker.patch("seaborn.relplot")
 
-        # Mock the methods we want to test
-        mock_figure.suptitle = Mock(
-            side_effect=lambda title, y=None, fontsize=None, **kwargs: mock_figure._test_attributes.update(
-                {"title": title, "title_y": y, "title_fontsize": fontsize}
-            )
+    # Create a mock with trackable attributes for testing
+    mock_figure = mocker.Mock()
+    mock_figure._test_attributes = {}
+
+    # Mock the methods we want to test
+    mock_figure.suptitle = mocker.Mock(
+        side_effect=lambda title, y=None, fontsize=None, **kwargs: mock_figure._test_attributes.update(
+            {"title": title, "title_y": y, "title_fontsize": fontsize}
         )
+    )
 
-        mock_figure.legend = Mock(
-            side_effect=lambda **kwargs: mock_figure._test_attributes.update(
-                {"legend_params": kwargs}
-            )
+    mock_figure.legend = mocker.Mock(
+        side_effect=lambda **kwargs: mock_figure._test_attributes.update(
+            {"legend_params": kwargs}
         )
+    )
 
-        # Set up the return value
-        mock_relplot.return_value = Mock()
-        mock_relplot.return_value.figure = mock_figure
-        mock_relplot.return_value._legend = Mock()
-        mock_relplot.return_value.set_axis_labels = Mock()
-        mock_relplot.return_value.set_xticklabels = Mock()
-        mock_relplot.return_value.map = Mock()
-        mock_relplot.return_value.tight_layout = Mock()
+    # Set up the return value
+    mock_relplot.return_value = mocker.Mock()
+    mock_relplot.return_value.figure = mock_figure
+    mock_relplot.return_value._legend = mocker.Mock()
+    mock_relplot.return_value.set_axis_labels = mocker.Mock()
+    mock_relplot.return_value.set_xticklabels = mocker.Mock()
+    mock_relplot.return_value.map = mocker.Mock()
+    mock_relplot.return_value.tight_layout = mocker.Mock()
 
-        yield mock_relplot, mock_figure
+    return mock_relplot, mock_figure
 
 
 # ==================
@@ -107,8 +112,12 @@ def mock_relplot_setup():
 
 
 def assert_figure_attributes(
-    mock_figure, title, y=1.02, fontsize=16, legend_loc="upper right"
-):
+    mock_figure: Mock,
+    title: str,
+    y: float = 1.02,
+    fontsize: int = 16,
+    legend_loc: str = "upper right",
+) -> None:
     """Assert that figure attributes were set correctly."""
     assert mock_figure.suptitle.called
     assert mock_figure._test_attributes.get("title") == title
@@ -119,7 +128,7 @@ def assert_figure_attributes(
     assert mock_figure._test_attributes.get("legend_params", {}).get("loc") == legend_loc
 
 
-def assert_relplot_settings(mock_relplot, x_axis="age_group"):
+def assert_relplot_settings(mock_relplot: Mock, x_axis: str = "age_group") -> None:
     """Assert that relplot settings were applied correctly."""
     mock_relplot.return_value.set_axis_labels.assert_called_once_with(x_axis, "Proportion")
     mock_relplot.return_value.set_xticklabels.assert_called_once_with(rotation=30)
@@ -134,26 +143,26 @@ def assert_relplot_settings(mock_relplot, x_axis="age_group"):
 
 
 class TestPlotComparison:
-    def test_valid_type(self, sample_comparison: Comparison) -> None:
+    def test_valid_type(self, sample_comparison: Comparison, mocker: MockerFixture) -> None:
         # Setup
-        with patch(
+        mock_line_plot = mocker.patch(
             "vivarium_testing_utils.automated_validation.visualization.plot_utils.line_plot"
-        ) as mock_line_plot:
-            mock_line_plot.return_value = plt.figure()
+        )
+        mock_line_plot.return_value = plt.figure()
 
-            # Call the function
-            fig = plot_comparison(
-                comparison=sample_comparison,
-                type="line",
-                condition={"sex": "male"},
-                x_axis="age_group",
-            )
+        # Call the function
+        fig = plot_comparison(
+            comparison=sample_comparison,
+            type="line",
+            condition={"sex": "male"},
+            x_axis="age_group",
+        )
 
-            # Assert
-            mock_line_plot.assert_called_once()
-            assert "title" in mock_line_plot.call_args[1]
-            assert "combined_data" in mock_line_plot.call_args[1]
-            assert mock_line_plot.call_args[1]["x_axis"] == "age_group"
+        # Assert
+        mock_line_plot.assert_called_once()
+        assert "title" in mock_line_plot.call_args[1]
+        assert "combined_data" in mock_line_plot.call_args[1]
+        assert mock_line_plot.call_args[1]["x_axis"] == "age_group"
 
     def test_invalid_type(self, sample_comparison: Comparison) -> None:
         with pytest.raises(ValueError, match="Unsupported plot type"):
@@ -166,70 +175,71 @@ class TestPlotComparison:
 
 
 class TestLinePlot:
-    def test_subplots_true(self, sample_data) -> None:
+    def test_subplots_true(self, sample_data: pd.DataFrame, mocker: MockerFixture) -> None:
         # Setup
         plt.close("all")
         title = "Test Title"
 
         # Call the function with subplots=True
-        with patch(
+        mock_rel_plot = mocker.patch(
             "vivarium_testing_utils.automated_validation.visualization.plot_utils.rel_plot"
-        ) as mock_rel_plot:
-            mock_rel_plot.return_value = plt.figure()
-            fig = line_plot(
-                title=title, combined_data=sample_data, x_axis="age_group", subplots=True
-            )
+        )
+        mock_rel_plot.return_value = plt.figure()
+        fig = line_plot(
+            title=title, combined_data=sample_data, x_axis="age_group", subplots=True
+        )
 
-            # Assert rel_plot was called with correct arguments
-            mock_rel_plot.assert_called_once()
-            args, kwargs = mock_rel_plot.call_args
-            assert kwargs["title"] == title
-            assert kwargs["x_axis"] == "age_group"
-            assert isinstance(kwargs["plot_args"], dict)
+        # Assert rel_plot was called with correct arguments
+        mock_rel_plot.assert_called_once()
+        args, kwargs = mock_rel_plot.call_args
+        assert kwargs["title"] == title
+        assert kwargs["x_axis"] == "age_group"
+        assert isinstance(kwargs["plot_args"], dict)
 
-            # Verify lineplot specific arguments
-            assert kwargs["plot_args"]["marker"] == "o"
-            assert kwargs["plot_args"]["markers"] is True
-            assert kwargs["plot_args"]["hue"] == "source"
-            assert kwargs["plot_args"]["y"] == "value"
-            assert kwargs["plot_args"]["errorbar"] == "pi"
+        # Verify lineplot specific arguments
+        assert kwargs["plot_args"]["marker"] == "o"
+        assert kwargs["plot_args"]["markers"] is True
+        assert kwargs["plot_args"]["hue"] == "source"
+        assert kwargs["plot_args"]["y"] == "value"
+        assert kwargs["plot_args"]["errorbar"] == "pi"
 
-    def test_subplots_false(self, sample_data) -> None:
+    def test_subplots_false(self, sample_data: pd.DataFrame, mocker: MockerFixture) -> None:
         # Setup
         plt.close("all")
         title = "Test Title"
 
         # Create mocks for matplotlib components
-        mock_fig = Mock()
-        mock_ax = Mock()
+        mock_fig = mocker.Mock()
+        mock_ax = mocker.Mock()
         mock_fig.add_subplot.return_value = mock_ax
 
         # Call the function with subplots=False
-        with patch("matplotlib.pyplot.figure", return_value=mock_fig), patch(
-            "seaborn.lineplot"
-        ) as mock_lineplot, patch("matplotlib.pyplot.tight_layout"):
-            figures = line_plot(
-                title=title, combined_data=sample_data, x_axis="age_group", subplots=False
-            )
+        mocker.patch("matplotlib.pyplot.figure", return_value=mock_fig)
+        mock_lineplot = mocker.patch("seaborn.lineplot")
+        mocker.patch("matplotlib.pyplot.tight_layout")
 
-            # Check we get a list of figures as expected
-            assert isinstance(figures, list)
-            assert len(figures) > 0
+        figures = line_plot(
+            title=title, combined_data=sample_data, x_axis="age_group", subplots=False
+        )
 
-            # Test that the axis was properly configured
-            assert mock_ax.set_title.called
-            assert mock_ax.set_xlabel.called
-            assert mock_ax.set_ylabel.called
-            assert mock_ax.grid.called
+        # Check we get a list of figures as expected
+        assert isinstance(figures, list)
+        assert len(figures) > 0
 
-            # Assert lineplot was called with expected args
-            assert mock_lineplot.called
-            kwargs = mock_lineplot.call_args[1]
-            assert kwargs["marker"] == "o"
-            assert kwargs["markers"] is True
-            assert kwargs["hue"] == "source"
-            assert kwargs["y"] == "value"
-            assert kwargs["errorbar"] == "pi"
+        # Test that the axis was properly configured
+        assert mock_ax.set_title.called
+        assert mock_ax.set_xlabel.called
+        assert mock_ax.set_ylabel.called
+        assert mock_ax.grid.called
+
+        # Assert lineplot was called with expected args
+        assert mock_lineplot.called
+        kwargs = mock_lineplot.call_args[1]
+        assert kwargs["marker"] == "o"
+        assert kwargs["markers"] is True
+        assert kwargs["hue"] == "source"
+        assert kwargs["y"] == "value"
+        assert kwargs["errorbar"] == "pi"
 
 
 # ===================================
@@ -248,13 +258,16 @@ class TestRelPlot:
                 x_axis="age_group",
             )
 
-    def test_two_unconditioned(self, sample_data: pd.DataFrame, mock_relplot_setup) -> None:
+    def test_two_unconditioned(
+        self, sample_data: pd.DataFrame, mock_relplot_setup: tuple[Mock, Mock]
+    ) -> None:
         """Test rel_plot with two unconditioned variables where the first has more unique values."""
         plt.close("all")
         title = "Test Title"
         filtered_data = sample_data.xs(
             "male", level="sex"
         )  # 2 unconditioned variables remain
+        assert isinstance(filtered_data, pd.DataFrame)
 
         mock_relplot, mock_figure = mock_relplot_setup
 
@@ -277,14 +290,16 @@ class TestRelPlot:
         # Test relplot settings
         assert_relplot_settings(mock_relplot)
 
-    def test_one_unconditioned(self, sample_data: pd.DataFrame, mock_relplot_setup) -> None:
+    def test_one_unconditioned(
+        self, sample_data: pd.DataFrame, mock_relplot_setup: tuple[Mock, Mock]
+    ) -> None:
         """Test rel_plot with a single unconditioned variable."""
         plt.close("all")
         title = "Test Title"
         filtered_data = sample_data.xs(
-            ("male", "North"), level=["sex", "region"]
+            ("male", "North"), level=("sex", "region")
         )  # 1 unconditioned variable remains
-
+        assert isinstance(filtered_data, pd.DataFrame)
         mock_relplot, mock_figure = mock_relplot_setup
 
         fig = rel_plot(
@@ -306,12 +321,15 @@ class TestRelPlot:
         # Test relplot settings
         assert_relplot_settings(mock_relplot)
 
-    def test_basic(self, sample_data: pd.DataFrame, mock_relplot_setup) -> None:
+    def test_basic(
+        self, sample_data: pd.DataFrame, mock_relplot_setup: tuple[Mock, Mock]
+    ) -> None:
         """Test rel_plot with all variables conditioned."""
         plt.close("all")
         filtered_data = sample_data.xs(
-            ("male", "North", "susceptible"), level=["sex", "region", "disease_state"]
+            ("male", "North", "susceptible"), level=("sex", "region", "disease_state")
         )
+        assert isinstance(filtered_data, pd.DataFrame)
         title = "Test Title"
 
         mock_relplot, mock_figure = mock_relplot_setup
@@ -349,7 +367,7 @@ class TestHelperFunctions:
         assert set(get_unconditioned_index_names(index, "age_group")) == {"sex"}
         assert set(get_unconditioned_index_names(index, "sex")) == {"age_group"}
 
-    def test_append_source(self) -> None:
+    def test_append_source(self, mocker: MockerFixture) -> None:
         # Setup
         data = pd.DataFrame(
             {"value": [0.1, 0.2]},
@@ -357,7 +375,7 @@ class TestHelperFunctions:
                 [("male", 0), ("female", 0)], names=["sex", "input_draw"]
             ),
         )
-        source = Mock(spec=DataSource)
+        source = mocker.Mock(spec=DataSource)
         source.name = "test_source"
 
         # Call function
