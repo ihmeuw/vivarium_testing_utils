@@ -1,20 +1,21 @@
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import pytest
 from unittest.mock import Mock, patch
-from vivarium_testing_utils.automated_validation.data_loader import DataSource
-from vivarium_testing_utils.automated_validation.comparison import Comparison
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pytest
+
+from vivarium_testing_utils.automated_validation.comparison import Comparison
+from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.plot_utils import (
-    rel_plot,
-    line_plot,
-    plot_comparison,
-    format_title,
-    get_unconditioned_index_names,
     _append_source,
     conditionalize,
+    format_title,
     get_combined_data,
+    get_unconditioned_index_names,
+    line_plot,
+    plot_comparison,
+    rel_plot,
 )
 
 

@@ -1,11 +1,13 @@
 # mypy: ignore-errors
-import pandas as pd
-from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from typing import Any
-from vivarium_testing_utils.automated_validation.comparison import Comparison
+
+import pandas as pd
+import seaborn as sns
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
-import seaborn as sns
+
+from vivarium_testing_utils.automated_validation.comparison import Comparison
+from vivarium_testing_utils.automated_validation.data_loader import DataSource
 
 
 def plot_comparison(

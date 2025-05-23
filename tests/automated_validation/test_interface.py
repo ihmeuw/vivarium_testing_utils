@@ -1,10 +1,10 @@
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
-import matplotlib.pyplot as plt
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Collection, Literal, Any
+from typing import Any, Collection, Literal
 
 import pandas as pd
 from matplotlib.figure import Figure
 
-from vivarium_testing_utils.automated_validation.visualization import plot_utils
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
