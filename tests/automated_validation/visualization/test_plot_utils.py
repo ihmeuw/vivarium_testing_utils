@@ -10,7 +10,7 @@ from vivarium_testing_utils.automated_validation.visualization.plot_utils import
     rel_plot,
     line_plot,
     plot_comparison,
-    titleify,
+    format_title,
     get_unconditioned_index_names,
     _append_source,
     conditionalize,
@@ -216,9 +216,9 @@ def test_rel_plot_basic(
         mock_relplot.assert_called_once()
 
 
-def test_titleify() -> None:
-    assert titleify("measure.test_measure") == "Test Measure"
-    assert titleify("measure.compound_name_example") == "Compound Name Example"
+def test_format_title() -> None:
+    assert format_title("measure.test_measure") == "Test Measure"
+    assert format_title("measure.compound_name_example") == "Compound Name Example"
 
 
 def test_get_unconditioned_index_names() -> None:

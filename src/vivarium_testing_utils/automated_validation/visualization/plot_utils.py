@@ -31,7 +31,7 @@ def plot_comparison(
         raise ValueError(
             f"Unsupported plot type: {type}. Supported types are: {list(PLOT_TYPE_MAPPING.keys())}"
         )
-    title = titleify(comparison.measure.measure_key)
+    title = format_title(comparison.measure.measure_key)
 
     combined_data = get_combined_data(comparison)
 
@@ -238,7 +238,7 @@ def _append_source(
     return data_with_source
 
 
-def titleify(measure_key: str) -> str:
+def format_title(measure_key: str) -> str:
     """Convert a measure key to a more readable format."""
     title = " ".join(measure_key.split(".")[1:])
     title = title.replace("_", " ")
