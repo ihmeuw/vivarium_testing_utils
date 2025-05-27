@@ -50,6 +50,63 @@ class DataLoader:
         }
         self._artifact = self._load_artifact(self._sim_output_dir)
 
+        # Initialize derived datasets
+        self._initialize_derived_datasets()
+
+    def _initialize_derived_datasets(self) -> None:
+        """Initialize derived datasets that are computed from raw simulation outputs."""
+        # Create person_time_total dataset if any person_time datasets exist
+        self._create_person_time_total_dataset()
+
+    def _create_person_time_total_dataset(self) -> None:
+        """
+        Create a derived dataset that aggregates total person time across all causes.
+
+        This dataset can be used as a denominator for population-level measures like
+        mortality rates.
+        """
+        from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+            marginalize,
+        )
+
+        # Get all person time datasets
+        sim_outputs = self.get_sim_outputs()
+        person_time_datasets = [d for d in sim_outputs if d.startswith("person_time_")]
+
+        if not person_time_datasets:
+            return  # No person time datasets to aggregate
+
+        # We'll use the first person time dataset as our base
+        base_dataset_key = person_time_datasets[0]
+        base_dataset = self.get_dataset(base_dataset_key, DataSource.SIM)
+
+        # Create a copy of the dataset with standardized structure
+        person_time_total = base_dataset.copy()
+
+        # Marginalize across sub_entity to get total
+        person_time_total = marginalize(person_time_total, ["sub_entity"])
+
+        # Update the metadata columns to represent population-level data
+        # Create a new index that replaces 'entity' with 'population'
+        index_values = list(person_time_total.index.values)
+        index_names = list(person_time_total.index.names)
+
+        entity_idx = index_names.index("entity")
+
+        # Create new index tuples with 'population' replacing the original entity
+        new_index_values = []
+        for idx_tuple in index_values:
+            idx_list = list(idx_tuple)
+            idx_list[entity_idx] = "population"
+            new_index_values.append(tuple(idx_list))
+
+        # Create a new MultiIndex
+        new_index = pd.MultiIndex.from_tuples(new_index_values, names=index_names)
+        person_time_total.index = new_index
+
+        # Cache the derived dataset
+        self.upload_custom_data("person_time_total", person_time_total)
+
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets in the given simulation output directory.
         Only return the filename, not the extension."""
