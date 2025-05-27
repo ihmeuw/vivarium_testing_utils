@@ -9,6 +9,7 @@ from vivarium import Artifact
 
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     clean_artifact_data,
+    marginalize,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
@@ -65,52 +66,73 @@ class DataLoader:
         This dataset can be used as a denominator for population-level measures like
         mortality rates.
         """
-        from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-            marginalize,
+
+        base_dataset_key = self.get_total_person_time_base()
+        base_dataset = self.get_dataset(base_dataset_key, DataSource.SIM)
+
+        # Marginalize across sub_entity to get total
+        person_time_total = marginalize(base_dataset, ["sub_entity"])
+
+        # drop entity and entity_type from index
+        person_time_total = person_time_total.droplevel(["entity", "entity_type"])
+        # Cache the derived dataset
+        self.upload_custom_data(
+            dataset_key="person_time_total", data=person_time_total, source=DataSource.SIM
         )
 
-        # Get all person time datasets
-        sim_outputs = self.get_sim_outputs()
-        person_time_datasets = [d for d in sim_outputs if d.startswith("person_time_")]
+    def get_total_person_time_base(self, tolerance: float = 0.01) -> bool:
+        """
+        Validate that all person time datasets sum to approximately the same total.
+
+        Parameters
+        ----------
+        data_loader : DataLoader
+            The data loader instance
+        tolerance : float, optional
+            The fractional tolerance for differences between totals
+
+        Returns
+        -------
+        bool
+            True if all totals are consistent, False otherwise
+        """
+        all_outputs = self.get_sim_outputs()
+        person_time_datasets = [d for d in all_outputs if d.startswith("person_time_")]
 
         if not person_time_datasets:
             return  # No person time datasets to aggregate
 
-        # We'll use the first person time dataset as our base
-        base_dataset_key = person_time_datasets[0]
-        base_dataset = self.get_dataset(base_dataset_key, DataSource.SIM)
+        if len(person_time_datasets) < 2:
+            return person_time_datasets
 
-        # Create a copy of the dataset with standardized structure
-        person_time_total = base_dataset.copy()
+        totals = []
+        for dataset in person_time_datasets:
+            data = self.get_dataset(dataset, DataSource.SIM)
+            # Marginalize across sub_entity to get total
+            marginalized = marginalize(data, ["sub_entity"])
+            # Sum across all remaining stratifications
+            total = marginalized["value"].sum()
+            totals.append(total)
 
-        # Marginalize across sub_entity to get total
-        person_time_total = marginalize(person_time_total, ["sub_entity"])
+        # Check if all totals are within tolerance of each other
+        reference = totals[0]
+        for total in totals[1:]:
+            if abs(total - reference) / reference > tolerance:
+                raise ValueError(
+                    f"Person time totals are inconsistent: {totals}. "
+                    f"Expected all totals to be within {tolerance * 100}% of each other."
+                )
+        # get dataset with largest total
+        largest_total_dataset = person_time_datasets[totals.index(max(totals))]
 
-        # Update the metadata columns to represent population-level data
-        # Create a new index that replaces 'entity' with 'population'
-        index_values = list(person_time_total.index.values)
-        index_names = list(person_time_total.index.names)
-
-        entity_idx = index_names.index("entity")
-
-        # Create new index tuples with 'population' replacing the original entity
-        new_index_values = []
-        for idx_tuple in index_values:
-            idx_list = list(idx_tuple)
-            idx_list[entity_idx] = "population"
-            new_index_values.append(tuple(idx_list))
-
-        # Create a new MultiIndex
-        new_index = pd.MultiIndex.from_tuples(new_index_values, names=index_names)
-        person_time_total.index = new_index
-
-        # Cache the derived dataset
-        self.upload_custom_data("person_time_total", person_time_total)
+        return largest_total_dataset
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets in the given simulation output directory.
         Only return the filename, not the extension."""
-        return [str(f.stem) for f in self._results_dir.glob("*.parquet")]
+        return set(str(f.stem) for f in self._results_dir.glob("*.parquet")) + set(
+            self._raw_datasets[DataSource.SIM].keys()
+        )
 
     def get_artifact_keys(self) -> list[str]:
         return self._artifact.keys
@@ -129,8 +151,10 @@ class DataLoader:
             self._add_to_cache(dataset_key, source, dataset)
             return dataset
 
-    def upload_custom_data(self, dataset_key: str, data: pd.DataFrame) -> None:
-        self._add_to_cache(dataset_key, DataSource.CUSTOM, data)
+    def upload_custom_data(
+        self, dataset_key: str, data: pd.DataFrame, source: DataSource = DataSource.CUSTOM
+    ) -> None:
+        self._add_to_cache(dataset_key, source, data)
 
     def _load_from_source(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Load the data from the given source via the loader mapping."""

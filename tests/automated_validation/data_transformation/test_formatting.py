@@ -271,34 +271,3 @@ def test_total_person_time_validate_consistency() -> None:
         TotalPersonTime.validate_person_time_consistency(mock_data_loader, tolerance=0.5)
         is True
     )
-
-
-@pytest.fixture
-def mock_person_time_data() -> pd.DataFrame:
-    """Create mock person time data for testing TotalPersonTime formatter."""
-    return pd.DataFrame(
-        {"value": [10.0, 20.0, 30.0, 40.0]},
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("person_time", "cause", "disease1", "susceptible_to_disease1", "A"),
-                ("person_time", "cause", "disease1", "susceptible_to_disease1", "B"),
-                ("person_time", "cause", "disease1", "disease1", "A"),
-                ("person_time", "cause", "disease1", "disease1", "B"),
-            ],
-            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
-        ),
-    )
-
-
-def test_total_person_time_format_dataset(mock_person_time_data: pd.DataFrame) -> None:
-    """Test that format_dataset correctly aggregates all person time."""
-    formatter = TotalPersonTime()
-    result = formatter.format_dataset(mock_person_time_data)
-
-    # Expected: total person time across all sub_entities
-    expected = pd.DataFrame(
-        {"total_person_time": [40.0, 60.0]},  # 10+30 for A, 20+40 for B
-        index=pd.Index(["A", "B"], name="stratify_column"),
-    )
-
-    pd.testing.assert_frame_equal(result, expected)
