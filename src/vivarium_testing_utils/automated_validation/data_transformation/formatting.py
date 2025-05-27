@@ -13,18 +13,20 @@ class SimDataFormatter:
     both transition counts and person time data, which require different formatting/ operations
     on assumed columns in the simulation data."""
 
-    def __init__(self, type: str, cause: str, filter_value: str) -> None:
-        self.type = type
-        self.cause = cause
-        self.data_key = f"{self.type}_{self.cause}"
+    def __init__(
+        self, measure: str, entity_type: str, entity: str, filter_value: str
+    ) -> None:
+        self.measure = measure
+        self.entity = entity
+        self.data_key = f"{self.measure}_{self.entity}"
         self.redundant_columns = {
-            "measure": self.type,
-            "entity_type": "cause",
-            "entity": self.cause,
+            "measure": self.measure,
+            "entity_type": entity_type,
+            "entity": self.entity,
         }
         self.filter_column = "sub_entity"
         self.filter_value = filter_value
-        self.new_value_column_name = f"{self.filter_value}_{self.type}"
+        self.new_value_column_name = f"{self.filter_value}_{self.measure}"
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         """Clean up redundant columns, filter for the state, and rename the value column."""
@@ -46,14 +48,24 @@ class TransitionCounts(SimDataFormatter):
     """Formatter for simulation data that contains transition counts."""
 
     def __init__(self, cause: str, start_state: str, end_state: str) -> None:
-        super().__init__("transition_count", cause, f"{start_state}_to_{end_state}")
+        super().__init__(
+            measure="transition_count",
+            entity_type="cause",
+            entity=cause,
+            filter_value=f"{start_state}_to_{end_state}",
+        )
 
 
 class PersonTime(SimDataFormatter):
     """Formatter for simulation data that contains person time."""
 
     def __init__(self, cause: str, state: str | None = None) -> None:
-        super().__init__("person_time", cause, state or "total")
+        super().__init__(
+            measure="person_time",
+            entity_type="cause",
+            entity=cause,
+            filter_value=state or "total",
+        )
 
 
 class TotalPersonTime(SimDataFormatter):

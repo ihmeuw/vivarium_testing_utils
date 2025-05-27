@@ -65,8 +65,8 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     formatter = TransitionCounts("disease", "susceptible_to_disease", "disease")
     # assert formatter has right number of attrs
     assert len(formatter.__dict__) == 7
-    assert formatter.type == "transition_count"
-    assert formatter.cause == "disease"
+    assert formatter.measure == "transition_count"
+    assert formatter.entity == "disease"
     assert formatter.data_key == "transition_count_disease"
     assert formatter.filter_value == "susceptible_to_disease_to_disease"
     assert formatter.filter_column == "sub_entity"
@@ -98,8 +98,8 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
     # Create a mock dataset
     formatter = PersonTime("disease", "disease")
     assert len(formatter.__dict__) == 7
-    assert formatter.type == "person_time"
-    assert formatter.cause == "disease"
+    assert formatter.measure == "person_time"
+    assert formatter.entity == "disease"
     assert formatter.data_key == "person_time_disease"
     assert formatter.filter_column == "sub_entity"
     assert formatter.new_value_column_name == "disease_person_time"
@@ -126,8 +126,8 @@ def test_total_pt(person_time_data: pd.DataFrame) -> None:
     """Test PersonTime formatting with total state."""
     formatter = PersonTime("disease")
     assert len(formatter.__dict__) == 7
-    assert formatter.type == "person_time"
-    assert formatter.cause == "disease"
+    assert formatter.measure == "person_time"
+    assert formatter.entity == "disease"
     assert formatter.data_key == "person_time_disease"
     assert formatter.filter_column == "sub_entity"
     assert formatter.new_value_column_name == "total_person_time"
@@ -154,8 +154,8 @@ def test_total_person_time_init() -> None:
     """Test TotalPersonTime formatter initialization."""
     formatter = TotalPersonTime()
 
-    assert formatter.type == "person_time"
-    assert formatter.cause == "population"
+    assert formatter.measure == "person_time"
+    assert formatter.entity == "population"
     assert formatter.filter_value == "total"
     assert formatter.filter_column == "sub_entity"
     assert formatter.new_value_column_name == "total_person_time"
