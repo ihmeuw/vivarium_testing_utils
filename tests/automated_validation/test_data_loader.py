@@ -11,6 +11,13 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
 )
 
 
+def test__create_person_time_total_dataset(sim_result_dir: Path) -> None:
+    """Ensure that we can create a total person time dataset from the simulation data."""
+    data_loader = DataLoader(sim_result_dir)
+    data_loader._create_person_time_total_dataset()
+    total_person_time = data_loader.get_dataset("person_time_total", DataSource.SIM)
+
+
 def test_get_sim_outputs(sim_result_dir: Path) -> None:
     """Test we have the correctly truncated sim data keys"""
     data_loader = DataLoader(sim_result_dir)
@@ -18,6 +25,7 @@ def test_get_sim_outputs(sim_result_dir: Path) -> None:
         "deaths",
         "person_time_disease",
         "transition_count_disease",
+        "person_time_total",
     }
 
 

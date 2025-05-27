@@ -52,11 +52,6 @@ class DataLoader:
         self._artifact = self._load_artifact(self._sim_output_dir)
 
         # Initialize derived datasets
-        self._initialize_derived_datasets()
-
-    def _initialize_derived_datasets(self) -> None:
-        """Initialize derived datasets that are computed from raw simulation outputs."""
-        # Create person_time_total dataset if any person_time datasets exist
         self._create_person_time_total_dataset()
 
     def _create_person_time_total_dataset(self) -> None:
@@ -67,7 +62,7 @@ class DataLoader:
         mortality rates.
         """
 
-        base_dataset_key = self.get_total_person_time_base()
+        base_dataset_key = self._get_total_person_time_base()
         base_dataset = self.get_dataset(base_dataset_key, DataSource.SIM)
 
         # Marginalize across sub_entity to get total
@@ -80,7 +75,7 @@ class DataLoader:
             dataset_key="person_time_total", data=person_time_total, source=DataSource.SIM
         )
 
-    def get_total_person_time_base(self, tolerance: float = 0.01) -> bool:
+    def _get_total_person_time_base(self, tolerance: float = 0.01) -> bool:
         """
         Validate that all person time datasets sum to approximately the same total.
 
