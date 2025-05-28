@@ -95,12 +95,31 @@ class Deaths(SimDataFormatter):
         cause : str, optional
             The specific cause of death to filter for. If None, all deaths are included.
         """
-        super().__init__(
-            measure="death",
-            entity_type="cause" if cause else "total",
-            entity=cause or "all_causes",
-            filter_value="total",
-        )
+
+        self.measure = self.data_key = "deaths"
+        self.redundant_columns = {
+            "measure": self.measure,
+            "entity_type": "cause",
+        }
+        self.filter_columns = ["entity", "sub_entity"]
+        self.filter_value = cause or "total"
+        self.new_value_column_name = f"{self.filter_value}_{self.measure}"
+
+    def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        """Clean up redundant columns, filter for the state, and rename the value column."""
+        for column, value in self.redundant_columns.items():
+            dataset = _drop_redundant_index(
+                dataset,
+                column,
+                value,
+            )
+        if self.filter_value == "total":
+            dataset = marginalize(dataset, self.filter_columns)
+        else:
+            for filter_column in self.filter_columns:
+                dataset = filter_data(dataset, {filter_column: [self.filter_value]})
+        dataset = dataset.rename(columns={"value": self.new_value_column_name})
+        return dataset
 
 
 def _drop_redundant_index(
