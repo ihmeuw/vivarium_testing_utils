@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Collection, Literal
+from typing import Any, Collection, Literal
 
 import pandas as pd
+from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
@@ -120,8 +121,12 @@ class ValidationContext:
         else:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
 
-    def plot_comparison(self, comparison_key: str, type: str, **kwargs):  # type: ignore[no-untyped-def]
-        return plot_utils.plot_comparison(self.comparisons[comparison_key], type, kwargs)
+    def plot_comparison(
+        self, comparison_key: str, type: str, condition: dict[str, Any] = {}, **kwargs: Any
+    ) -> Figure | list[Figure]:
+        return plot_utils.plot_comparison(
+            self.comparisons[comparison_key], type, condition, **kwargs
+        )
 
     def generate_comparisons(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
