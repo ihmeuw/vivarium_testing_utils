@@ -15,8 +15,10 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
+    Deaths,
     PersonTime,
     SimDataFormatter,
+    TotalPersonTime,
     TransitionCounts,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
@@ -154,10 +156,44 @@ class SIRemission(RatioMeasure):
         self.denominator = PersonTime(cause, cause)
 
 
+class AllCauseMortalityRate(RatioMeasure):
+    """Computes all-cause mortality rate in the population."""
+
+    def __init__(self) -> None:
+        self.measure_key = "cause.all_causes.cause_specific_mortality_rate"
+        self.numerator = Deaths()  # All deaths
+        self.denominator = TotalPersonTime()  # Total person time
+
+
+class CauseSpecificMortalityRate(RatioMeasure):
+    """Computes cause-specific mortality rate in the population."""
+
+    def __init__(self, cause: str) -> None:
+        self.measure_key = f"cause.{cause}.cause_specific_mortality_rate"
+        self.numerator = Deaths(cause)  # Deaths due to specific cause
+        self.denominator = TotalPersonTime()  # Total person time
+
+
+class ExcessMortalityRate(RatioMeasure):
+    """Computes excess mortality rate among those with the disease compared to the general population."""
+
+    def __init__(self, cause: str) -> None:
+        self.measure_key = f"cause.{cause}.excess_mortality_rate"
+        self.numerator = Deaths(cause)  # Deaths due to specific cause
+        self.denominator = PersonTime(
+            cause, cause
+        )  # Person time among those with the disease
+
+
 MEASURE_KEY_MAPPINGS = {
     "cause": {
         "incidence_rate": Incidence,
         "prevalence": Prevalence,
         "remission_rate": SIRemission,
-    }
+        "cause_specific_mortality_rate": CauseSpecificMortalityRate,
+        "excess_mortality_rate": ExcessMortalityRate,
+    },
+    "all_causes": {
+        "cause_specific_mortality_rate": AllCauseMortalityRate,
+    },
 }

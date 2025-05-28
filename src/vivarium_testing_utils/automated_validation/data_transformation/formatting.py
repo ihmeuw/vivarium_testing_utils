@@ -83,6 +83,26 @@ class TotalPersonTime(SimDataFormatter):
         return dataset.rename(columns={"value": self.new_value_column_name})
 
 
+class Deaths(SimDataFormatter):
+    """Formatter for simulation data that contains death counts."""
+
+    def __init__(self, cause: str | None = None) -> None:
+        """
+        Initialize the Deaths formatter with cause-specific or all-cause settings.
+
+        Parameters
+        ----------
+        cause : str, optional
+            The specific cause of death to filter for. If None, all deaths are included.
+        """
+        super().__init__(
+            measure="death",
+            entity_type="cause" if cause else "total",
+            entity=cause or "all_causes",
+            filter_value="total",
+        )
+
+
 def _drop_redundant_index(
     data: pd.DataFrame, idx_column_name: str, idx_column_value: str
 ) -> pd.DataFrame:
