@@ -48,6 +48,12 @@ def plot_comparison(
         "title": title,
         "combined_data": combined_data,
     }
+    # error if "combined_data" is provided as a kwarg
+    if "combined_data" in kwargs:
+        raise ValueError(
+            "The 'combined_data' argument is automatically generated from the comparison object. "
+            "Please do not provide it as a keyword argument."
+        )
     default_kwargs.update(kwargs)
 
     return PLOT_TYPE_MAPPING[type](**default_kwargs)
