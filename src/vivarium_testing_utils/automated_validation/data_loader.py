@@ -52,71 +52,41 @@ class DataLoader:
         self._artifact = self._load_artifact(self._sim_output_dir)
 
         # Initialize derived datasets
-        self._create_person_time_total_dataset()
+        person_time_total = self._create_person_time_total_dataset()
+        if person_time_total is not None:
+            self._add_to_cache(
+                dataset_key="person_time_total", data=person_time_total, source=DataSource.SIM
+            )
 
-    def _create_person_time_total_dataset(self) -> None:
+    def _create_person_time_total_dataset(self) -> pd.DataFrame:
         """
         Create a derived dataset that aggregates total person time across all causes.
 
         This dataset can be used as a denominator for population-level measures like
         mortality rates.
         """
+        all_outputs = self.get_sim_outputs()
+        person_time_keys = [d for d in all_outputs if d.startswith("person_time_")]
 
-        base_dataset_key = self._get_total_person_time_base()
-        base_dataset = self.get_dataset(base_dataset_key, DataSource.SIM)
-
-        # Marginalize across sub_entity to get total
-        person_time_total = marginalize(base_dataset, ["sub_entity"])
-
-        # drop entity and entity_type from index
-        person_time_total = person_time_total.droplevel(["entity", "entity_type"])
-        # Cache the derived dataset
-        self.upload_custom_data(
-            dataset_key="person_time_total", data=person_time_total, source=DataSource.SIM
+        get_clean_data = lambda key: marginalize(
+            self.get_dataset(key, DataSource.SIM), ["sub_entity", "entity_type", "entity"]
         )
 
-    def _get_total_person_time_base(self, tolerance: float = 0.01) -> bool:
-        """
-        Validate that all person time datasets sum to approximately the same total.
-
-        Parameters
-        ----------
-        data_loader : DataLoader
-            The data loader instance
-        tolerance : float, optional
-            The fractional tolerance for differences between totals
-
-        Returns
-        -------
-        bool
-            True if all totals are consistent, False otherwise
-        """
-        all_outputs = self.get_sim_outputs()
-        person_time_datasets = [d for d in all_outputs if d.startswith("person_time_")]
-
-        if not person_time_datasets:
+        if not person_time_keys:
             return  # No person time datasets to aggregate
 
-        if len(person_time_datasets) < 2:
-            return person_time_datasets
+        if len(person_time_keys) < 2:
+            return get_clean_data(person_time_keys[0])
 
         totals = []
-        for dataset in person_time_datasets:
-            data = self.get_dataset(dataset, DataSource.SIM)
-            # Marginalize across sub_entity to get total
-            marginalized = marginalize(data, ["sub_entity"])
+        person_time_datasets = []
+        for dataset in person_time_keys:
+            data = get_clean_data(dataset)
             # Sum across all remaining stratifications
-            total = marginalized["value"].sum()
+            total = data["value"].sum()
             totals.append(total)
+            person_time_datasets.append(data)
 
-        # Check if all totals are within tolerance of each other
-        reference = totals[0]
-        for total in totals[1:]:
-            if abs(total - reference) / reference > tolerance:
-                raise ValueError(
-                    f"Person time totals are inconsistent: {totals}. "
-                    f"Expected all totals to be within {tolerance * 100}% of each other."
-                )
         # get dataset with largest total
         largest_total_dataset = person_time_datasets[totals.index(max(totals))]
 
