@@ -52,7 +52,7 @@ class DataLoader:
         }
         self._artifact = self._load_artifact(self._sim_output_dir)
 
-        # Initialize derived datasets
+        # Initialize derived dataset person time total
         person_time_total = self._create_person_time_total_dataset()
         if person_time_total is not None:
             self._add_to_cache(
