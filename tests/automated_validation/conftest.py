@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 import yaml
+from pytest import TempPathFactory
 from vivarium.framework.artifact import Artifact
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
@@ -131,7 +132,7 @@ def _create_sample_age_group_df() -> pd.DataFrame:
 
 
 @pytest.fixture(scope="session")
-def sim_result_dir(tmp_path_factory):
+def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
     """Create a temporary directory for simulation outputs."""
     # Create the temporary directory at session scope
     tmp_path = tmp_path_factory.mktemp("sim_data")
@@ -169,7 +170,7 @@ def sim_result_dir(tmp_path_factory):
     return tmp_path
 
 
-def get_model_spec(artifact_path: Path) -> dict:
+def get_model_spec(artifact_path: Path) -> dict[str, dict[str, dict[str, str]]]:
     """Sample model specification for testing."""
     return {
         "configuration": {
