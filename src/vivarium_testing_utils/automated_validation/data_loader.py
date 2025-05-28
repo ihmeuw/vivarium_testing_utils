@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
+from typing import Callable
 
 import pandas as pd
 import yaml
@@ -58,7 +59,7 @@ class DataLoader:
                 dataset_key="person_time_total", data=person_time_total, source=DataSource.SIM
             )
 
-    def _create_person_time_total_dataset(self) -> pd.DataFrame:
+    def _create_person_time_total_dataset(self) -> pd.DataFrame | None:
         """
         Create a derived dataset that aggregates total person time across all causes.
 
@@ -68,12 +69,12 @@ class DataLoader:
         all_outputs = self.get_sim_outputs()
         person_time_keys = [d for d in all_outputs if d.startswith("person_time_")]
 
-        get_clean_data = lambda key: marginalize(
+        get_clean_data: Callable[[str], pd.DataFrame] = lambda key: marginalize(
             self.get_dataset(key, DataSource.SIM), ["sub_entity", "entity_type", "entity"]
         )
 
         if not person_time_keys:
-            return  # No person time datasets to aggregate
+            return None  # No person time datasets to aggregate
 
         if len(person_time_keys) < 2:
             return get_clean_data(person_time_keys[0])
@@ -95,8 +96,9 @@ class DataLoader:
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets in the given simulation output directory.
         Only return the filename, not the extension."""
-        return set(str(f.stem) for f in self._results_dir.glob("*.parquet")) | set(
-            self._raw_datasets[DataSource.SIM].keys()
+        return list(
+            set(str(f.stem) for f in self._results_dir.glob("*.parquet"))
+            | set(self._raw_datasets[DataSource.SIM].keys())
         )
 
     def get_artifact_keys(self) -> list[str]:

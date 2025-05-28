@@ -151,7 +151,7 @@ def test_person_time_state_total(person_time_data: pd.DataFrame) -> None:
     assert_frame_equal(formatter.format_dataset(person_time_data), expected_dataframe)
 
 
-def test_total_person_time_init(person_time_data) -> None:
+def test_total_person_time_init(person_time_data: pd.DataFrame) -> None:
     """Test TotalPersonTime formatter initialization."""
     formatter = TotalPersonTime()
 

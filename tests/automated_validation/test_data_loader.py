@@ -209,6 +209,7 @@ def test__create_person_time_total_dataset_multiple_datasets(sim_result_dir: Pat
         }[key]
 
         result = data_loader._create_person_time_total_dataset()
+        assert result is not None
         expected = marginalize(larger_dataset, ["sub_entity"]).droplevel(
             ["entity_type", "entity"]
         )
