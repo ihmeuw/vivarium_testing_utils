@@ -14,8 +14,8 @@ from vivarium_testing_utils.automated_validation.visualization.plot_utils import
     _get_combined_data,
     _get_unconditioned_index_names,
     _line_plot,
-    plot_comparison,
     _rel_plot,
+    plot_comparison,
 )
 
 
