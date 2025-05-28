@@ -9,14 +9,16 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 def check_io(**model_dict: type) -> Callable[[F], F]:
-    """
-    A wrapper for pa.check_io that automatically converts SchemaModels to schemas.
+    """A wrapper for pa.check_io that automatically converts SchemaModels to schemas.
 
-    Args:
-        **model_dict: Keyword arguments where keys are parameter names and values
-                     are SchemaModel classes or schema objects.
+    Parameters
+    ----------
+    **model_dict
+        Keyword arguments where keys are parameter names and values
+        are SchemaModel classes or schema objects.
 
-    Returns:
+    Returns
+    -------
         A decorator function that wraps the target function with pa.check_io.
     """
     # Convert any SchemaModel classes to schemas

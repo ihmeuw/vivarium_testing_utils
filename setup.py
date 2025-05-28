@@ -47,6 +47,7 @@ if __name__ == "__main__":
         "vivarium_dependencies[pandas,numpy,pyyaml,scipy,click,tables,loguru,networkx]",
         "vivarium_build_utils>=2.0.1,<3.0.0",
         "pyarrow",
+        "seaborn",
         # Type stubs
         "types-setuptools",
     ]
