@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 from pytest_mock import MockFixture
@@ -154,3 +155,39 @@ def test_metadata() -> None:
 def test_get_frame() -> None:
     """Ensure that we can verify a comparison"""
     pass
+
+
+def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:
+    """Test that ValidationContext.plot_comparison correctly calls plot_utils.plot_comparison"""
+    # Setup
+    mock_figure = mocker.Mock(spec=plt.Figure)
+    mock_plot_comparison = mocker.patch(
+        "vivarium_testing_utils.automated_validation.visualization.plot_utils.plot_comparison",
+        return_value=mock_figure,
+    )
+
+    # Create a context and add a comparison
+    context = ValidationContext(sim_result_dir)
+    measure_key = "cause.disease.incidence_rate"
+    context.add_comparison(measure_key, "sim", "artifact", [])
+
+    # Call plot_comparison with various parameters
+    plot_type = "line"
+    condition = {"sex": "male"}
+    x_axis = "age_group"
+    result = context.plot_comparison(
+        comparison_key=measure_key, type=plot_type, condition=condition, x_axis=x_axis
+    )
+
+    # Assert plot_utils.plot_comparison was called with correct arguments
+    mock_plot_comparison.assert_called_once()
+    args, kwargs = mock_plot_comparison.call_args
+
+    # Check arguments
+    assert args[0] == context.comparisons[measure_key]  # comparison object
+    assert args[1] == plot_type  # type
+    assert args[2] == condition  # condition
+    assert kwargs["x_axis"] == x_axis  # additional kwargs
+
+    # Check return value
+    assert result == mock_figure
