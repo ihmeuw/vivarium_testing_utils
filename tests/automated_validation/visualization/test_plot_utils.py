@@ -150,7 +150,7 @@ class TestPlotComparison:
     def test_valid_type(self, sample_comparison: Comparison, mocker: MockerFixture) -> None:
         # Setup
         mock_line_plot = mocker.patch(
-            "vivarium_testing_utils.automated_validation.visualization.plot_utils.line_plot"
+            "vivarium_testing_utils.automated_validation.visualization.plot_utils._line_plot"
         )
         mock_line_plot.return_value = plt.figure()
 
@@ -169,7 +169,7 @@ class TestPlotComparison:
         assert mock_line_plot.call_args[1]["x_axis"] == "age_group"
 
     def test_invalid_type(self, sample_comparison: Comparison) -> None:
-        with pytest.raises(ValueError, match="Unsupported plot type"):
+        with pytest.raises(NotImplementedError, match="Unsupported plot type"):
             plot_comparison(comparison=sample_comparison, type="invalid")
 
 
@@ -184,7 +184,7 @@ class TestLinePlot:
     ) -> None:
 
         mock_rel_plot = mocker.patch(
-            "vivarium_testing_utils.automated_validation.visualization.plot_utils.rel_plot"
+            "vivarium_testing_utils.automated_validation.visualization.plot_utils._rel_plot"
         )
         mock_rel_plot.return_value = plt.figure()
         fig = _line_plot(
