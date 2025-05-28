@@ -146,10 +146,8 @@ class DataLoader:
             self._add_to_cache(dataset_key, source, dataset)
             return dataset
 
-    def upload_custom_data(
-        self, dataset_key: str, data: pd.DataFrame, source: DataSource = DataSource.CUSTOM
-    ) -> None:
-        self._add_to_cache(dataset_key, source, data)
+    def upload_custom_data(self, dataset_key: str, data: pd.DataFrame) -> None:
+        self._add_to_cache(dataset_key, DataSource.CUSTOM, data)
 
     def _load_from_source(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Load the data from the given source via the loader mapping."""
