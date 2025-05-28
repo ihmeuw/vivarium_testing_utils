@@ -125,7 +125,7 @@ class DataLoader:
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets in the given simulation output directory.
         Only return the filename, not the extension."""
-        return set(str(f.stem) for f in self._results_dir.glob("*.parquet")) + set(
+        return set(str(f.stem) for f in self._results_dir.glob("*.parquet")) | set(
             self._raw_datasets[DataSource.SIM].keys()
         )
 
