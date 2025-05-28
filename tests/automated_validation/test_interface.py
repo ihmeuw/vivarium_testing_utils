@@ -27,7 +27,7 @@ def test_upload_custom_data(sim_result_dir: Path) -> None:
 
 
 def test_show_raw_dataset(
-    sim_result_dir: Path, artifact_disease_incidence: pd.DataFrame
+    sim_result_dir: Path, deaths_data: pd.DataFrame, artifact_disease_incidence: pd.DataFrame
 ) -> None:
     """Ensure that we can show the raw dataset"""
     context = ValidationContext(sim_result_dir)
@@ -36,7 +36,7 @@ def test_show_raw_dataset(
 
     # Ensure loading with a string instead of a DataSource enum works
     assert context.get_raw_dataset("foo", "custom").equals(df)
-    assert context.get_raw_dataset("deaths", "sim").shape == (8, 1)
+    assert context.get_raw_dataset("deaths", "sim").equals(deaths_data)
     assert context.get_raw_dataset("cause.disease.incidence_rate", "artifact").equals(
         artifact_disease_incidence
     )
