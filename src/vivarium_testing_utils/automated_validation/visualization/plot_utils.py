@@ -31,18 +31,18 @@ def plot_comparison(
         The generated figure or list of figures.
     """
     PLOT_TYPE_MAPPING = {
-        "line": line_plot,
-        "bar": bar_plot,
-        "box": box_plot,
-        "heatmap": heatmap,
+        "line": _line_plot,
+        "bar": _bar_plot,
+        "box": _box_plot,
+        "heatmap": _heatmap,
     }
     if type not in PLOT_TYPE_MAPPING:
         raise ValueError(
             f"Unsupported plot type: {type}. Supported types are: {list(PLOT_TYPE_MAPPING.keys())}"
         )
-    title = format_title(comparison.measure.measure_key)
-    combined_data = get_combined_data(comparison)
-    title, combined_data = conditionalize(condition, title, combined_data)
+    title = _format_title(comparison.measure.measure_key)
+    combined_data = _get_combined_data(comparison)
+    title, combined_data = _conditionalize(condition, title, combined_data)
 
     default_kwargs = {
         "title": title,
@@ -57,7 +57,11 @@ def plot_data(dataset: pd.DataFrame, type: str, kwargs):
     raise NotImplementedError
 
 
-def line_plot(
+def save_plot(fig, name, format):
+    raise NotImplementedError
+
+
+def _line_plot(
     title: str,
     combined_data: pd.DataFrame,
     x_axis: str,
@@ -90,14 +94,14 @@ def line_plot(
     }
 
     if subplots:
-        return rel_plot(
+        return _rel_plot(
             title=title,
             combined_data=combined_data,
             x_axis=x_axis,
             plot_args=LINEPLOT_KWARGS,
         )
     else:
-        unconditioned = get_unconditioned_index_names(combined_data.index, x_axis)
+        unconditioned = _get_unconditioned_index_names(combined_data.index, x_axis)
         figures = []
 
         # Create individual figures for each condition
@@ -128,7 +132,7 @@ def line_plot(
         return figures
 
 
-def rel_plot(
+def _rel_plot(
     title: str,
     combined_data: pd.DataFrame,
     x_axis: str = "age_group",
@@ -152,7 +156,7 @@ def rel_plot(
         The generated figure
     """
     ALLOWED_STRATIFICATIONS = 2
-    unconditioned = get_unconditioned_index_names(combined_data.index, x_axis)
+    unconditioned = _get_unconditioned_index_names(combined_data.index, x_axis)
 
     if len(unconditioned) > ALLOWED_STRATIFICATIONS:
         raise ValueError(
@@ -195,7 +199,7 @@ def rel_plot(
     return g
 
 
-def bar_plot(
+def _bar_plot(
     title: str,
     test_data: pd.DataFrame,
     reference_data: pd.DataFrame,
@@ -205,7 +209,7 @@ def bar_plot(
     raise NotImplementedError
 
 
-def box_plot(
+def _box_plot(
     title: str,
     test_data: pd.DataFrame,
     reference_data: pd.DataFrame,
@@ -215,17 +219,13 @@ def box_plot(
     raise NotImplementedError
 
 
-def heatmap(
+def _heatmap(
     title: str,
     test_data: pd.DataFrame,
     reference_data: pd.DataFrame,
     row: str,
     col: str,
 ):
-    raise NotImplementedError
-
-
-def save_plot(fig, name, format):
     raise NotImplementedError
 
 
@@ -245,7 +245,7 @@ def _append_source(
     return data_with_source
 
 
-def format_title(measure_key: str) -> str:
+def _format_title(measure_key: str) -> str:
     """Convert a measure key to a more readable format."""
     title = " ".join(measure_key.split(".")[1:])
     title = title.replace("_", " ")
@@ -253,7 +253,7 @@ def format_title(measure_key: str) -> str:
     return title
 
 
-def get_unconditioned_index_names(
+def _get_unconditioned_index_names(
     index: pd.Index,
     x_axis: str,
 ) -> list[str]:
@@ -265,7 +265,7 @@ def get_unconditioned_index_names(
     return unconditioned
 
 
-def get_combined_data(comparison: Comparison) -> pd.DataFrame:
+def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
     """Get the combined data from the test and reference datasets."""
     test_data, reference_data = comparison._align_datasets()
     test_data = _append_source(test_data, comparison.test_source)
@@ -275,7 +275,7 @@ def get_combined_data(comparison: Comparison) -> pd.DataFrame:
     return combined_data
 
 
-def conditionalize(
+def _conditionalize(
     condition_dict: dict[str, Any], title: str, data: pd.DataFrame
 ) -> tuple[str, pd.DataFrame]:
     """Filter the data based on the condition dictionary."""

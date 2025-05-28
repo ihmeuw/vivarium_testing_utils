@@ -9,13 +9,13 @@ from vivarium_testing_utils.automated_validation.comparison import Comparison
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.plot_utils import (
     _append_source,
-    conditionalize,
-    format_title,
-    get_combined_data,
-    get_unconditioned_index_names,
-    line_plot,
+    _conditionalize,
+    _format_title,
+    _get_combined_data,
+    _get_unconditioned_index_names,
+    _line_plot,
     plot_comparison,
-    rel_plot,
+    _rel_plot,
 )
 
 
@@ -187,7 +187,7 @@ class TestLinePlot:
             "vivarium_testing_utils.automated_validation.visualization.plot_utils.rel_plot"
         )
         mock_rel_plot.return_value = plt.figure()
-        fig = line_plot(
+        fig = _line_plot(
             title=test_title, combined_data=sample_data, x_axis="age_group", subplots=True
         )
 
@@ -217,7 +217,7 @@ class TestLinePlot:
         mock_lineplot = mocker.patch("seaborn.lineplot")
         mocker.patch("matplotlib.pyplot.tight_layout")
 
-        figures = line_plot(
+        figures = _line_plot(
             title=test_title, combined_data=sample_data, x_axis="age_group", subplots=False
         )
 
@@ -251,7 +251,7 @@ class TestRelPlot:
         # Setup data with 3 stratification levels (excluding input_draw and source)
         # This should fail because we allow max 2 stratification levels
         with pytest.raises(ValueError, match="Maximum of.*stratification levels supported"):
-            rel_plot(
+            _rel_plot(
                 title="Test Title",
                 combined_data=sample_data,
                 x_axis="age_group",
@@ -271,7 +271,7 @@ class TestRelPlot:
 
         mock_relplot, mock_figure = mock_relplot_setup
 
-        fig = rel_plot(
+        fig = _rel_plot(
             title=test_title,
             combined_data=filtered_data,
             x_axis="age_group",
@@ -300,7 +300,7 @@ class TestRelPlot:
         assert isinstance(filtered_data, pd.DataFrame)
         mock_relplot, mock_figure = mock_relplot_setup
 
-        fig = rel_plot(
+        fig = _rel_plot(
             title=test_title,
             combined_data=filtered_data,
             x_axis="age_group",
@@ -330,7 +330,7 @@ class TestRelPlot:
 
         mock_relplot, mock_figure = mock_relplot_setup
 
-        fig = rel_plot(title=test_title, combined_data=filtered_data, x_axis="age_group")
+        fig = _rel_plot(title=test_title, combined_data=filtered_data, x_axis="age_group")
 
         mock_relplot.assert_called_once()
 
@@ -345,8 +345,8 @@ class TestRelPlot:
 
 class TestHelperFunctions:
     def test_format_title(self) -> None:
-        assert format_title("measure.test_measure") == "Test Measure"
-        assert format_title("measure.compound_name_example") == "Compound Name Example"
+        assert _format_title("measure.test_measure") == "Test Measure"
+        assert _format_title("measure.compound_name_example") == "Compound Name Example"
 
     def test_get_unconditioned_index_names(self) -> None:
         index = pd.MultiIndex.from_tuples(
@@ -355,8 +355,8 @@ class TestHelperFunctions:
         )
 
         # Test with different x_axis values
-        assert set(get_unconditioned_index_names(index, "age_group")) == {"sex"}
-        assert set(get_unconditioned_index_names(index, "sex")) == {"age_group"}
+        assert set(_get_unconditioned_index_names(index, "age_group")) == {"sex"}
+        assert set(_get_unconditioned_index_names(index, "sex")) == {"age_group"}
 
     def test_append_source(self, mocker: MockerFixture) -> None:
         data = pd.DataFrame(
@@ -376,13 +376,13 @@ class TestHelperFunctions:
     def test_conditionalize(self, sample_data: pd.DataFrame) -> None:
         title = "Original Title"
 
-        new_title, filtered_data = conditionalize({"sex": "male"}, title, sample_data)
+        new_title, filtered_data = _conditionalize({"sex": "male"}, title, sample_data)
 
         assert "sex = male" in new_title
         assert "sex" not in filtered_data.index.names
 
     def test_get_combined_data(self, sample_comparison: Comparison) -> None:
-        result = get_combined_data(sample_comparison)
+        result = _get_combined_data(sample_comparison)
 
         assert "source" in result.index.names
         assert set(result.index.get_level_values("source").unique()) == {"Test", "Reference"}
