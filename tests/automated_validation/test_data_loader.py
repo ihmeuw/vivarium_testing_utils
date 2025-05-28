@@ -105,25 +105,11 @@ def test_cache_immutable(sim_result_dir: Path) -> None:
     assert not data_loader.get_dataset("foo", DataSource.CUSTOM).equals(cached_data)
 
 
-def test__load_from_sim(
-    sim_result_dir: Path,
-) -> None:
+def test__load_from_sim(sim_result_dir: Path, deaths_data: pd.DataFrame) -> None:
     """Ensure that we can load data from the simulation output directory"""
     data_loader = DataLoader(sim_result_dir)
     deaths = data_loader._load_from_sim("deaths")
-    assert deaths.shape == (8, 1)
-    # check that value is column and rest are indices
-    assert set(deaths.index.names) == {
-        "measure",
-        "entity_type",
-        "entity",
-        "sub_entity",
-        AGE_GROUP_COLUMN,
-        "sex",
-        "input_draw",
-        "random_seed",
-    }
-    assert set(deaths.columns) == {"value"}
+    assert deaths.equals(deaths_data)
 
 
 def test__load_artifact(sim_result_dir: Path) -> None:
@@ -146,6 +132,7 @@ def test__load_from_artifact(
     # check that value is column and rest are indices
     assert set(art_dataset.index.names) == {
         "stratify_column",
+        "other_stratify_column",
         "input_draw",
     }
     assert set(art_dataset.columns) == {"value"}

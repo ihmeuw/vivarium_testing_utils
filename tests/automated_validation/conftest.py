@@ -2,6 +2,9 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+import yaml
+from pytest import TempPathFactory
+from vivarium.framework.artifact import Artifact
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AGE_END_COLUMN,
@@ -16,14 +19,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
 from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
 
 
-@pytest.fixture
-def sim_result_dir() -> Path:
-    return Path(__file__).parent / "data/sim_outputs"
-
-
-@check_io(out=SingleNumericColumn)
-@pytest.fixture
-def transition_count_data() -> pd.DataFrame:
+def _create_transition_count_data() -> pd.DataFrame:
+    """Create transition count data for testing."""
     return pd.DataFrame(
         {
             "value": [3.0, 5.0, 7.0, 13.0],
@@ -64,9 +61,8 @@ def transition_count_data() -> pd.DataFrame:
     )
 
 
-@check_io(out=SingleNumericColumn)
-@pytest.fixture
-def person_time_data() -> pd.DataFrame:
+def _create_person_time_data() -> pd.DataFrame:
+    """Create person time data for testing."""
     return pd.DataFrame(
         {
             "value": [17.0, 23.0, 29.0, 37.0],
@@ -83,8 +79,26 @@ def person_time_data() -> pd.DataFrame:
     )
 
 
-@pytest.fixture
-def raw_artifact_disease_incidence() -> pd.DataFrame:
+def _create_deaths_data() -> pd.DataFrame:
+    """Create deaths data for testing."""
+    return pd.DataFrame(
+        {
+            "value": [2.0, 3.0, 4.0, 5.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("deaths", "cause", "disease", "susceptible_to_disease", "A"),
+                ("deaths", "cause", "disease", "disease", "A"),
+                ("deaths", "cause", "disease", "susceptible_to_disease", "B"),
+                ("deaths", "cause", "disease", "disease", "B"),
+            ],
+            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
+        ),
+    )
+
+
+def _create_raw_artifact_disease_incidence() -> pd.DataFrame:
+    """Create raw artifact disease incidence data for testing."""
     return pd.DataFrame(
         {
             "draw_0": [0.17, 0.13],
@@ -92,17 +106,109 @@ def raw_artifact_disease_incidence() -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("A",),
-                ("B",),
+                (
+                    "A",
+                    "C",
+                ),
+                (
+                    "B",
+                    "D",
+                ),
             ],
-            names=["stratify_column"],
+            names=["stratify_column", "other_stratify_column"],
         ),
     )
+
+
+def _create_sample_age_group_df() -> pd.DataFrame:
+    """Create sample age group data for testing."""
+    return pd.DataFrame(
+        {
+            AGE_GROUP_COLUMN: ["0_to_5", "5_to_10", "10_to_15"],
+            AGE_START_COLUMN: [0.0, 5.0, 10.0],
+            AGE_END_COLUMN: [5.0, 10.0, 15.0],
+        }
+    ).set_index([AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN])
+
+
+@pytest.fixture(scope="session")
+def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
+    """Create a temporary directory for simulation outputs."""
+    # Create the temporary directory at session scope
+    tmp_path = tmp_path_factory.mktemp("sim_data")
+
+    # Create the directory structure
+    results_dir = tmp_path / "results"
+    results_dir.mkdir(parents=True)
+
+    # Create data directly within this session-scoped fixture
+    # so we don't depend on function-scoped fixtures
+    _transition_count_data = _create_transition_count_data()
+    _person_time_data = _create_person_time_data()
+    _deaths_data = _create_deaths_data()
+    _raw_artifact_disease_incidence = _create_raw_artifact_disease_incidence()
+    _sample_age_group_df = _create_sample_age_group_df()
+
+    # Save Sim DataFrames
+    _transition_count_data.reset_index().to_parquet(
+        results_dir / "transition_count_disease.parquet"
+    )
+    _person_time_data.reset_index().to_parquet(results_dir / "person_time_disease.parquet")
+    _deaths_data.reset_index().to_parquet(results_dir / "deaths.parquet")
+
+    # Create Artifact
+    artifact_dir = tmp_path / "artifacts"
+    artifact_dir.mkdir(exist_ok=True)
+    artifact_path = artifact_dir / "artifact.hdf"
+    artifact = Artifact(artifact_path)
+    artifact.write("cause.disease.incidence_rate", _raw_artifact_disease_incidence)
+    artifact.write("population.age_bins", _sample_age_group_df)
+    # Save model specification
+    with open(tmp_path / "model_specification.yaml", "w") as f:
+        yaml.dump(get_model_spec(artifact_path), f)
+
+    return tmp_path
+
+
+def get_model_spec(artifact_path: Path) -> dict[str, dict[str, dict[str, str]]]:
+    """Sample model specification for testing."""
+    return {
+        "configuration": {
+            "input_data": {
+                "artifact_path": str(artifact_path),
+            }
+        }
+    }
+
+
+@pytest.fixture
+def deaths_data() -> pd.DataFrame:
+    """Sample deaths data for testing."""
+    return _create_deaths_data()
+
+
+@pytest.fixture
+def transition_count_data() -> pd.DataFrame:
+    """Raw transition count data to be saved to parquet."""
+    return _create_transition_count_data()
+
+
+@pytest.fixture
+def person_time_data() -> pd.DataFrame:
+    """Raw person time data to be saved to parquet."""
+    return _create_person_time_data()
+
+
+@pytest.fixture
+def raw_artifact_disease_incidence() -> pd.DataFrame:
+    """Raw artifact disease incidence data."""
+    return _create_raw_artifact_disease_incidence()
 
 
 @check_io(out=SingleNumericColumn)
 @pytest.fixture
 def artifact_disease_incidence() -> pd.DataFrame:
+    """Processed artifact disease incidence data."""
     return pd.DataFrame(
         {
             "value": [
@@ -114,12 +220,12 @@ def artifact_disease_incidence() -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("A", 0),
-                ("A", 1),
-                ("B", 0),
-                ("B", 1),
+                ("A", "C", 0),
+                ("A", "C", 1),
+                ("B", "D", 0),
+                ("B", "D", 1),
             ],
-            names=["stratify_column", "input_draw"],
+            names=["stratify_column", "other_stratify_column", "input_draw"],
         ),
     )
 
@@ -142,13 +248,7 @@ def sample_age_schema(
 
 @pytest.fixture
 def sample_age_group_df() -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            AGE_GROUP_COLUMN: ["0_to_5", "5_to_10", "10_to_15"],
-            AGE_START_COLUMN: [0.0, 5.0, 10.0],
-            AGE_END_COLUMN: [5.0, 10.0, 15.0],
-        }
-    ).set_index([AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN])
+    return _create_sample_age_group_df()
 
 
 @pytest.fixture
