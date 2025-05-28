@@ -15,13 +15,20 @@ def plot_comparison(
 ) -> Figure | list[Figure]:
     """Create a plot for the given comparison.
 
-    Args:
-        comparison (Comparison): The comparison object to plot.
-        type (str): Type of plot to create.
-        kwargs: Additional keyword arguments for specific plot types.
+    Parameters
+    ----------
+    comparison
+        The comparison object to plot.
+    type
+        Type of plot to create.
+    condition
+        Conditions to filter the data by, by default {}
+    **kwargs
+        Additional keyword arguments for specific plot types.
 
-    Returns:
-        matplotlib.figure.Figure | list[Figure]: The generated figure or list of figures.
+    Returns
+    -------
+        The generated figure or list of figures.
     """
     PLOT_TYPE_MAPPING = {
         "line": line_plot,
@@ -56,15 +63,23 @@ def line_plot(
     x_axis: str,
     subplots: bool = True,
 ) -> Figure | list[Figure]:
+    """Create a line plot for the given data.
+
+    Parameters
+    ----------
+    title
+        Intended plot title.
+    combined_data : pd.DataFrame
+        Test and Reference data to plot.
+    x_axis
+        Column to use for the x-axis.
+    subplots
+        Whether to create subplots for each condition, by default True
+
+    Returns
+    -------
+        The generated figure or list of figures.
     """
-    Create a line plot for the given data.
-    Args:
-        title: Intended plot title.
-        combined_data: Test and Reference data to plot.
-        x_axis: Column to use for the x-axis.
-        subplots: Whether to create subplots for each condition.
-    Returns:
-         The generated figure or list of figures."""
 
     LINEPLOT_KWARGS = {
         "marker": "o",
@@ -121,17 +136,20 @@ def rel_plot(
 ) -> Figure:
     """Create a stratified line plot using Seaborn's relplot.
 
-    Args:
-        title (str): Main title for the plot
-        test_data (pd.DataFrame): Test dataset
-        test_source (DataSource): Source of test data
-        reference_data (pd.DataFrame): Reference dataset
-        reference_source (DataSource): Source of reference data
-        x_axis (str): Column to use for x-axis
-        stratifications (list[str]): List of columns to stratify by (max 2)
+    Parameters
+    ----------
+    title
+        Main title for the plot
+    combined_data
+        Combined test and reference data
+    x_axis
+        Column to use for x-axis, by default "age_group"
+    plot_args
+        Additional arguments to pass to the plot, by default {}
 
-    Returns:
-        matplotlib.figure.Figure: The generated figure
+    Returns
+    -------
+        The generated figure
     """
     ALLOWED_STRATIFICATIONS = 2
     unconditioned = get_unconditioned_index_names(combined_data.index, x_axis)
