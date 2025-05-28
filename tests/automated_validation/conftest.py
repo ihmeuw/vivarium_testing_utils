@@ -1,7 +1,9 @@
 from pathlib import Path
+
 import pandas as pd
 import pytest
 import yaml
+from vivarium.framework.artifact import Artifact
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AGE_END_COLUMN,
@@ -14,7 +16,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
-from vivarium.framework.artifact import Artifact
 
 
 @pytest.fixture
