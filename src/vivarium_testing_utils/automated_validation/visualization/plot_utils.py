@@ -37,7 +37,7 @@ def plot_comparison(
         "heatmap": _heatmap,
     }
     if type not in PLOT_TYPE_MAPPING:
-        raise ValueError(
+        raise NotImplementedError(
             f"Unsupported plot type: {type}. Supported types are: {list(PLOT_TYPE_MAPPING.keys())}"
         )
     title = _format_title(comparison.measure.measure_key)
@@ -96,7 +96,7 @@ def _line_plot(
         "markers": True,
         "hue": "source",
         "y": "value",  # Assuming 'value' is the y-axis variable
-        "errorbar": "pi",  # Nonparametric 95% CI
+        "errorbar": "pi",  # "Percent Interval", a nonparametric 95% CI
     }
 
     if subplots:
