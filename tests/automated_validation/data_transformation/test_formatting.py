@@ -9,6 +9,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SimOutputData,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
+    Deaths,
     PersonTime,
     TotalPersonTime,
     TransitionCounts,
@@ -164,3 +165,56 @@ def test_total_person_time_init(person_time_data: pd.DataFrame) -> None:
         formatter.format_dataset(person_time_data),
         person_time_data.rename(columns={"value": "total_person_time"}),
     )
+
+
+def test_deaths_cause_specific(deaths_data: pd.DataFrame) -> None:
+    """Test Deaths formatter with a specific cause."""
+    formatter = Deaths("disease")
+
+    assert formatter.measure == "deaths"
+    assert formatter.data_key == "deaths"
+    assert formatter.filter_columns == ["entity", "sub_entity"]
+    assert formatter.new_value_column_name == "disease_deaths"
+    assert formatter.redundant_columns == {
+        "measure": "deaths",
+        "entity_type": "cause",
+    }
+
+    # Filter out only data related to the disease itself, since we want
+    # deaths directly attributed to the disease
+    expected_dataframe = pd.DataFrame(
+        {
+            "disease_deaths": [2.0, 4.0],  # Deaths data for the disease itself
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+
+    assert_frame_equal(formatter.format_dataset(deaths_data), expected_dataframe)
+
+
+def test_deaths_all_causes(deaths_data: pd.DataFrame) -> None:
+    """Test Deaths formatter for all causes."""
+    formatter = Deaths()
+
+    assert formatter.measure == "deaths"
+    assert formatter.data_key == "deaths"
+    assert formatter.filter_columns == ["entity", "sub_entity"]
+    assert formatter.new_value_column_name == "total_deaths"
+    assert formatter.redundant_columns == {
+        "measure": "deaths",
+        "entity_type": "cause",
+    }
+
+    expected_dataframe = pd.DataFrame(
+        {
+            "total_deaths": [5.0, 9.0],  # All deaths, regardless of cause
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert_frame_equal(formatter.format_dataset(deaths_data), expected_dataframe)
