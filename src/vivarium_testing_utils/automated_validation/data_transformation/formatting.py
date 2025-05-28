@@ -1,5 +1,4 @@
 import pandas as pd
-from typing import Optional
 
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
@@ -76,7 +75,7 @@ class TotalPersonTime(SimDataFormatter):
     def __init__(self) -> None:
         """Initialize the TotalPersonTime formatter with population-level settings."""
         self.measure = "person_time"
-        self.entity = "population"
+        self.entity = "total"
         self.data_key = f"{self.measure}_{self.entity}"
         self.new_value_column_name = f"{self.entity}_{self.measure}"
 
