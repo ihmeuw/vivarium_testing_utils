@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas.testing import assert_frame_equal
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     RatioData,
@@ -151,47 +152,49 @@ def test_all_cause_mortality_rate(
     measure = AllCauseMortalityRate()
     assert measure.measure_key == "cause.all_causes.cause_specific_mortality_rate"
     assert measure.sim_datasets == {
-        "numerator_data": "deaths_all_causes",
+        "numerator_data": "deaths",
         "denominator_data": "person_time_total",
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
     # For this test, we'll use the deaths_data and person_time_data
-    # In a real scenario, we'd have specific all-cause death and total person time data
     ratio_data = measure.get_ratio_data_from_sim(
         numerator_data=deaths_data,
         denominator_data=person_time_data,
     )
 
-    # Since we're using disease-specific data for a test of all-cause mortality,
-    # we're expecting the formatter to use all the data points
+    # Expected dataframe for the ratio_data
+    # The Deaths formatter with no cause will marginalize over entity and sub_entity
+    # to get total deaths by stratify_column
     expected_ratio_data = pd.DataFrame(
         {
-            "total_deaths": [2.0, 3.0, 4.0, 5.0],  # All death values
-            "total_person_time": [17.0, 23.0, 29.0, 37.0],  # All person time values
+            "total_deaths": [5.0, 9.0],  # Sum of deaths for each stratify_column (A, B)
+            "total_person_time": [
+                40.0,
+                66.0,
+            ],  # Sum of person_time for each stratify_column (A, B)
         },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("susceptible_to_disease", "A"),
-                ("disease", "A"),
-                ("susceptible_to_disease", "B"),
-                ("disease", "B"),
-            ],
-            names=["sub_entity", "stratify_column"],
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
         ),
     )
+    assert_frame_equal(ratio_data, expected_ratio_data)
 
-    # Since we're using test data that's not exactly all-cause mortality data,
-    # we'll just test that the right fields are present
-    assert "total_deaths" in ratio_data.columns
-    assert "total_person_time" in ratio_data.columns
-
-    # We can't test the exact calculation with this test data,
-    # but we can verify the method is called correctly
+    # Test the measure calculation
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=person_time_data
     )
-    assert "value" in measure_data.columns
+
+    # Expected result - deaths divided by person time
+    expected_measure_data = pd.DataFrame(
+        {"value": [5.0 / 40.0, 9.0 / 66.0]},  # Rate for A, Rate for B
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert_frame_equal(measure_data, expected_measure_data)
 
 
 def test_cause_specific_mortality_rate(
@@ -202,7 +205,7 @@ def test_cause_specific_mortality_rate(
     measure = CauseSpecificMortalityRate(cause)
     assert measure.measure_key == f"cause.{cause}.cause_specific_mortality_rate"
     assert measure.sim_datasets == {
-        "numerator_data": f"deaths_{cause}",
+        "numerator_data": f"deaths",
         "denominator_data": "person_time_total",
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
@@ -212,15 +215,38 @@ def test_cause_specific_mortality_rate(
         denominator_data=person_time_data,
     )
 
-    # Check that column names are correct
-    assert "total_deaths" in ratio_data.columns
-    assert "total_person_time" in ratio_data.columns
+    # Expected dataframe for the ratio_data
+    # The Deaths formatter with a specific cause will filter for that cause
+    # The TotalPersonTime formatter will marginalize person_time over all states
+    expected_ratio_data = pd.DataFrame(
+        {
+            "disease_deaths": [2.0, 4.0],  # Deaths for disease by stratify_column (A, B)
+            "total_person_time": [
+                40.0,
+                66.0,
+            ],  # Sum of person_time for each stratify_column (A, B)
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert_frame_equal(ratio_data, expected_ratio_data)
 
-    # Since we're using the test data, we'll verify the calculation methods are called correctly
+    # Test the measure calculation
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=person_time_data
     )
-    assert "value" in measure_data.columns
+
+    # Expected result - disease deaths divided by total person time
+    expected_measure_data = pd.DataFrame(
+        {"value": [2.0 / 40.0, 4.0 / 66.0]},  # Rate for A, Rate for B
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert_frame_equal(measure_data, expected_measure_data)
 
 
 def test_excess_mortality_rate(
@@ -231,9 +257,10 @@ def test_excess_mortality_rate(
     measure = ExcessMortalityRate(cause)
     assert measure.measure_key == f"cause.{cause}.excess_mortality_rate"
     assert measure.sim_datasets == {
-        "numerator_data": f"deaths_{cause}",
+        "numerator_data": f"deaths",
         "denominator_data": f"person_time_{cause}",
     }
+
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
     ratio_data = measure.get_ratio_data_from_sim(
@@ -241,12 +268,35 @@ def test_excess_mortality_rate(
         denominator_data=person_time_data,
     )
 
-    # Check column names are correct
-    assert "total_deaths" in ratio_data.columns
-    assert "disease_person_time" in ratio_data.columns
+    # Expected dataframe for the ratio_data
+    # The Deaths formatter with a specific cause will filter for that cause
+    # The PersonTime formatter with a specific state will filter for that state
+    expected_ratio_data = pd.DataFrame(
+        {
+            "disease_deaths": [2.0, 4.0],  # Deaths for disease by stratify_column (A, B)
+            "disease_person_time": [
+                23.0,
+                37.0,
+            ],  # Person time in disease state by stratify_column (A, B)
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert_frame_equal(ratio_data, expected_ratio_data)
 
-    # Verify measure calculation methods are called correctly
+    # Test the measure calculation
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=person_time_data
     )
-    assert "value" in measure_data.columns
+
+    # Expected result - disease deaths divided by person time in disease state
+    expected_measure_data = pd.DataFrame(
+        {"value": [2.0 / 23.0, 4.0 / 37.0]},  # Rate for A, Rate for B
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert_frame_equal(measure_data, expected_measure_data)
