@@ -53,6 +53,7 @@ if __name__ == "__main__":
         "networkx",
         "loguru",
         "pyarrow",
+        "seaborn",
         # Type stubs
         "pandas-stubs",
         "networkx-stubs",
