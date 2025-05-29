@@ -4,12 +4,13 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_loader import (
+    DataLoader,
+    DataSource,
+    _convert_to_total_pt,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,
-)
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    marginalize,
 )
 
 
@@ -150,9 +151,7 @@ def test__create_person_time_total(
 ) -> None:
     """Test _create_person_time_total_dataset when one person time dataset exists."""
     data_loader = DataLoader(sim_result_dir)
-    expected_dataset = marginalize(person_time_data, ["sub_entity"]).droplevel(
-        ["entity_type", "entity"]
-    )
+    expected_dataset = _convert_to_total_pt(person_time_data)
     person_time_total = data_loader.get_dataset("person_time_total", DataSource.SIM)
     pd.testing.assert_frame_equal(person_time_total, expected_dataset)
 
@@ -210,7 +209,23 @@ def test__create_person_time_total_dataset_multiple_datasets(sim_result_dir: Pat
 
         result = data_loader._create_person_time_total_dataset()
         assert result is not None
-        expected = marginalize(larger_dataset, ["sub_entity"]).droplevel(
-            ["entity_type", "entity"]
-        )
+        expected = _convert_to_total_pt(larger_dataset)
         pd.testing.assert_frame_equal(result, expected)
+
+
+def test__convert_to_total_pt(person_time_data: pd.DataFrame) -> None:
+    """Test _convert_to_total_pt function converts entity and sub_entity to 'total'."""
+    result = _convert_to_total_pt(person_time_data)
+
+    # Check that entity and sub_entity columns are all 'total'
+    assert all(result.reset_index()["entity"] == "total")
+    assert all(result.reset_index()["sub_entity"] == "total")
+
+    # Check that the index/ column structure is preserved
+    assert result.index.names == person_time_data.index.names
+    assert list(result.columns) == ["value"]
+
+    # Check that values are preserved (marginalized and aggregated)
+    expected_total_value = person_time_data["value"].sum()
+    actual_total_value = result["value"].sum()
+    assert actual_total_value == expected_total_value
