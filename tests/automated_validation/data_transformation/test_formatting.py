@@ -116,7 +116,7 @@ def test_deaths_cause_specific(deaths_data: pd.DataFrame) -> None:
 
     assert formatter.measure == "deaths"
     assert formatter.data_key == "deaths"
-    assert formatter.filter_columns == ["entity", "sub_entity"]
+    assert formatter.filters == {"entity": ["disease"], "sub_entity": ["disease"]}
     assert formatter.new_value_column_name == "disease_deaths"
     assert formatter.unused_columns == ["measure", "entity_type"]
 
@@ -141,7 +141,7 @@ def test_deaths_all_causes(deaths_data: pd.DataFrame) -> None:
 
     assert formatter.measure == "deaths"
     assert formatter.data_key == "deaths"
-    assert formatter.filter_columns == ["entity", "sub_entity"]
+    assert formatter.filters == {"entity": ["total"], "sub_entity": ["total"]}
     assert formatter.new_value_column_name == "total_deaths"
     assert formatter.unused_columns == ["measure", "entity_type"]
 

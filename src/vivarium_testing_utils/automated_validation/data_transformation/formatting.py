@@ -12,9 +12,7 @@ class SimDataFormatter:
     both transition counts and person time data, which require different formatting/ operations
     on assumed columns in the simulation data."""
 
-    def __init__(
-        self, measure: str, entity_type: str, entity: str, filter_value: str
-    ) -> None:
+    def __init__(self, measure: str, entity: str, filter_value: str) -> None:
         self.measure = measure
         self.entity = entity
         self.data_key = f"{self.measure}_{self.entity}"
@@ -44,7 +42,6 @@ class TransitionCounts(SimDataFormatter):
     def __init__(self, cause: str, start_state: str, end_state: str) -> None:
         super().__init__(
             measure="transition_count",
-            entity_type="cause",
             entity=cause,
             filter_value=f"{start_state}_to_{end_state}",
         )
@@ -56,7 +53,6 @@ class PersonTime(SimDataFormatter):
     def __init__(self, cause: str, state: str | None = None) -> None:
         super().__init__(
             measure="person_time",
-            entity_type="cause",
             entity=cause,
             filter_value=state or "total",
         )
@@ -71,7 +67,6 @@ class TotalPersonTime(SimDataFormatter):
         """Initialize the TotalPersonTime formatter with population-level settings."""
         super().__init__(
             measure="person_time",
-            entity_type="cause",
             entity="total",
             filter_value="total",
         )
@@ -92,6 +87,6 @@ class Deaths(SimDataFormatter):
 
         self.measure = self.data_key = "deaths"
         self.unused_columns = ["measure", "entity_type"]
-        self.filter_columns = ["entity", "sub_entity"]
         self.filter_value = "total" if cause == "all_causes" else cause
+        self.filters = {"entity": [self.filter_value], "sub_entity": [self.filter_value]}
         self.new_value_column_name = f"{self.filter_value}_{self.measure}"
