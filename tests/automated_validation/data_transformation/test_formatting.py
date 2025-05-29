@@ -94,11 +94,8 @@ def test_total_person_time_init(total_person_time_data: pd.DataFrame) -> None:
     assert formatter.entity == "total"
     assert formatter.data_key == "person_time_total"
     assert formatter.new_value_column_name == "total_person_time"
-    assert formatter.redundant_columns == {
-        "measure": "person_time",
-        "entity_type": "cause",
-        "entity": "total",
-    }
+    assert formatter.unused_columns == ["measure", "entity_type", "entity"]
+    assert formatter.filters == {"sub_entity": ["total"]}
 
     expected_dataframe = pd.DataFrame(
         {
