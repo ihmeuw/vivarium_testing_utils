@@ -23,7 +23,7 @@ class SimDataFormatter:
             "entity_type",
             "entity",
         ]
-        self.filter_columns = ["sub_entity"]
+        self.filters = {"sub_entity": [filter_value]}
         self.filter_value = filter_value
         self.new_value_column_name = f"{self.filter_value}_{self.measure}"
 
@@ -31,10 +31,9 @@ class SimDataFormatter:
         """Clean up unused columns, filter for the state, and rename the value column."""
         dataset = marginalize(dataset, self.unused_columns)
         if self.filter_value == "total":
-            dataset = marginalize(dataset, self.filter_columns)
+            dataset = marginalize(dataset, [*self.filters])
         else:
-            for filter_column in self.filter_columns:
-                dataset = filter_data(dataset, {filter_column: [self.filter_value]})
+            dataset = filter_data(dataset, self.filters)
         dataset = dataset.rename(columns={"value": self.new_value_column_name})
         return dataset
 
