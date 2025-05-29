@@ -74,13 +74,12 @@ class TotalPersonTime(SimDataFormatter):
 
     def __init__(self) -> None:
         """Initialize the TotalPersonTime formatter with population-level settings."""
-        self.measure = "person_time"
-        self.entity = "total"
-        self.data_key = f"{self.measure}_{self.entity}"
-        self.new_value_column_name = f"{self.entity}_{self.measure}"
-
-    def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        return dataset.rename(columns={"value": self.new_value_column_name})
+        super().__init__(
+            measure="person_time",
+            entity_type="cause",
+            entity="total",
+            filter_value="total",
+        )
 
 
 def _drop_redundant_index(
