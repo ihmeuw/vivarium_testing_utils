@@ -5,7 +5,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     RatioData,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
-    AllCauseMortalityRate,
     CauseSpecificMortalityRate,
     ExcessMortalityRate,
     Incidence,
@@ -148,8 +147,8 @@ def test_si_remission(
 def test_all_cause_mortality_rate(
     deaths_data: pd.DataFrame, total_person_time_data: pd.DataFrame
 ) -> None:
-    """Test the AllCauseMortalityRate measure."""
-    measure = AllCauseMortalityRate()
+    """Test the CauseMortalityRate measurefor all causes."""
+    measure = CauseSpecificMortalityRate("all_causes")
     assert measure.measure_key == "cause.all_causes.cause_specific_mortality_rate"
     assert measure.sim_datasets == {
         "numerator_data": "deaths",

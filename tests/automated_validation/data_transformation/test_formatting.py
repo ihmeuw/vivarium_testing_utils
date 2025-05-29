@@ -203,7 +203,7 @@ def test_deaths_cause_specific(deaths_data: pd.DataFrame) -> None:
 
 def test_deaths_all_causes(deaths_data: pd.DataFrame) -> None:
     """Test Deaths formatter for all causes."""
-    formatter = Deaths()
+    formatter = Deaths("all_causes")
 
     assert formatter.measure == "deaths"
     assert formatter.data_key == "deaths"

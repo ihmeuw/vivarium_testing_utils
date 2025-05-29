@@ -101,7 +101,7 @@ class Deaths(SimDataFormatter):
             "entity_type": "cause",
         }
         self.filter_columns = ["entity", "sub_entity"]
-        self.filter_value = cause or "total"
+        self.filter_value = "total" if cause == "all_causes" else cause
         self.new_value_column_name = f"{self.filter_value}_{self.measure}"
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:

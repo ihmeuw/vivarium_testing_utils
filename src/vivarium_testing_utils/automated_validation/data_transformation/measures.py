@@ -154,15 +154,6 @@ class SIRemission(RatioMeasure):
         self.denominator = PersonTime(cause, cause)
 
 
-class AllCauseMortalityRate(RatioMeasure):
-    """Computes all-cause mortality rate in the population."""
-
-    def __init__(self) -> None:
-        self.measure_key = "cause.all_causes.cause_specific_mortality_rate"
-        self.numerator = Deaths()  # All deaths
-        self.denominator = TotalPersonTime()  # Total person time
-
-
 class CauseSpecificMortalityRate(RatioMeasure):
     """Computes cause-specific mortality rate in the population."""
 
@@ -190,8 +181,5 @@ MEASURE_KEY_MAPPINGS = {
         "remission_rate": SIRemission,
         "cause_specific_mortality_rate": CauseSpecificMortalityRate,
         "excess_mortality_rate": ExcessMortalityRate,
-    },
-    "all_causes": {
-        "cause_specific_mortality_rate": AllCauseMortalityRate,
     },
 }
