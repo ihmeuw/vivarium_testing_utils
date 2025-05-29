@@ -196,12 +196,13 @@ def transition_count_data() -> pd.DataFrame:
     return _create_transition_count_data()
 
 
-
 @check_io(out=SingleNumericColumn)
+@pytest.fixture
 def person_time_data() -> pd.DataFrame:
     return _create_person_time_data()
 
 
+@check_io(out=SingleNumericColumn)
 @pytest.fixture
 def total_person_time_data(
     person_time_data: pd.DataFrame,
