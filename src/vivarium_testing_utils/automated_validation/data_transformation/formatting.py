@@ -33,7 +33,8 @@ class SimDataFormatter:
         if self.filter_value == "total":
             dataset = marginalize(dataset, [self.filter_column])
         else:
-            dataset = filter_data(dataset, {self.filter_column: [self.filter_value]})
+            for filter_column in self.filter_columns:
+                dataset = filter_data(dataset, {filter_column: [self.filter_value]})
         dataset = dataset.rename(columns={"value": self.new_value_column_name})
         return dataset
 
@@ -98,19 +99,3 @@ class Deaths(SimDataFormatter):
         self.filter_columns = ["entity", "sub_entity"]
         self.filter_value = "total" if cause == "all_causes" else cause
         self.new_value_column_name = f"{self.filter_value}_{self.measure}"
-
-    def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        """Clean up redundant columns, filter for the state, and rename the value column."""
-        for column, value in self.redundant_columns.items():
-            dataset = _drop_redundant_index(
-                dataset,
-                column,
-                value,
-            )
-        if self.filter_value == "total":
-            dataset = marginalize(dataset, self.filter_columns)
-        else:
-            for filter_column in self.filter_columns:
-                dataset = filter_data(dataset, {filter_column: [self.filter_value]})
-        dataset = dataset.rename(columns={"value": self.new_value_column_name})
-        return dataset
