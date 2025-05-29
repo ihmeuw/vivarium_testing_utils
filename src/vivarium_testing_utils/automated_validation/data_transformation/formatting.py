@@ -16,7 +16,7 @@ class SimDataFormatter:
         self.type = type
         self.cause = cause
         self.data_key = f"{self.type}_{self.cause}"
-        self.unused_cols = [
+        self.unused_columns = [
             "measure",
             "entity_type",
             "entity",
@@ -27,7 +27,7 @@ class SimDataFormatter:
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         """Clean up redundant columns, filter for the state, and rename the value column."""
-        dataset = marginalize(dataset, self.unused_cols)
+        dataset = marginalize(dataset, self.unused_columns)
         if self.filter_value == "total":
             dataset = marginalize(dataset, [self.filter_column])
         else:
