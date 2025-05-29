@@ -75,7 +75,7 @@ class TotalPersonTime(SimDataFormatter):
 class Deaths(SimDataFormatter):
     """Formatter for simulation data that contains death counts."""
 
-    def __init__(self, cause: str | None = None) -> None:
+    def __init__(self, cause: str) -> None:
         """
         Initialize the Deaths formatter with cause-specific or all-cause settings.
 
