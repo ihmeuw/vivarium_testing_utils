@@ -180,9 +180,10 @@ class DataLoader:
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
 
-        ################
-        # Helper Methods#
-        ################
+
+#################
+# Helper Methods#
+#################
 
 
 def _convert_to_total_pt(data: pd.DataFrame) -> pd.DataFrame:
