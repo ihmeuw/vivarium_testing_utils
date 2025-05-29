@@ -18,23 +18,18 @@ class SimDataFormatter:
         self.measure = measure
         self.entity = entity
         self.data_key = f"{self.measure}_{self.entity}"
-        self.redundant_columns = {
-            "measure": self.measure,
-            "entity_type": entity_type,
-            "entity": self.entity,
-        }
-        self.filter_column = "sub_entity"
+        self.unused_cols = [
+            "measure",
+            "entity_type",
+            "entity",
+        ]
+        self.filter_columns = ["sub_entity"]
         self.filter_value = filter_value
         self.new_value_column_name = f"{self.filter_value}_{self.measure}"
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         """Clean up redundant columns, filter for the state, and rename the value column."""
-        for column, value in self.redundant_columns.items():
-            dataset = _drop_redundant_index(
-                dataset,
-                column,
-                value,
-            )
+        dataset = marginalize(dataset, self.unused_cols)
         if self.filter_value == "total":
             dataset = marginalize(dataset, [self.filter_column])
         else:
@@ -119,17 +114,3 @@ class Deaths(SimDataFormatter):
                 dataset = filter_data(dataset, {filter_column: [self.filter_value]})
         dataset = dataset.rename(columns={"value": self.new_value_column_name})
         return dataset
-
-
-def _drop_redundant_index(
-    data: pd.DataFrame, idx_column_name: str, idx_column_value: str
-) -> pd.DataFrame:
-    """Validate that a DataFrame column is singular-valued, then drop it from the index."""
-    # TODO: Make sure we handle this case appropriately when we
-    # want to automatically add many comparisons
-    if not (data.index.get_level_values(idx_column_name) == idx_column_value).all():
-        raise ValueError(
-            f"Cause {data.index.get_level_values(idx_column_name).unique()} in data does not match expected cause {idx_column_name}"
-        )
-    data = data.droplevel([idx_column_name])
-    return data
