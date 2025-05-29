@@ -92,10 +92,7 @@ class Deaths(SimDataFormatter):
         """
 
         self.measure = self.data_key = "deaths"
-        self.redundant_columns = {
-            "measure": self.measure,
-            "entity_type": "cause",
-        }
+        self.unused_columns = ["measure, entity_type"]
         self.filter_columns = ["entity", "sub_entity"]
         self.filter_value = "total" if cause == "all_causes" else cause
         self.new_value_column_name = f"{self.filter_value}_{self.measure}"
