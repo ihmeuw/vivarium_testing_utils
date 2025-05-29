@@ -147,13 +147,12 @@ def test__load_nonstandard_artifact(
 
 
 def test__create_person_time_total(
-    sim_result_dir: Path, person_time_data: pd.DataFrame
+    sim_result_dir: Path, total_person_time_data: pd.DataFrame
 ) -> None:
     """Test _create_person_time_total_dataset when one person time dataset exists."""
     data_loader = DataLoader(sim_result_dir)
-    expected_dataset = _convert_to_total_pt(person_time_data)
     person_time_total = data_loader.get_dataset("person_time_total", DataSource.SIM)
-    pd.testing.assert_frame_equal(person_time_total, expected_dataset)
+    pd.testing.assert_frame_equal(person_time_total, total_person_time_data)
 
 
 def test__create_person_time_total_dataset_no_datasets(sim_result_dir: Path) -> None:
