@@ -9,6 +9,7 @@ from vivarium import Artifact
 
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     clean_artifact_data,
+    marginalize,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
@@ -50,10 +51,48 @@ class DataLoader:
         }
         self._artifact = self._load_artifact(self._sim_output_dir)
 
+        # Initialize derived dataset person time total
+        person_time_total = self._create_person_time_total_dataset()
+        if person_time_total is not None:
+            self._add_to_cache(
+                dataset_key="person_time_total", data=person_time_total, source=DataSource.SIM
+            )
+
+    def _create_person_time_total_dataset(self) -> pd.DataFrame | None:
+        """
+        Create a derived dataset that aggregates total person time across all causes.
+
+        This dataset can be used as a denominator for population-level measures like
+        mortality rates.
+        """
+        all_outputs = self.get_sim_outputs()
+        person_time_keys = [d for d in all_outputs if d.startswith("person_time_")]
+
+        if not person_time_keys:
+            return None  # No person time datasets to aggregate
+
+        totals = []
+        person_time_datasets = []
+        for dataset_key in person_time_keys:
+            data = self.get_dataset(dataset_key, DataSource.SIM)
+            data = _convert_to_total_person_time(data)
+            # Sum across all remaining stratifications
+            total = data["value"].sum()
+            totals.append(total)
+            person_time_datasets.append(data)
+
+        # get dataset with largest total
+        largest_total_dataset = person_time_datasets[totals.index(max(totals))]
+
+        return largest_total_dataset
+
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets in the given simulation output directory.
         Only return the filename, not the extension."""
-        return [str(f.stem) for f in self._results_dir.glob("*.parquet")]
+        return list(
+            set(str(f.stem) for f in self._results_dir.glob("*.parquet"))
+            | set(self._raw_datasets[DataSource.SIM].keys())
+        )
 
     def get_artifact_keys(self) -> list[str]:
         return self._artifact.keys
@@ -136,3 +175,18 @@ class DataLoader:
 
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
+
+
+#################
+# Helper Methods#
+#################
+
+
+def _convert_to_total_person_time(data: pd.DataFrame) -> pd.DataFrame:
+    old_index_names = data.index.names
+    data = marginalize(data, ["entity", "sub_entity"])
+    data["entity"] = "total"
+    data["sub_entity"] = "total"
+    # Reconstruct the index with the same column order as before
+    data = data.reset_index().set_index(old_index_names)
+    return data

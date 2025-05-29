@@ -12,10 +12,10 @@ class SimDataFormatter:
     both transition counts and person time data, which require different formatting/ operations
     on assumed columns in the simulation data."""
 
-    def __init__(self, type: str, cause: str, filter_value: str) -> None:
-        self.type = type
-        self.cause = cause
-        self.data_key = f"{self.type}_{self.cause}"
+    def __init__(self, measure: str, entity: str, filter_value: str) -> None:
+        self.measure = measure
+        self.entity = entity
+        self.data_key = f"{self.measure}_{self.entity}"
         self.unused_columns = [
             "measure",
             "entity_type",
@@ -23,7 +23,7 @@ class SimDataFormatter:
         ]
         self.filters = {"sub_entity": [filter_value]}
         self.filter_value = filter_value
-        self.new_value_column_name = f"{self.filter_value}_{self.type}"
+        self.new_value_column_name = f"{self.filter_value}_{self.measure}"
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         """Clean up unused columns, filter for the state, and rename the value column."""
@@ -39,12 +39,20 @@ class SimDataFormatter:
 class TransitionCounts(SimDataFormatter):
     """Formatter for simulation data that contains transition counts."""
 
-    def __init__(self, cause: str, start_state: str, end_state: str) -> None:
-        super().__init__("transition_count", cause, f"{start_state}_to_{end_state}")
+    def __init__(self, entity: str, start_state: str, end_state: str) -> None:
+        super().__init__(
+            measure="transition_count",
+            entity=entity,
+            filter_value=f"{start_state}_to_{end_state}",
+        )
 
 
-class PersonTime(SimDataFormatter):
+class StatePersonTime(SimDataFormatter):
     """Formatter for simulation data that contains person time."""
 
-    def __init__(self, cause: str, state: str | None = None) -> None:
-        super().__init__("person_time", cause, state or "total")
+    def __init__(self, entity: str | None = None, filter_value: str | None = None) -> None:
+        super().__init__(
+            measure="person_time",
+            entity=entity or "total",
+            filter_value=filter_value or "total",
+        )
