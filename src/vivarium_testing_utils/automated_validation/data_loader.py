@@ -71,15 +71,11 @@ class DataLoader:
         if not person_time_keys:
             return None  # No person time datasets to aggregate
 
-        if len(person_time_keys) < 2:
-            data = self.get_dataset(person_time_keys[0], DataSource.SIM)
-            return _convert_to_total_pt(data)
-
         totals = []
         person_time_datasets = []
         for dataset_key in person_time_keys:
             data = self.get_dataset(dataset_key, DataSource.SIM)
-            data = _convert_to_total_pt(data)
+            data = _convert_to_total_person_time(data)
             # Sum across all remaining stratifications
             total = data["value"].sum()
             totals.append(total)
@@ -186,7 +182,7 @@ class DataLoader:
 #################
 
 
-def _convert_to_total_pt(data: pd.DataFrame) -> pd.DataFrame:
+def _convert_to_total_person_time(data: pd.DataFrame) -> pd.DataFrame:
     old_index_names = data.index.names
     data = marginalize(data, ["entity", "sub_entity"])
     data["entity"] = "total"

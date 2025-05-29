@@ -7,7 +7,7 @@ import pytest
 from vivarium_testing_utils.automated_validation.data_loader import (
     DataLoader,
     DataSource,
-    _convert_to_total_pt,
+    _convert_to_total_person_time,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,
@@ -208,13 +208,13 @@ def test__create_person_time_total_dataset_multiple_datasets(sim_result_dir: Pat
 
         result = data_loader._create_person_time_total_dataset()
         assert result is not None
-        expected = _convert_to_total_pt(larger_dataset)
+        expected = _convert_to_total_person_time(larger_dataset)
         pd.testing.assert_frame_equal(result, expected)
 
 
 def test__convert_to_total_pt(person_time_data: pd.DataFrame) -> None:
     """Test _convert_to_total_pt function converts entity and sub_entity to 'total'."""
-    result = _convert_to_total_pt(person_time_data)
+    result = _convert_to_total_person_time(person_time_data)
 
     # Check that entity and sub_entity columns are all 'total'
     assert all(result.reset_index()["entity"] == "total")

@@ -39,34 +39,20 @@ class SimDataFormatter:
 class TransitionCounts(SimDataFormatter):
     """Formatter for simulation data that contains transition counts."""
 
-    def __init__(self, cause: str, start_state: str, end_state: str) -> None:
+    def __init__(self, entity: str, start_state: str, end_state: str) -> None:
         super().__init__(
             measure="transition_count",
-            entity=cause,
+            entity=entity,
             filter_value=f"{start_state}_to_{end_state}",
         )
 
 
-class PersonTime(SimDataFormatter):
+class StatePersonTime(SimDataFormatter):
     """Formatter for simulation data that contains person time."""
 
-    def __init__(self, cause: str, state: str | None = None) -> None:
+    def __init__(self, entity: str | None = None, filter_value: str | None = None) -> None:
         super().__init__(
             measure="person_time",
-            entity=cause,
-            filter_value=state or "total",
-        )
-
-
-class TotalPersonTime(SimDataFormatter):
-    """
-    Formatter for retrieving total person time across all states in the population.
-    """
-
-    def __init__(self) -> None:
-        """Initialize the TotalPersonTime formatter with population-level settings."""
-        super().__init__(
-            measure="person_time",
-            entity="total",
-            filter_value="total",
+            entity=entity or "total",
+            filter_value=filter_value or "total",
         )
