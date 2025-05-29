@@ -113,6 +113,8 @@ class RatioMeasure(Measure, ABC):
         return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
 
     @check_io(
+        numerator_data=SimOutputData,
+        denominator_data=SimOutputData,
         out=RatioData,
     )
     def get_ratio_data_from_sim(
