@@ -26,7 +26,7 @@ class SimDataFormatter:
         self.new_value_column_name = f"{self.filter_value}_{self.type}"
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        """Clean up redundant columns, filter for the state, and rename the value column."""
+        """Clean up unused columns, filter for the state, and rename the value column."""
         dataset = marginalize(dataset, self.unused_columns)
         if self.filter_value == "total":
             dataset = marginalize(dataset, [self.filter_column])
