@@ -15,7 +15,7 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     assert formatter.cause == "disease"
     assert formatter.data_key == "transition_count_disease"
     assert formatter.filter_value == "susceptible_to_disease_to_disease"
-    assert formatter.filter_column == "sub_entity"
+    assert formatter.filters == {"sub_entity": ["susceptible_to_disease_to_disease"]}
     assert (
         formatter.new_value_column_name
         == "susceptible_to_disease_to_disease_transition_count"
@@ -43,7 +43,7 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
     assert formatter.type == "person_time"
     assert formatter.cause == "disease"
     assert formatter.data_key == "person_time_disease"
-    assert formatter.filter_column == "sub_entity"
+    assert formatter.filters == {"sub_entity": ["disease"]}
     assert formatter.new_value_column_name == "disease_person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
@@ -67,7 +67,7 @@ def test_total_pt(person_time_data: pd.DataFrame) -> None:
     assert formatter.type == "person_time"
     assert formatter.cause == "disease"
     assert formatter.data_key == "person_time_disease"
-    assert formatter.filter_column == "sub_entity"
+    assert formatter.filters == {"sub_entity": ["total"]}
     assert formatter.new_value_column_name == "total_person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
