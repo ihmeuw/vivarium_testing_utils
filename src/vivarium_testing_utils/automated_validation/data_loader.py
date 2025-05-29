@@ -132,7 +132,7 @@ class DataLoader:
         """Update the raw_datasets cache with the given data."""
         if dataset_key in self._raw_datasets.get(source, {}):
             raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
-        self._raw_datasets.update({source: {dataset_key: data.copy()}})
+        self._raw_datasets[source].update({dataset_key: data.copy()})
 
     @check_io(out=SimOutputData)
     def _load_from_sim(self, dataset_key: str) -> pd.DataFrame:
