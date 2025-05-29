@@ -18,12 +18,12 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     assert formatter.entity == "disease"
     assert formatter.data_key == "transition_count_disease"
     assert formatter.filter_value == "susceptible_to_disease_to_disease"
-    assert formatter.filter_column == "sub_entity"
+    assert formatter.filter_columns == ["sub_entity"]
     assert (
         formatter.new_value_column_name
         == "susceptible_to_disease_to_disease_transition_count"
     )
-    assert formatter.unused_cols == ["measure", "entity_type", "entity"]
+    assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
     expected_dataframe = pd.DataFrame(
         {
@@ -46,9 +46,9 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
     assert formatter.measure == "person_time"
     assert formatter.entity == "disease"
     assert formatter.data_key == "person_time_disease"
-    assert formatter.filter_column == "sub_entity"
+    assert formatter.filter_columns == ["sub_entity"]
     assert formatter.new_value_column_name == "disease_person_time"
-    assert formatter.unused_cols == ["measure", "entity_type", "entity"]
+    assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
     expected_dataframe = pd.DataFrame(
         {
@@ -70,9 +70,9 @@ def test_person_time_state_total(person_time_data: pd.DataFrame) -> None:
     assert formatter.measure == "person_time"
     assert formatter.entity == "disease"
     assert formatter.data_key == "person_time_disease"
-    assert formatter.filter_column == "sub_entity"
+    assert formatter.filter_columns == ["sub_entity"]
     assert formatter.new_value_column_name == "total_person_time"
-    assert formatter.unused_cols == ["measure", "entity_type", "entity"]
+    assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
     expected_dataframe = pd.DataFrame(
         {
@@ -95,11 +95,7 @@ def test_total_person_time_init(total_person_time_data: pd.DataFrame) -> None:
     assert formatter.entity == "total"
     assert formatter.data_key == "person_time_total"
     assert formatter.new_value_column_name == "total_person_time"
-    assert formatter.redundant_columns == {
-        "measure": "person_time",
-        "entity_type": "cause",
-        "entity": "total",
-    }
+    assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
     expected_dataframe = pd.DataFrame(
         {
@@ -122,10 +118,7 @@ def test_deaths_cause_specific(deaths_data: pd.DataFrame) -> None:
     assert formatter.data_key == "deaths"
     assert formatter.filter_columns == ["entity", "sub_entity"]
     assert formatter.new_value_column_name == "disease_deaths"
-    assert formatter.redundant_columns == {
-        "measure": "deaths",
-        "entity_type": "cause",
-    }
+    assert formatter.unused_columns == ["measure", "entity_type"]
 
     # Filter out only data related to the disease itself, since we want
     # deaths directly attributed to the disease
@@ -150,10 +143,7 @@ def test_deaths_all_causes(deaths_data: pd.DataFrame) -> None:
     assert formatter.data_key == "deaths"
     assert formatter.filter_columns == ["entity", "sub_entity"]
     assert formatter.new_value_column_name == "total_deaths"
-    assert formatter.redundant_columns == {
-        "measure": "deaths",
-        "entity_type": "cause",
-    }
+    assert formatter.unused_columns == ["measure", "entity_type"]
 
     expected_dataframe = pd.DataFrame(
         {
