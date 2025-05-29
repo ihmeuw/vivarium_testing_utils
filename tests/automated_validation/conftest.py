@@ -182,21 +182,23 @@ def get_model_spec(artifact_path: Path) -> dict[str, dict[str, dict[str, str]]]:
     }
 
 
+@check_io(out=SingleNumericColumn)
 @pytest.fixture
 def deaths_data() -> pd.DataFrame:
     """Sample deaths data for testing."""
     return _create_deaths_data()
 
 
+@check_io(out=SingleNumericColumn)
 @pytest.fixture
 def transition_count_data() -> pd.DataFrame:
     """Raw transition count data to be saved to parquet."""
     return _create_transition_count_data()
 
 
-@pytest.fixture
+
+@check_io(out=SingleNumericColumn)
 def person_time_data() -> pd.DataFrame:
-    """Raw person time data to be saved to parquet."""
     return _create_person_time_data()
 
 
