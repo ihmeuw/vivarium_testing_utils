@@ -146,7 +146,7 @@ def test_si_remission(
 
 
 def test_all_cause_mortality_rate(
-    deaths_data: pd.DataFrame, person_time_data: pd.DataFrame
+    deaths_data: pd.DataFrame, total_person_time_data: pd.DataFrame
 ) -> None:
     """Test the AllCauseMortalityRate measure."""
     measure = AllCauseMortalityRate()
@@ -160,7 +160,7 @@ def test_all_cause_mortality_rate(
     # For this test, we'll use the deaths_data and person_time_data
     ratio_data = measure.get_ratio_data_from_sim(
         numerator_data=deaths_data,
-        denominator_data=person_time_data,
+        denominator_data=total_person_time_data,
     )
 
     # Expected dataframe for the ratio_data
@@ -183,7 +183,7 @@ def test_all_cause_mortality_rate(
 
     # Test the measure calculation
     measure_data = measure.get_measure_data_from_sim(
-        numerator_data=deaths_data, denominator_data=person_time_data
+        numerator_data=deaths_data, denominator_data=total_person_time_data
     )
 
     # Expected result - deaths divided by person time
@@ -198,7 +198,7 @@ def test_all_cause_mortality_rate(
 
 
 def test_cause_specific_mortality_rate(
-    deaths_data: pd.DataFrame, person_time_data: pd.DataFrame
+    deaths_data: pd.DataFrame, total_person_time_data: pd.DataFrame
 ) -> None:
     """Test the CauseSpecificMortalityRate measure."""
     cause = "disease"
@@ -212,7 +212,7 @@ def test_cause_specific_mortality_rate(
 
     ratio_data = measure.get_ratio_data_from_sim(
         numerator_data=deaths_data,
-        denominator_data=person_time_data,
+        denominator_data=total_person_time_data,
     )
 
     # Expected dataframe for the ratio_data
@@ -235,7 +235,7 @@ def test_cause_specific_mortality_rate(
 
     # Test the measure calculation
     measure_data = measure.get_measure_data_from_sim(
-        numerator_data=deaths_data, denominator_data=person_time_data
+        numerator_data=deaths_data, denominator_data=total_person_time_data
     )
 
     # Expected result - disease deaths divided by total person time
