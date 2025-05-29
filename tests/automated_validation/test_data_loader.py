@@ -4,9 +4,12 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_loader import (
+    DataLoader,
+    DataSource,
+    _convert_to_total_person_time,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AGE_GROUP_COLUMN,
     AgeSchema,
 )
 
@@ -18,6 +21,7 @@ def test_get_sim_outputs(sim_result_dir: Path) -> None:
         "deaths",
         "person_time_disease",
         "transition_count_disease",
+        "person_time_total",
     }
 
 
@@ -140,3 +144,87 @@ def test__load_nonstandard_artifact(
         age_bins,
         sample_age_schema.to_dataframe(),
     )
+
+
+def test__create_person_time_total(
+    sim_result_dir: Path, total_person_time_data: pd.DataFrame
+) -> None:
+    """Test _create_person_time_total_dataset when one person time dataset exists."""
+    data_loader = DataLoader(sim_result_dir)
+    person_time_total = data_loader.get_dataset("person_time_total", DataSource.SIM)
+    pd.testing.assert_frame_equal(person_time_total, total_person_time_data)
+
+
+def test__create_person_time_total_dataset_no_datasets(sim_result_dir: Path) -> None:
+    """Test _create_person_time_total_dataset when no person time datasets exist."""
+    data_loader = DataLoader(sim_result_dir)
+
+    with patch.object(data_loader, "get_sim_outputs") as mock_get_outputs, patch.object(
+        data_loader, "upload_custom_data"
+    ) as mock_upload:
+        # no person time datasets
+        mock_get_outputs.return_value = ["deaths", "transition_count_disease"]
+        result = data_loader._create_person_time_total_dataset()
+        assert result is None
+        mock_upload.assert_not_called()
+
+
+def test__create_person_time_total_dataset_multiple_datasets(sim_result_dir: Path) -> None:
+    """Test _create_person_time_total_dataset when multiple person time datasets exist."""
+    data_loader = DataLoader(sim_result_dir)
+
+    # Create mock datasets with different totals
+    smaller_dataset = pd.DataFrame(
+        {"value": [10, 15]},
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("person_time", "cause", "disease1", "state1", "A"),
+                ("person_time", "cause", "disease1", "state2", "B"),
+            ],
+            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
+        ),
+    )
+
+    larger_dataset = pd.DataFrame(
+        {"value": [20, 25]},
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("person_time", "cause", "disease2", "state1", "A"),
+                ("person_time", "cause", "disease2", "state2", "B"),
+            ],
+            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
+        ),
+    )
+
+    with patch.object(data_loader, "get_sim_outputs") as mock_get_outputs, patch.object(
+        data_loader, "get_dataset"
+    ) as mock_get_dataset:
+
+        mock_get_outputs.return_value = ["person_time_disease1", "person_time_disease2"]
+        mock_get_dataset.side_effect = lambda key, source: {
+            "person_time_disease1": smaller_dataset,
+            "person_time_disease2": larger_dataset,
+        }[key]
+
+        result = data_loader._create_person_time_total_dataset()
+        assert result is not None
+        expected = _convert_to_total_person_time(larger_dataset)
+        pd.testing.assert_frame_equal(result, expected)
+
+
+def test__convert_to_total_pt(person_time_data: pd.DataFrame) -> None:
+    """Test _convert_to_total_pt function converts entity and sub_entity to 'total'."""
+    result = _convert_to_total_person_time(person_time_data)
+
+    # Check that entity and sub_entity columns are all 'total'
+    assert all(result.reset_index()["entity"] == "total")
+    assert all(result.reset_index()["sub_entity"] == "total")
+
+    # Check that the index/ column structure is preserved
+    assert result.index.names == person_time_data.index.names
+    assert list(result.columns) == ["value"]
+
+    # Check that values are preserved (marginalized and aggregated)
+    expected_total_value = person_time_data["value"].sum()
+    actual_total_value = result["value"].sum()
+    assert actual_total_value == expected_total_value
