@@ -6,7 +6,9 @@ import yaml
 from pytest import TempPathFactory
 from vivarium.framework.artifact import Artifact
 
-from vivarium_testing_utils.automated_validation.data_loader import _convert_to_total_pt
+from vivarium_testing_utils.automated_validation.data_loader import (
+    _convert_to_total_person_time,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AGE_END_COLUMN,
     AGE_GROUP_COLUMN,
@@ -208,7 +210,7 @@ def total_person_time_data(
     person_time_data: pd.DataFrame,
 ) -> pd.DataFrame:
     """Total person time data."""
-    return _convert_to_total_pt(person_time_data)
+    return _convert_to_total_person_time(person_time_data)
 
 
 @pytest.fixture

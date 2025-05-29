@@ -3,8 +3,7 @@ from pandas.testing import assert_frame_equal
 
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     Deaths,
-    PersonTime,
-    TotalPersonTime,
+    StatePersonTime,
     TransitionCounts,
 )
 
@@ -41,7 +40,7 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
 def test_person_time(person_time_data: pd.DataFrame) -> None:
     """Test PersonTime formatting."""
     # Create a mock dataset
-    formatter = PersonTime("disease", "disease")
+    formatter = StatePersonTime("disease", "disease")
     assert len(formatter.__dict__) == 7
     assert formatter.measure == "person_time"
     assert formatter.entity == "disease"
@@ -65,7 +64,7 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
 
 def test_person_time_state_total(person_time_data: pd.DataFrame) -> None:
     """Test PersonTime formatting with total state."""
-    formatter = PersonTime("disease")
+    formatter = StatePersonTime("disease")
     assert len(formatter.__dict__) == 7
     assert formatter.measure == "person_time"
     assert formatter.entity == "disease"
@@ -87,9 +86,9 @@ def test_person_time_state_total(person_time_data: pd.DataFrame) -> None:
     assert_frame_equal(formatter.format_dataset(person_time_data), expected_dataframe)
 
 
-def test_total_person_time_init(total_person_time_data: pd.DataFrame) -> None:
-    """Test TotalPersonTime formatter initialization."""
-    formatter = TotalPersonTime()
+def test_total_person_time(total_person_time_data: pd.DataFrame) -> None:
+    """Test StatePersonTime formatter initialization with total."""
+    formatter = StatePersonTime()
 
     assert formatter.measure == "person_time"
     assert formatter.entity == "total"
