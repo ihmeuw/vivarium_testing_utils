@@ -15,8 +15,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
-    PersonTime,
     SimDataFormatter,
+    StatePersonTime,
     TransitionCounts,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
@@ -133,7 +133,7 @@ class Incidence(RatioMeasure):
     def __init__(self, cause: str) -> None:
         self.measure_key = f"cause.{cause}.incidence_rate"
         self.numerator = TransitionCounts(cause, f"susceptible_to_{cause}", cause)
-        self.denominator = PersonTime(cause, f"susceptible_to_{cause}")
+        self.denominator = StatePersonTime(cause, f"susceptible_to_{cause}")
 
 
 class Prevalence(RatioMeasure):
@@ -141,8 +141,8 @@ class Prevalence(RatioMeasure):
 
     def __init__(self, cause: str) -> None:
         self.measure_key = f"cause.{cause}.prevalence"
-        self.numerator = PersonTime(cause, cause)
-        self.denominator = PersonTime(cause)
+        self.numerator = StatePersonTime(cause, cause)
+        self.denominator = StatePersonTime(cause)
 
 
 class SIRemission(RatioMeasure):
@@ -151,7 +151,7 @@ class SIRemission(RatioMeasure):
     def __init__(self, cause: str) -> None:
         self.measure_key = f"cause.{cause}.remission_rate"
         self.numerator = TransitionCounts(cause, cause, f"susceptible_to_{cause}")
-        self.denominator = PersonTime(cause, cause)
+        self.denominator = StatePersonTime(cause, cause)
 
 
 MEASURE_KEY_MAPPINGS = {

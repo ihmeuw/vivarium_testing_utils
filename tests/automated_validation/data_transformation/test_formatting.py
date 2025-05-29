@@ -1,7 +1,8 @@
 import pandas as pd
+from pandas.testing import assert_frame_equal
 
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
-    PersonTime,
+    StatePersonTime,
     TransitionCounts,
 )
 
@@ -11,8 +12,8 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     formatter = TransitionCounts("disease", "susceptible_to_disease", "disease")
     # assert formatter has right number of attrs
     assert len(formatter.__dict__) == 7
-    assert formatter.type == "transition_count"
-    assert formatter.cause == "disease"
+    assert formatter.measure == "transition_count"
+    assert formatter.entity == "disease"
     assert formatter.data_key == "transition_count_disease"
     assert formatter.filter_value == "susceptible_to_disease_to_disease"
     assert formatter.filters == {"sub_entity": ["susceptible_to_disease_to_disease"]}
@@ -32,16 +33,16 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
         ),
     )
 
-    assert formatter.format_dataset(transition_count_data).equals(expected_dataframe)
+    assert_frame_equal(formatter.format_dataset(transition_count_data), expected_dataframe)
 
 
 def test_person_time(person_time_data: pd.DataFrame) -> None:
     """Test PersonTime formatting."""
     # Create a mock dataset
-    formatter = PersonTime("disease", "disease")
+    formatter = StatePersonTime("disease", "disease")
     assert len(formatter.__dict__) == 7
-    assert formatter.type == "person_time"
-    assert formatter.cause == "disease"
+    assert formatter.measure == "person_time"
+    assert formatter.entity == "disease"
     assert formatter.data_key == "person_time_disease"
     assert formatter.filters == {"sub_entity": ["disease"]}
     assert formatter.new_value_column_name == "disease_person_time"
@@ -57,15 +58,15 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
         ),
     )
 
-    assert formatter.format_dataset(person_time_data).equals(expected_dataframe)
+    assert_frame_equal(formatter.format_dataset(person_time_data), expected_dataframe)
 
 
-def test_total_pt(person_time_data: pd.DataFrame) -> None:
+def test_person_time_state_total(person_time_data: pd.DataFrame) -> None:
     """Test PersonTime formatting with total state."""
-    formatter = PersonTime("disease")
+    formatter = StatePersonTime("disease")
     assert len(formatter.__dict__) == 7
-    assert formatter.type == "person_time"
-    assert formatter.cause == "disease"
+    assert formatter.measure == "person_time"
+    assert formatter.entity == "disease"
     assert formatter.data_key == "person_time_disease"
     assert formatter.filters == {"sub_entity": ["total"]}
     assert formatter.new_value_column_name == "total_person_time"
@@ -81,4 +82,28 @@ def test_total_pt(person_time_data: pd.DataFrame) -> None:
         ),
     )
 
-    assert formatter.format_dataset(person_time_data).equals(expected_dataframe)
+    assert_frame_equal(formatter.format_dataset(person_time_data), expected_dataframe)
+
+
+def test_total_person_time(total_person_time_data: pd.DataFrame) -> None:
+    """Test StatePersonTime formatter initialization with total."""
+    formatter = StatePersonTime()
+
+    assert formatter.measure == "person_time"
+    assert formatter.entity == "total"
+    assert formatter.data_key == "person_time_total"
+    assert formatter.new_value_column_name == "total_person_time"
+    assert formatter.unused_columns == ["measure", "entity_type", "entity"]
+    assert formatter.filters == {"sub_entity": ["total"]}
+
+    expected_dataframe = pd.DataFrame(
+        {
+            "total_person_time": [17.0 + 23.0, 29.0 + 37.0],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+
+    assert_frame_equal(formatter.format_dataset(total_person_time_data), expected_dataframe)
