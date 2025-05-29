@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Callable
 
 import pandas as pd
 import yaml
@@ -69,20 +68,18 @@ class DataLoader:
         all_outputs = self.get_sim_outputs()
         person_time_keys = [d for d in all_outputs if d.startswith("person_time_")]
 
-        get_clean_data: Callable[[str], pd.DataFrame] = lambda key: marginalize(
-            self.get_dataset(key, DataSource.SIM), ["sub_entity", "entity_type", "entity"]
-        )
-
         if not person_time_keys:
             return None  # No person time datasets to aggregate
 
         if len(person_time_keys) < 2:
-            return get_clean_data(person_time_keys[0])
+            data = self.get_dataset(person_time_keys[0], DataSource.SIM)
+            return _convert_to_total_pt(data)
 
         totals = []
         person_time_datasets = []
-        for dataset in person_time_keys:
-            data = get_clean_data(dataset)
+        for dataset_key in person_time_keys:
+            data = self.get_dataset(dataset_key, DataSource.SIM)
+            data = _convert_to_total_pt(data)
             # Sum across all remaining stratifications
             total = data["value"].sum()
             totals.append(total)
@@ -182,3 +179,17 @@ class DataLoader:
 
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
+
+        ################
+        # Helper Methods#
+        ################
+
+
+def _convert_to_total_pt(data: pd.DataFrame) -> pd.DataFrame:
+    old_index_names = data.index.names
+    data = marginalize(data, ["entity", "sub_entity"])
+    data["entity"] = "total"
+    data["sub_entity"] = "total"
+    # Reconstruct the index with the same column order as before
+    data = data.reset_index().set_index(old_index_names)
+    return data

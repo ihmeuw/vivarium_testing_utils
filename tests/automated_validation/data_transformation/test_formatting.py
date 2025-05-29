@@ -1,13 +1,8 @@
-from unittest.mock import MagicMock, patch
-
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
-from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    SimOutputData,
-)
+from vivarium_testing_utils.automated_validation.data_loader import _convert_to_total_pt
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     Deaths,
     PersonTime,
@@ -160,11 +155,24 @@ def test_total_person_time_init(person_time_data: pd.DataFrame) -> None:
     assert formatter.entity == "total"
     assert formatter.data_key == "person_time_total"
     assert formatter.new_value_column_name == "total_person_time"
+    assert formatter.redundant_columns == {
+        "measure": "person_time",
+        "entity_type": "cause",
+        "entity": "total",
+    }
+    total_pt_df = _convert_to_total_pt(person_time_data)
 
-    assert_frame_equal(
-        formatter.format_dataset(person_time_data),
-        person_time_data.rename(columns={"value": "total_person_time"}),
+    expected_dataframe = pd.DataFrame(
+        {
+            "total_person_time": [17.0 + 23.0, 29.0 + 37.0],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
     )
+
+    assert_frame_equal(formatter.format_dataset(total_pt_df), expected_dataframe)
 
 
 def test_deaths_cause_specific(deaths_data: pd.DataFrame) -> None:
