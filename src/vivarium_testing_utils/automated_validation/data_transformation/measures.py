@@ -16,6 +16,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
 )
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     Deaths,
+    RiskStatePersonTime,
+    RiskTotalPersonTime,
     SimDataFormatter,
     StatePersonTime,
     TransitionCounts,
@@ -175,6 +177,26 @@ class ExcessMortalityRate(RatioMeasure):
         )  # Person time among those with the disease
 
 
+class RiskExposure(RatioMeasure):
+    """Computes risk factor exposure levels in the population.
+
+    This measure calculates exposure prevalence from state-specific person time data.
+    For categorical risk factors (e.g., child wasting, stunting), exposure is computed
+    as the proportion of person time spent in each risk state.
+
+    Numerator: Person time in specific risk state
+    Denominator: Total person time across all risk states
+    """
+
+    def __init__(self, risk_factor: str) -> None:
+        self.measure_key = f"risk_factor.{risk_factor}.exposure"
+        self.risk_factor = risk_factor
+
+        # Create custom formatters for risk exposure
+        self.numerator = RiskStatePersonTime(risk_factor)
+        self.denominator = RiskTotalPersonTime(risk_factor, sum_all=True)
+
+
 MEASURE_KEY_MAPPINGS = {
     "cause": {
         "incidence_rate": Incidence,
@@ -182,5 +204,8 @@ MEASURE_KEY_MAPPINGS = {
         "remission_rate": SIRemission,
         "cause_specific_mortality_rate": CauseSpecificMortalityRate,
         "excess_mortality_rate": ExcessMortalityRate,
+    },
+    "risk_factor": {
+        "exposure": RiskExposure,
     },
 }

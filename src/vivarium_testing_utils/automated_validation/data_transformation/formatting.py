@@ -76,3 +76,31 @@ class Deaths(SimDataFormatter):
         self.filter_value = "total" if cause == "all_causes" else cause
         self.filters = {"entity": [self.filter_value], "sub_entity": [self.filter_value]}
         self.new_value_column_name = f"{self.filter_value}_{self.measure}"
+
+
+class RiskStatePersonTime(SimDataFormatter):
+    """RiskStatePersonTime changes the sub_entity name to 'parameter' and, if total=True, replaces the value for *each* risk state
+    with the sum over all risk states for the given sub-index.
+
+    """
+
+    def __init__(self, entity: str, sum_all: bool = False) -> None:
+        self.data_key = f"person_time_{self.entity}"
+        self.sum_all = sum_all
+        self.new_value_column_name = "person_time"
+        if sum_all:
+            self.new_value_column_name += "_total"
+
+    def format_dataset(self, dataset):
+        if self.sum_all:
+            # If total is True, sum over all risk states for the given sub-index
+            total_person_time = dataset.groupby(
+                dataset.columns.difference(["value", "sub_entity"])
+            ).sum()
+            #  set value to the total person time for each sub-index
+            dataset = dataset.assign(value=total_person_time["value"].values)
+
+        dataset = dataset.rename(
+            columns={"value": self.new_value_column_name, "sub_entity": "parameter"}
+        )
+        return dataset
