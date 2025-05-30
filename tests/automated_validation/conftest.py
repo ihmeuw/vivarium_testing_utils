@@ -134,6 +134,47 @@ def _create_sample_age_group_df() -> pd.DataFrame:
     ).set_index([AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN])
 
 
+def _create_risk_state_person_time_data() -> pd.DataFrame:
+    """Create risk state person time data for testing."""
+    return pd.DataFrame(
+        {
+            "value": [100.0, 150.0, 200.0, 250.0, 75.0, 125.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("person_time", "rei", "child_stunting", "cat1", "A"),
+                ("person_time", "rei", "child_stunting", "cat2", "A"),
+                ("person_time", "rei", "child_stunting", "cat3", "A"),
+                ("person_time", "rei", "child_stunting", "cat1", "B"),
+                ("person_time", "rei", "child_stunting", "cat2", "B"),
+                ("person_time", "rei", "child_stunting", "cat3", "B"),
+            ],
+            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
+        ),
+    )
+
+
+def _create_raw_artifact_risk_exposure() -> pd.DataFrame:
+    """Create raw artifact risk exposure data for testing."""
+    return pd.DataFrame(
+        {
+            "draw_0": [0.25, 0.35, 0.40, 0.30, 0.20, 0.50],
+            "draw_1": [0.28, 0.32, 0.42, 0.28, 0.22, 0.48],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("A", "cat1"),
+                ("A", "cat2"),
+                ("A", "cat3"),
+                ("B", "cat1"),
+                ("B", "cat2"),
+                ("B", "cat3"),
+            ],
+            names=["stratify_column", "parameter"],
+        ),
+    )
+
+
 @pytest.fixture(scope="session")
 def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
     """Create a temporary directory for simulation outputs."""
@@ -151,6 +192,8 @@ def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
     _deaths_data = _create_deaths_data()
     _raw_artifact_disease_incidence = _create_raw_artifact_disease_incidence()
     _sample_age_group_df = _create_sample_age_group_df()
+    _risk_state_person_time_data = _create_risk_state_person_time_data()
+    _raw_artifact_risk_exposure = _create_raw_artifact_risk_exposure()
 
     # Save Sim DataFrames
     _transition_count_data.reset_index().to_parquet(
@@ -158,6 +201,9 @@ def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
     )
     _person_time_data.reset_index().to_parquet(results_dir / "person_time_disease.parquet")
     _deaths_data.reset_index().to_parquet(results_dir / "deaths.parquet")
+    _risk_state_person_time_data.reset_index().to_parquet(
+        results_dir / "person_time_child_stunting.parquet"
+    )
 
     # Create Artifact
     artifact_dir = tmp_path / "artifacts"
@@ -165,6 +211,7 @@ def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
     artifact_path = artifact_dir / "artifact.hdf"
     artifact = Artifact(artifact_path)
     artifact.write("cause.disease.incidence_rate", _raw_artifact_disease_incidence)
+    artifact.write("risk_factor.child_stunting.exposure", _raw_artifact_risk_exposure)
     artifact.write("population.age_bins", _sample_age_group_df)
     # Save model specification
     with open(tmp_path / "model_specification.yaml", "w") as f:
@@ -279,5 +326,59 @@ def sample_df_with_ages() -> pd.DataFrame:
                 ("cause", "disease", "10_to_15", 10.0, 15.0),
             ],
             names=["cause", "disease", AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN],
+        ),
+    )
+
+
+@check_io(out=SingleNumericColumn)
+@pytest.fixture
+def risk_state_person_time_data() -> pd.DataFrame:
+    """Risk state person time data for testing."""
+    return _create_risk_state_person_time_data()
+
+
+@pytest.fixture
+def raw_artifact_risk_exposure() -> pd.DataFrame:
+    """Raw artifact risk exposure data."""
+    return _create_raw_artifact_risk_exposure()
+
+
+@check_io(out=SingleNumericColumn)
+@pytest.fixture
+def artifact_risk_exposure() -> pd.DataFrame:
+    """Processed artifact risk exposure data."""
+    return pd.DataFrame(
+        {
+            "value": [
+                0.25,
+                0.28,  # A, cat1, draws 0 and 1
+                0.35,
+                0.32,  # A, cat2, draws 0 and 1
+                0.40,
+                0.42,  # A, cat3, draws 0 and 1
+                0.30,
+                0.28,  # B, cat1, draws 0 and 1
+                0.20,
+                0.22,  # B, cat2, draws 0 and 1
+                0.50,
+                0.48,  # B, cat3, draws 0 and 1
+            ],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("A", "cat1", 0),
+                ("A", "cat1", 1),
+                ("A", "cat2", 0),
+                ("A", "cat2", 1),
+                ("A", "cat3", 0),
+                ("A", "cat3", 1),
+                ("B", "cat1", 0),
+                ("B", "cat1", 1),
+                ("B", "cat2", 0),
+                ("B", "cat2", 1),
+                ("B", "cat3", 0),
+                ("B", "cat3", 1),
+            ],
+            names=["stratify_column", "parameter", "input_draw"],
         ),
     )
