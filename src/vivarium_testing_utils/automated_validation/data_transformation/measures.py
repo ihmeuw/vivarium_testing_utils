@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
-import pandera as pa
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    ratio,
     stratify,
+    ratio,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     RatioData,
@@ -204,7 +203,7 @@ class RiskExposure(RatioMeasure):
         self.denominator = RiskStatePersonTime(risk_factor, sum_all=True)
 
 
-MEASURE_KEY_MAPPINGS = {
+MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[[str], RatioMeasure]]] = {
     "cause": {
         "incidence_rate": Incidence,
         "prevalence": Prevalence,

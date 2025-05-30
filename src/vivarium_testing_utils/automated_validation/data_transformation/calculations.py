@@ -22,36 +22,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
 DRAW_PREFIX = "draw_"
 
 
-def align_indexes(datasets: list[pd.DataFrame]) -> list[pd.DataFrame]:
-    """Put each dataframe on a common index by choosing the intersection of index columns
-    and marginalizing over the rest."""
-    if not datasets:
-        return datasets
-
-    # Get the common index columns, preserving order from the first dataset
-    first_dataset_index = datasets[0].index.names
-    all_index_sets = [set(data.index.names) for data in datasets]
-    common_index_set = set.intersection(*all_index_sets)
-
-    # Preserve order from first dataset
-    common_index = [name for name in first_dataset_index if name in common_index_set]
-
-    # Check if all datasets have the same index order for common columns
-    for i, dataset in enumerate(datasets[1:], 1):
-        dataset_common_order = [
-            name for name in dataset.index.names if name in common_index_set
-        ]
-        if dataset_common_order != common_index:
-            logger.warning(
-                f"Dataset {i} has different index order for common columns. "
-                f"Expected: {common_index}, Got: {dataset_common_order}. "
-                f"Using order from first dataset."
-            )
-
-    # Marginalize over the rest
-    return [stratify(data, common_index) for data in datasets]
-
-
 def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.DataFrame:
     """Filter a DataFrame by the given index columns and values.
 
