@@ -17,7 +17,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     Deaths,
     RiskStatePersonTime,
-    RiskTotalPersonTime,
     SimDataFormatter,
     StatePersonTime,
     TransitionCounts,
@@ -194,7 +193,7 @@ class RiskExposure(RatioMeasure):
 
         # Create custom formatters for risk exposure
         self.numerator = RiskStatePersonTime(risk_factor)
-        self.denominator = RiskTotalPersonTime(risk_factor, sum_all=True)
+        self.denominator = RiskStatePersonTime(risk_factor, sum_all=True)
 
 
 MEASURE_KEY_MAPPINGS = {
