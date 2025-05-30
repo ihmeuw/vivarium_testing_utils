@@ -85,22 +85,33 @@ class RiskStatePersonTime(SimDataFormatter):
     """
 
     def __init__(self, entity: str, sum_all: bool = False) -> None:
+        self.entity = entity
         self.data_key = f"person_time_{self.entity}"
         self.sum_all = sum_all
         self.new_value_column_name = "person_time"
         if sum_all:
             self.new_value_column_name += "_total"
+        self.unused_columns = ["measure", "entity_type", "entity"]
 
     def format_dataset(self, dataset):
+        dataset = marginalize(dataset, self.unused_columns)
         if self.sum_all:
             # If total is True, sum over all risk states for the given sub-index
-            total_person_time = dataset.groupby(
-                dataset.columns.difference(["value", "sub_entity"])
-            ).sum()
+            total_person_time = marginalize(dataset, ["sub_entity"])
             #  set value to the total person time for each sub-index
-            dataset = dataset.assign(value=total_person_time["value"].values)
+            dataset = dataset.assign(
+                value=dataset.index.map(
+                    lambda idx: total_person_time.loc[
+                        tuple(
+                            val
+                            for i, val in enumerate(idx)
+                            if dataset.index.names[i] != "sub_entity"
+                        )
+                    ]["value"]
+                )
+            )
 
-        dataset = dataset.rename(
-            columns={"value": self.new_value_column_name, "sub_entity": "parameter"}
+        dataset = dataset.rename(columns={"value": self.new_value_column_name}).rename_axis(
+            index={"sub_entity": "parameter"}
         )
         return dataset
