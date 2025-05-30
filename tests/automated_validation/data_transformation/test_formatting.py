@@ -3,6 +3,7 @@ from pandas.testing import assert_frame_equal
 
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     Deaths,
+    RiskStatePersonTime,
     StatePersonTime,
     TransitionCounts,
 )
@@ -155,3 +156,69 @@ def test_deaths_all_causes(deaths_data: pd.DataFrame) -> None:
         ),
     )
     assert_frame_equal(formatter.format_dataset(deaths_data), expected_dataframe)
+
+
+def test_risk_state_person_time(risk_state_person_time_data: pd.DataFrame) -> None:
+    """Test RiskStatePersonTime formatting without sum_all."""
+    formatter = RiskStatePersonTime("child_stunting")
+
+    assert formatter.entity == "child_stunting"
+    assert formatter.data_key == "person_time_child_stunting"
+    assert formatter.sum_all == False
+    assert formatter.new_value_column_name == "person_time"
+    assert formatter.unused_columns == ["measure", "entity_type", "entity"]
+
+    expected_dataframe = pd.DataFrame(
+        {
+            "person_time": [100.0, 150.0, 200.0, 250.0, 75.0, 125.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cat1", "A"),
+                ("cat2", "A"),
+                ("cat3", "A"),
+                ("cat1", "B"),
+                ("cat2", "B"),
+                ("cat3", "B"),
+            ],
+            names=["parameter", "stratify_column"],
+        ),
+    )
+
+    assert_frame_equal(
+        formatter.format_dataset(risk_state_person_time_data), expected_dataframe
+    )
+
+
+def test_risk_state_person_time_sum_all(risk_state_person_time_data: pd.DataFrame) -> None:
+    """Test RiskStatePersonTime formatting with sum_all=True."""
+    formatter = RiskStatePersonTime("child_stunting", sum_all=True)
+
+    assert formatter.entity == "child_stunting"
+    assert formatter.data_key == "person_time_child_stunting"
+    assert formatter.sum_all == True
+    assert formatter.new_value_column_name == "person_time_total"
+    assert formatter.unused_columns == ["measure", "entity_type", "entity"]
+
+    # With sum_all=True, each risk state gets the total person time for its stratification
+    # Total for A = 100+150+200 = 450, Total for B = 250+75+125 = 450
+    expected_dataframe = pd.DataFrame(
+        {
+            "person_time_total": [450.0, 450.0, 450.0, 450.0, 450.0, 450.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cat1", "A"),
+                ("cat2", "A"),
+                ("cat3", "A"),
+                ("cat1", "B"),
+                ("cat2", "B"),
+                ("cat3", "B"),
+            ],
+            names=["parameter", "stratify_column"],
+        ),
+    )
+
+    assert_frame_equal(
+        formatter.format_dataset(risk_state_person_time_data), expected_dataframe
+    )
