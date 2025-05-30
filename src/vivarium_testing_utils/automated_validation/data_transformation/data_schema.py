@@ -11,7 +11,7 @@ class SingleNumericColumn(pa.DataFrameModel):
     """
 
     # Columns
-    value: float = pa.Field(coerce=True)
+    value: float = pa.Field(coerce=True, nullable=True)
 
     # Config is inherited in child classes.
     # I'm not sure entirely how it works, but
