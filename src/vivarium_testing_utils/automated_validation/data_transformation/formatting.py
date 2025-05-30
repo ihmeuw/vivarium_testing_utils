@@ -93,7 +93,7 @@ class RiskStatePersonTime(SimDataFormatter):
             self.new_value_column_name += "_total"
         self.unused_columns = ["measure", "entity_type", "entity"]
 
-    def format_dataset(self, dataset):
+    def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         dataset = marginalize(dataset, self.unused_columns)
         if self.sum_all:
             # If total is True, sum over all risk states for the given sub-index

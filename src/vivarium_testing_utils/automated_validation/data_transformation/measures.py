@@ -6,8 +6,8 @@ import pandera as pa
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    align_indexes,
     ratio,
+    stratify,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     RatioData,
@@ -125,7 +125,15 @@ class RatioMeasure(Measure, ABC):
         """Process raw simulation data into a RatioData frame with count columns to be divided later."""
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
-        numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
+        # Ensure both numerator and denominator data have the same index structure
+        # Default to numerator order of index names
+        common_index = [
+            index
+            for index in numerator_data.index.names
+            if index in denominator_data.index.names
+        ]
+        numerator_data = stratify(numerator_data, common_index)
+        denominator_data = stratify(denominator_data, common_index)
         return pd.concat([numerator_data, denominator_data], axis=1)
 
 
