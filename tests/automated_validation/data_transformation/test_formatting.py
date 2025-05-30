@@ -170,7 +170,7 @@ def test_risk_state_person_time(risk_state_person_time_data: pd.DataFrame) -> No
 
     expected_dataframe = pd.DataFrame(
         {
-            "person_time": [100.0, 150.0, 200.0, 250.0, 75.0, 125.0],
+            "person_time": [8.0, 12.0, 15.0, 20.0, 6.0, 10.0],
         },
         index=pd.MultiIndex.from_tuples(
             [
@@ -201,10 +201,10 @@ def test_risk_state_person_time_sum_all(risk_state_person_time_data: pd.DataFram
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
     # With sum_all=True, each risk state gets the total person time for its stratification
-    # Total for A = 100+150+200 = 450, Total for B = 250+75+125 = 450
+    # Total for A = 8+12+15 = 35, Total for B = 20+6+10 = 36
     expected_dataframe = pd.DataFrame(
         {
-            "person_time_total": [450.0, 450.0, 450.0, 450.0, 450.0, 450.0],
+            "person_time_total": [35.0, 35.0, 35.0, 36.0, 36.0, 36.0],
         },
         index=pd.MultiIndex.from_tuples(
             [

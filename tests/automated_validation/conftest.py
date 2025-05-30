@@ -138,7 +138,7 @@ def _create_risk_state_person_time_data() -> pd.DataFrame:
     """Create risk state person time data for testing."""
     return pd.DataFrame(
         {
-            "value": [100.0, 150.0, 200.0, 250.0, 75.0, 125.0],
+            "value": [8.0, 12.0, 15.0, 20.0, 6.0, 10.0],
         },
         index=pd.MultiIndex.from_tuples(
             [

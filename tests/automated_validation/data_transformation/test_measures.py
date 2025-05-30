@@ -314,11 +314,11 @@ def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
     # Expected ratio data:
     # Numerator: person time in each specific risk state (cat1, cat2, cat3)
     # Denominator: total person time across all risk states for each stratification
-    # Total person time per stratification: A = 100+150+200 = 450, B = 250+75+125 = 450
+    # Total person time per stratification: A = 8+12+15 = 35, B = 20+6+10 = 36
     expected_ratio_data = pd.DataFrame(
         {
-            "person_time": [100.0, 150.0, 200.0, 250.0, 75.0, 125.0],
-            "person_time_total": [450.0, 450.0, 450.0, 450.0, 450.0, 450.0],
+            "person_time": [8.0, 12.0, 15.0, 20.0, 6.0, 10.0],
+            "person_time_total": [35.0, 35.0, 35.0, 36.0, 36.0, 36.0],
         },
         index=pd.MultiIndex.from_tuples(
             [
@@ -342,12 +342,12 @@ def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
     expected_measure_data = pd.DataFrame(
         {
             "value": [
-                100.0 / 450.0,
-                150.0 / 450.0,
-                200.0 / 450.0,
-                250.0 / 450.0,
-                75.0 / 450.0,
-                125.0 / 450.0,
+                8.0 / 35.0,
+                12.0 / 35.0,
+                15.0 / 35.0,
+                20.0 / 36.0,
+                6.0 / 36.0,
+                10.0 / 36.0,
             ]
         },
         index=pd.MultiIndex.from_tuples(
