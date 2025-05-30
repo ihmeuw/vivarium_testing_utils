@@ -56,3 +56,23 @@ class StatePersonTime(SimDataFormatter):
             entity=entity or "total",
             filter_value=filter_value or "total",
         )
+
+
+class Deaths(SimDataFormatter):
+    """Formatter for simulation data that contains death counts."""
+
+    def __init__(self, cause: str) -> None:
+        """
+        Initialize the Deaths formatter with cause-specific or all-cause settings.
+
+        Parameters
+        ----------
+        cause : str, optional
+            The specific cause of death to filter for. If None, all deaths are included.
+        """
+
+        self.measure = self.data_key = "deaths"
+        self.unused_columns = ["measure", "entity_type"]
+        self.filter_value = "total" if cause == "all_causes" else cause
+        self.filters = {"entity": [self.filter_value], "sub_entity": [self.filter_value]}
+        self.new_value_column_name = f"{self.filter_value}_{self.measure}"
