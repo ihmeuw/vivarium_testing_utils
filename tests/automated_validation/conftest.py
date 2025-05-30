@@ -90,10 +90,10 @@ def _create_deaths_data() -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("deaths", "cause", "disease", "susceptible_to_disease", "A"),
                 ("deaths", "cause", "disease", "disease", "A"),
-                ("deaths", "cause", "disease", "susceptible_to_disease", "B"),
+                ("deaths", "cause", "other_causes", "other_causes", "A"),
                 ("deaths", "cause", "disease", "disease", "B"),
+                ("deaths", "cause", "other_causes", "other_causes", "B"),
             ],
             names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
         ),

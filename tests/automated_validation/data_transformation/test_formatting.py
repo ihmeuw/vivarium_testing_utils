@@ -2,6 +2,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
+    Deaths,
     StatePersonTime,
     TransitionCounts,
 )
@@ -107,3 +108,50 @@ def test_total_person_time(total_person_time_data: pd.DataFrame) -> None:
     )
 
     assert_frame_equal(formatter.format_dataset(total_person_time_data), expected_dataframe)
+
+
+def test_deaths_cause_specific(deaths_data: pd.DataFrame) -> None:
+    """Test Deaths formatter with a specific cause."""
+    formatter = Deaths("disease")
+
+    assert formatter.measure == "deaths"
+    assert formatter.data_key == "deaths"
+    assert formatter.filters == {"entity": ["disease"], "sub_entity": ["disease"]}
+    assert formatter.new_value_column_name == "disease_deaths"
+    assert formatter.unused_columns == ["measure", "entity_type"]
+
+    # Filter out only data related to the disease itself, since we want
+    # deaths directly attributed to the disease
+    expected_dataframe = pd.DataFrame(
+        {
+            "disease_deaths": [2.0, 4.0],  # Deaths data for the disease itself
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+
+    assert_frame_equal(formatter.format_dataset(deaths_data), expected_dataframe)
+
+
+def test_deaths_all_causes(deaths_data: pd.DataFrame) -> None:
+    """Test Deaths formatter for all causes."""
+    formatter = Deaths("all_causes")
+
+    assert formatter.measure == "deaths"
+    assert formatter.data_key == "deaths"
+    assert formatter.filters == {"entity": ["total"], "sub_entity": ["total"]}
+    assert formatter.new_value_column_name == "total_deaths"
+    assert formatter.unused_columns == ["measure", "entity_type"]
+
+    expected_dataframe = pd.DataFrame(
+        {
+            "total_deaths": [5.0, 9.0],  # All deaths, regardless of cause
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert_frame_equal(formatter.format_dataset(deaths_data), expected_dataframe)

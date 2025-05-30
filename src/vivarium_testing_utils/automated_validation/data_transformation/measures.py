@@ -15,6 +15,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
+    Deaths,
     SimDataFormatter,
     StatePersonTime,
     TransitionCounts,
@@ -121,9 +122,9 @@ class RatioMeasure(Measure, ABC):
         denominator_data: pd.DataFrame,
     ) -> pd.DataFrame:
         """Process raw simulation data into a RatioData frame with count columns to be divided later."""
-        numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
+        numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
         return pd.concat([numerator_data, denominator_data], axis=1)
 
 
@@ -154,10 +155,32 @@ class SIRemission(RatioMeasure):
         self.denominator = StatePersonTime(cause, cause)
 
 
+class CauseSpecificMortalityRate(RatioMeasure):
+    """Computes cause-specific mortality rate in the population."""
+
+    def __init__(self, cause: str) -> None:
+        self.measure_key = f"cause.{cause}.cause_specific_mortality_rate"
+        self.numerator = Deaths(cause)  # Deaths due to specific cause
+        self.denominator = StatePersonTime()  # Total person time
+
+
+class ExcessMortalityRate(RatioMeasure):
+    """Computes excess mortality rate among those with the disease compared to the general population."""
+
+    def __init__(self, cause: str) -> None:
+        self.measure_key = f"cause.{cause}.excess_mortality_rate"
+        self.numerator = Deaths(cause)  # Deaths due to specific cause
+        self.denominator = StatePersonTime(
+            cause, cause
+        )  # Person time among those with the disease
+
+
 MEASURE_KEY_MAPPINGS = {
     "cause": {
         "incidence_rate": Incidence,
         "prevalence": Prevalence,
         "remission_rate": SIRemission,
-    }
+        "cause_specific_mortality_rate": CauseSpecificMortalityRate,
+        "excess_mortality_rate": ExcessMortalityRate,
+    },
 }
