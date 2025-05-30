@@ -96,20 +96,12 @@ class RiskStatePersonTime(SimDataFormatter):
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         dataset = marginalize(dataset, self.unused_columns)
         if self.sum_all:
-            # If total is True, sum over all risk states for the given sub-index
-            total_person_time = marginalize(dataset, ["sub_entity"])
-            #  set value to the total person time for each sub-index
-            dataset = dataset.assign(
-                value=dataset.index.map(
-                    lambda idx: total_person_time.loc[
-                        tuple(
-                            val
-                            for i, val in enumerate(idx)
-                            if dataset.index.names[i] != "sub_entity"
-                        )
-                    ]["value"]
-                )
-            )
+            # Get the levels to group by (all except 'sub_entity')
+            group_levels = [
+                i for i, name in enumerate(dataset.index.names) if name != "sub_entity"
+            ]
+            # Use groupby with level numbers and transform to apply sum while preserving index
+            dataset["value"] = dataset.groupby(level=group_levels)["value"].transform("sum")
 
         dataset = dataset.rename(columns={"value": self.new_value_column_name}).rename_axis(
             index={"sub_entity": "parameter"}
