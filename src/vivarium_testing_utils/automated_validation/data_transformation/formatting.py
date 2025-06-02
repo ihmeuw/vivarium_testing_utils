@@ -58,6 +58,32 @@ class StatePersonTime(SimDataFormatter):
         )
 
 
+class TotalPopulationPersonTime(StatePersonTime):
+    """Formatter for simulation data that contains total person time."""
+
+    def __init__(self) -> None:
+        """
+        Get person time aggregated over populations from total person time dataset.
+        """
+        super().__init__(entity="total", filter_value="total")
+        self.data_key = "person_time_total"
+        self.new_value_column_name = "total_population_person_time"
+        # self.between_population_index_levels = between_population_index_levels
+
+    def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        dataset = super().format_dataset(dataset)
+        dataset[self.new_value_column_name] = dataset.groupby(
+            level=[
+                "input_draw",
+                "random_seed",
+                "sqlns_effect_size",
+                "child_scenario",
+                "maternal_scenario",
+            ]
+        )[self.new_value_column_name].transform("sum")
+        return dataset
+
+
 class Deaths(SimDataFormatter):
     """Formatter for simulation data that contains death counts."""
 
