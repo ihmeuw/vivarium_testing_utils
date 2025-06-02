@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Collection, Literal
 
+import numpy as np
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
@@ -231,6 +232,10 @@ class FuzzyComparison(Comparison):
             for index in self.test_data.index.names
             if index not in self.reference_data.index.names
         ]
+        if "input_draw" in test_only_indexes:
+            # If input_draw is in the test data, we need to marginalize over it.
+            reference_data = pd.concat([reference_data], keys=[np.nan], names=["input_draw"])
+            test_only_indexes.remove("input_draw")
         stratified_test_data = marginalize(test_data, test_only_indexes)
 
         # Drop any singular index levels from the reference data if they are not in the test data.
