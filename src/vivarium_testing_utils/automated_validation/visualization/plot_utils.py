@@ -253,7 +253,10 @@ def _append_source(
 
 def _format_title(measure_key: str) -> str:
     """Convert a measure key to a more readable format."""
-    title = " ".join(measure_key.split(".")[1:])
+    parts = measure_key.split(".")
+    if len(parts) > 2:
+        parts = parts[1:]
+    title = " ".join(parts)
     title = title.replace("_", " ")
     title = " ".join([word.capitalize() for word in title.split()])
     return title
