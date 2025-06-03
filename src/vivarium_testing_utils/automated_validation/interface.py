@@ -62,9 +62,16 @@ class ValidationContext:
                 f"Comparison for {test_source} source not implemented. Must be SIM."
             )
         test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
-        test_data = measure.get_ratio_data_from_sim(
+        numerator_data, denominator_data = measure.get_ratio_data_from_sim(
             **test_raw_datasets,
         )
+        # Combine numerator and denominator back into single DataFrame for compatibility
+        # Rename columns to use the formatter names before concatenating
+        numerator_renamed = numerator_data.rename(columns={"value": measure.numerator.name})
+        denominator_renamed = denominator_data.rename(
+            columns={"value": measure.denominator.name}
+        )
+        test_data = pd.concat([numerator_renamed, denominator_renamed], axis=1)
 
         ref_source_enum = DataSource.from_str(ref_source)
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
