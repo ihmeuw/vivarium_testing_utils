@@ -106,18 +106,7 @@ class RatioMeasure(Measure, ABC):
         self, numerator_data: pd.DataFrame, denominator_data: pd.DataFrame
     ) -> pd.DataFrame:
         """Compute final measure data from separate numerator and denominator data."""
-        # Combine the data temporarily for the ratio calculation
-        # Rename columns to match what the ratio function expects
-        numerator_renamed = numerator_data.rename(columns={"value": self.numerator.name})
-        denominator_renamed = denominator_data.rename(
-            columns={"value": self.denominator.name}
-        )
-        ratio_data = pd.concat([numerator_renamed, denominator_renamed], axis=1)
-        return ratio(
-            ratio_data,
-            numerator=self.numerator.name,
-            denominator=self.denominator.name,
-        )
+        return ratio(numerator_data, denominator_data)
 
     @check_io(out=SingleNumericColumn)
     def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:

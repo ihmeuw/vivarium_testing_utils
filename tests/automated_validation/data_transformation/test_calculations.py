@@ -35,17 +35,51 @@ def intermediate_data() -> pd.DataFrame:
 
 
 def test_ratio(intermediate_data: pd.DataFrame) -> None:
-    """Test taking ratio of two columns in a multi-indexed DataFrame"""
-    assert ratio(intermediate_data, "a", "b").equals(
+    """Test taking ratio of two DataFrames with 'value' columns"""
+    # Create separate numerator and denominator DataFrames
+    numerator_a = pd.DataFrame(
+        {"value": intermediate_data["a"]}, index=intermediate_data.index
+    )
+    denominator_b = pd.DataFrame(
+        {"value": intermediate_data["b"]}, index=intermediate_data.index
+    )
+    denominator_c = pd.DataFrame(
+        {"value": intermediate_data["c"]}, index=intermediate_data.index
+    )
+
+    # Test normal ratio calculation
+    assert ratio(numerator_a, denominator_b).equals(
         pd.DataFrame({"value": [1 / 4, 2 / 5, 3 / 6, 4 / 7]}, index=intermediate_data.index)
     )
+
+    # Test ratio with zero denominator
     pd.testing.assert_frame_equal(
-        ratio(intermediate_data, "a", "c"),
+        ratio(numerator_a, denominator_c),
         pd.DataFrame({"value": [1.0, 2.0, np.nan, 4.0]}, index=intermediate_data.index),
     )
-    # test non-existent column
-    with pytest.raises(KeyError):
-        ratio(intermediate_data, "a", "foo")
+
+    # Test mismatched indexes
+    mismatched_denominator = pd.DataFrame(
+        {"value": [1, 2]}, index=pd.Index(["a", "b"], name="different")
+    )
+    with pytest.raises(
+        ValueError, match="Numerator and denominator DataFrames must have identical indexes"
+    ):
+        ratio(numerator_a, mismatched_denominator)
+
+    # Test missing value column in numerator
+    bad_numerator = pd.DataFrame(
+        {"wrong_col": intermediate_data["a"]}, index=intermediate_data.index
+    )
+    with pytest.raises(ValueError, match="Numerator DataFrame must have a 'value' column"):
+        ratio(bad_numerator, denominator_b)
+
+    # Test missing value column in denominator
+    bad_denominator = pd.DataFrame(
+        {"wrong_col": intermediate_data["b"]}, index=intermediate_data.index
+    )
+    with pytest.raises(ValueError, match="Denominator DataFrame must have a 'value' column"):
+        ratio(numerator_a, bad_denominator)
 
 
 def test_aggregate_sum(intermediate_data: pd.DataFrame) -> None:
