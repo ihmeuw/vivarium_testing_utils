@@ -109,17 +109,33 @@ def test_add_comparison(
 
     assert comparison.measure.measure_key == measure_key
     assert comparison.stratifications == []
-    expected_ratio_data = pd.DataFrame(
+
+    # Test that test_data is now a dictionary with numerator and denominator
+    assert isinstance(comparison.test_data, dict)
+    assert "numerator" in comparison.test_data
+    assert "denominator" in comparison.test_data
+
+    expected_numerator_data = pd.DataFrame(
         {
-            "susceptible_to_disease_to_disease_transition_count": [3.0, 5.0],
-            "susceptible_to_disease_person_time": [17.0, 29.0],
+            "value": [3.0, 5.0],
         },
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",
         ),
     )
-    assert comparison.test_data.equals(expected_ratio_data)
+    expected_denominator_data = pd.DataFrame(
+        {
+            "value": [17.0, 29.0],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+
+    assert comparison.test_data["numerator"].equals(expected_numerator_data)
+    assert comparison.test_data["denominator"].equals(expected_denominator_data)
     assert comparison.reference_data.equals(artifact_disease_incidence)
 
 

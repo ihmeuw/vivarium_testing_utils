@@ -65,19 +65,18 @@ class ValidationContext:
         numerator_data, denominator_data = measure.get_ratio_data_from_sim(
             **test_raw_datasets,
         )
-        # Combine numerator and denominator back into single DataFrame for compatibility
-        # Rename columns to use the formatter names before concatenating
-        numerator_renamed = numerator_data.rename(columns={"value": measure.numerator.name})
-        denominator_renamed = denominator_data.rename(
-            columns={"value": measure.denominator.name}
-        )
-        test_data = pd.concat([numerator_renamed, denominator_renamed], axis=1)
+        # Store test data as dictionary with separate numerator and denominator
+        test_data = {"numerator": numerator_data, "denominator": denominator_data}
 
         ref_source_enum = DataSource.from_str(ref_source)
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
 
-        test_data = resolve_age_groups(test_data, self.age_groups)
+        # Apply age group resolution to each component of test data and reference data
+        test_data["numerator"] = resolve_age_groups(test_data["numerator"], self.age_groups)
+        test_data["denominator"] = resolve_age_groups(
+            test_data["denominator"], self.age_groups
+        )
         ref_data = resolve_age_groups(ref_data, self.age_groups)
         comparison = FuzzyComparison(
             measure=measure,

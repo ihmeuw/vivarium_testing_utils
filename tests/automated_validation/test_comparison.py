@@ -15,19 +15,19 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
 
 
 @pytest.fixture
-def test_data() -> pd.DataFrame:
-    """A sample test data DataFrame with draws."""
-    return pd.DataFrame(
-        {"numerator": [10, 20, 30], "denominator": [100, 100, 100]},
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("2020", "male", 0, 1, 1337),
-                ("2020", "female", 0, 5, 1337),
-                ("2025", "male", 0, 2, 42),
-            ],
-            names=["year", "sex", "age", "input_draw", "random_seed"],
-        ),
+def test_data() -> dict[str, pd.DataFrame]:
+    """A sample test data dictionary with separate numerator and denominator DataFrames."""
+    index = pd.MultiIndex.from_tuples(
+        [
+            ("2020", "male", 0, 1, 1337),
+            ("2020", "female", 0, 5, 1337),
+            ("2025", "male", 0, 2, 42),
+        ],
+        names=["year", "sex", "age", "input_draw", "random_seed"],
     )
+    numerator_df = pd.DataFrame({"value": [10, 20, 30]}, index=index)
+    denominator_df = pd.DataFrame({"value": [100, 100, 100]}, index=index)
+    return {"numerator": numerator_df, "denominator": denominator_df}
 
 
 @pytest.fixture
@@ -46,20 +46,41 @@ def reference_data() -> pd.DataFrame:
 def mock_ratio_measure() -> RatioMeasure:
     """Create generic mock RatioMeasure for testing."""
 
-    def _get_measure_data_from_ratio(test_data: pd.DataFrame) -> pd.DataFrame:
-        measure_data = test_data.copy()
+    def _get_measure_data_from_ratio(
+        numerator_data: pd.DataFrame, denominator_data: pd.DataFrame
+    ) -> pd.DataFrame:
+        # Combine the data and calculate the ratio
+        combined_data = pd.concat(
+            [
+                numerator_data.rename(columns={"value": "numerator"}),
+                denominator_data.rename(columns={"value": "denominator"}),
+            ],
+            axis=1,
+        )
+        measure_data = combined_data.copy()
         measure_data["value"] = measure_data["numerator"] / measure_data["denominator"]
         measure_data = measure_data.drop(columns=["numerator", "denominator"])
         return measure_data
 
+    # Create mock formatters
+    mock_numerator = mock.Mock()
+    mock_numerator.name = "numerator"
+
+    mock_denominator = mock.Mock()
+    mock_denominator.name = "denominator"
+
     measure = mock.Mock(spec=RatioMeasure)
     measure.measure_key = "mock_measure"
+    measure.numerator = mock_numerator
+    measure.denominator = mock_denominator
     measure.get_measure_data_from_ratio.side_effect = _get_measure_data_from_ratio
     return measure
 
 
 def test_fuzzy_comparison_init(
-    mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
 ) -> None:
     """Test the initialization of the FuzzyComparison class."""
     comparison = FuzzyComparison(
@@ -74,14 +95,16 @@ def test_fuzzy_comparison_init(
     with check:
         assert comparison.measure == mock_ratio_measure
         assert comparison.test_source == DataSource.SIM
-        assert comparison.test_data.equals(test_data)
+        assert comparison.test_data == test_data
         assert comparison.reference_source == DataSource.GBD
         assert comparison.reference_data.equals(reference_data)
         assert list(comparison.stratifications) == []
 
 
 def test_fuzzy_comparison_metadata(
-    mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
 ) -> None:
     """Test the metadata property of the FuzzyComparison class."""
     comparison = FuzzyComparison(
@@ -109,7 +132,7 @@ def test_fuzzy_comparison_metadata(
 
 def test_fuzzy_comparison_get_diff(
     mock_ratio_measure: RatioMeasure,
-    test_data: pd.DataFrame,
+    test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
 ) -> None:
     """Test the get_diff method of the FuzzyComparison class."""
@@ -154,7 +177,9 @@ def test_fuzzy_comparison_get_diff(
 
 
 def test_fuzzy_comparison_init_with_stratifications(
-    mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
 ) -> None:
     """Test that FuzzyComparison raises NotImplementedError when initialized with non-empty stratifications."""
     with pytest.raises(
@@ -171,7 +196,9 @@ def test_fuzzy_comparison_init_with_stratifications(
 
 
 def test_fuzzy_comparison_get_diff_with_stratifications(
-    mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
 ) -> None:
     """Test that FuzzyComparison.get_diff raises NotImplementedError when called with non-empty stratifications."""
     comparison = FuzzyComparison(
@@ -185,7 +212,9 @@ def test_fuzzy_comparison_get_diff_with_stratifications(
 
 
 def test_fuzzy_comparison_verify_not_implemented(
-    mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
 ) -> None:
     """ "FuzzyComparison.verify() is not implemented."""
     comparison = FuzzyComparison(
@@ -197,7 +226,9 @@ def test_fuzzy_comparison_verify_not_implemented(
 
 
 def test_get_metadata_from_dataset(
-    mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
 ) -> None:
     """Test we can extract metadata from a dataframe with draws."""
     comparison = FuzzyComparison(
@@ -216,7 +247,9 @@ def test_get_metadata_from_dataset(
 
 
 def test_get_metadata_from_dataset_no_draws(
-    mock_ratio_measure: RatioMeasure, test_data: pd.DataFrame, reference_data: pd.DataFrame
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
 ) -> None:
     """Test we can extract metadata from a dataframe with draws."""
     comparison = FuzzyComparison(
@@ -240,7 +273,7 @@ def test_get_metadata_from_dataset_no_draws(
 
 def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
     mock_ratio_measure: RatioMeasure,
-    test_data: pd.DataFrame,
+    test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
 ) -> None:
     """Test that _align_datasets correctly handles singular reference-only indices."""
@@ -258,7 +291,7 @@ def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
 
     # Verify the singular index exists
     assert "location" in comparison.reference_data.index.names
-    assert "location" not in comparison.test_data.index.names
+    assert "location" not in comparison.test_data["numerator"].index.names
 
     # Verify it's detected as a singular index
     singular_indices = get_singular_indices(comparison.reference_data)
@@ -275,7 +308,7 @@ def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
 
 def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     mock_ratio_measure: RatioMeasure,
-    test_data: pd.DataFrame,
+    test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
 ) -> None:
     """Test that _align_datasets raises ValueError for non-singular reference-only indices."""
@@ -294,7 +327,7 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
 
     # Verify the non-singular index exists
     assert "location" in comparison.reference_data.index.names
-    assert "location" not in comparison.test_data.index.names
+    assert "location" not in comparison.test_data["numerator"].index.names
 
     # Verify it's not detected as a singular index
     singular_indices = get_singular_indices(comparison.reference_data)

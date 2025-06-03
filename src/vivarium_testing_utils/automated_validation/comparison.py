@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Collection, Literal
+from typing import Any, Collection, Literal, Union
 
 import pandas as pd
 
@@ -26,7 +26,7 @@ class Comparison(ABC):
 
     measure: Measure
     test_source: DataSource
-    test_data: pd.DataFrame
+    test_data: Union[pd.DataFrame, dict[str, pd.DataFrame]]
     reference_source: DataSource
     reference_data: pd.DataFrame
     stratifications: Collection[str]
@@ -84,14 +84,14 @@ class FuzzyComparison(Comparison):
         self,
         measure: RatioMeasure,
         test_source: DataSource,
-        test_data: pd.DataFrame,
+        test_data: dict[str, pd.DataFrame],
         reference_source: DataSource,
         reference_data: pd.DataFrame,
         stratifications: Collection[str] = (),
     ):
         self.measure: RatioMeasure = measure
         self.test_source = test_source
-        self.test_data = test_data
+        self.test_data = test_data  # Dictionary with 'numerator' and 'denominator' keys
         self.reference_source = reference_source
         self.reference_data = reference_data
         if stratifications:
@@ -186,7 +186,18 @@ class FuzzyComparison(Comparison):
         """
         if dataset_key == "test":
             source = self.test_source
-            dataframe = self.test_data
+            # For test data, use the combined DataFrame for metadata
+            if isinstance(self.test_data, dict):
+                # Combine numerator and denominator for metadata display
+                numerator_renamed = self.test_data["numerator"].rename(
+                    columns={"value": self.measure.numerator.name}
+                )
+                denominator_renamed = self.test_data["denominator"].rename(
+                    columns={"value": self.measure.denominator.name}
+                )
+                dataframe = pd.concat([numerator_renamed, denominator_renamed], axis=1)
+            else:
+                dataframe = self.test_data
         elif dataset_key == "reference":
             source = self.reference_source
             dataframe = self.reference_data
@@ -222,23 +233,23 @@ class FuzzyComparison(Comparison):
 
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
-        test_data = self.test_data.copy()
+        # Create combined test data from numerator and denominator
+        numerator_renamed = self.test_data["numerator"].rename(
+            columns={"value": self.measure.numerator.name}
+        )
+        denominator_renamed = self.test_data["denominator"].rename(
+            columns={"value": self.measure.denominator.name}
+        )
+        combined_test_data = pd.concat([numerator_renamed, denominator_renamed], axis=1)
+
         reference_data = self.reference_data.copy()
-        # If the test data has any index levels that are not in the reference data, marginalize
-        # over those index levels.
-        test_only_indexes = [
-            index
-            for index in self.test_data.index.names
-            if index not in self.reference_data.index.names
-        ]
-        stratified_test_data = marginalize(test_data, test_only_indexes)
 
         # Drop any singular index levels from the reference data if they are not in the test data.
         # If any ref-only index level is not singular, raise an error.
         ref_only_indexes = [
             index
             for index in self.reference_data.index.names
-            if index not in self.test_data.index.names
+            if index not in combined_test_data.index.names
         ]
         redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
         for index_name in ref_only_indexes:
@@ -251,5 +262,16 @@ class FuzzyComparison(Comparison):
             else:
                 reference_data = reference_data.droplevel(index_name)
 
-        converted_test_data = self.measure.get_measure_data_from_ratio(stratified_test_data)
-        return converted_test_data, reference_data
+        converted_test_data = self.measure.get_measure_data_from_ratio(
+            self.test_data["numerator"], self.test_data["denominator"]
+        )
+
+        # Apply marginalization to the converted test data
+        test_only_indexes = [
+            index
+            for index in converted_test_data.index.names
+            if index not in reference_data.index.names
+        ]
+        stratified_converted_test_data = marginalize(converted_test_data, test_only_indexes)
+
+        return stratified_converted_test_data, reference_data
