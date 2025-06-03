@@ -71,15 +71,6 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
     pd.DataFrame
         DataFrame with a 'value' column containing the ratio values
     """
-    if not numerator_data.index.equals(denominator_data.index):
-        raise ValueError("Numerator and denominator DataFrames must have identical indexes")
-
-    if "value" not in numerator_data.columns:
-        raise ValueError("Numerator DataFrame must have a 'value' column")
-
-    if "value" not in denominator_data.columns:
-        raise ValueError("Denominator DataFrame must have a 'value' column")
-
     zero_denominator = denominator_data["value"] == 0
     if zero_denominator.any():
         logger.warning(
