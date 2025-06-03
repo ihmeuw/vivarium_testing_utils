@@ -97,35 +97,48 @@ class RatioMeasure(Measure, ABC):
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
-    @check_io(ratio_data=RatioData, out=SingleNumericColumn)
-    def get_measure_data_from_ratio(self, ratio_data: pd.DataFrame) -> pd.DataFrame:
-        """Compute final measure data from split data."""
+    @check_io(
+        numerator_data=SingleNumericColumn,
+        denominator_data=SingleNumericColumn,
+        out=SingleNumericColumn,
+    )
+    def get_measure_data_from_ratio(
+        self, numerator_data: pd.DataFrame, denominator_data: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Compute final measure data from separate numerator and denominator data."""
+        # Combine the data temporarily for the ratio calculation
+        # Rename columns to match what the ratio function expects
+        numerator_renamed = numerator_data.rename(columns={"value": self.numerator.name})
+        denominator_renamed = denominator_data.rename(
+            columns={"value": self.denominator.name}
+        )
+        ratio_data = pd.concat([numerator_renamed, denominator_renamed], axis=1)
         return ratio(
             ratio_data,
-            numerator=self.numerator.new_value_column_name,
-            denominator=self.denominator.new_value_column_name,
+            numerator=self.numerator.name,
+            denominator=self.denominator.name,
         )
 
     @check_io(out=SingleNumericColumn)
     def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process raw simulation data into a format suitable for calculations."""
-        return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
+        numerator_data, denominator_data = self.get_ratio_data_from_sim(*args, **kwargs)
+        return self.get_measure_data_from_ratio(numerator_data, denominator_data)
 
     @check_io(
         numerator_data=SimOutputData,
         denominator_data=SimOutputData,
-        out=RatioData,
     )
     def get_ratio_data_from_sim(
         self,
         numerator_data: pd.DataFrame,
         denominator_data: pd.DataFrame,
-    ) -> pd.DataFrame:
-        """Process raw simulation data into a RatioData frame with count columns to be divided later."""
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Process raw simulation data and return numerator and denominator DataFrames separately."""
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
         numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
-        return pd.concat([numerator_data, denominator_data], axis=1)
+        return numerator_data, denominator_data
 
 
 class Incidence(RatioMeasure):
