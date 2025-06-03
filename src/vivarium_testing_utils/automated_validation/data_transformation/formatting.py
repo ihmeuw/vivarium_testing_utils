@@ -71,6 +71,7 @@ class TotalPopulationPersonTime(StatePersonTime):
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         dataset = super().format_dataset(dataset)
+        ## HACK
         ########################################################################
         dataset[self.new_value_column_name] = dataset.groupby(
             level=[
