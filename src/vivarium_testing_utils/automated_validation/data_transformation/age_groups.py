@@ -458,7 +458,7 @@ def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame
         return data
 
 
-@check_io(df=RatioData)
+# @check_io(df=RatioData)
 def rebin_count_dataframe(
     target_schema: AgeSchema,
     df: pd.DataFrame,

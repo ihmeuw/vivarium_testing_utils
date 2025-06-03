@@ -61,16 +61,22 @@ class ValidationContext:
                 f"Comparison for {test_source} source not implemented. Must be SIM."
             )
         test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
+        test_raw_datasets = {
+            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            for dataset_name, dataset in test_raw_datasets.items()
+        }
         test_data = measure.get_ratio_data_from_sim(
             **test_raw_datasets,
         )
 
         ref_source_enum = DataSource.from_str(ref_source)
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
+        ref_raw_datasets = {
+            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            for dataset_name, dataset in ref_raw_datasets.items()
+        }
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
 
-        test_data = resolve_age_groups(test_data, self.age_groups)
-        ref_data = resolve_age_groups(ref_data, self.age_groups)
         comparison = FuzzyComparison(
             measure=measure,
             test_source=test_source_enum,
