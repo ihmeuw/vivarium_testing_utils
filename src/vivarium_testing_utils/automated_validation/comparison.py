@@ -93,6 +93,11 @@ class FuzzyComparison(Comparison):
         self.measure: RatioMeasure = measure
         self.test_source = test_source
         self.test_data = test_data
+        self.scenario_cols = ["maternal_scenario", "child_scenario"]
+        ## filter index levels for scenario columns to "baseline"
+        for col in self.scenario_cols:
+            if col in self.test_data.index.names:
+                self.test_data = self.test_data.xs("baseline", level=col, drop_level=True)
         self.reference_source = reference_source
         self.reference_data = reference_data
         if stratifications:
@@ -233,9 +238,10 @@ class FuzzyComparison(Comparison):
             if index not in self.reference_data.index.names
         ]
         if "input_draw" in test_only_indexes:
-            # If input_draw is in the test data, we need to marginalize over it.
+            # If input_draw isn't in the ref data, we need to add it.
             reference_data = pd.concat([reference_data], keys=[np.nan], names=["input_draw"])
             test_only_indexes.remove("input_draw")
+        # If "random_seed" is in the test data, we marginalize over it automatically.
         stratified_test_data = marginalize(test_data, test_only_indexes)
 
         # Drop any singular index levels from the reference data if they are not in the test data.
