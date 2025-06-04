@@ -262,16 +262,16 @@ class FuzzyComparison(Comparison):
             else:
                 reference_data = reference_data.droplevel(index_name)
 
-        converted_test_data = self.measure.get_measure_data_from_ratio(
-            self.test_data["numerator"], self.test_data["denominator"]
-        )
-
         # Apply marginalization to the converted test data
         test_only_indexes = [
             index
             for index in converted_test_data.index.names
             if index not in reference_data.index.names
         ]
-        stratified_converted_test_data = marginalize(converted_test_data, test_only_indexes)
+        stratified_numerator = marginalize(self.test_data["numerator"], test_only_indexes)
+        stratified_denominator = marginalize(self.test_data["denominator"], test_only_indexes)
 
-        return stratified_converted_test_data, reference_data
+        converted_test_data = self.measure.get_measure_data_from_ratio(
+            stratified_numerator, stratified_denominator
+        )
+        return converted_test_data, reference_data
