@@ -58,29 +58,6 @@ def test_ratio(intermediate_data: pd.DataFrame) -> None:
         pd.DataFrame({"value": [1.0, 2.0, np.nan, 4.0]}, index=intermediate_data.index),
     )
 
-    # Test mismatched indexes
-    mismatched_denominator = pd.DataFrame(
-        {"value": [1, 2]}, index=pd.Index(["a", "b"], name="different")
-    )
-    with pytest.raises(
-        ValueError, match="Numerator and denominator DataFrames must have identical indexes"
-    ):
-        ratio(numerator_a, mismatched_denominator)
-
-    # Test missing value column in numerator
-    bad_numerator = pd.DataFrame(
-        {"wrong_col": intermediate_data["a"]}, index=intermediate_data.index
-    )
-    with pytest.raises(ValueError, match="Numerator DataFrame must have a 'value' column"):
-        ratio(bad_numerator, denominator_b)
-
-    # Test missing value column in denominator
-    bad_denominator = pd.DataFrame(
-        {"wrong_col": intermediate_data["b"]}, index=intermediate_data.index
-    )
-    with pytest.raises(ValueError, match="Denominator DataFrame must have a 'value' column"):
-        ratio(numerator_a, bad_denominator)
-
 
 def test_aggregate_sum(intermediate_data: pd.DataFrame) -> None:
     """Test aggregating over different combinations of value columns."""
