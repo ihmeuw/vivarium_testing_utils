@@ -120,7 +120,7 @@ def test_fuzzy_comparison_metadata(
         ("Measure Key", "mock_measure", "mock_measure"),
         ("Source", "sim", "gbd"),
         ("Index Columns", "year, sex, age, input_draw, random_seed", "year, sex, age"),
-        ("Size", "4 rows × 2 columns", "3 rows × 1 columns"),
+        ("Size", "4 rows × 1 columns", "3 rows × 1 columns"),
         ("Num Draws", "3", "N/A"),
         ("Input Draws", "[1, 2, 5]", "N/A"),
         ("Num Seeds", "3", "N/A"),
@@ -237,12 +237,12 @@ def test_get_metadata_from_dataset(
     comparison = FuzzyComparison(
         mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
     )
-    result = comparison._get_metadata_from_dataset("test")
+    result = comparison._get_metadata_from_datasets("test")
     with check:
         assert result["source"] == DataSource.SIM.value
         assert result["index_columns"] == "year, sex, age, input_draw, random_seed"
         assert (
-            result["size"] == "4 rows × 2 columns"
+            result["size"] == "4 rows × 1 columns"
         )  # 2 years * 2 sexes * 3 draws * 2 seeds = 24 rows, 1 column
         assert result["num_draws"] == "3"
         assert result["input_draws"] == "[1, 2, 5]"
@@ -262,7 +262,7 @@ def test_get_metadata_from_dataset_no_draws(
         DataSource.GBD,
         reference_data,
     )
-    result = comparison._get_metadata_from_dataset("reference")
+    result = comparison._get_metadata_from_datasets("reference")
     with check:
         assert result["source"] == DataSource.GBD.value
         assert result["index_columns"] == "year, sex, age"

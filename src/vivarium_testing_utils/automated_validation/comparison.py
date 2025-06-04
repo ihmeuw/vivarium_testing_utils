@@ -118,8 +118,8 @@ class FuzzyComparison(Comparison):
         - a sample of the input draws.
         """
         measure_key = self.measure.measure_key
-        test_info = self._get_metadata_from_dataset("test")
-        reference_info = self._get_metadata_from_dataset("reference")
+        test_info = self._get_metadata_from_datasets("test")
+        reference_info = self._get_metadata_from_datasets("reference")
         return format_metadata(measure_key, test_info, reference_info)
 
     def get_diff(
@@ -151,12 +151,16 @@ class FuzzyComparison(Comparison):
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
 
-        test_data, reference_data = self._align_datasets()
+        test_proportion_data, reference_data = self._align_datasets()
 
-        test_data = test_data.rename(columns={"value": "test_rate"}).dropna()
+        test_proportion_data = test_proportion_data.rename(
+            columns={"value": "test_rate"}
+        ).dropna()
         reference_data = reference_data.rename(columns={"value": "reference_rate"}).dropna()
 
-        merged_data = pd.merge(test_data, reference_data, left_index=True, right_index=True)
+        merged_data = pd.merge(
+            test_proportion_data, reference_data, left_index=True, right_index=True
+        )
         merged_data["percent_error"] = (
             (merged_data["test_rate"] - merged_data["reference_rate"])
             / merged_data["reference_rate"]
@@ -175,7 +179,7 @@ class FuzzyComparison(Comparison):
     def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def _get_metadata_from_dataset(
+    def _get_metadata_from_datasets(
         self, dataset_key: Literal["test", "reference"]
     ) -> dict[str, Any]:
         """Organize the data information into a dictionary for display by a styled pandas DataFrame.
@@ -192,18 +196,10 @@ class FuzzyComparison(Comparison):
         """
         if dataset_key == "test":
             source = self.test_source
-            # For test data, use the combined DataFrame for metadata
-            if isinstance(self.test_datasets, dict):
-                # Combine numerator and denominator for metadata display
-                numerator_renamed = self.test_datasets["numerator"].rename(
-                    columns={"value": self.measure.numerator.name}
-                )
-                denominator_renamed = self.test_datasets["denominator"].rename(
-                    columns={"value": self.measure.denominator.name}
-                )
-                dataframe = pd.concat([numerator_renamed, denominator_renamed], axis=1)
-            else:
-                dataframe = self.test_datasets
+            # Combine numerator and denominator for metadata display
+            dataframe = self.measure.get_measure_data_from_ratio(
+                self.test_datasets["numerator"], self.test_datasets["denominator"]
+            )
         elif dataset_key == "reference":
             source = self.reference_source
             dataframe = self.reference_data
