@@ -26,7 +26,7 @@ class SimDataFormatter:
         self.name = f"{self.filter_value}_{self.measure}"
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        """Clean up unused columns, filter for the state, and keep the value column as is."""
+        """Clean up unused columns, and filter for the state."""
         dataset = marginalize(dataset, self.unused_columns)
         if self.filter_value == "total":
             dataset = marginalize(dataset, [*self.filters])

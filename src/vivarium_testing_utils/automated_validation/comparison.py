@@ -91,13 +91,7 @@ class FuzzyComparison(Comparison):
     ):
         self.measure: RatioMeasure = measure
         self.test_source = test_source
-        if not test_datasets.keys() == {"numerator", "denominator"}:
-            raise ValueError(
-                "test_datasets must be a dictionary with 'numerator' and 'denominator' keys."
-            )
-        self.test_datasets = (
-            test_datasets  # Dictionary with 'numerator' and 'denominator' keys
-        )
+        self.test_datasets = test_datasets
         self.reference_source = reference_source
         self.reference_data = reference_data
         if stratifications:
@@ -196,10 +190,7 @@ class FuzzyComparison(Comparison):
         """
         if dataset_key == "test":
             source = self.test_source
-            # Combine numerator and denominator for metadata display
-            dataframe = self.measure.get_measure_data_from_ratio(
-                self.test_datasets["numerator"], self.test_datasets["denominator"]
-            )
+            dataframe = self.measure.get_measure_data_from_ratio(**self.test_datasets)
         elif dataset_key == "reference":
             source = self.reference_source
             dataframe = self.reference_data
@@ -236,8 +227,10 @@ class FuzzyComparison(Comparison):
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
         # Get union of test data index names
-        combined_test_index_names = set(self.test_datasets["numerator"].index.names).union(
-            set(self.test_datasets["denominator"].index.names)
+        combined_test_index_names = set(
+            index_name
+            for key in self.test_datasets
+            for index_name in self.test_datasets[key].index.names
         )
         # Get index levels that are only in the test data.
         test_only_indexes = [
@@ -254,10 +247,10 @@ class FuzzyComparison(Comparison):
 
         # If the test data has any index levels that are not in the reference data, marginalize
         # over those index levels.
-        stratified_numerator = marginalize(self.test_datasets["numerator"], test_only_indexes)
-        stratified_denominator = marginalize(
-            self.test_datasets["denominator"], test_only_indexes
-        )
+        test_datasets = self.test_datasets.copy()
+        test_datasets = {
+            key: marginalize(test_datasets[key], test_only_indexes) for key in test_datasets
+        }
 
         # Drop any singular index levels from the reference data if they are not in the test data.
         # If any ref-only index level is not singular, raise an error.
@@ -273,7 +266,5 @@ class FuzzyComparison(Comparison):
             else:
                 reference_data = reference_data.droplevel(index_name)
 
-        converted_test_data = self.measure.get_measure_data_from_ratio(
-            stratified_numerator, stratified_denominator
-        )
+        converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
         return converted_test_data, reference_data

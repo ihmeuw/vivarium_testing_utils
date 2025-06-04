@@ -109,23 +109,24 @@ class RatioMeasure(Measure, ABC):
     @check_io(out=SingleNumericColumn)
     def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process raw simulation data into a format suitable for calculations."""
-        numerator_data, denominator_data = self.get_ratio_data_from_sim(*args, **kwargs)
-        return self.get_measure_data_from_ratio(numerator_data, denominator_data)
+        return self.get_measure_data_from_ratio(
+            **self.get_ratio_datasets_from_sim(*args, **kwargs)
+        )
 
     @check_io(
         numerator_data=SimOutputData,
         denominator_data=SimOutputData,
     )
-    def get_ratio_data_from_sim(
+    def get_ratio_datasets_from_sim(
         self,
         numerator_data: pd.DataFrame,
         denominator_data: pd.DataFrame,
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    ) -> dict[str, pd.DataFrame]:
         """Process raw simulation data and return numerator and denominator DataFrames separately."""
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
         numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
-        return numerator_data, denominator_data
+        return {"numerator_data": numerator_data, "denominator_data": denominator_data}
 
 
 class Incidence(RatioMeasure):
