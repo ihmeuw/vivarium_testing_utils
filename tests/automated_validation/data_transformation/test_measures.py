@@ -75,7 +75,7 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
-    numerator_data, denominator_data = measure.get_ratio_datasets_from_sim(
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=person_time_data,
         denominator_data=person_time_data,
     )
@@ -97,11 +97,9 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
             name="stratify_column",
         ),
     )
-    assert numerator_data.equals(expected_numerator_data)
-    assert denominator_data.equals(expected_denominator_data)
-    measure_data_from_ratio = measure.get_measure_data_from_ratio(
-        numerator_data=numerator_data, denominator_data=denominator_data
-    )
+    assert ratio_datasets["numerator_data"].equals(expected_numerator_data)
+    assert ratio_datasets["denominator_data"].equals(expected_denominator_data)
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=person_time_data, denominator_data=person_time_data
     )
@@ -130,7 +128,7 @@ def test_si_remission(
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
-    numerator_data, denominator_data = measure.get_ratio_datasets_from_sim(
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=transition_count_data,
         denominator_data=person_time_data,
     )
@@ -153,11 +151,9 @@ def test_si_remission(
         ),
     )
 
-    assert numerator_data.equals(expected_numerator_data)
-    assert denominator_data.equals(expected_denominator_data)
-    measure_data_from_ratio = measure.get_measure_data_from_ratio(
-        numerator_data, denominator_data
-    )
+    assert ratio_datasets["numerator_data"].equals(expected_numerator_data)
+    assert ratio_datasets["denominator_data"].equals(expected_denominator_data)
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=transition_count_data, denominator_data=person_time_data
     )
@@ -184,7 +180,7 @@ def test_all_cause_mortality_rate(
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
-    numerator_data, denominator_data = measure.get_ratio_datasets_from_sim(
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
         denominator_data=total_person_time_data,
     )
@@ -213,8 +209,8 @@ def test_all_cause_mortality_rate(
             name="stratify_column",
         ),
     )
-    assert_frame_equal(numerator_data, expected_numerator_data)
-    assert_frame_equal(denominator_data, expected_denominator_data)
+    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
+    assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
 
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=total_person_time_data
@@ -243,7 +239,7 @@ def test_cause_specific_mortality_rate(
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
-    numerator_data, denominator_data = measure.get_ratio_datasets_from_sim(
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
         denominator_data=total_person_time_data,
     )
@@ -272,8 +268,8 @@ def test_cause_specific_mortality_rate(
             name="stratify_column",
         ),
     )
-    assert_frame_equal(numerator_data, expected_numerator_data)
-    assert_frame_equal(denominator_data, expected_denominator_data)
+    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
+    assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
 
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=total_person_time_data
@@ -303,7 +299,7 @@ def test_excess_mortality_rate(
 
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
-    numerator_data, denominator_data = measure.get_ratio_datasets_from_sim(
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
         denominator_data=person_time_data,
     )
@@ -332,8 +328,8 @@ def test_excess_mortality_rate(
             name="stratify_column",
         ),
     )
-    assert_frame_equal(numerator_data, expected_numerator_data)
-    assert_frame_equal(denominator_data, expected_denominator_data)
+    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
+    assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
 
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=person_time_data

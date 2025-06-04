@@ -13,6 +13,7 @@ from vivarium_testing_utils.automated_validation.comparison import (
 )
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     get_singular_indices,
+    ratio,
 )
 
 
@@ -30,7 +31,7 @@ def test_data() -> dict[str, pd.DataFrame]:
     )
     numerator_df = pd.DataFrame({"value": [10, 20, 30, 35]}, index=index)
     denominator_df = pd.DataFrame({"value": [100, 100, 100, 100]}, index=index)
-    return {"numerator": numerator_df, "denominator": denominator_df}
+    return {"numerator_data": numerator_df, "denominator_data": denominator_df}
 
 
 @pytest.fixture
@@ -48,23 +49,6 @@ def reference_data() -> pd.DataFrame:
 @pytest.fixture
 def mock_ratio_measure() -> RatioMeasure:
     """Create generic mock RatioMeasure for testing."""
-
-    def _get_measure_data_from_ratio(
-        numerator_data: pd.DataFrame, denominator_data: pd.DataFrame
-    ) -> pd.DataFrame:
-        # Combine the data and calculate the ratio
-        combined_data = pd.concat(
-            [
-                numerator_data.rename(columns={"value": "numerator"}),
-                denominator_data.rename(columns={"value": "denominator"}),
-            ],
-            axis=1,
-        )
-        measure_data = combined_data.copy()
-        measure_data["value"] = measure_data["numerator"] / measure_data["denominator"]
-        measure_data = measure_data.drop(columns=["numerator", "denominator"])
-        return measure_data
-
     # Create mock formatters
     mock_numerator = mock.Mock()
     mock_numerator.name = "numerator"
@@ -76,7 +60,7 @@ def mock_ratio_measure() -> RatioMeasure:
     measure.measure_key = "mock_measure"
     measure.numerator = mock_numerator
     measure.denominator = mock_denominator
-    measure.get_measure_data_from_ratio.side_effect = _get_measure_data_from_ratio
+    measure.get_measure_data_from_ratio.side_effect = ratio
     return measure
 
 
@@ -294,7 +278,7 @@ def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
 
     # Verify the singular index exists
     assert "location" in comparison.reference_data.index.names
-    assert "location" not in comparison.test_datasets["numerator"].index.names
+    assert "location" not in comparison.test_datasets["numerator_data"].index.names
 
     # Verify it's detected as a singular index
     singular_indices = get_singular_indices(comparison.reference_data)
@@ -330,7 +314,7 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
 
     # Verify the non-singular index exists
     assert "location" in comparison.reference_data.index.names
-    assert "location" not in comparison.test_datasets["numerator"].index.names
+    assert "location" not in comparison.test_datasets["numerator_data"].index.names
 
     # Verify it's not detected as a singular index
     singular_indices = get_singular_indices(comparison.reference_data)
