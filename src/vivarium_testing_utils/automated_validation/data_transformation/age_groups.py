@@ -14,7 +14,7 @@ AgeTuple = tuple[str, int | float, int | float]
 AgeRange = tuple[int | float, int | float]
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    RatioData,
+    SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
 
@@ -458,7 +458,7 @@ def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame
         return data
 
 
-@check_io(df=RatioData)
+@check_io(df=SingleNumericColumn, out=SingleNumericColumn)
 def rebin_count_dataframe(
     target_schema: AgeSchema,
     df: pd.DataFrame,

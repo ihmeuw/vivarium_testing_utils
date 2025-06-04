@@ -1,9 +1,6 @@
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    RatioData,
-)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CauseSpecificMortalityRate,
     ExcessMortalityRate,

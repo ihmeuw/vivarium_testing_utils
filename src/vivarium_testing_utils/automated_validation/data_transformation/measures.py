@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import pandas as pd
-import pandera as pa
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
@@ -10,7 +9,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     ratio,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    RatioData,
     SimOutputData,
     SingleNumericColumn,
 )

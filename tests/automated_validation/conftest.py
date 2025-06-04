@@ -269,8 +269,7 @@ def sample_age_group_df() -> pd.DataFrame:
 def sample_df_with_ages() -> pd.DataFrame:
     return pd.DataFrame(
         {
-            "foo": [1.0, 2.0, 3.0],
-            "bar": [4.0, 5.0, 6.0],
+            "value": [1.0, 2.0, 3.0],
         },
         index=pd.MultiIndex.from_tuples(
             [
