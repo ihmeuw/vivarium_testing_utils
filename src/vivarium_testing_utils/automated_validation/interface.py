@@ -81,7 +81,7 @@ class ValidationContext:
         comparison = FuzzyComparison(
             measure=measure,
             test_source=test_source_enum,
-            test_data=test_data,
+            test_datasets=test_data,
             reference_source=ref_source_enum,
             reference_data=ref_data,
             stratifications=stratifications,

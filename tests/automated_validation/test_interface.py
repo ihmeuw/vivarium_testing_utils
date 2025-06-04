@@ -111,9 +111,9 @@ def test_add_comparison(
     assert comparison.stratifications == []
 
     # Test that test_data is now a dictionary with numerator and denominator
-    assert isinstance(comparison.test_data, dict)
-    assert "numerator" in comparison.test_data
-    assert "denominator" in comparison.test_data
+    assert isinstance(comparison.test_datasets, dict)
+    assert "numerator" in comparison.test_datasets
+    assert "denominator" in comparison.test_datasets
 
     expected_numerator_data = pd.DataFrame(
         {
@@ -134,8 +134,8 @@ def test_add_comparison(
         ),
     )
 
-    assert comparison.test_data["numerator"].equals(expected_numerator_data)
-    assert comparison.test_data["denominator"].equals(expected_denominator_data)
+    assert comparison.test_datasets["numerator"].equals(expected_numerator_data)
+    assert comparison.test_datasets["denominator"].equals(expected_denominator_data)
     assert comparison.reference_data.equals(artifact_disease_incidence)
 
 

@@ -98,7 +98,7 @@ def test_fuzzy_comparison_init(
     with check:
         assert comparison.measure == mock_ratio_measure
         assert comparison.test_source == DataSource.SIM
-        assert comparison.test_data == test_data
+        assert comparison.test_datasets == test_data
         assert comparison.reference_source == DataSource.GBD
         assert comparison.reference_data.equals(reference_data)
         assert list(comparison.stratifications) == []
@@ -294,7 +294,7 @@ def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
 
     # Verify the singular index exists
     assert "location" in comparison.reference_data.index.names
-    assert "location" not in comparison.test_data["numerator"].index.names
+    assert "location" not in comparison.test_datasets["numerator"].index.names
 
     # Verify it's detected as a singular index
     singular_indices = get_singular_indices(comparison.reference_data)
@@ -330,7 +330,7 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
 
     # Verify the non-singular index exists
     assert "location" in comparison.reference_data.index.names
-    assert "location" not in comparison.test_data["numerator"].index.names
+    assert "location" not in comparison.test_datasets["numerator"].index.names
 
     # Verify it's not detected as a singular index
     singular_indices = get_singular_indices(comparison.reference_data)

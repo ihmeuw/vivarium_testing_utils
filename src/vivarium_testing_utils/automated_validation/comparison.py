@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Collection, Literal, Union
+from typing import Any, Collection, Literal
 
 import pandas as pd
 
@@ -26,7 +26,7 @@ class Comparison(ABC):
 
     measure: Measure
     test_source: DataSource
-    test_data: Union[pd.DataFrame, dict[str, pd.DataFrame]]
+    test_datasets: dict[str, pd.DataFrame]
     reference_source: DataSource
     reference_data: pd.DataFrame
     stratifications: Collection[str]
@@ -84,14 +84,16 @@ class FuzzyComparison(Comparison):
         self,
         measure: RatioMeasure,
         test_source: DataSource,
-        test_data: dict[str, pd.DataFrame],
+        test_datasets: dict[str, pd.DataFrame],
         reference_source: DataSource,
         reference_data: pd.DataFrame,
         stratifications: Collection[str] = (),
     ):
         self.measure: RatioMeasure = measure
         self.test_source = test_source
-        self.test_data = test_data  # Dictionary with 'numerator' and 'denominator' keys
+        self.test_datasets = (
+            test_datasets  # Dictionary with 'numerator' and 'denominator' keys
+        )
         self.reference_source = reference_source
         self.reference_data = reference_data
         if stratifications:
@@ -187,17 +189,17 @@ class FuzzyComparison(Comparison):
         if dataset_key == "test":
             source = self.test_source
             # For test data, use the combined DataFrame for metadata
-            if isinstance(self.test_data, dict):
+            if isinstance(self.test_datasets, dict):
                 # Combine numerator and denominator for metadata display
-                numerator_renamed = self.test_data["numerator"].rename(
+                numerator_renamed = self.test_datasets["numerator"].rename(
                     columns={"value": self.measure.numerator.name}
                 )
-                denominator_renamed = self.test_data["denominator"].rename(
+                denominator_renamed = self.test_datasets["denominator"].rename(
                     columns={"value": self.measure.denominator.name}
                 )
                 dataframe = pd.concat([numerator_renamed, denominator_renamed], axis=1)
             else:
-                dataframe = self.test_data
+                dataframe = self.test_datasets
         elif dataset_key == "reference":
             source = self.reference_source
             dataframe = self.reference_data
@@ -234,8 +236,8 @@ class FuzzyComparison(Comparison):
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
         # Get union of test data index names
-        combined_test_index_names = set(self.test_data["numerator"].index.names).union(
-            set(self.test_data["denominator"].index.names)
+        combined_test_index_names = set(self.test_datasets["numerator"].index.names).union(
+            set(self.test_datasets["denominator"].index.names)
         )
 
         reference_data = self.reference_data.copy()
@@ -264,8 +266,10 @@ class FuzzyComparison(Comparison):
             for index in combined_test_index_names
             if index not in reference_data.index.names
         ]
-        stratified_numerator = marginalize(self.test_data["numerator"], test_only_indexes)
-        stratified_denominator = marginalize(self.test_data["denominator"], test_only_indexes)
+        stratified_numerator = marginalize(self.test_datasets["numerator"], test_only_indexes)
+        stratified_denominator = marginalize(
+            self.test_datasets["denominator"], test_only_indexes
+        )
 
         converted_test_data = self.measure.get_measure_data_from_ratio(
             stratified_numerator, stratified_denominator
