@@ -56,6 +56,11 @@ def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.Dat
     return data
 
 
+@check_io(
+    numerator_data=SingleNumericColumn,
+    denominator_data=SingleNumericColumn,
+    out=SingleNumericColumn,
+)
 def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.DataFrame:
     """Return a DataFrame with the ratio of two DataFrames with 'value' columns.
 
