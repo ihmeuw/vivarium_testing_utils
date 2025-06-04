@@ -239,17 +239,30 @@ class FuzzyComparison(Comparison):
         combined_test_index_names = set(self.test_datasets["numerator"].index.names).union(
             set(self.test_datasets["denominator"].index.names)
         )
-
-        reference_data = self.reference_data.copy()
-
-        # Drop any singular index levels from the reference data if they are not in the test data.
-        # If any ref-only index level is not singular, raise an error.
+        # Get index levels that are only in the test data.
+        test_only_indexes = [
+            index
+            for index in combined_test_index_names
+            if index not in self.reference_data.index.names
+        ]
+        # Likewise, get index levels that are only in the reference data.
         ref_only_indexes = [
             index
             for index in self.reference_data.index.names
             if index not in combined_test_index_names
         ]
+
+        # If the test data has any index levels that are not in the reference data, marginalize
+        # over those index levels.
+        stratified_numerator = marginalize(self.test_datasets["numerator"], test_only_indexes)
+        stratified_denominator = marginalize(
+            self.test_datasets["denominator"], test_only_indexes
+        )
+
+        # Drop any singular index levels from the reference data if they are not in the test data.
+        # If any ref-only index level is not singular, raise an error.
         redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
+        reference_data = self.reference_data.copy()
         for index_name in ref_only_indexes:
             if not index_name in redundant_ref_indexes:
                 # TODO: MIC-6075
@@ -259,17 +272,6 @@ class FuzzyComparison(Comparison):
                 )
             else:
                 reference_data = reference_data.droplevel(index_name)
-
-        # Apply marginalization to the converted test data
-        test_only_indexes = [
-            index
-            for index in combined_test_index_names
-            if index not in reference_data.index.names
-        ]
-        stratified_numerator = marginalize(self.test_datasets["numerator"], test_only_indexes)
-        stratified_denominator = marginalize(
-            self.test_datasets["denominator"], test_only_indexes
-        )
 
         converted_test_data = self.measure.get_measure_data_from_ratio(
             stratified_numerator, stratified_denominator
