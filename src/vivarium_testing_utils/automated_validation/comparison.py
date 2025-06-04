@@ -18,6 +18,7 @@ from vivarium_testing_utils.automated_validation.visualization.dataframe_utils i
     format_metadata,
 )
 
+SAMPLING_INDEX_LEVELS = ["input_draw"]
 
 class Comparison(ABC):
     """A Comparison is the basic testing unit to compare two datasets, a "test" dataset and a
@@ -100,7 +101,9 @@ class FuzzyComparison(Comparison):
             for col in self.scenario_cols:
                 if col in dataset.index.names:
                     #################################################################################################
-                    self.test_data[key] = dataset.xs("baseline", level=col, drop_level=True)
+                    dataset = dataset.xs("baseline", level=col, drop_level=True)
+            self.test_datasets[key] = dataset
+
         self.reference_source = reference_source
         self.reference_data = reference_data
         if stratifications:
@@ -235,36 +238,41 @@ class FuzzyComparison(Comparison):
 
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
+        test_datasets = self.test_datasets.copy()
+        reference_data = self.reference_data.copy()
+        if "input_draw" not in self.reference_data.index.names:
+            reference_data["input_draw"] = np.nan
+            reference_data = reference_data.set_index("input_draw", append=True)
+
         # Get union of test data index names
         combined_test_index_names = set(
             index_name
-            for key in self.test_datasets
-            for index_name in self.test_datasets[key].index.names
+            for key in test_datasets
+            for index_name in test_datasets[key].index.names
         )
         # Get index levels that are only in the test data.
         test_only_indexes = [
             index
             for index in combined_test_index_names
-            if index not in self.reference_data.index.names
+            if index not in reference_data.index.names
         ]
         # Likewise, get index levels that are only in the reference data.
         ref_only_indexes = [
             index
-            for index in self.reference_data.index.names
+            for index in reference_data.index.names
             if index not in combined_test_index_names
         ]
-
+        indexes_to_marginalize = set(test_only_indexes).difference(self.scenario_cols)
         # If the test data has any index levels that are not in the reference data, marginalize
         # over those index levels.
-        test_datasets = self.test_datasets.copy()
         test_datasets = {
-            key: marginalize(test_datasets[key], test_only_indexes) for key in test_datasets
+            key: marginalize(test_datasets[key], indexes_to_marginalize)
+            for key in test_datasets
         }
 
         # Drop any singular index levels from the reference data if they are not in the test data.
         # If any ref-only index level is not singular, raise an error.
         redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
-        reference_data = self.reference_data.copy()
         for index_name in ref_only_indexes:
             if not index_name in redundant_ref_indexes:
                 # TODO: MIC-6075

@@ -3,6 +3,7 @@ import pandas as pd
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
     marginalize,
+    stratify,
 )
 
 
@@ -66,23 +67,23 @@ class TotalPopulationPersonTime(StatePersonTime):
         """
         super().__init__(entity="total", filter_value="total")
         self.data_key = "person_time_total"
-        self.new_value_column_name = "total_population_person_time"
+        self.name = "total_population_person_time"
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         dataset = super().format_dataset(dataset)
         ## HACK
         ########################################################################
-        dataset[self.new_value_column_name] = dataset.groupby(
-            level=[
+        return stratify(
+            data=dataset,
+            stratification_cols=[
                 "input_draw",
                 "random_seed",
                 "sqlns_effect_size",
                 "child_scenario",
                 "maternal_scenario",
-            ]
-        )[self.new_value_column_name].transform("sum")
+            ],
+        )
         #######################################################################
-        return dataset
 
 
 class Deaths(SimDataFormatter):
