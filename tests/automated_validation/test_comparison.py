@@ -286,11 +286,11 @@ def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
     assert singular_indices["location"] == "Global"
 
     # Execute
-    test_data, reference_data = comparison._align_datasets()
+    aligned_test_data, aligned_reference_data = comparison._align_datasets()
 
     # Verify the singular index was dropped
-    assert "location" not in reference_data.index.names
-    assert test_data.shape[0] == reference_data.shape[0]
+    assert "location" not in aligned_reference_data.index.names
+    assert aligned_test_data.shape[0] == aligned_reference_data.shape[0]
 
 
 def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
@@ -346,6 +346,10 @@ def test_fuzzy_comparison_align_datasets_calculation(
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
 
-    np.testing.assert_array_almost_equal(
-        aligned_test_data["value"].values, expected_values, decimal=10
+    assert_frame_equal(
+        aligned_test_data,
+        pd.DataFrame(
+            {"value": expected_values},
+            index=aligned_test_data.index,
+        ),
     )
