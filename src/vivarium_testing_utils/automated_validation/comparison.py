@@ -91,6 +91,10 @@ class FuzzyComparison(Comparison):
     ):
         self.measure: RatioMeasure = measure
         self.test_source = test_source
+        if not test_datasets.keys() == {"numerator", "denominator"}:
+            raise ValueError(
+                "test_datasets must be a dictionary with 'numerator' and 'denominator' keys."
+            )
         self.test_datasets = (
             test_datasets  # Dictionary with 'numerator' and 'denominator' keys
         )
