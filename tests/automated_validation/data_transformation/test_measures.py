@@ -1,9 +1,6 @@
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    RatioData,
-)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CauseSpecificMortalityRate,
     ExcessMortalityRate,
@@ -26,23 +23,32 @@ def test_incidence(
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
-    ratio_data = measure.get_ratio_data_from_sim(
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=transition_count_data,
         denominator_data=person_time_data,
     )
-    expected_ratio_data = pd.DataFrame(
+    expected_numerator_data = pd.DataFrame(
         {
-            "susceptible_to_disease_to_disease_transition_count": [3.0, 5.0],
-            "susceptible_to_disease_person_time": [17.0, 29.0],
+            "value": [3.0, 5.0],
         },
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",
         ),
     )
-    assert ratio_data.equals(expected_ratio_data)
+    expected_denominator_data = pd.DataFrame(
+        {
+            "value": [17.0, 29.0],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert ratio_datasets["numerator_data"].equals(expected_numerator_data)
+    assert ratio_datasets["denominator_data"].equals(expected_denominator_data)
 
-    measure_data_from_ratio = measure.get_measure_data_from_ratio(ratio_data=ratio_data)
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
 
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=transition_count_data, denominator_data=person_time_data
@@ -69,22 +75,31 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
-    ratio_data = measure.get_ratio_data_from_sim(
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=person_time_data,
         denominator_data=person_time_data,
     )
-    expected_ratio_data = pd.DataFrame(
+    expected_numerator_data = pd.DataFrame(
         {
-            "disease_person_time": [23.0, 37.0],
-            "total_person_time": [17.0 + 23.0, 29.0 + 37.0],
+            "value": [23.0, 37.0],
         },
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",
         ),
     )
-    assert ratio_data.equals(expected_ratio_data)
-    measure_data_from_ratio = measure.get_measure_data_from_ratio(ratio_data=ratio_data)
+    expected_denominator_data = pd.DataFrame(
+        {
+            "value": [17.0 + 23.0, 29.0 + 37.0],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert ratio_datasets["numerator_data"].equals(expected_numerator_data)
+    assert ratio_datasets["denominator_data"].equals(expected_denominator_data)
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=person_time_data, denominator_data=person_time_data
     )
@@ -113,14 +128,22 @@ def test_si_remission(
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
-    ratio_data = measure.get_ratio_data_from_sim(
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=transition_count_data,
         denominator_data=person_time_data,
     )
-    expected_ratio_data = pd.DataFrame(
+    expected_numerator_data = pd.DataFrame(
         {
-            "disease_to_susceptible_to_disease_transition_count": [7.0, 13.0],
-            "disease_person_time": [23.0, 37.0],
+            "value": [7.0, 13.0],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    expected_denominator_data = pd.DataFrame(
+        {
+            "value": [23.0, 37.0],
         },
         index=pd.Index(
             ["A", "B"],
@@ -128,8 +151,9 @@ def test_si_remission(
         ),
     )
 
-    assert ratio_data.equals(expected_ratio_data)
-    measure_data_from_ratio = measure.get_measure_data_from_ratio(ratio_data=ratio_data)
+    assert ratio_datasets["numerator_data"].equals(expected_numerator_data)
+    assert ratio_datasets["denominator_data"].equals(expected_denominator_data)
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=transition_count_data, denominator_data=person_time_data
     )
@@ -156,18 +180,26 @@ def test_all_cause_mortality_rate(
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
-    ratio_data = measure.get_ratio_data_from_sim(
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
         denominator_data=total_person_time_data,
     )
 
-    # Expected dataframe for the ratio_data
+    # Expected dataframe for the numerator and denominator data
     # The Deaths formatter with no cause will marginalize over entity and sub_entity
     # to get total deaths by stratify_column
-    expected_ratio_data = pd.DataFrame(
+    expected_numerator_data = pd.DataFrame(
         {
-            "total_deaths": [5.0, 9.0],
-            "total_person_time": [
+            "value": [5.0, 9.0],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    expected_denominator_data = pd.DataFrame(
+        {
+            "value": [
                 40.0,
                 66.0,
             ],
@@ -177,7 +209,8 @@ def test_all_cause_mortality_rate(
             name="stratify_column",
         ),
     )
-    assert_frame_equal(ratio_data, expected_ratio_data)
+    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
+    assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
 
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=total_person_time_data
@@ -206,18 +239,26 @@ def test_cause_specific_mortality_rate(
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
-    ratio_data = measure.get_ratio_data_from_sim(
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
         denominator_data=total_person_time_data,
     )
 
-    # Expected dataframe for the ratio_data
+    # Expected dataframe for the numerator and denominator data
     # The Deaths formatter with a specific cause will filter for that cause
     # The TotalPersonTime formatter will marginalize person_time over all states
-    expected_ratio_data = pd.DataFrame(
+    expected_numerator_data = pd.DataFrame(
         {
-            "disease_deaths": [2.0, 4.0],
-            "total_person_time": [
+            "value": [2.0, 4.0],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    expected_denominator_data = pd.DataFrame(
+        {
+            "value": [
                 40.0,
                 66.0,
             ],
@@ -227,7 +268,8 @@ def test_cause_specific_mortality_rate(
             name="stratify_column",
         ),
     )
-    assert_frame_equal(ratio_data, expected_ratio_data)
+    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
+    assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
 
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=total_person_time_data
@@ -257,18 +299,26 @@ def test_excess_mortality_rate(
 
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
 
-    ratio_data = measure.get_ratio_data_from_sim(
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
         denominator_data=person_time_data,
     )
 
-    # Expected dataframe for the ratio_data
+    # Expected dataframe for the numerator and denominator data
     # The Deaths formatter with a specific cause will filter for that cause
     # The PersonTime formatter with a specific state will filter for that state
-    expected_ratio_data = pd.DataFrame(
+    expected_numerator_data = pd.DataFrame(
         {
-            "disease_deaths": [2.0, 4.0],
-            "disease_person_time": [
+            "value": [2.0, 4.0],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    expected_denominator_data = pd.DataFrame(
+        {
+            "value": [
                 23.0,
                 37.0,
             ],
@@ -278,7 +328,8 @@ def test_excess_mortality_rate(
             name="stratify_column",
         ),
     )
-    assert_frame_equal(ratio_data, expected_ratio_data)
+    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
+    assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
 
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=person_time_data

@@ -23,16 +23,15 @@ class SimDataFormatter:
         ]
         self.filters = {"sub_entity": [filter_value]}
         self.filter_value = filter_value
-        self.new_value_column_name = f"{self.filter_value}_{self.measure}"
+        self.name = f"{self.filter_value}_{self.measure}"
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        """Clean up unused columns, filter for the state, and rename the value column."""
+        """Clean up unused columns, and filter for the state."""
         dataset = marginalize(dataset, self.unused_columns)
         if self.filter_value == "total":
             dataset = marginalize(dataset, [*self.filters])
         else:
             dataset = filter_data(dataset, self.filters)
-        dataset = dataset.rename(columns={"value": self.new_value_column_name})
         return dataset
 
 
@@ -103,4 +102,4 @@ class Deaths(SimDataFormatter):
         self.unused_columns = ["measure", "entity_type"]
         self.filter_value = "total" if cause == "all_causes" else cause
         self.filters = {"entity": [self.filter_value], "sub_entity": [self.filter_value]}
-        self.new_value_column_name = f"{self.filter_value}_{self.measure}"
+        self.name = f"{self.filter_value}_{self.measure}"

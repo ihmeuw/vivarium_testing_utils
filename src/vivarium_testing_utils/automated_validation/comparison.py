@@ -27,7 +27,7 @@ class Comparison(ABC):
 
     measure: Measure
     test_source: DataSource
-    test_data: pd.DataFrame
+    test_datasets: dict[str, pd.DataFrame]
     reference_source: DataSource
     reference_data: pd.DataFrame
     stratifications: Collection[str]
@@ -85,22 +85,22 @@ class FuzzyComparison(Comparison):
         self,
         measure: RatioMeasure,
         test_source: DataSource,
-        test_data: pd.DataFrame,
+        test_datasets: dict[str, pd.DataFrame],
         reference_source: DataSource,
         reference_data: pd.DataFrame,
         stratifications: Collection[str] = (),
     ):
         self.measure: RatioMeasure = measure
         self.test_source = test_source
-        self.test_data = test_data
-        ## HACK
+        self.test_datasets = test_datasets
         #################################################################################################
         self.scenario_cols = ["maternal_scenario", "child_scenario"]
         ## filter index levels for scenario columns to "baseline"
-        for col in self.scenario_cols:
-            if col in self.test_data.index.names:
-                #################################################################################################
-                self.test_data = self.test_data.xs("baseline", level=col, drop_level=True)
+        for key, dataset in self.test_datasets.items():
+            for col in self.scenario_cols:
+                if col in dataset.index.names:
+                    #################################################################################################
+                    self.test_data[key] = dataset.xs("baseline", level=col, drop_level=True)
         self.reference_source = reference_source
         self.reference_data = reference_data
         if stratifications:
@@ -121,8 +121,8 @@ class FuzzyComparison(Comparison):
         - a sample of the input draws.
         """
         measure_key = self.measure.measure_key
-        test_info = self._get_metadata_from_dataset("test")
-        reference_info = self._get_metadata_from_dataset("reference")
+        test_info = self._get_metadata_from_datasets("test")
+        reference_info = self._get_metadata_from_datasets("reference")
         return format_metadata(measure_key, test_info, reference_info)
 
     def get_diff(
@@ -154,12 +154,16 @@ class FuzzyComparison(Comparison):
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
 
-        test_data, reference_data = self._align_datasets()
+        test_proportion_data, reference_data = self._align_datasets()
 
-        test_data = test_data.rename(columns={"value": "test_rate"}).dropna()
+        test_proportion_data = test_proportion_data.rename(
+            columns={"value": "test_rate"}
+        ).dropna()
         reference_data = reference_data.rename(columns={"value": "reference_rate"}).dropna()
 
-        merged_data = pd.merge(test_data, reference_data, left_index=True, right_index=True)
+        merged_data = pd.merge(
+            test_proportion_data, reference_data, left_index=True, right_index=True
+        )
         merged_data["percent_error"] = (
             (merged_data["test_rate"] - merged_data["reference_rate"])
             / merged_data["reference_rate"]
@@ -178,7 +182,7 @@ class FuzzyComparison(Comparison):
     def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def _get_metadata_from_dataset(
+    def _get_metadata_from_datasets(
         self, dataset_key: Literal["test", "reference"]
     ) -> dict[str, Any]:
         """Organize the data information into a dictionary for display by a styled pandas DataFrame.
@@ -195,7 +199,7 @@ class FuzzyComparison(Comparison):
         """
         if dataset_key == "test":
             source = self.test_source
-            dataframe = self.test_data
+            dataframe = self.measure.get_measure_data_from_ratio(**self.test_datasets)
         elif dataset_key == "reference":
             source = self.reference_source
             dataframe = self.reference_data
@@ -231,42 +235,36 @@ class FuzzyComparison(Comparison):
 
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
-        test_data = self.test_data.copy()
-        reference_data = self.reference_data.copy()
-        # If the test data has any index levels that are not in the reference data, marginalize
-        # over those index levels.
+        # Get union of test data index names
+        combined_test_index_names = set(
+            index_name
+            for key in self.test_datasets
+            for index_name in self.test_datasets[key].index.names
+        )
+        # Get index levels that are only in the test data.
         test_only_indexes = [
             index
-            for index in self.test_data.index.names
+            for index in combined_test_index_names
             if index not in self.reference_data.index.names
         ]
-        ## HACK
-        ##################################################################################################
-        # split test data into constituent columns
-        pop_person_time = test_data.pop("total_population_person_time")
-        stratified_test_data = marginalize(test_data, test_only_indexes)
-
-        # Only Aggregate over between-level indexes
-        pop_person_time = marginalize(pop_person_time, ["random_seed", "input_draw"])
-        pop_person_time = pop_person_time.droplevel(
-            [lev for lev in test_only_indexes if lev not in ["random_seed", "input_draw"]]
-        )
-        pop_person_time = pop_person_time[~pop_person_time.index.duplicated(keep="first")]
-
-        # Add the total population person time back to the stratified test data.
-        stratified_test_data = pd.merge(
-            stratified_test_data, pop_person_time, left_index=True, right_index=True
-        )
-        ###############################################################################################
-
-        # Drop any singular index levels from the reference data if they are not in the test data.
-        # If any ref-only index level is not singular, raise an error.
+        # Likewise, get index levels that are only in the reference data.
         ref_only_indexes = [
             index
             for index in self.reference_data.index.names
-            if index not in self.test_data.index.names
+            if index not in combined_test_index_names
         ]
+
+        # If the test data has any index levels that are not in the reference data, marginalize
+        # over those index levels.
+        test_datasets = self.test_datasets.copy()
+        test_datasets = {
+            key: marginalize(test_datasets[key], test_only_indexes) for key in test_datasets
+        }
+
+        # Drop any singular index levels from the reference data if they are not in the test data.
+        # If any ref-only index level is not singular, raise an error.
         redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
+        reference_data = self.reference_data.copy()
         for index_name in ref_only_indexes:
             if not index_name in redundant_ref_indexes:
                 # TODO: MIC-6075
@@ -277,5 +275,5 @@ class FuzzyComparison(Comparison):
             else:
                 reference_data = reference_data.droplevel(index_name)
 
-        converted_test_data = self.measure.get_measure_data_from_ratio(stratified_test_data)
+        converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
         return converted_test_data, reference_data
