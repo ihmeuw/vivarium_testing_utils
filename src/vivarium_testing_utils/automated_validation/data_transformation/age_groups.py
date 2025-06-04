@@ -446,15 +446,9 @@ def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame
             f"Rebinning DataFrame age groups from {source_age_schema} to {target_schema}."
         )
         # if we don't fit pandera schema SimOutputData, assume the data is rate data and raise an error.
-        try:
-            data = rebin_count_dataframe(
-                target_schema, df.droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
-            )
-        except pa.errors.SchemaError:
-            # TODO: MIC-6075
-            raise NotImplementedError(
-                "Age Group rebinning can only be performed on count data."
-            )
+        data = rebin_count_dataframe(
+            target_schema, df.droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
+        )
         return data
 
 
