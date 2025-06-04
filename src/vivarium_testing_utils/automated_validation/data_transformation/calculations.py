@@ -62,19 +62,21 @@ def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.Dat
     out=SingleNumericColumn,
 )
 def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.DataFrame:
-    """Return a DataFrame with the ratio of two DataFrames with 'value' columns.
+    """Return a DataFrame with the ratio of two SingleNumericColumn DataFrames.
+
+    Their indexes do not need to match, but must be interoperable.
 
     Parameters
     ----------
     numerator_data : pd.DataFrame
-        DataFrame with a 'value' column to use as the numerator
+        SingleNumericColumn DataFrame to use as the numerator
     denominator_data : pd.DataFrame
-        DataFrame with a 'value' column to use as the denominator
+        SingleNumericColumn DataFrame  to use as the denominator
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with a 'value' column containing the ratio values
+        SingleNumericColumn DataFrame containing the ratio values
     """
     zero_denominator = denominator_data["value"] == 0
     if zero_denominator.any():
