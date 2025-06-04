@@ -233,14 +233,10 @@ class FuzzyComparison(Comparison):
 
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
-        # Create combined test data from numerator and denominator
-        numerator_renamed = self.test_data["numerator"].rename(
-            columns={"value": self.measure.numerator.name}
+        # Get union of test data index names
+        combined_test_index_names = set(self.test_data["numerator"].index.names).union(
+            set(self.test_data["denominator"].index.names)
         )
-        denominator_renamed = self.test_data["denominator"].rename(
-            columns={"value": self.measure.denominator.name}
-        )
-        combined_test_data = pd.concat([numerator_renamed, denominator_renamed], axis=1)
 
         reference_data = self.reference_data.copy()
 
@@ -249,7 +245,7 @@ class FuzzyComparison(Comparison):
         ref_only_indexes = [
             index
             for index in self.reference_data.index.names
-            if index not in combined_test_data.index.names
+            if index not in combined_test_index_names
         ]
         redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
         for index_name in ref_only_indexes:
@@ -265,7 +261,7 @@ class FuzzyComparison(Comparison):
         # Apply marginalization to the converted test data
         test_only_indexes = [
             index
-            for index in converted_test_data.index.names
+            for index in combined_test_index_names
             if index not in reference_data.index.names
         ]
         stratified_numerator = marginalize(self.test_data["numerator"], test_only_indexes)

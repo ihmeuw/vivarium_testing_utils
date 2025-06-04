@@ -1,7 +1,9 @@
 from unittest import mock
 
+import numpy as np
 import pandas as pd
 import pytest
+from pandas.testing import assert_frame_equal
 from pytest_check import check
 
 from vivarium_testing_utils.automated_validation.comparison import (
@@ -22,11 +24,12 @@ def test_data() -> dict[str, pd.DataFrame]:
             ("2020", "male", 0, 1, 1337),
             ("2020", "female", 0, 5, 1337),
             ("2025", "male", 0, 2, 42),
+            ("2025", "male", 0, 2, 50),  # Add a seed to get marginalized over
         ],
         names=["year", "sex", "age", "input_draw", "random_seed"],
     )
-    numerator_df = pd.DataFrame({"value": [10, 20, 30]}, index=index)
-    denominator_df = pd.DataFrame({"value": [100, 100, 100]}, index=index)
+    numerator_df = pd.DataFrame({"value": [10, 20, 30, 35]}, index=index)
+    denominator_df = pd.DataFrame({"value": [100, 100, 100, 100]}, index=index)
     return {"numerator": numerator_df, "denominator": denominator_df}
 
 
@@ -117,10 +120,10 @@ def test_fuzzy_comparison_metadata(
         ("Measure Key", "mock_measure", "mock_measure"),
         ("Source", "sim", "gbd"),
         ("Index Columns", "year, sex, age, input_draw, random_seed", "year, sex, age"),
-        ("Size", "3 rows × 2 columns", "3 rows × 1 columns"),
+        ("Size", "4 rows × 2 columns", "3 rows × 1 columns"),
         ("Num Draws", "3", "N/A"),
         ("Input Draws", "[1, 2, 5]", "N/A"),
-        ("Num Seeds", "2", "N/A"),
+        ("Num Seeds", "3", "N/A"),
     ]
     assert metadata.index.name == "Property"
     assert metadata.shape == (7, 2)
@@ -239,11 +242,11 @@ def test_get_metadata_from_dataset(
         assert result["source"] == DataSource.SIM.value
         assert result["index_columns"] == "year, sex, age, input_draw, random_seed"
         assert (
-            result["size"] == "3 rows × 2 columns"
+            result["size"] == "4 rows × 2 columns"
         )  # 2 years * 2 sexes * 3 draws * 2 seeds = 24 rows, 1 column
         assert result["num_draws"] == "3"
         assert result["input_draws"] == "[1, 2, 5]"
-        assert result["num_seeds"] == "2"
+        assert result["num_seeds"] == "3"
 
 
 def test_get_metadata_from_dataset_no_draws(
@@ -336,3 +339,29 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     # Execute and verify error is raised with correct message
     with pytest.raises(ValueError, match="Reference data has non-trivial index location"):
         comparison._align_datasets()
+
+
+def test_fuzzy_comparison_align_datasets_calculation(
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
+) -> None:
+    """Test _align_datasets with varying denominators to ensure ratios are calculated correctly."""
+
+    comparison = FuzzyComparison(
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data,
+    )
+
+    aligned_test_data, aligned_reference_data = comparison._align_datasets()
+
+    assert_frame_equal(aligned_reference_data, reference_data)
+
+    expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
+
+    np.testing.assert_array_almost_equal(
+        aligned_test_data["value"].values, expected_values, decimal=10
+    )
