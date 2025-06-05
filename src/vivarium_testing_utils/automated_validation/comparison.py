@@ -94,6 +94,16 @@ class FuzzyComparison(Comparison):
         self.measure: RatioMeasure = measure
         self.test_source = test_source
         self.test_datasets = test_datasets
+        #################################################################################################
+        self.scenario_cols = ["maternal_scenario", "child_scenario"]
+        ## filter index levels for scenario columns to "baseline"
+        for key, dataset in self.test_datasets.items():
+            for col in self.scenario_cols:
+                if col in dataset.index.names:
+                    #################################################################################################
+                    dataset = dataset.xs("baseline", level=col, drop_level=True)
+            self.test_datasets[key] = dataset
+
         self.reference_source = reference_source
         self.reference_data = reference_data
         if stratifications:
