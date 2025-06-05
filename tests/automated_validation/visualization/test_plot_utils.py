@@ -8,7 +8,6 @@ from pytest_mock import MockerFixture
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.plot_utils import (
-    _append_source,
     _conditionalize,
     _format_title,
     _get_combined_data,
@@ -357,21 +356,6 @@ class TestHelperFunctions:
         # Test with different x_axis values
         assert set(_get_unconditioned_index_names(index, "age_group")) == {"sex"}
         assert set(_get_unconditioned_index_names(index, "sex")) == {"age_group"}
-
-    def test_append_source(self, mocker: MockerFixture) -> None:
-        data = pd.DataFrame(
-            {"value": [0.1, 0.2]},
-            index=pd.MultiIndex.from_tuples(
-                [("male", 0), ("female", 0)], names=["sex", "input_draw"]
-            ),
-        )
-        source = mocker.Mock(spec=DataSource)
-        source.name = "test_source"
-
-        result = _append_source(data, source)
-
-        assert "source" in result.index.names
-        assert "Test_source" in result.index.get_level_values("source").unique()
 
     def test_conditionalize(self, sample_data: pd.DataFrame) -> None:
         title = "Original Title"
