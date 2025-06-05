@@ -84,9 +84,8 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
             "Denominator has zero values. "
             "These will be put into the ratio dataframe as NaN."
         )
-    ratio_values = numerator_data["value"] / denominator_data["value"]
-    ratio_values[zero_denominator] = np.nan
-    return series_to_dataframe(ratio_values)
+    denominator_data[zero_denominator] = np.nan
+    return numerator_data / denominator_data
 
 
 def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str]) -> pd.DataFrame:
