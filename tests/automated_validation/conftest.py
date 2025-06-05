@@ -139,6 +139,7 @@ def _create_sample_age_group_df() -> pd.DataFrame:
     ).set_index([AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN])
 
 
+@check_io(out=SingleNumericColumn)
 def _create_risk_state_person_time_data() -> pd.DataFrame:
     """Create risk state person time data for testing."""
     return pd.DataFrame(
@@ -159,6 +160,7 @@ def _create_risk_state_person_time_data() -> pd.DataFrame:
     )
 
 
+@check_io(out=DrawData)
 def _create_raw_artifact_risk_exposure() -> pd.DataFrame:
     """Create raw artifact risk exposure data for testing."""
     return pd.DataFrame(
@@ -331,7 +333,6 @@ def sample_df_with_ages() -> pd.DataFrame:
     )
 
 
-@check_io(out=SingleNumericColumn)
 @pytest.fixture
 def risk_state_person_time_data() -> pd.DataFrame:
     """Risk state person time data for testing."""
@@ -344,8 +345,8 @@ def raw_artifact_risk_exposure() -> pd.DataFrame:
     return _create_raw_artifact_risk_exposure()
 
 
-@check_io(out=SingleNumericColumn)
 @pytest.fixture
+@check_io(out=SingleNumericColumn)
 def artifact_risk_exposure() -> pd.DataFrame:
     """Processed artifact risk exposure data."""
     return pd.DataFrame(
