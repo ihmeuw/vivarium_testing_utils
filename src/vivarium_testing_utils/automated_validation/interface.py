@@ -82,7 +82,7 @@ class ValidationContext:
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
 
         for source, scenarios in ((test_source_enum, test_scenarios), (ref_source_enum, ref_scenarios)):
-            if source == DataSource.SIM and scenarios.keys() != self.scenario_columns:
+            if source == DataSource.SIM and set(scenarios.keys()) != set(self.scenario_columns):
                 raise ValueError(
                     f"Each simulation comparison subject must choose a specific scenario. "
                     f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."

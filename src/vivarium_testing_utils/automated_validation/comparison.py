@@ -266,9 +266,7 @@ class FuzzyComparison(Comparison):
         # Likewise, get index levels that are only in the reference data.
         ref_only_indexes = ref_index_names - combined_test_index_names
 
-        indexes_to_marginalize = set(test_only_indexes).difference(
-            self.scenario_cols + SAMPLING_INDEX_LEVELS
-        )
+        indexes_to_marginalize = test_only_indexes - set(SAMPLING_INDEX_LEVELS)
         # If the test data has any index levels that are not in the reference data, marginalize
         # over those index levels.
         test_datasets = {

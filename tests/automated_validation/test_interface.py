@@ -103,7 +103,7 @@ def test_add_comparison(
     """Ensure that we can add a comparison"""
     measure_key = "cause.disease.incidence_rate"
     context = ValidationContext(sim_result_dir)
-    context.add_comparison(measure_key, "sim", "artifact", [])
+    context.add_comparison(measure_key, "sim", "artifact")
     assert measure_key in context.comparisons
     comparison = context.comparisons[measure_key]
 
@@ -185,7 +185,7 @@ def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:
     # Create a context and add a comparison
     context = ValidationContext(sim_result_dir)
     measure_key = "cause.disease.incidence_rate"
-    context.add_comparison(measure_key, "sim", "artifact", [])
+    context.add_comparison(measure_key, "sim", "artifact")
 
     # Call plot_comparison with various parameters
     plot_type = "line"
