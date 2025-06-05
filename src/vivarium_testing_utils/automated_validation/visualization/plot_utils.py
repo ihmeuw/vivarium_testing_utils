@@ -275,32 +275,15 @@ def _get_unconditioned_index_names(
 def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
     """Get the combined data from the test and reference datasets."""
     test_data, reference_data = comparison._align_datasets()
-    test_data = _append_source(test_data, comparison.test_source)
-    reference_data = _append_source(reference_data, comparison.reference_source)
 
-    # Ensure both datasets have the same index structure
-    test_index_names = set(test_data.index.names)
-    ref_index_names = set(reference_data.index.names)
-
-    # Add missing index levels with NaN values
-    missing_in_ref = test_index_names - ref_index_names
-    missing_in_test = ref_index_names - test_index_names
-
-    if missing_in_ref:
-        for level_name in missing_in_ref:
-            reference_data[level_name] = np.nan
-            reference_data = reference_data.set_index(level_name, append=True)
-
-    if missing_in_test:
-        for level_name in missing_in_test:
-            test_data[level_name] = np.nan
-            test_data = test_data.set_index(level_name, append=True)
-
-    # Reorder the index levels to match
-    if test_data.index.names != reference_data.index.names:
-        test_data = test_data.reorder_levels(reference_data.index.names)
-
-    combined_data = pd.concat([test_data, reference_data])
+    combined_data = pd.concat(
+        [test_data, reference_data],
+        keys=[
+            comparison.test_source.name.lower().capitalize(),
+            comparison.reference_source.name.lower().capitalize(),
+        ],
+        names=["source"],
+    )
     return combined_data
 
 
