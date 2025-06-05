@@ -246,10 +246,10 @@ class FuzzyComparison(Comparison):
         ]
 
         # If the test data has any index levels that are not in the reference data, marginalize
-        # over those index levels.
-        test_datasets = self.test_datasets.copy()
+        # over those index levels.)
         test_datasets = {
-            key: marginalize(test_datasets[key], test_only_indexes) for key in test_datasets
+            key: marginalize(self.test_datasets[key], test_only_indexes)
+            for key in self.test_datasets
         }
 
         # Drop any singular index levels from the reference data if they are not in the test data.
