@@ -74,6 +74,7 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
             "Denominator has zero values. "
             "These will be put into the ratio dataframe as NaN."
         )
+    denominator_data[zero_denominator] = np.nan
     return numerator_data / denominator_data
 
 

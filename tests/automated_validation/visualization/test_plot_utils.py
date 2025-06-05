@@ -345,8 +345,12 @@ class TestRelPlot:
 
 class TestHelperFunctions:
     def test_format_title(self) -> None:
-        assert _format_title("measure.test_measure") == "Test Measure"
-        assert _format_title("measure.compound_name_example") == "Compound Name Example"
+        assert _format_title("measure_type.measure.entity") == "Measure Entity"
+        assert (
+            _format_title("measure_type.measure.compound_name_example")
+            == "Measure Compound Name Example"
+        )
+        assert _format_title("measure.entity") == "Measure Entity"
 
     def test_get_unconditioned_index_names(self) -> None:
         index = pd.MultiIndex.from_tuples(
