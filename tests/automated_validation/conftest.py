@@ -17,11 +17,13 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     AgeTuple,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    DrawData,
     SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
 
 
+@check_io(out=SingleNumericColumn)
 def _create_transition_count_data() -> pd.DataFrame:
     """Create transition count data for testing."""
     return pd.DataFrame(
@@ -64,6 +66,7 @@ def _create_transition_count_data() -> pd.DataFrame:
     )
 
 
+@check_io(out=SingleNumericColumn)
 def _create_person_time_data() -> pd.DataFrame:
     """Create person time data for testing."""
     return pd.DataFrame(
@@ -82,6 +85,7 @@ def _create_person_time_data() -> pd.DataFrame:
     )
 
 
+@check_io(out=SingleNumericColumn)
 def _create_deaths_data() -> pd.DataFrame:
     """Create deaths data for testing."""
     return pd.DataFrame(
@@ -100,6 +104,7 @@ def _create_deaths_data() -> pd.DataFrame:
     )
 
 
+@check_io(out=DrawData)
 def _create_raw_artifact_disease_incidence() -> pd.DataFrame:
     """Create raw artifact disease incidence data for testing."""
     return pd.DataFrame(
@@ -184,27 +189,23 @@ def get_model_spec(artifact_path: Path) -> dict[str, dict[str, dict[str, str]]]:
     }
 
 
-@check_io(out=SingleNumericColumn)
 @pytest.fixture
 def deaths_data() -> pd.DataFrame:
     """Sample deaths data for testing."""
     return _create_deaths_data()
 
 
-@check_io(out=SingleNumericColumn)
 @pytest.fixture
 def transition_count_data() -> pd.DataFrame:
     """Raw transition count data to be saved to parquet."""
     return _create_transition_count_data()
 
 
-@check_io(out=SingleNumericColumn)
 @pytest.fixture
 def person_time_data() -> pd.DataFrame:
     return _create_person_time_data()
 
 
-@check_io(out=SingleNumericColumn)
 @pytest.fixture
 def total_person_time_data(
     person_time_data: pd.DataFrame,
@@ -219,8 +220,8 @@ def raw_artifact_disease_incidence() -> pd.DataFrame:
     return _create_raw_artifact_disease_incidence()
 
 
-@check_io(out=SingleNumericColumn)
 @pytest.fixture
+@check_io(out=SingleNumericColumn)
 def artifact_disease_incidence() -> pd.DataFrame:
     """Processed artifact disease incidence data."""
     return pd.DataFrame(
