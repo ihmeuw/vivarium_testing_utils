@@ -4,10 +4,7 @@ from typing import Any
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    align_indexes,
-    ratio,
-)
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import ratio
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
     SingleNumericColumn,
@@ -16,6 +13,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     Deaths,
     SimDataFormatter,
     StatePersonTime,
+    TotalPopulationPersonTime,
     TransitionCounts,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
@@ -125,7 +123,6 @@ class RatioMeasure(Measure, ABC):
         """Process raw simulation data and return numerator and denominator DataFrames separately."""
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
-        numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
         return {"numerator_data": numerator_data, "denominator_data": denominator_data}
 
 
@@ -176,6 +173,24 @@ class ExcessMortalityRate(RatioMeasure):
         )  # Person time among those with the disease
 
 
+class PopulationStructure(RatioMeasure):
+    """Compares simulation population structure against artifact population structure.
+
+    This measure aggregates person time data by age groups and sex to match
+    the population structure format from the artifact. It's useful for validating
+    that the simulation maintains realistic demographic distributions.
+    """
+
+    def __init__(self):
+        self.measure_key = "population.structure"
+        self.numerator = StatePersonTime()
+        self.denominator = TotalPopulationPersonTime()
+
+    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
+        return artifact_data / artifact_data.sum()
+
+
 MEASURE_KEY_MAPPINGS = {
     "cause": {
         "incidence_rate": Incidence,
@@ -184,4 +199,19 @@ MEASURE_KEY_MAPPINGS = {
         "cause_specific_mortality_rate": CauseSpecificMortalityRate,
         "excess_mortality_rate": ExcessMortalityRate,
     },
+    "population": {
+        "structure": PopulationStructure,
+    },
 }
+
+
+def get_measure_from_key(measure_key: str) -> Measure:
+    parts = measure_key.split(".")
+    if len(parts) == 3:
+        entity_type, entity, measure_name = parts
+        return MEASURE_KEY_MAPPINGS[entity_type][measure_name](entity)
+    elif len(parts) == 2:
+        entity_type, measure_name = parts
+        return MEASURE_KEY_MAPPINGS[entity_type][measure_name]()
+    else:
+        raise ValueError(f"Invalid measure key format: {measure_key}")

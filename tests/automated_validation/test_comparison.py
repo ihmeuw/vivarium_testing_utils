@@ -134,7 +134,7 @@ def test_fuzzy_comparison_get_diff(
         assert "test_rate" in diff.columns
         assert "reference_rate" in diff.columns
         assert "percent_error" in diff.columns
-        assert "input_draw" not in diff.index.names
+        assert "input_draw" in diff.index.names
         assert "random_seed" not in diff.index.names
 
     # Test returning all rows

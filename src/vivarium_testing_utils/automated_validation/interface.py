@@ -12,8 +12,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     resolve_age_groups,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
-    MEASURE_KEY_MAPPINGS,
     Measure,
+    get_measure_from_key,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
@@ -52,8 +52,7 @@ class ValidationContext:
         stratifications: list[str] = [],
     ) -> None:
         """Add a comparison to the context given a measure key and data sources."""
-        entity_type, entity, measure_name = measure_key.split(".")
-        measure = MEASURE_KEY_MAPPINGS[entity_type][measure_name](entity)
+        measure = get_measure_from_key(measure_key)
 
         test_source_enum = DataSource.from_str(test_source)
 
@@ -62,20 +61,22 @@ class ValidationContext:
                 f"Comparison for {test_source} source not implemented. Must be SIM."
             )
         test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
+        test_raw_datasets = {
+            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            for dataset_name, dataset in test_raw_datasets.items()
+        }
         test_datasets = measure.get_ratio_datasets_from_sim(
             **test_raw_datasets,
         )
 
         ref_source_enum = DataSource.from_str(ref_source)
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
+        ref_raw_datasets = {
+            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            for dataset_name, dataset in ref_raw_datasets.items()
+        }
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
 
-        # Apply age group resolution to each component of test data and reference data
-        test_datasets = {
-            key: resolve_age_groups(data, self.age_groups)
-            for key, data in test_datasets.items()
-        }
-        ref_data = resolve_age_groups(ref_data, self.age_groups)
         comparison = FuzzyComparison(
             measure=measure,
             test_source=test_source_enum,
