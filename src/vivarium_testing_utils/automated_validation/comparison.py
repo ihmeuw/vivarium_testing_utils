@@ -241,9 +241,6 @@ class FuzzyComparison(Comparison):
         """Resolve any index mismatches between the test and reference datasets."""
         test_datasets = self.test_datasets.copy()
         reference_data = self.reference_data.copy()
-        if "input_draw" not in self.reference_data.index.names:
-            reference_data["input_draw"] = np.nan
-            reference_data = reference_data.set_index("input_draw", append=True)
 
         # Get union of test data index names
         combined_test_index_names = set(
@@ -263,7 +260,9 @@ class FuzzyComparison(Comparison):
             for index in reference_data.index.names
             if index not in combined_test_index_names
         ]
-        indexes_to_marginalize = set(test_only_indexes).difference(self.scenario_cols)
+        indexes_to_marginalize = set(test_only_indexes).difference(
+            self.scenario_cols + SAMPLING_INDEX_LEVELS
+        )
         # If the test data has any index levels that are not in the reference data, marginalize
         # over those index levels.
         test_datasets = {
