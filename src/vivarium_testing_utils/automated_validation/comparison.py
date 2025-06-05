@@ -20,6 +20,7 @@ from vivarium_testing_utils.automated_validation.visualization.dataframe_utils i
 
 SAMPLING_INDEX_LEVELS = ["input_draw"]
 
+
 class Comparison(ABC):
     """A Comparison is the basic testing unit to compare two datasets, a "test" dataset and a
     "reference" dataset. The test dataset is the one that is being validated, while the reference
