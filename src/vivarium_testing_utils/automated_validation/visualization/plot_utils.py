@@ -284,28 +284,24 @@ def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
     missing_in_ref = test_index_names - ref_index_names
     missing_in_test = ref_index_names - test_index_names
 
-    if missing_in_ref:
-        for level_name in missing_in_ref:
-            reference_data[level_name] = np.nan
-            reference_data = reference_data.set_index(level_name, append=True)
+    for level_name in missing_in_ref:
+        reference_data[level_name] = np.nan
+        reference_data = reference_data.set_index(level_name, append=True)
 
-    if missing_in_test:
-        for level_name in missing_in_test:
-            test_data[level_name] = np.nan
-            test_data = test_data.set_index(level_name, append=True)
+    for level_name in missing_in_test:
+        test_data[level_name] = np.nan
+        test_data = test_data.set_index(level_name, append=True)
 
-    # Reorder the index levels to match
-    if test_data.index.names != reference_data.index.names:
-        test_data = test_data.reorder_levels(reference_data.index.names)
+    test_data = test_data.reorder_levels(reference_data.index.names)
 
-        combined_data = pd.concat(
-            [test_data, reference_data],
-            keys=[
-                comparison.test_source.name.lower().capitalize(),
-                comparison.reference_source.name.lower().capitalize(),
-            ],
-            names=["source"],
-        )
+    combined_data = pd.concat(
+        [test_data, reference_data],
+        keys=[
+            comparison.test_source.name.lower().capitalize(),
+            comparison.reference_source.name.lower().capitalize(),
+        ],
+        names=["source"],
+    )
     return combined_data
 
 
