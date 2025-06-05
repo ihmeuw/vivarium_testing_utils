@@ -17,12 +17,13 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
-
 class ValidationContext:
-    def __init__(self, results_dir: str | Path):
+
+    def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
         self._data_loader = DataLoader(Path(results_dir))
         self.comparisons: dict[str, Comparison] = {}
         self.age_groups = self._get_age_groups()
+        self.scenario_columns = scenario_columns
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -84,6 +85,7 @@ class ValidationContext:
             test_datasets=test_datasets,
             reference_source=ref_source_enum,
             reference_data=ref_data,
+            scenario_cols=self.scenario_columns,
             stratifications=stratifications,
         )
         self.comparisons[measure_key] = comparison
