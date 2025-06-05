@@ -77,12 +77,6 @@ class ValidationContext:
         }
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
 
-        # Apply age group resolution to each component of test data and reference data
-        test_datasets = {
-            key: resolve_age_groups(data, self.age_groups)
-            for key, data in test_datasets.items()
-        }
-        ref_data = resolve_age_groups(ref_data, self.age_groups)
         comparison = FuzzyComparison(
             measure=measure,
             test_source=test_source_enum,
