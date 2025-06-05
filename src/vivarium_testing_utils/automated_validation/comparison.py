@@ -31,6 +31,8 @@ class Comparison(ABC):
     test_datasets: dict[str, pd.DataFrame]
     reference_source: DataSource
     reference_data: pd.DataFrame
+    test_scenarios: dict[str, str] | None
+    reference_scenarios: dict[str, str] | None
     scenario_cols = Collection[str]
     stratifications: Collection[str]
 
@@ -90,7 +92,8 @@ class FuzzyComparison(Comparison):
         test_datasets: dict[str, pd.DataFrame],
         reference_source: DataSource,
         reference_data: pd.DataFrame,
-        scenario_cols: Collection[str] = (),
+        test_scenarios: dict[str, str] | None = None,
+        reference_scenarios: dict[str, str] | None = None,
         stratifications: Collection[str] = (),
     ):
         self.measure: RatioMeasure = measure
@@ -99,20 +102,22 @@ class FuzzyComparison(Comparison):
 
         self.reference_source = reference_source
         self.reference_data = reference_data
-        self.scenario_cols = scenario_cols
 
         ## filter index levels for scenario columns to "baseline"
-        if scenario_cols:
-            if self.test_source == DataSource.SIM:
-                self.test_datasets = {
-                    key: self._filter_scenario_cols(dataset, scenario_cols)
-                    for key, dataset in self.test_datasets.items()
-                }
-            if self.reference_source == DataSource.SIM:
-                # If the reference data is from a simulation, filter it as well.
-                self.reference_data = self._filter_scenario_cols(
-                    self.reference_data, scenario_cols
+        if test_scenarios:
+            self.test_datasets = {
+                key: dataset.xs(
+                    test_scenarios.keys(), level=test_scenarios.values(), drop_level=True
                 )
+                for key, dataset in self.test_datasets.items()
+            }
+        if reference_scenarios:
+            # If the reference data is from a simulation, filter it as well.
+            self.reference_data = self.reference_data.xs(
+                reference_scenarios.keys(),
+                level=reference_scenarios.values(),
+                drop_level=True,
+            )
         if stratifications:
             # TODO: MIC-6075
             raise NotImplementedError(
@@ -286,12 +291,3 @@ class FuzzyComparison(Comparison):
 
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
         return converted_test_data, reference_data
-
-    # TODO:Allow flexible handiling of scenarios to allow sim-to-sim or non=baselione comparisons
-    def _filter_scenario_cols(dataset, scenario_cols: Collection[str]) -> pd.DataFrame:
-        """Filter the dataset to only include the scenario columns."""
-        return (
-            dataset.xs("baseline", level=scenario_cols, drop_level=True)
-            if scenario_cols
-            else dataset
-        )

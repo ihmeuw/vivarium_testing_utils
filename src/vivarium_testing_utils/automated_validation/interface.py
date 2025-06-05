@@ -50,6 +50,8 @@ class ValidationContext:
         measure_key: str,
         test_source: str,
         ref_source: str,
+        test_scenarios: dict[str, str] = {},
+        ref_scenarios: dict[str, str] = {},
         stratifications: list[str] = [],
     ) -> None:
         """Add a comparison to the context given a measure key and data sources."""
@@ -79,13 +81,21 @@ class ValidationContext:
         }
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
 
+        for source, scenarios in ((test_source_enum, test_scenarios), (ref_source_enum, ref_scenarios)):
+            if source == DataSource.SIM and scenarios.keys() != self.scenario_columns:
+                raise ValueError(
+                    f"Each simulation comparison subject must choose a specific scenario. "
+                    f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."
+                )
+
         comparison = FuzzyComparison(
             measure=measure,
             test_source=test_source_enum,
             test_datasets=test_datasets,
             reference_source=ref_source_enum,
             reference_data=ref_data,
-            scenario_cols=self.scenario_columns,
+            test_scenarios=test_scenarios,
+            reference_scenarios=ref_scenarios,
             stratifications=stratifications,
         )
         self.comparisons[measure_key] = comparison
