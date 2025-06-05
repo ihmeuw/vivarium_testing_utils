@@ -247,18 +247,13 @@ class FuzzyComparison(Comparison):
             for key in test_datasets
             for index_name in test_datasets[key].index.names
         )
+
+        ref_index_names = set(reference_data.index.names)
         # Get index levels that are only in the test data.
-        test_only_indexes = [
-            index
-            for index in combined_test_index_names
-            if index not in reference_data.index.names
-        ]
+        test_only_indexes = combined_test_index_names - ref_index_names
         # Likewise, get index levels that are only in the reference data.
-        ref_only_indexes = [
-            index
-            for index in reference_data.index.names
-            if index not in combined_test_index_names
-        ]
+        ref_only_indexes = ref_index_names - combined_test_index_names
+
         indexes_to_marginalize = set(test_only_indexes).difference(
             self.scenario_cols + SAMPLING_INDEX_LEVELS
         )
