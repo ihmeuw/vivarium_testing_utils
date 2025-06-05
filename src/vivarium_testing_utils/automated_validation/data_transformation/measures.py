@@ -4,10 +4,7 @@ from typing import Any
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    align_indexes,
-    ratio,
-)
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import ratio
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
     SingleNumericColumn,
@@ -125,7 +122,6 @@ class RatioMeasure(Measure, ABC):
         """Process raw simulation data and return numerator and denominator DataFrames separately."""
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
-        numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
         return {"numerator_data": numerator_data, "denominator_data": denominator_data}
 
 
