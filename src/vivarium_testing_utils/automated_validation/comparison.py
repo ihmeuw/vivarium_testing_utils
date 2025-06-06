@@ -255,29 +255,24 @@ class FuzzyComparison(Comparison):
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
         # Get union of test data index names
+
         combined_test_index_names = {
             index_name
             for key in self.test_datasets
             for index_name in self.test_datasets[key].index.names
         }
+        ref_index_names = set(self.reference_data.index.names)
 
         # Get index levels that are only in the test data.
-        test_only_indexes = {
-            index
-            for index in combined_test_index_names
-            if index not in self.reference_data.index.names
-        }
+        test_only_indexes = combined_test_index_names - ref_index_names
+        # Likewise, get index levels that are only in the reference data.
+        ref_only_indexes = ref_index_names - combined_test_index_names
+
+        # Don't aggregate over the scenarios, yet, because we may need them to join the datasets.
         test_indexes_to_marginalize = test_only_indexes.difference(
             tuple(self.test_scenarios.keys()) + SAMPLING_INDEX_LEVELS
         )
-        # Likewise, get index levels that are only in the reference data.
-        ref_only_indexes = {
-            index
-            for index in self.reference_data.index.names
-            if index not in combined_test_index_names
-        }
-
-        ref_indexes_to_marginalize = ref_only_indexes.difference(
+        reference_indexes_to_drop = ref_only_indexes.difference(
             tuple(self.reference_scenarios.keys()) + SAMPLING_INDEX_LEVELS
         )
 
@@ -291,14 +286,14 @@ class FuzzyComparison(Comparison):
         # Drop any singular index levels from the reference data if they are not in the test data.
         # If any ref-only index level is not singular, raise an error.
         redundant_ref_indexes = set(get_singular_indices(self.reference_data).keys())
-        if not ref_indexes_to_marginalize.issubset(redundant_ref_indexes):
+        if not reference_indexes_to_drop.issubset(redundant_ref_indexes):
             # TODO: MIC-6075
-            diff = ref_indexes_to_marginalize - redundant_ref_indexes
+            diff = reference_indexes_to_drop - redundant_ref_indexes
             raise ValueError(
                 f"Reference data has non-trivial index levels {diff} that are not in the test data. "
                 "We cannot currently marginalize over these index levels."
             )
-        reference_data = self.reference_data.droplevel(list(ref_indexes_to_marginalize))  # type: ignore[arg-type]
+        reference_data = self.reference_data.droplevel(list(reference_indexes_to_drop))  # type: ignore[arg-type]
         # Mypy complains about list[str] being passed to droplevel, I think because list is invariabt
         # and it wants list[Hashable]. That's an issue on the pandas side, not ours.
         # Regardless, this is a valid use of the droplevel API.
