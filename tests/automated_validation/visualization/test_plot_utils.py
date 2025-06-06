@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import Mock
 
 import matplotlib.pyplot as plt
@@ -8,7 +9,7 @@ from pytest_mock import MockerFixture
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.plot_utils import (
-    _append_source,
+    _append_condition_to_title,
     _conditionalize,
     _format_title,
     _get_combined_data,
@@ -64,8 +65,10 @@ def sample_comparison(sample_data: pd.DataFrame, mocker: MockerFixture) -> Mock:
     # Set up sources
     mock_comparison.test_source = mocker.Mock(spec=DataSource)
     mock_comparison.test_source.name = "test"
+    mock_comparison.test_scenarios = {}
     mock_comparison.reference_source = mocker.Mock(spec=DataSource)
     mock_comparison.reference_source.name = "reference"
+    mock_comparison.reference_scenarios = {}
 
     # Set up measure
     mock_comparison.measure = mocker.Mock()
@@ -358,27 +361,10 @@ class TestHelperFunctions:
         assert set(_get_unconditioned_index_names(index, "age_group")) == {"sex"}
         assert set(_get_unconditioned_index_names(index, "sex")) == {"age_group"}
 
-    def test_append_source(self, mocker: MockerFixture) -> None:
-        data = pd.DataFrame(
-            {"value": [0.1, 0.2]},
-            index=pd.MultiIndex.from_tuples(
-                [("male", 0), ("female", 0)], names=["sex", "input_draw"]
-            ),
-        )
-        source = mocker.Mock(spec=DataSource)
-        source.name = "test_source"
-
-        result = _append_source(data, source)
-
-        assert "source" in result.index.names
-        assert "Test_source" in result.index.get_level_values("source").unique()
-
     def test_conditionalize(self, sample_data: pd.DataFrame) -> None:
-        title = "Original Title"
 
-        new_title, filtered_data = _conditionalize({"sex": "male"}, title, sample_data)
+        filtered_data = _conditionalize({"sex": "male"}, sample_data)
 
-        assert "sex = male" in new_title
         assert "sex" not in filtered_data.index.names
 
     def test_get_combined_data(self, sample_comparison: Comparison) -> None:
@@ -386,3 +372,18 @@ class TestHelperFunctions:
 
         assert "source" in result.index.names
         assert set(result.index.get_level_values("source").unique()) == {"Test", "Reference"}
+
+    @pytest.mark.parametrize(
+        "condition_dict, expected",
+        [
+            ({}, "Original Title"),
+            ({"sex": "Male"}, "Original Title\nsex = Male"),
+            ({"foo": "30"}, "Original Title\nfoo = 30"),
+            ({"sex": "Male", "age_group": "A"}, "Original Title\nsex = Male | age_group = A"),
+        ],
+    )
+    def test__append_condition_to_title(
+        self, condition_dict: dict[str, Any], expected: str
+    ) -> None:
+        """Test that empty condition dict returns original title unchanged."""
+        assert _append_condition_to_title(condition_dict, "Original Title") == expected
