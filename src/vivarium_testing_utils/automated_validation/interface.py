@@ -19,7 +19,6 @@ from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
 
 class ValidationContext:
-
     def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
         self._data_loader = DataLoader(Path(results_dir))
         self.comparisons: dict[str, Comparison] = {}

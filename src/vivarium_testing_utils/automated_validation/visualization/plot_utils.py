@@ -46,7 +46,7 @@ def plot_comparison(
 
     # Add the scenario columns to the list of values to
     for modifiers in (comparison.test_scenarios, comparison.reference_scenarios, condition):
-        title = append_condition_to_title(modifiers, title)
+        title = _append_condition_to_title(modifiers, title)
 
     combined_data = _conditionalize(condition, combined_data)
 
@@ -320,7 +320,7 @@ def _conditionalize(
     return data
 
 
-def append_condition_to_title(condition_dict: dict[str, Any], title: str) -> str:
+def _append_condition_to_title(condition_dict: dict[str, Any], title: str) -> str:
     """Append the condition dictionary to the title."""
     if condition_dict:
         title += f"\n{' | '.join([f'{k} = {v}' for k, v in condition_dict.items()])}"
