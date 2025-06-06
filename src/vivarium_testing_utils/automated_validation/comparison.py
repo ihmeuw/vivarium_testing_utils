@@ -5,6 +5,7 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    filter_data,
     get_singular_indices,
     marginalize,
 )
@@ -98,14 +99,18 @@ class FuzzyComparison(Comparison):
         self.measure: RatioMeasure = measure
 
         self.test_source = test_source
-        self.test_scenarios = test_scenarios if test_scenarios else {}
+        self.test_scenarios: dict[str, str] = {} if test_scenarios is None else test_scenarios
         self.test_datasets = {
-            key: self._filter_scenarios(dataset, test_scenarios)
+            key: filter_data(dataset, self.test_scenarios, drop_singles=False)
             for key, dataset in test_datasets.items()
         }
         self.reference_source = reference_source
-        self.reference_scenarios = reference_scenarios if reference_scenarios else {}
-        self.reference_data = self._filter_scenarios(reference_data, reference_scenarios)
+        self.reference_scenarios: dict[str, str] = (
+            {} if reference_scenarios is None else reference_scenarios
+        )
+        self.reference_data = filter_data(
+            reference_data, self.reference_scenarios, drop_singles=False
+        )
 
         if stratifications:
             # TODO: MIC-6075
@@ -278,24 +283,7 @@ class FuzzyComparison(Comparison):
                 f"Reference data has non-trivial index levels {diff} that are not in the test data. "
                 "We cannot currently marginalize over these index levels."
             )
-        reference_data = self.reference_data.droplevel(list(reference_indexes_to_drop))  # type: ignore[arg-type]
-        # Mypy complains about list[str] being passed to droplevel, I think because list is invariabt
-        # and it wants list[Hashable]. That's an issue on the pandas side, not ours.
-        # Regardless, this is a valid use of the droplevel API.
+        reference_data = self.reference_data.droplevel(list(reference_indexes_to_drop))
 
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
         return converted_test_data, reference_data
-
-    def _filter_scenarios(
-        self,
-        data: pd.DataFrame,
-        scenarios: dict[str, str] | None,
-    ) -> pd.DataFrame:
-        """Filter the data based on the scenarios."""
-        return (
-            data.xs(
-                tuple(scenarios.values()), level=tuple(scenarios.keys()), drop_level=False
-            )
-            if scenarios
-            else data
-        )

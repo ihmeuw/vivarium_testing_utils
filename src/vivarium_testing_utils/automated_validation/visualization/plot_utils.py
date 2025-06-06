@@ -310,9 +310,7 @@ def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
     return combined_data
 
 
-def _conditionalize(
-    condition_dict: dict[str, Any], data: pd.DataFrame
-) -> tuple[str, pd.DataFrame]:
+def _conditionalize(condition_dict: dict[str, Any], data: pd.DataFrame) -> pd.DataFrame:
     """Filter the data based on the condition dictionary."""
     for condition_level, condition_value in condition_dict.items():
         data = data.query(f"{condition_level} == '{condition_value}'")
