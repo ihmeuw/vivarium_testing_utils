@@ -262,7 +262,10 @@ class FuzzyComparison(Comparison):
                 f"Reference data has non-trivial index levels {diff} that are not in the test data. "
                 "We cannot currently marginalize over these index levels."
             )
-        reference_data = self.reference_data.droplevel(ref_only_indexes)
+        reference_data = self.reference_data.droplevel(ref_only_indexes)  # type: ignore[arg-type]
+        # Mypy complains about list[str] being passed to droplevel, I think because list is invariabt
+        # and it wants list[Hashable]. That's an issue on the pandas side, not ours.
+        # Regardless, this is a valid use of the droplevel API.
 
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
         return converted_test_data, reference_data
