@@ -42,17 +42,3 @@ class DrawData(pa.DataFrameModel):
 
     class Config:
         strict = True
-
-
-class RatioData(pa.DataFrameModel):
-    """Ratio data is a dataframe with two numeric columns.
-
-    The columns will be numerator and denominator for a calculation into a final measure."""
-
-    # Custom Checks
-    @pa.dataframe_check
-    def check_two_numeric_columns(cls, df: pd.DataFrame) -> bool:
-        # Check that there are exactly two columns in the DataFrame,
-        # and both are numeric
-        numeric_columns = df.select_dtypes(include=["number"]).columns
-        return len(numeric_columns) == df.shape[1] == 2
