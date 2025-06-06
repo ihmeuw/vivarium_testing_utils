@@ -35,17 +35,28 @@ def intermediate_data() -> pd.DataFrame:
 
 
 def test_ratio(intermediate_data: pd.DataFrame) -> None:
-    """Test taking ratio of two columns in a multi-indexed DataFrame"""
-    assert ratio(intermediate_data, "a", "b").equals(
+    """Test taking ratio of two DataFrames with 'value' columns"""
+    # Create separate numerator and denominator DataFrames
+    numerator_a = pd.DataFrame(
+        {"value": intermediate_data["a"]}, index=intermediate_data.index
+    )
+    denominator_b = pd.DataFrame(
+        {"value": intermediate_data["b"]}, index=intermediate_data.index
+    )
+    denominator_c = pd.DataFrame(
+        {"value": intermediate_data["c"]}, index=intermediate_data.index
+    )
+
+    # Test normal ratio calculation
+    assert ratio(numerator_a, denominator_b).equals(
         pd.DataFrame({"value": [1 / 4, 2 / 5, 3 / 6, 4 / 7]}, index=intermediate_data.index)
     )
+
+    # Test ratio with zero denominator
     pd.testing.assert_frame_equal(
-        ratio(intermediate_data, "a", "c"),
+        ratio(numerator_a, denominator_c),
         pd.DataFrame({"value": [1.0, 2.0, np.nan, 4.0]}, index=intermediate_data.index),
     )
-    # test non-existent column
-    with pytest.raises(KeyError):
-        ratio(intermediate_data, "a", "foo")
 
 
 def test_aggregate_sum(intermediate_data: pd.DataFrame) -> None:
