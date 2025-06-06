@@ -255,16 +255,14 @@ class FuzzyComparison(Comparison):
         # Drop any singular index levels from the reference data if they are not in the test data.
         # If any ref-only index level is not singular, raise an error.
         redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
-        reference_data = self.reference_data.copy()
-        for index_name in ref_only_indexes:
-            if not index_name in redundant_ref_indexes:
-                # TODO: MIC-6075
-                raise ValueError(
-                    f"Reference data has non-trivial index {index_name} that is not in the test data."
-                    "We cannot currently marginalize over this index."
-                )
-            else:
-                reference_data = reference_data.droplevel(index_name)
+        if not set(ref_only_indexes).issubset(set(redundant_ref_indexes)):
+            # TODO: MIC-6075
+            diff = set(ref_only_indexes) - set(redundant_ref_indexes)
+            raise ValueError(
+                f"Reference data has non-trivial index levels {diff} that are not in the test data. "
+                "We cannot currently marginalize over these index levels."
+            )
+        reference_data = self.reference_data.droplevel(ref_only_indexes)
 
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
         return converted_test_data, reference_data
