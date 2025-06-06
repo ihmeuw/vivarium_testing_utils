@@ -99,29 +99,14 @@ class FuzzyComparison(Comparison):
 
         self.test_source = test_source
         self.test_scenarios = test_scenarios if test_scenarios else {}
-        self.test_datasets = test_datasets
-
+        self.test_datasets = {
+            key: self._filter_scenarios(dataset, test_scenarios)
+            for key, dataset in test_datasets.items()
+        }
         self.reference_source = reference_source
         self.reference_scenarios = reference_scenarios if reference_scenarios else {}
-        self.reference_data = reference_data
+        self.reference_data = self._filter_scenarios(reference_data, reference_scenarios)
 
-        ## filter index levels for scenario columns to "baseline"
-        if test_scenarios:
-            self.test_datasets = {
-                key: dataset.xs(
-                    tuple(test_scenarios.values()),
-                    level=tuple(test_scenarios.keys()),
-                    drop_level=False,
-                )
-                for key, dataset in self.test_datasets.items()
-            }
-        if reference_scenarios:
-            # If the reference data is from a simulation, filter it as well.
-            self.reference_data = self.reference_data.xs(
-                tuple(reference_scenarios.values()),
-                level=tuple(reference_scenarios.keys()),
-                drop_level=False,
-            )
         if stratifications:
             # TODO: MIC-6075
             raise NotImplementedError(
@@ -300,3 +285,17 @@ class FuzzyComparison(Comparison):
 
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
         return converted_test_data, reference_data
+
+    def _filter_scenarios(
+        self,
+        data: pd.DataFrame,
+        scenarios: dict[str, str] | None,
+    ) -> pd.DataFrame:
+        """Filter the data based on the scenarios."""
+        return (
+            data.xs(
+                tuple(scenarios.values()), level=tuple(scenarios.keys()), drop_level=False
+            )
+            if scenarios
+            else data
+        )
