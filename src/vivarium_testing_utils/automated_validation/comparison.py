@@ -99,14 +99,14 @@ class FuzzyComparison(Comparison):
         self.measure: RatioMeasure = measure
 
         self.test_source = test_source
-        self.test_scenarios: dict[str, str] = {} if test_scenarios is None else test_scenarios
+        self.test_scenarios: dict[str, str] = test_scenarios if test_scenarios else {}
         self.test_datasets = {
             key: filter_data(dataset, self.test_scenarios, drop_singles=False)
             for key, dataset in test_datasets.items()
         }
         self.reference_source = reference_source
         self.reference_scenarios: dict[str, str] = (
-            {} if reference_scenarios is None else reference_scenarios
+            reference_scenarios if reference_scenarios else {}
         )
         self.reference_data = filter_data(
             reference_data, self.reference_scenarios, drop_singles=False
