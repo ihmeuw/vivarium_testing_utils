@@ -5,7 +5,6 @@ from pandera.errors import SchemaError
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
-    RatioData,
     SimOutputData,
     SingleNumericColumn,
 )
@@ -92,31 +91,3 @@ def test_draw_data(raw_artifact_disease_incidence: pd.DataFrame) -> None:
     wrong_dtype["draw_0"] = "invalid"
 
     check_schema_error_batch(DrawData, [extra_column_data, wrong_dtype])
-
-
-def test_ratio_data() -> None:
-    """
-    Test that the RatioData schema correctly validates a DataFrame with two numeric columns.
-    """
-    # Create a valid DataFrame
-    data = pd.DataFrame({"numerator": [1, 2, 3], "denominator": [4, 5, 6]})
-    RatioData.validate(data)
-
-    error_cases = []
-
-    # Test that the schema raises an error for extra columns
-    for extra_column_value in [0, "foo"]:
-        extra_column_data = data.copy()
-        extra_column_data["extra_column"] = extra_column_value
-        error_cases.append(extra_column_data)
-
-    # Test that the schema raises an error for invalid data
-    wrong_dtype = data.copy()
-    wrong_dtype["numerator"] = "invalid"
-
-    # Test that the schema raises an error for missing columns
-    missing_column_data = data.drop(columns=["numerator"])
-
-    error_cases.extend([missing_column_data, wrong_dtype])
-
-    check_schema_error_batch(RatioData, error_cases)

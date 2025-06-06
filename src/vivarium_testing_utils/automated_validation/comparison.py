@@ -26,7 +26,7 @@ class Comparison(ABC):
 
     measure: Measure
     test_source: DataSource
-    test_data: pd.DataFrame
+    test_datasets: dict[str, pd.DataFrame]
     reference_source: DataSource
     reference_data: pd.DataFrame
     stratifications: Collection[str]
@@ -84,14 +84,14 @@ class FuzzyComparison(Comparison):
         self,
         measure: RatioMeasure,
         test_source: DataSource,
-        test_data: pd.DataFrame,
+        test_datasets: dict[str, pd.DataFrame],
         reference_source: DataSource,
         reference_data: pd.DataFrame,
         stratifications: Collection[str] = (),
     ):
         self.measure: RatioMeasure = measure
         self.test_source = test_source
-        self.test_data = test_data
+        self.test_datasets = test_datasets
         self.reference_source = reference_source
         self.reference_data = reference_data
         if stratifications:
@@ -112,8 +112,8 @@ class FuzzyComparison(Comparison):
         - a sample of the input draws.
         """
         measure_key = self.measure.measure_key
-        test_info = self._get_metadata_from_dataset("test")
-        reference_info = self._get_metadata_from_dataset("reference")
+        test_info = self._get_metadata_from_datasets("test")
+        reference_info = self._get_metadata_from_datasets("reference")
         return format_metadata(measure_key, test_info, reference_info)
 
     def get_diff(
@@ -145,12 +145,16 @@ class FuzzyComparison(Comparison):
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
 
-        test_data, reference_data = self._align_datasets()
+        test_proportion_data, reference_data = self._align_datasets()
 
-        test_data = test_data.rename(columns={"value": "test_rate"}).dropna()
+        test_proportion_data = test_proportion_data.rename(
+            columns={"value": "test_rate"}
+        ).dropna()
         reference_data = reference_data.rename(columns={"value": "reference_rate"}).dropna()
 
-        merged_data = pd.merge(test_data, reference_data, left_index=True, right_index=True)
+        merged_data = pd.merge(
+            test_proportion_data, reference_data, left_index=True, right_index=True
+        )
         merged_data["percent_error"] = (
             (merged_data["test_rate"] - merged_data["reference_rate"])
             / merged_data["reference_rate"]
@@ -169,7 +173,7 @@ class FuzzyComparison(Comparison):
     def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def _get_metadata_from_dataset(
+    def _get_metadata_from_datasets(
         self, dataset_key: Literal["test", "reference"]
     ) -> dict[str, Any]:
         """Organize the data information into a dictionary for display by a styled pandas DataFrame.
@@ -186,7 +190,7 @@ class FuzzyComparison(Comparison):
         """
         if dataset_key == "test":
             source = self.test_source
-            dataframe = self.test_data
+            dataframe = self.measure.get_measure_data_from_ratio(**self.test_datasets)
         elif dataset_key == "reference":
             source = self.reference_source
             dataframe = self.reference_data
@@ -222,34 +226,46 @@ class FuzzyComparison(Comparison):
 
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
-        test_data = self.test_data.copy()
-        reference_data = self.reference_data.copy()
-        # If the test data has any index levels that are not in the reference data, marginalize
-        # over those index levels.
+        # Get union of test data index names
+        combined_test_index_names = set(
+            index_name
+            for key in self.test_datasets
+            for index_name in self.test_datasets[key].index.names
+        )
+        # Get index levels that are only in the test data.
         test_only_indexes = [
             index
-            for index in self.test_data.index.names
+            for index in combined_test_index_names
             if index not in self.reference_data.index.names
         ]
-        stratified_test_data = marginalize(test_data, test_only_indexes)
-
-        # Drop any singular index levels from the reference data if they are not in the test data.
-        # If any ref-only index level is not singular, raise an error.
+        # Likewise, get index levels that are only in the reference data.
         ref_only_indexes = [
             index
             for index in self.reference_data.index.names
-            if index not in self.test_data.index.names
+            if index not in combined_test_index_names
         ]
-        redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
-        for index_name in ref_only_indexes:
-            if not index_name in redundant_ref_indexes:
-                # TODO: MIC-6075
-                raise ValueError(
-                    f"Reference data has non-trivial index {index_name} that is not in the test data."
-                    "We cannot currently marginalize over this index."
-                )
-            else:
-                reference_data = reference_data.droplevel(index_name)
 
-        converted_test_data = self.measure.get_measure_data_from_ratio(stratified_test_data)
+        # If the test data has any index levels that are not in the reference data, marginalize
+        # over those index levels.)
+        test_datasets = {
+            key: marginalize(self.test_datasets[key], test_only_indexes)
+            for key in self.test_datasets
+        }
+
+        # Drop any singular index levels from the reference data if they are not in the test data.
+        # If any ref-only index level is not singular, raise an error.
+        redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
+        if not set(ref_only_indexes).issubset(set(redundant_ref_indexes)):
+            # TODO: MIC-6075
+            diff = set(ref_only_indexes) - set(redundant_ref_indexes)
+            raise ValueError(
+                f"Reference data has non-trivial index levels {diff} that are not in the test data. "
+                "We cannot currently marginalize over these index levels."
+            )
+        reference_data = self.reference_data.droplevel(ref_only_indexes)  # type: ignore[arg-type]
+        # Mypy complains about list[str] being passed to droplevel, I think because list is invariabt
+        # and it wants list[Hashable]. That's an issue on the pandas side, not ours.
+        # Regardless, this is a valid use of the droplevel API.
+
+        converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
         return converted_test_data, reference_data
