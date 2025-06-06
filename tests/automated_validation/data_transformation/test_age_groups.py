@@ -284,18 +284,11 @@ def test_rebin_dataframe(sample_df_with_ages: pd.DataFrame) -> None:
         "4_to_7": 1.0 * 1 / 5 + 2.0 * 2 / 5,
         "7_to_15": 2.0 * 3 / 5 + 3.0,
     }
-    expected_bar = {
-        "0_to_3": 4.0 * 3 / 5,
-        "3_to_4": 4.0 * 1 / 5,
-        "4_to_7": 4.0 * 1 / 5 + 5.0 * 2 / 5,
-        "7_to_15": 5.0 * 3 / 5 + 6.0,
-    }
 
     rebinned_df = rebin_count_dataframe(target_age_schema, df)
     expected_df = pd.DataFrame(
         {
-            "foo": expected_foo.values(),
-            "bar": expected_bar.values(),
+            "value": expected_foo.values(),
         },
         index=pd.MultiIndex.from_tuples(
             [

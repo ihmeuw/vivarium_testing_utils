@@ -14,7 +14,7 @@ AgeTuple = tuple[str, int | float, int | float]
 AgeRange = tuple[int | float, int | float]
 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    RatioData,
+    SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
 
@@ -446,19 +446,13 @@ def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame
             f"Rebinning DataFrame age groups from {source_age_schema} to {target_schema}."
         )
         # if we don't fit pandera schema SimOutputData, assume the data is rate data and raise an error.
-        try:
-            data = rebin_count_dataframe(
-                target_schema, df.droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
-            )
-        except pa.errors.SchemaError:
-            # TODO: MIC-6075
-            raise NotImplementedError(
-                "Age Group rebinning can only be performed on count data."
-            )
+        data = rebin_count_dataframe(
+            target_schema, df.droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
+        )
         return data
 
 
-@check_io(df=RatioData)
+@check_io(df=SingleNumericColumn, out=SingleNumericColumn)
 def rebin_count_dataframe(
     target_schema: AgeSchema,
     df: pd.DataFrame,
