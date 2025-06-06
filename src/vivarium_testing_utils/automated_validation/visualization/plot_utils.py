@@ -43,7 +43,12 @@ def plot_comparison(
         )
     title = _format_title(comparison.measure.measure_key)
     combined_data = _get_combined_data(comparison)
-    title, combined_data = _conditionalize(condition, title, combined_data)
+
+    # Add the scenario columns to the list of values to
+    for modifiers in (comparison.test_scenarios, comparison.reference_scenarios, condition):
+        title = append_condition_to_title(modifiers, title)
+
+    combined_data = _conditionalize(condition, combined_data)
 
     default_kwargs = {
         "title": title,
@@ -306,13 +311,17 @@ def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
 
 
 def _conditionalize(
-    condition_dict: dict[str, Any], title: str, data: pd.DataFrame
+    condition_dict: dict[str, Any], data: pd.DataFrame
 ) -> tuple[str, pd.DataFrame]:
     """Filter the data based on the condition dictionary."""
     for condition_level, condition_value in condition_dict.items():
         data = data.query(f"{condition_level} == '{condition_value}'")
         data = data.droplevel(condition_level)
+    return data
 
+
+def append_condition_to_title(condition_dict: dict[str, Any], title: str) -> str:
+    """Append the condition dictionary to the title."""
     if condition_dict:
         title += f"\n{' | '.join([f'{k} = {v}' for k, v in condition_dict.items()])}"
-    return title, data
+    return title

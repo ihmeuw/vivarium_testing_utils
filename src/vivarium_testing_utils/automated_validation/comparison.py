@@ -97,26 +97,31 @@ class FuzzyComparison(Comparison):
         stratifications: Collection[str] = (),
     ):
         self.measure: RatioMeasure = measure
+
         self.test_source = test_source
+        self.test_scenarios = test_scenarios
         self.test_datasets = test_datasets
 
         self.reference_source = reference_source
+        self.reference_scenarios = reference_scenarios
         self.reference_data = reference_data
 
         ## filter index levels for scenario columns to "baseline"
         if test_scenarios:
             self.test_datasets = {
                 key: dataset.xs(
-                    test_scenarios.keys(), level=test_scenarios.values(), drop_level=True
+                    tuple(test_scenarios.values()),
+                    level=tuple(test_scenarios.keys()),
+                    drop_level=False,
                 )
                 for key, dataset in self.test_datasets.items()
             }
         if reference_scenarios:
             # If the reference data is from a simulation, filter it as well.
             self.reference_data = self.reference_data.xs(
-                reference_scenarios.keys(),
-                level=reference_scenarios.values(),
-                drop_level=True,
+                tuple(reference_scenarios.values()),
+                level=tuple(reference_scenarios.keys()),
+                drop_level=False,
             )
         if stratifications:
             # TODO: MIC-6075
