@@ -255,42 +255,46 @@ class FuzzyComparison(Comparison):
 
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
-        test_datasets = self.test_datasets.copy()
-        reference_data = self.reference_data.copy()
-
         # Get union of test data index names
         combined_test_index_names = set(
             index_name
-            for key in test_datasets
-            for index_name in test_datasets[key].index.names
+            for key in self.test_datasets
+            for index_name in self.test_datasets[key].index.names
         )
-
-        ref_index_names = set(reference_data.index.names)
         # Get index levels that are only in the test data.
-        test_only_indexes = combined_test_index_names - ref_index_names
+        test_only_indexes = [
+            index
+            for index in combined_test_index_names
+            if index not in self.reference_data.index.names
+        ]
         # Likewise, get index levels that are only in the reference data.
-        ref_only_indexes = ref_index_names - combined_test_index_names
+        ref_only_indexes = [
+            index
+            for index in self.reference_data.index.names
+            if index not in combined_test_index_names
+        ]
 
-        indexes_to_marginalize = test_only_indexes - set(SAMPLING_INDEX_LEVELS)
         # If the test data has any index levels that are not in the reference data, marginalize
-        # over those index levels.
+        # over those index levels.)
         test_datasets = {
-            key: marginalize(test_datasets[key], indexes_to_marginalize)
-            for key in test_datasets
+            key: marginalize(self.test_datasets[key], test_only_indexes)
+            for key in self.test_datasets
         }
 
         # Drop any singular index levels from the reference data if they are not in the test data.
         # If any ref-only index level is not singular, raise an error.
         redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
-        for index_name in ref_only_indexes:
-            if not index_name in redundant_ref_indexes:
-                # TODO: MIC-6075
-                raise ValueError(
-                    f"Reference data has non-trivial index {index_name} that is not in the test data."
-                    "We cannot currently marginalize over this index."
-                )
-            else:
-                reference_data = reference_data.droplevel(index_name)
+        if not set(ref_only_indexes).issubset(set(redundant_ref_indexes)):
+            # TODO: MIC-6075
+            diff = set(ref_only_indexes) - set(redundant_ref_indexes)
+            raise ValueError(
+                f"Reference data has non-trivial index levels {diff} that are not in the test data. "
+                "We cannot currently marginalize over these index levels."
+            )
+        reference_data = self.reference_data.droplevel(ref_only_indexes)  # type: ignore[arg-type]
+        # Mypy complains about list[str] being passed to droplevel, I think because list is invariabt
+        # and it wants list[Hashable]. That's an issue on the pandas side, not ours.
+        # Regardless, this is a valid use of the droplevel API.
 
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
         return converted_test_data, reference_data

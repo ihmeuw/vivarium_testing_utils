@@ -321,7 +321,9 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     assert "location" not in singular_indices
 
     # Execute and verify error is raised with correct message
-    with pytest.raises(ValueError, match="Reference data has non-trivial index location"):
+    with pytest.raises(
+        ValueError, match="Reference data has non-trivial index levels {'location'}"
+    ):
         comparison._align_datasets()
 
 

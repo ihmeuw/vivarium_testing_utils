@@ -17,6 +17,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
+
 class ValidationContext:
 
     def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
@@ -81,8 +82,13 @@ class ValidationContext:
         }
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
 
-        for source, scenarios in ((test_source_enum, test_scenarios), (ref_source_enum, ref_scenarios)):
-            if source == DataSource.SIM and set(scenarios.keys()) != set(self.scenario_columns):
+        for source, scenarios in (
+            (test_source_enum, test_scenarios),
+            (ref_source_enum, ref_scenarios),
+        ):
+            if source == DataSource.SIM and set(scenarios.keys()) != set(
+                self.scenario_columns
+            ):
                 raise ValueError(
                     f"Each simulation comparison subject must choose a specific scenario. "
                     f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."
