@@ -2,15 +2,16 @@ from typing import Any
 from unittest.mock import Mock
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import pytest
+from pandas.testing import assert_frame_equal
 from pytest_mock import MockerFixture
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.plot_utils import (
     _append_condition_to_title,
-    _conditionalize,
     _format_title,
     _get_combined_data,
     _get_unconditioned_index_names,
@@ -30,22 +31,20 @@ def test_title() -> str:
 
 
 @pytest.fixture
-def sample_data() -> pd.DataFrame:
+def base_sample_data() -> pd.DataFrame:
     """Create test data with two unconditioned variables where the second has more unique values."""
     # First variable (sex) has 2 values, second (age_group) has 3
     index = pd.MultiIndex.from_product(
         [
             ["male", "female"],  # sex - 2 values
             ["A", "B", "C"],  # age_group - 3 values
-            ["Test", "Reference"],  # source - 2 values
             ["North", "South"],  # region 2 values
-            ["susceptible", "infected", "recovered"],  # disease_state - 2 values
-            [0],  # input_draw
+            ["susceptible", "infected", "recovered"],  # disease_state - 3 values
         ],
-        names=["sex", "age_group", "source", "region", "disease_state", "input_draw"],
+        names=["sex", "age_group", "region", "disease_state"],
     )
     data = pd.DataFrame(
-        [i / 10 for i in range(2 * 3 * 2 * 2 * 3)],
+        [i / 10 for i in range(2 * 3 * 2 * 3)],
         index=index,
         columns=["value"],
     )
@@ -53,21 +52,38 @@ def sample_data() -> pd.DataFrame:
 
 
 @pytest.fixture
-def sample_comparison(sample_data: pd.DataFrame, mocker: MockerFixture) -> Mock:
-    # Create test and reference data
-    test_data = sample_data.xs("Test", level="source")
-    reference_data = sample_data.xs("Reference", level="source")
+def sample_test_data(base_sample_data: pd.DataFrame) -> pd.DataFrame:
+    """Create test data with two unconditioned variables where the first has more unique values."""
+    # rename extra column to extra test column
+    test_data = base_sample_data.copy()
+    test_data["input_draw"] = 0  # Add input_draw column
+    test_data["scenario"] = "baseline"
+    test_data.set_index("input_draw", append=True, inplace=True)
+    test_data.set_index("scenario", append=True, inplace=True)
+    return test_data
 
+
+@pytest.fixture
+def sample_ref_data(base_sample_data: pd.DataFrame) -> pd.DataFrame:
+    """Create test data with two unconditioned variables where the first has more unique values."""
+    # rename extra column to extra test column
+    return base_sample_data.copy()
+
+
+@pytest.fixture
+def sample_comparison(
+    sample_test_data: pd.DataFrame, sample_ref_data: pd.DataFrame, mocker: MockerFixture
+) -> Mock:
     # Mock Comparison object with the _align_datasets method
     mock_comparison = mocker.Mock(spec=Comparison)
-    mock_comparison._align_datasets = mocker.Mock(return_value=(test_data, reference_data))
+    mock_comparison._align_datasets = mocker.Mock(
+        return_value=(sample_test_data, sample_ref_data)
+    )
 
     # Set up sources
-    mock_comparison.test_source = mocker.Mock(spec=DataSource)
-    mock_comparison.test_source.name = "test"
-    mock_comparison.test_scenarios = {}
-    mock_comparison.reference_source = mocker.Mock(spec=DataSource)
-    mock_comparison.reference_source.name = "reference"
+    mock_comparison.test_source = DataSource.SIM
+    mock_comparison.test_scenarios = {"scenario": "baseline"}
+    mock_comparison.reference_source = DataSource.ARTIFACT
     mock_comparison.reference_scenarios = {}
 
     # Set up measure
@@ -78,6 +94,13 @@ def sample_comparison(sample_data: pd.DataFrame, mocker: MockerFixture) -> Mock:
     assert isinstance(mock_comparison, Mock)
 
     return mock_comparison
+
+
+@pytest.fixture
+def sample_combined_data(sample_comparison: Mock) -> pd.DataFrame:
+    """Combine test and reference data into a single DataFrame."""
+    # Add source column to differentiate test and reference data
+    return _get_combined_data(sample_comparison)
 
 
 @pytest.fixture
@@ -182,8 +205,9 @@ class TestPlotComparison:
 
 
 class TestLinePlot:
+
     def test_subplots_true(
-        self, test_title: str, sample_data: pd.DataFrame, mocker: MockerFixture
+        self, test_title: str, sample_combined_data: pd.DataFrame, mocker: MockerFixture
     ) -> None:
 
         mock_rel_plot = mocker.patch(
@@ -191,7 +215,10 @@ class TestLinePlot:
         )
         mock_rel_plot.return_value = plt.figure()
         fig = _line_plot(
-            title=test_title, combined_data=sample_data, x_axis="age_group", subplots=True
+            title=test_title,
+            combined_data=sample_combined_data,
+            x_axis="age_group",
+            subplots=True,
         )
 
         # Assert rel_plot was called with correct arguments
@@ -209,7 +236,7 @@ class TestLinePlot:
         assert kwargs["plot_args"]["errorbar"] == "pi"
 
     def test_subplots_false(
-        self, test_title: str, sample_data: pd.DataFrame, mocker: MockerFixture
+        self, test_title: str, sample_combined_data: pd.DataFrame, mocker: MockerFixture
     ) -> None:
 
         mock_fig = mocker.Mock()
@@ -221,7 +248,10 @@ class TestLinePlot:
         mocker.patch("matplotlib.pyplot.tight_layout")
 
         figures = _line_plot(
-            title=test_title, combined_data=sample_data, x_axis="age_group", subplots=False
+            title=test_title,
+            combined_data=sample_combined_data,
+            x_axis="age_group",
+            subplots=False,
         )
 
         # Check we get a list of figures as expected
@@ -250,24 +280,25 @@ class TestLinePlot:
 
 
 class TestRelPlot:
-    def test_too_many_stratifications(self, sample_data: pd.DataFrame) -> None:
+
+    def test_too_many_stratifications(self, sample_combined_data: pd.DataFrame) -> None:
         # Setup data with 3 stratification levels (excluding input_draw and source)
         # This should fail because we allow max 2 stratification levels
         with pytest.raises(ValueError, match="Maximum of.*stratification levels supported"):
             _rel_plot(
                 title="Test Title",
-                combined_data=sample_data,
+                combined_data=sample_combined_data,
                 x_axis="age_group",
             )
 
     def test_two_unconditioned(
         self,
         test_title: str,
-        sample_data: pd.DataFrame,
+        sample_combined_data: pd.DataFrame,
         mock_relplot_setup: tuple[Mock, Mock],
     ) -> None:
         """Test rel_plot with two unconditioned variables where the first has more unique values."""
-        filtered_data = sample_data.xs(
+        filtered_data = sample_combined_data.xs(
             "male", level="sex"
         )  # 2 unconditioned variables remain
         assert isinstance(filtered_data, pd.DataFrame)
@@ -293,11 +324,11 @@ class TestRelPlot:
     def test_one_unconditioned(
         self,
         test_title: str,
-        sample_data: pd.DataFrame,
+        sample_combined_data: pd.DataFrame,
         mock_relplot_setup: tuple[Mock, Mock],
     ) -> None:
         """Test rel_plot with a single unconditioned variable."""
-        filtered_data = sample_data.xs(
+        filtered_data = sample_combined_data.xs(
             ("male", "North"), level=("sex", "region")
         )  # 1 unconditioned variable remains
         assert isinstance(filtered_data, pd.DataFrame)
@@ -322,11 +353,11 @@ class TestRelPlot:
     def test_basic(
         self,
         test_title: str,
-        sample_data: pd.DataFrame,
+        sample_combined_data: pd.DataFrame,
         mock_relplot_setup: tuple[Mock, Mock],
     ) -> None:
         """Test rel_plot with all variables conditioned."""
-        filtered_data = sample_data.xs(
+        filtered_data = sample_combined_data.xs(
             ("male", "North", "susceptible"), level=("sex", "region", "disease_state")
         )
         assert isinstance(filtered_data, pd.DataFrame)
@@ -361,110 +392,27 @@ class TestHelperFunctions:
         assert set(_get_unconditioned_index_names(index, "age_group")) == {"sex"}
         assert set(_get_unconditioned_index_names(index, "sex")) == {"age_group"}
 
-    def test_conditionalize(self, sample_data: pd.DataFrame) -> None:
-
-        filtered_data = _conditionalize({"sex": "male"}, sample_data)
-
-        assert "sex" not in filtered_data.index.names
-
-    @pytest.mark.parametrize(
-        "test_index_names,ref_index_names,expected_index_names",
-        [
-            # Same index structure
-            (
-                ["sex", "age_group", "region"],
-                ["sex", "age_group", "region"],
-                ["sex", "age_group", "region", "source"],
-            ),
-            # Test has extra index level
-            (
-                ["sex", "age_group", "region", "extra_level"],
-                ["sex", "age_group", "region"],
-                ["sex", "age_group", "region", "extra_level", "source"],
-            ),
-            # Reference has extra index level
-            (
-                ["sex", "age_group", "region"],
-                ["sex", "age_group", "region", "extra_level"],
-                ["sex", "age_group", "region", "extra_level", "source"],
-            ),
-            # Both have different extra levels
-            (
-                ["sex", "age_group", "test_only"],
-                ["sex", "age_group", "ref_only"],
-                ["sex", "age_group", "ref_only", "test_only", "source"],
-            ),
-        ],
-    )
     def test_get_combined_data(
         self,
-        test_index_names: list[str],
-        ref_index_names: list[str],
-        expected_index_names: list[str],
-        mocker: MockerFixture,
+        sample_comparison: Mock,
+        sample_test_data: pd.DataFrame,
+        sample_ref_data: pd.DataFrame,
     ) -> None:
-        """Test _get_combined_data with different index structures."""
-        # Create test data with specified index
-        test_data = pd.DataFrame(
-            {"value": [1, 2, 3, 4]},
-            index=pd.MultiIndex.from_tuples(
-                [
-                    ("male", "A", "North"),
-                    ("male", "B", "North"),
-                    ("female", "A", "South"),
-                    ("female", "B", "South"),
-                ],
-                names=test_index_names[:3],  # Use first 3 levels
-            ),
+        """Test that combined data has correct index structure."""
+        test_data = sample_test_data.droplevel("scenario")
+        ref_data = sample_ref_data.assign(input_draw=np.nan).set_index(
+            ["input_draw"], append=True
         )
-
-        # Add extra levels if specified
-        if len(test_index_names) > 3:
-            for extra_level in test_index_names[3:]:
-                test_data[extra_level] = "test_value"
-                test_data = test_data.set_index(extra_level, append=True)
-
-        # Create reference data with specified index
-        ref_data = pd.DataFrame(
-            {"value": [5, 6, 7, 8]},
-            index=pd.MultiIndex.from_tuples(
-                [
-                    ("male", "A", "North"),
-                    ("male", "B", "North"),
-                    ("female", "A", "South"),
-                    ("female", "B", "South"),
-                ],
-                names=ref_index_names[:3],  # Use first 3 levels
-            ),
+        test_data = test_data.reorder_levels(ref_data.index.names)
+        combined_data = pd.concat(
+            [test_data, ref_data],
+            keys=[
+                "Sim",
+                "Artifact",
+            ],
+            names=["source"],
         )
-
-        # Add extra levels if specified
-        if len(ref_index_names) > 3:
-            for extra_level in ref_index_names[3:]:
-                ref_data[extra_level] = "ref_value"
-                ref_data = ref_data.set_index(extra_level, append=True)
-
-        # Mock Comparison object
-        mock_comparison = mocker.Mock(spec=Comparison)
-        mock_comparison._align_datasets = mocker.Mock(return_value=(test_data, ref_data))
-        mock_comparison.test_source = mocker.Mock(spec=DataSource)
-        mock_comparison.test_source.name = "test"
-        mock_comparison.reference_source = mocker.Mock(spec=DataSource)
-        mock_comparison.reference_source.name = "reference"
-
-        # Test the function
-        result = _get_combined_data(mock_comparison)
-
-        # Verify the combined data structure
-        assert "source" in result.index.names
-        assert set(result.index.names) == set(expected_index_names)
-        assert set(result.index.get_level_values("source").unique()) == {"Test", "Reference"}
-
-        # Verify that both test and reference data are present
-        test_rows = result.xs("Test", level="source")
-        ref_rows = result.xs("Reference", level="source")
-        assert len(test_rows) == len(test_data)
-        assert len(ref_rows) == len(ref_data)
+        assert_frame_equal(_get_combined_data(sample_comparison), combined_data)
 
     @pytest.mark.parametrize(
         "condition_dict, expected",

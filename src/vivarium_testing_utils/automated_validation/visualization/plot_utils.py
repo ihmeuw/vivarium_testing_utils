@@ -9,8 +9,8 @@ from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    difference_by_set,
     fill_with_placeholder,
+    filter_data,
 )
 
 
@@ -45,13 +45,13 @@ def plot_comparison(
             f"Unsupported plot type: {type}. Supported types are: {list(PLOT_TYPE_MAPPING.keys())}"
         )
     title = _format_title(comparison.measure.measure_key)
-    combined_data = _get_combined_data(comparison)
 
-    # Add the scenario columns to the list of values to
+    # Add the scenario columns to the list of values to append to the title.
     for modifiers in (comparison.test_scenarios, comparison.reference_scenarios, condition):
         title = _append_condition_to_title(modifiers, title)
 
-    combined_data = _conditionalize(condition, combined_data)
+    combined_data = _get_combined_data(comparison)
+    combined_data = filter_data(combined_data, filter_cols=condition)
 
     default_kwargs = {
         "title": title,
@@ -273,15 +273,21 @@ def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
     """Get the combined data from the test and reference datasets."""
     test_data, reference_data = comparison._align_datasets()
 
-    test_only_indexes, ref_only_indexes = difference_by_set(
-        test_data.index.names, reference_data.index.names
-    )
-    reference_data = fill_with_placeholder(
-        reference_data, test_only_indexes, placeholder=np.nan
-    )
-    test_data = fill_with_placeholder(test_data, ref_only_indexes, placeholder=np.nan)
+    # Drop the scenario columns, which should already be filtered.
+    test_data = filter_data(test_data, filter_cols=comparison.test_scenarios)
+    reference_data = filter_data(reference_data, filter_cols=comparison.reference_scenarios)
 
-    test_data = test_data.reorder_levels(reference_data.index.names)
+    # Add input draw with placeholder if necessary
+    if (
+        "input_draw" in test_data.index.names
+        and "input_draw" not in reference_data.index.names
+    ):
+        reference_data = fill_with_placeholder(reference_data, ["input_draw"], np.nan)
+    elif (
+        "input_draw" not in test_data.index.names
+        and "input_draw" in reference_data.index.names
+    ):
+        test_data = fill_with_placeholder(test_data, ["input_draw"], np.nan)
 
     combined_data = pd.concat(
         [test_data, reference_data],
@@ -292,14 +298,6 @@ def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
         names=["source"],
     )
     return combined_data
-
-
-def _conditionalize(condition_dict: dict[str, Any], data: pd.DataFrame) -> pd.DataFrame:
-    """Filter the data based on the condition dictionary."""
-    for condition_level, condition_value in condition_dict.items():
-        data = data.query(f"{condition_level} == '{condition_value}'")
-        data = data.droplevel(condition_level)
-    return data
 
 
 def _append_condition_to_title(condition_dict: dict[str, Any], title: str) -> str:

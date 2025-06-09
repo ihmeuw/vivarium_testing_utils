@@ -286,4 +286,6 @@ class FuzzyComparison(Comparison):
         reference_data = self.reference_data.droplevel(list(reference_indexes_to_drop))
 
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
+
+        ## At this point, the only non-common index levels should be scenarios and draws.
         return converted_test_data, reference_data
