@@ -246,17 +246,6 @@ def _heatmap(
 ##################
 
 
-def _append_source(
-    data: pd.DataFrame,
-    source: DataSource,
-) -> pd.DataFrame:
-    """Append a source column to the DataFrame."""
-    data_with_source = data.copy()
-    data_with_source["source"] = source.name.lower().capitalize()
-    data_with_source.set_index("source", append=True, inplace=True)
-    return data_with_source
-
-
 def _format_title(measure_key: str) -> str:
     """Convert a measure key to a more readable format."""
     title = " ".join(measure_key.split(".")[1:])
