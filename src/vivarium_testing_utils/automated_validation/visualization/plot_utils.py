@@ -10,6 +10,7 @@ from matplotlib.figure import Figure
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     difference_by_set,
+    fill_with_placeholder,
 )
 
 
@@ -275,14 +276,10 @@ def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
     test_only_indexes, ref_only_indexes = difference_by_set(
         test_data.index.names, reference_data.index.names
     )
-
-    for level_name in test_only_indexes:
-        reference_data[level_name] = np.nan
-        reference_data = reference_data.set_index(level_name, append=True)
-
-    for level_name in ref_only_indexes:
-        test_data[level_name] = np.nan
-        test_data = test_data.set_index(level_name, append=True)
+    reference_data = fill_with_placeholder(
+        reference_data, test_only_indexes, placeholder=np.nan
+    )
+    test_data = fill_with_placeholder(test_data, ref_only_indexes, placeholder=np.nan)
 
     test_data = test_data.reorder_levels(reference_data.index.names)
 

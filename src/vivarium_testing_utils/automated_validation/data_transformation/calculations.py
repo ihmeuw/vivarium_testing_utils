@@ -32,6 +32,14 @@ def difference_by_set(*s: Iterable[Any]) -> tuple[set[Any], ...]:
     )
 
 
+def fill_with_placeholder(
+    df: pd.DataFrame, indexes: Iterable[str], placeholder: Any
+) -> pd.DataFrame:
+    return df.assign(**{index: placeholder for index in indexes}).set_index(
+        list(indexes), append=True
+    )
+
+
 def filter_data(
     data: pd.DataFrame, filter_cols: Mapping[str, str | list[str]], drop_singles: bool = True
 ) -> pd.DataFrame:

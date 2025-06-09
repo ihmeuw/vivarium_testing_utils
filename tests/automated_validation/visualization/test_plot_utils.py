@@ -367,11 +367,104 @@ class TestHelperFunctions:
 
         assert "sex" not in filtered_data.index.names
 
-    def test_get_combined_data(self, sample_comparison: Comparison) -> None:
-        result = _get_combined_data(sample_comparison)
+    @pytest.mark.parametrize(
+        "test_index_names,ref_index_names,expected_index_names",
+        [
+            # Same index structure
+            (
+                ["sex", "age_group", "region"],
+                ["sex", "age_group", "region"],
+                ["sex", "age_group", "region", "source"],
+            ),
+            # Test has extra index level
+            (
+                ["sex", "age_group", "region", "extra_level"],
+                ["sex", "age_group", "region"],
+                ["sex", "age_group", "region", "extra_level", "source"],
+            ),
+            # Reference has extra index level
+            (
+                ["sex", "age_group", "region"],
+                ["sex", "age_group", "region", "extra_level"],
+                ["sex", "age_group", "region", "extra_level", "source"],
+            ),
+            # Both have different extra levels
+            (
+                ["sex", "age_group", "test_only"],
+                ["sex", "age_group", "ref_only"],
+                ["sex", "age_group", "ref_only", "test_only", "source"],
+            ),
+        ],
+    )
+    def test_get_combined_data(
+        self,
+        test_index_names: list[str],
+        ref_index_names: list[str],
+        expected_index_names: list[str],
+        mocker: MockerFixture,
+    ) -> None:
+        """Test _get_combined_data with different index structures."""
+        # Create test data with specified index
+        test_data = pd.DataFrame(
+            {"value": [1, 2, 3, 4]},
+            index=pd.MultiIndex.from_tuples(
+                [
+                    ("male", "A", "North"),
+                    ("male", "B", "North"),
+                    ("female", "A", "South"),
+                    ("female", "B", "South"),
+                ],
+                names=test_index_names[:3],  # Use first 3 levels
+            ),
+        )
 
+        # Add extra levels if specified
+        if len(test_index_names) > 3:
+            for extra_level in test_index_names[3:]:
+                test_data[extra_level] = "test_value"
+                test_data = test_data.set_index(extra_level, append=True)
+
+        # Create reference data with specified index
+        ref_data = pd.DataFrame(
+            {"value": [5, 6, 7, 8]},
+            index=pd.MultiIndex.from_tuples(
+                [
+                    ("male", "A", "North"),
+                    ("male", "B", "North"),
+                    ("female", "A", "South"),
+                    ("female", "B", "South"),
+                ],
+                names=ref_index_names[:3],  # Use first 3 levels
+            ),
+        )
+
+        # Add extra levels if specified
+        if len(ref_index_names) > 3:
+            for extra_level in ref_index_names[3:]:
+                ref_data[extra_level] = "ref_value"
+                ref_data = ref_data.set_index(extra_level, append=True)
+
+        # Mock Comparison object
+        mock_comparison = mocker.Mock(spec=Comparison)
+        mock_comparison._align_datasets = mocker.Mock(return_value=(test_data, ref_data))
+        mock_comparison.test_source = mocker.Mock(spec=DataSource)
+        mock_comparison.test_source.name = "test"
+        mock_comparison.reference_source = mocker.Mock(spec=DataSource)
+        mock_comparison.reference_source.name = "reference"
+
+        # Test the function
+        result = _get_combined_data(mock_comparison)
+
+        # Verify the combined data structure
         assert "source" in result.index.names
+        assert set(result.index.names) == set(expected_index_names)
         assert set(result.index.get_level_values("source").unique()) == {"Test", "Reference"}
+
+        # Verify that both test and reference data are present
+        test_rows = result.xs("Test", level="source")
+        ref_rows = result.xs("Reference", level="source")
+        assert len(test_rows) == len(test_data)
+        assert len(ref_rows) == len(ref_data)
 
     @pytest.mark.parametrize(
         "condition_dict, expected",

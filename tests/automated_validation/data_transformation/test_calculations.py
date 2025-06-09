@@ -8,6 +8,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
 )
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     aggregate_sum,
+    fill_with_placeholder,
     filter_data,
     linear_combination,
     ratio,
@@ -228,3 +229,46 @@ def test_filter_data_empty_result(filter_test_data: pd.DataFrame) -> None:
     """Test that filter_data raises ValueError when result is empty."""
     with pytest.raises(ValueError, match="DataFrame is empty after filtering"):
         filter_data(filter_test_data, {"location": "nonexistent_location"})
+
+
+def test_fill_with_placeholder() -> None:
+    """Test adding placeholder columns and setting them as index levels."""
+    # Create a simple DataFrame
+    df = pd.DataFrame(
+        {"value": [10, 20, 30]}, index=pd.Index(["A", "B", "C"], name="original_index")
+    )
+
+    # Test adding single placeholder column
+    result = fill_with_placeholder(df, ["new_col"], "placeholder_value")
+
+    # Check that the new column was added as an index level
+    assert "new_col" in result.index.names
+    assert "original_index" in result.index.names
+    assert len(result.index.names) == 2
+
+    # Check that all values in the new index level are the placeholder
+    assert all(result.index.get_level_values("new_col") == "placeholder_value")
+
+    # Check that original data is preserved
+    assert list(result["value"]) == [10, 20, 30]
+    assert list(result.index.get_level_values("original_index")) == ["A", "B", "C"]
+
+    # Test adding multiple placeholder columns
+    result_multi = fill_with_placeholder(df, ["col1", "col2"], "test_value")
+
+    # Check that both new columns were added as index levels
+    assert "col1" in result_multi.index.names
+    assert "col2" in result_multi.index.names
+    assert "original_index" in result_multi.index.names
+    assert len(result_multi.index.names) == 3
+
+    # Check that all values in both new index levels are the placeholder
+    assert all(result_multi.index.get_level_values("col1") == "test_value")
+    assert all(result_multi.index.get_level_values("col2") == "test_value")
+
+    # Test with different placeholder types
+    result_int = fill_with_placeholder(df, ["int_col"], 42)
+    assert all(result_int.index.get_level_values("int_col") == 42)
+
+    result_none = fill_with_placeholder(df, ["none_col"], None)
+    assert all(pd.isna(result_none.index.get_level_values("none_col")))
