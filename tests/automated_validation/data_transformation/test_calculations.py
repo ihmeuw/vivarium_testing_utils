@@ -206,10 +206,10 @@ def test_aggregate_sum_preserves_string_order() -> None:
 )
 def test_filter_data(
     filter_test_data: pd.DataFrame,
-    filter_cols: dict,
+    filter_cols: dict[str, str],
     drop_singles: bool,
-    expected_index_names: list,
-    expected_values: list,
+    expected_index_names: list[str],
+    expected_values: list[int | float],
 ) -> None:
     """Test filtering DataFrame with different drop_singles settings."""
     result = filter_data(filter_test_data, filter_cols, drop_singles=drop_singles)

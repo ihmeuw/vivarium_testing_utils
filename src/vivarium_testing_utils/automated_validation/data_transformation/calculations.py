@@ -22,12 +22,14 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
 DRAW_PREFIX = "draw_"
 
 
-def difference_by_set(*s: Iterable) -> tuple[set, ...]:
+def difference_by_set(*s: Iterable[Any]) -> tuple[set[Any], ...]:
     """For a collection of iterables, return a tuple of diffs,
     the items that are in each set but not in any others."""
-    s = [set(x) for x in s]
+    set_list = [set(x) for x in s]
 
-    return tuple(s[i] - set.union(*s[:i], *s[i + 1 :]) for i in range(len(s)))
+    return tuple(
+        set_list[i] - set.union(*set_list[:i], *set_list[i + 1 :]) for i in range(len(s))
+    )
 
 
 def filter_data(
