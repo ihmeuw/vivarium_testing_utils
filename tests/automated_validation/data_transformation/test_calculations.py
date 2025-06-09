@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from pandas.testing import assert_frame_equal
 
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,
@@ -57,6 +58,42 @@ def filter_test_data() -> pd.DataFrame:
             names=["location", "sex", "age"],
         ),
     )
+
+
+def test_fill_with_placeholder(intermediate_data: pd.DataFrame) -> None:
+    """Test adding placeholder columns and setting them as index levels."""
+    result = fill_with_placeholder(
+        df=intermediate_data,
+        indexes=["foo", "bar"],
+        placeholder="placeholder",
+    )
+    expected = pd.DataFrame(
+        {
+            "a": [1, 2, 3, 4],
+            "b": [4, 5, 6, 7],
+            "c": [1, 1, 0, 1],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("x", 0, "placeholder", "placeholder"),
+                ("x", 1, "placeholder", "placeholder"),
+                ("y", 0, "placeholder", "placeholder"),
+                ("y", 1, "placeholder", "placeholder"),
+            ],
+            names=["group", "time", "foo", "bar"],
+        ),
+    )
+    assert_frame_equal(result, expected)
+
+
+def test_fill_with_placeholder_existing_indexes(intermediate_data: pd.DataFrame) -> None:
+    """Test filling with placeholder without adding new index levels."""
+    with pytest.raises(ValueError, match="Index time already exists in the DataFrame."):
+        fill_with_placeholder(
+            df=intermediate_data,
+            indexes=["time"],
+            placeholder="placeholder",
+        )
 
 
 def test_ratio(intermediate_data: pd.DataFrame) -> None:
@@ -222,38 +259,3 @@ def test_filter_data_empty_result(filter_test_data: pd.DataFrame) -> None:
     """Test that filter_data raises ValueError when result is empty."""
     with pytest.raises(ValueError, match="DataFrame is empty after filtering"):
         filter_data(filter_test_data, {"location": "nonexistent_location"})
-
-
-def test_fill_with_placeholder(intermediate_data: pd.DataFrame) -> None:
-    """Test adding placeholder columns and setting them as index levels."""
-    result = fill_with_placeholder(
-        df=intermediate_data,
-        indexes=["foo", "bar"],
-        placeholder="placeholder",
-    )
-    expected = pd.DataFrame(
-        {
-            "a": [1, 2, 3, 4],
-            "b": [4, 5, 6, 7],
-            "c": [1, 1, 0, 1],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("x", 0, "placeholder", "placeholder"),
-                ("x", 1, "placeholder", "placeholder"),
-                ("y", 0, "placeholder", "placeholder"),
-                ("y", 1, "placeholder", "placeholder"),
-            ],
-            names=["group", "time", "foo", "bar"],
-        ),
-    )
-
-
-def test_fill_with_placeholder_existing_indexes(intermediate_data: pd.DataFrame) -> None:
-    """Test filling with placeholder without adding new index levels."""
-    with pytest.raises(ValueError, match="Index time already exists in the DataFrame."):
-        fill_with_placeholder(
-            df=intermediate_data,
-            indexes=["time"],
-            placeholder="placeholder",
-        )
