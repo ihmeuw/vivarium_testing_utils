@@ -110,6 +110,16 @@ def test___get_raw_datasets_from_source(
     assert ref_raw_datasets["artifact_data"].equals(artifact_disease_incidence)
 
 
+def test_add_comparison_bad_scenarios(sim_result_dir: Path) -> None:
+    """Ensure that we raise an error if the scenarios are not provided correctly"""
+    measure_key = "cause.disease.incidence_rate"
+    context = ValidationContext(sim_result_dir, scenario_columns=["scenario_column"])
+
+    # Test with missing scenarios
+    with pytest.raises(ValueError, match="missing scenarios for: {'scenario_column'}"):
+        context.add_comparison(measure_key, "sim", "artifact")
+
+
 def test_add_comparison(
     sim_result_dir: Path, artifact_disease_incidence: pd.DataFrame
 ) -> None:
@@ -128,23 +138,22 @@ def test_add_comparison(
     assert "numerator_data" in comparison.test_datasets
     assert "denominator_data" in comparison.test_datasets
 
+    expected_index = pd.Index(
+        ["A", "B"],
+        name="stratify_column",
+    )
+
     expected_numerator_data = pd.DataFrame(
         {
             "value": [3.0, 5.0],
         },
-        index=pd.Index(
-            ["A", "B"],
-            name="stratify_column",
-        ),
+        index=expected_index,
     )
     expected_denominator_data = pd.DataFrame(
         {
             "value": [17.0, 29.0],
         },
-        index=pd.Index(
-            ["A", "B"],
-            name="stratify_column",
-        ),
+        index=expected_index,
     )
 
     assert comparison.test_datasets["numerator_data"].equals(expected_numerator_data)

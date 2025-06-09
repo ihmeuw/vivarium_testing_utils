@@ -59,27 +59,12 @@ class ValidationContext:
         measure = MEASURE_KEY_MAPPINGS[entity_type][measure_name](entity)
 
         test_source_enum = DataSource.from_str(test_source)
+        ref_source_enum = DataSource.from_str(ref_source)
 
         if not test_source_enum == DataSource.SIM:
             raise NotImplementedError(
                 f"Comparison for {test_source} source not implemented. Must be SIM."
             )
-        test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
-        test_raw_datasets = {
-            dataset_name: resolve_age_groups(dataset, self.age_groups)
-            for dataset_name, dataset in test_raw_datasets.items()
-        }
-        test_datasets = measure.get_ratio_datasets_from_sim(
-            **test_raw_datasets,
-        )
-
-        ref_source_enum = DataSource.from_str(ref_source)
-        ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
-        ref_raw_datasets = {
-            dataset_name: resolve_age_groups(dataset, self.age_groups)
-            for dataset_name, dataset in ref_raw_datasets.items()
-        }
-        ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
 
         for source, scenarios in (
             (test_source_enum, test_scenarios),
@@ -92,6 +77,22 @@ class ValidationContext:
                     f"Each simulation comparison subject must choose a specific scenario. "
                     f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."
                 )
+
+        test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
+        test_raw_datasets = {
+            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            for dataset_name, dataset in test_raw_datasets.items()
+        }
+        test_datasets = measure.get_ratio_datasets_from_sim(
+            **test_raw_datasets,
+        )
+
+        ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
+        ref_raw_datasets = {
+            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            for dataset_name, dataset in ref_raw_datasets.items()
+        }
+        ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
 
         comparison = FuzzyComparison(
             measure=measure,
