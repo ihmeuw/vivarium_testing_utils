@@ -35,6 +35,11 @@ def difference_by_set(*s: Iterable[Any]) -> tuple[set[Any], ...]:
 def fill_with_placeholder(
     df: pd.DataFrame, indexes: Iterable[str], placeholder: Any
 ) -> pd.DataFrame:
+    for index in indexes:
+        if index in df.index.names:
+            # If the index already exists, we don't need to add it
+            raise ValueError("Index {} already exists in the DataFrame.".format(index))
+
     return df.assign(**{index: placeholder for index in indexes}).set_index(
         list(indexes), append=True
     )
