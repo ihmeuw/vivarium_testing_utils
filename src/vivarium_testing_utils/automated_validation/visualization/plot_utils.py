@@ -8,7 +8,9 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison
-from vivarium_testing_utils.automated_validation.data_loader import DataSource
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    difference_by_set,
+)
 
 
 def plot_comparison(
@@ -270,19 +272,15 @@ def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
     """Get the combined data from the test and reference datasets."""
     test_data, reference_data = comparison._align_datasets()
 
-    # Ensure both datasets have the same index structure
-    test_index_names = set(test_data.index.names)
-    ref_index_names = set(reference_data.index.names)
+    test_only_indexes, ref_only_indexes = difference_by_set(
+        test_data.index.names, reference_data.index.names
+    )
 
-    # Add missing index levels with NaN values
-    missing_in_ref = test_index_names - ref_index_names
-    missing_in_test = ref_index_names - test_index_names
-
-    for level_name in missing_in_ref:
+    for level_name in test_only_indexes:
         reference_data[level_name] = np.nan
         reference_data = reference_data.set_index(level_name, append=True)
 
-    for level_name in missing_in_test:
+    for level_name in ref_only_indexes:
         test_data[level_name] = np.nan
         test_data = test_data.set_index(level_name, append=True)
 

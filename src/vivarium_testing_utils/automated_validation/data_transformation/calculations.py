@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Collection, Mapping
+from typing import Any, Collection, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -20,6 +20,14 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
 )
 
 DRAW_PREFIX = "draw_"
+
+
+def difference_by_set(*s: Iterable) -> tuple[set, ...]:
+    """For a collection of iterables, return a tuple of diffs,
+    the items that are in each set but not in any others."""
+    s = [set(x) for x in s]
+
+    return tuple(s[i] - set.union(*s[:i], *s[i + 1 :]) for i in range(len(s)))
 
 
 def filter_data(
