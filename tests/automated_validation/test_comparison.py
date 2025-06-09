@@ -1,6 +1,5 @@
 from unittest import mock
 
-import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
@@ -356,6 +355,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
         test_data,
         DataSource.GBD,
         reference_data,
+        test_scenarios={"scenario": "baseline"},
     )
 
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
@@ -363,11 +363,18 @@ def test_fuzzy_comparison_align_datasets_calculation(
     assert_frame_equal(aligned_reference_data, reference_data)
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
-
+    expected_index = pd.MultiIndex.from_tuples(
+        [
+            ("2020", "male", 0, 1, "baseline"),
+            ("2020", "female", 0, 5, "baseline"),
+            ("2025", "male", 0, 2, "baseline"),
+        ],
+        names=["year", "sex", "age", "input_draw", "scenario"],
+    )
     assert_frame_equal(
         aligned_test_data,
         pd.DataFrame(
             {"value": expected_values},
-            index=aligned_test_data.index,
+            index=expected_index,
         ),
     )

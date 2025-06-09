@@ -205,7 +205,6 @@ class TestPlotComparison:
 
 
 class TestLinePlot:
-
     def test_subplots_true(
         self, test_title: str, sample_combined_data: pd.DataFrame, mocker: MockerFixture
     ) -> None:
@@ -280,7 +279,6 @@ class TestLinePlot:
 
 
 class TestRelPlot:
-
     def test_too_many_stratifications(self, sample_combined_data: pd.DataFrame) -> None:
         # Setup data with 3 stratification levels (excluding input_draw and source)
         # This should fail because we allow max 2 stratification levels
