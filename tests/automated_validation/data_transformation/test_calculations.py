@@ -9,6 +9,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
 )
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     aggregate_sum,
+    difference_by_set,
     fill_with_placeholder,
     filter_data,
     linear_combination,
@@ -60,6 +61,18 @@ def filter_test_data() -> pd.DataFrame:
     )
 
 
+def test_difference_by_set() -> None:
+    """Test the difference_by_set function."""
+    set1 = {1, 2, 6, 7}
+    set2 = {3, 2, 4, 7}
+    set3 = {5, 4, 6, 7}
+
+    result = difference_by_set(set1, set2, set3)
+    expected = ({1}, {3}, {5})
+
+    assert result == expected
+
+
 def test_fill_with_placeholder(intermediate_data: pd.DataFrame) -> None:
     """Test adding placeholder columns and setting them as index levels."""
     result = fill_with_placeholder(
@@ -94,6 +107,70 @@ def test_fill_with_placeholder_existing_indexes(intermediate_data: pd.DataFrame)
             indexes=["time"],
             placeholder="placeholder",
         )
+
+
+@pytest.mark.parametrize(
+    "filter_cols,drop_singles,expected_index_names,expected_values",
+    [
+        # Test filtering to single value with drop_singles=True (default)
+        (
+            {"location": "location_1"},
+            True,
+            ["sex", "age"],
+            [10, 20, 30, 40],
+        ),
+        # Test filtering to single value with drop_singles=False
+        (
+            {"location": "location_1"},
+            False,
+            ["location", "sex", "age"],
+            [10, 20, 30, 40],
+        ),
+        # Test filtering to multiple values (drop_singles should not affect this)
+        (
+            {"sex": ["sex_1", "sex_2"], "age": "age_1"},
+            True,
+            ["location", "sex"],
+            [10, 30, 50, 70],
+        ),
+        (
+            {"sex": ["sex_1", "sex_2"], "age": "age_1"},
+            False,
+            ["location", "sex", "age"],
+            [10, 30, 50, 70],
+        ),
+        # Test filtering with multiple single values
+        (
+            {"location": "location_1", "sex": "sex_1"},
+            True,
+            ["age"],
+            [10, 20],
+        ),
+        (
+            {"location": "location_1", "sex": "sex_1"},
+            False,
+            ["location", "sex", "age"],
+            [10, 20],
+        ),
+    ],
+)
+def test_filter_data(
+    filter_test_data: pd.DataFrame,
+    filter_cols: dict[str, str],
+    drop_singles: bool,
+    expected_index_names: list[str],
+    expected_values: list[int | float],
+) -> None:
+    """Test filtering DataFrame with different drop_singles settings."""
+    result = filter_data(filter_test_data, filter_cols, drop_singles=drop_singles)
+    assert list(result.index.names) == expected_index_names
+    assert list(result["value"]) == expected_values
+
+
+def test_filter_data_empty_result(filter_test_data: pd.DataFrame) -> None:
+    """Test that filter_data raises ValueError when result is empty."""
+    with pytest.raises(ValueError, match="DataFrame is empty after filtering"):
+        filter_data(filter_test_data, {"location": "nonexistent_location"})
 
 
 def test_ratio(intermediate_data: pd.DataFrame) -> None:
@@ -195,67 +272,3 @@ def test_aggregate_sum_preserves_string_order() -> None:
     result = aggregate_sum(df, ["category"])
     expected_order = pd.Index(["c", "a", "d", "b"], name="category")
     assert list(result.index) == list(expected_order)
-
-
-@pytest.mark.parametrize(
-    "filter_cols,drop_singles,expected_index_names,expected_values",
-    [
-        # Test filtering to single value with drop_singles=True (default)
-        (
-            {"location": "location_1"},
-            True,
-            ["sex", "age"],
-            [10, 20, 30, 40],
-        ),
-        # Test filtering to single value with drop_singles=False
-        (
-            {"location": "location_1"},
-            False,
-            ["location", "sex", "age"],
-            [10, 20, 30, 40],
-        ),
-        # Test filtering to multiple values (drop_singles should not affect this)
-        (
-            {"sex": ["sex_1", "sex_2"], "age": "age_1"},
-            True,
-            ["location", "sex"],
-            [10, 30, 50, 70],
-        ),
-        (
-            {"sex": ["sex_1", "sex_2"], "age": "age_1"},
-            False,
-            ["location", "sex", "age"],
-            [10, 30, 50, 70],
-        ),
-        # Test filtering with multiple single values
-        (
-            {"location": "location_1", "sex": "sex_1"},
-            True,
-            ["age"],
-            [10, 20],
-        ),
-        (
-            {"location": "location_1", "sex": "sex_1"},
-            False,
-            ["location", "sex", "age"],
-            [10, 20],
-        ),
-    ],
-)
-def test_filter_data(
-    filter_test_data: pd.DataFrame,
-    filter_cols: dict[str, str],
-    drop_singles: bool,
-    expected_index_names: list[str],
-    expected_values: list[int | float],
-) -> None:
-    """Test filtering DataFrame with different drop_singles settings."""
-    result = filter_data(filter_test_data, filter_cols, drop_singles=drop_singles)
-    assert list(result.index.names) == expected_index_names
-    assert list(result["value"]) == expected_values
-
-
-def test_filter_data_empty_result(filter_test_data: pd.DataFrame) -> None:
-    """Test that filter_data raises ValueError when result is empty."""
-    with pytest.raises(ValueError, match="DataFrame is empty after filtering"):
-        filter_data(filter_test_data, {"location": "nonexistent_location"})
