@@ -3,12 +3,25 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
+from pandas.testing import assert_frame_equal
 from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
-from vivarium_testing_utils.automated_validation.data_loader import DataSource
+from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
+
+
+def test_context_initialization(
+    sim_result_dir: Path, sample_age_group_df: pd.DataFrame
+) -> None:
+    """Ensure that we can initialize a ValidationContext with a simulation result directory"""
+    context = ValidationContext(sim_result_dir, scenario_columns=["foo"])
+    assert isinstance(context, ValidationContext)
+    assert isinstance(context._data_loader, DataLoader)
+    assert_frame_equal(context.age_groups, sample_age_group_df)
+    assert context.comparisons == {}
+    assert context.scenario_columns == ["foo"]
 
 
 @pytest.mark.skip("Not implemented")
