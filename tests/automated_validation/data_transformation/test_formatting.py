@@ -28,9 +28,9 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
         {
             "value": [3.0, 5.0],
         },
-        index=pd.Index(
-            ["A", "B"],
-            name="stratify_column",
+        index=pd.MultiIndex.from_tuples(
+            [("A", "baseline"), ("B", "baseline")],
+            names=["stratify_column", "scenario"],
         ),
     )
 
@@ -53,9 +53,9 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
         {
             "value": [23.0, 37.0],
         },
-        index=pd.Index(
-            ["A", "B"],
-            name="stratify_column",
+        index=pd.MultiIndex.from_tuples(
+            [("A", "baseline"), ("B", "baseline")],
+            names=["stratify_column", "scenario"],
         ),
     )
 
@@ -77,9 +77,9 @@ def test_person_time_state_total(person_time_data: pd.DataFrame) -> None:
         {
             "value": [17.0 + 23.0, 29.0 + 37.0],
         },
-        index=pd.Index(
-            ["A", "B"],
-            name="stratify_column",
+        index=pd.MultiIndex.from_tuples(
+            [("A", "baseline"), ("B", "baseline")],
+            names=["stratify_column", "scenario"],
         ),
     )
 
@@ -101,9 +101,9 @@ def test_total_person_time(total_person_time_data: pd.DataFrame) -> None:
         {
             "value": [17.0 + 23.0, 29.0 + 37.0],
         },
-        index=pd.Index(
-            ["A", "B"],
-            name="stratify_column",
+        index=pd.MultiIndex.from_tuples(
+            [("A", "baseline"), ("B", "baseline")],
+            names=["stratify_column", "scenario"],
         ),
     )
 
@@ -155,9 +155,9 @@ def test_deaths_cause_specific(deaths_data: pd.DataFrame) -> None:
         {
             "value": [2.0, 4.0],  # Deaths data for the disease itself
         },
-        index=pd.Index(
-            ["A", "B"],
-            name="stratify_column",
+        index=pd.MultiIndex.from_tuples(
+            [("A", "baseline"), ("B", "baseline")],
+            names=["stratify_column", "scenario"],
         ),
     )
 
@@ -178,9 +178,9 @@ def test_deaths_all_causes(deaths_data: pd.DataFrame) -> None:
         {
             "value": [5.0, 9.0],  # All deaths, regardless of cause
         },
-        index=pd.Index(
-            ["A", "B"],
-            name="stratify_column",
+        index=pd.MultiIndex.from_tuples(
+            [("A", "baseline"), ("B", "baseline")],
+            names=["stratify_column", "scenario"],
         ),
     )
     assert_frame_equal(formatter.format_dataset(deaths_data), expected_dataframe)
