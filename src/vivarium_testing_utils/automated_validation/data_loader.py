@@ -184,7 +184,8 @@ class DataLoader:
 
 def _convert_to_total_person_time(data: pd.DataFrame) -> pd.DataFrame:
     old_index_names = data.index.names
-    data = marginalize(data, ["entity", "sub_entity"])
+    data = marginalize(data, ["entity_type", "entity", "sub_entity"])
+    data["entity_type"] = "none"
     data["entity"] = "total"
     data["sub_entity"] = "total"
     # Reconstruct the index with the same column order as before

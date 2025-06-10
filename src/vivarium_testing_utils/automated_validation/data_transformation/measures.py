@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    align_indexes,
     ratio,
+    stratify,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
@@ -14,6 +15,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
 )
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     Deaths,
+    RiskStatePersonTime,
     SimDataFormatter,
     StatePersonTime,
     TransitionCounts,
@@ -125,7 +127,6 @@ class RatioMeasure(Measure, ABC):
         """Process raw simulation data and return numerator and denominator DataFrames separately."""
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
-        numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
         return {"numerator_data": numerator_data, "denominator_data": denominator_data}
 
 
@@ -176,12 +177,35 @@ class ExcessMortalityRate(RatioMeasure):
         )  # Person time among those with the disease
 
 
-MEASURE_KEY_MAPPINGS = {
+class RiskExposure(RatioMeasure):
+    """Computes risk factor exposure levels in the population.
+
+    This measure calculates exposure prevalence from state-specific person time data.
+    For categorical risk factors (e.g., child wasting, stunting), exposure is computed
+    as the proportion of person time spent in each risk state.
+
+    Numerator: Person time in specific risk state
+    Denominator: Total person time across all risk states
+    """
+
+    def __init__(self, risk_factor: str) -> None:
+        self.measure_key = f"risk_factor.{risk_factor}.exposure"
+        self.risk_factor = risk_factor
+
+        # Create custom formatters for risk exposure
+        self.numerator = RiskStatePersonTime(risk_factor)
+        self.denominator = RiskStatePersonTime(risk_factor, sum_all=True)
+
+
+MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[[str], RatioMeasure]]] = {
     "cause": {
         "incidence_rate": Incidence,
         "prevalence": Prevalence,
         "remission_rate": SIRemission,
         "cause_specific_mortality_rate": CauseSpecificMortalityRate,
         "excess_mortality_rate": ExcessMortalityRate,
+    },
+    "risk_factor": {
+        "exposure": RiskExposure,
     },
 }

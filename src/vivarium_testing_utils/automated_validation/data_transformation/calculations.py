@@ -22,16 +22,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
 DRAW_PREFIX = "draw_"
 
 
-def align_indexes(datasets: list[pd.DataFrame]) -> list[pd.DataFrame]:
-    """Put each dataframe on a common index by choosing the intersection of index columns
-    and marginalizing over the rest."""
-    # Get the common index columns
-    common_index = list(set.intersection(*(set(data.index.names) for data in datasets)))
-
-    # Marginalize over the rest
-    return [stratify(data, common_index) for data in datasets]
-
-
 def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.DataFrame:
     """Filter a DataFrame by the given index columns and values.
 
