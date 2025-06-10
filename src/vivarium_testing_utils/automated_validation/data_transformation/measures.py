@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any
+
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
@@ -197,7 +199,7 @@ class PopulationStructure(RatioMeasure):
         return artifact_data / artifact_data.sum()
 
 
-MEASURE_KEY_MAPPINGS: dict[str, dict[str, type[Measure]]] = {
+MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[..., Measure]]] = {
     "cause": {
         "incidence_rate": Incidence,
         "prevalence": Prevalence,
