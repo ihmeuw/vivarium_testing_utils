@@ -9,7 +9,6 @@ from loguru import logger
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     DRAW_PREFIX,
-    SEED_INDEX,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,

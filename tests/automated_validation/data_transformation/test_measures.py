@@ -7,6 +7,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     Incidence,
     PopulationStructure,
     Prevalence,
+    RiskExposure,
     SIRemission,
 )
 
@@ -342,6 +343,74 @@ def test_excess_mortality_rate(
             ["A", "B"],
             name="stratify_column",
         ),
+    )
+    assert_frame_equal(measure_data, expected_measure_data)
+
+
+def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
+    """Test the RiskExposure measure."""
+    risk_factor = "child_stunting"
+    measure = RiskExposure(risk_factor)
+    assert measure.measure_key == f"risk_factor.{risk_factor}.exposure"
+    assert measure.sim_datasets == {
+        "numerator_data": f"person_time_{risk_factor}",
+        "denominator_data": f"person_time_{risk_factor}",
+    }
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
+        numerator_data=risk_state_person_time_data,
+        denominator_data=risk_state_person_time_data,
+    )
+
+    # Expected ratio data:
+    # Numerator: person time in each specific risk state (cat1, cat2, cat3)
+    # Denominator: total person time across all risk states for each stratification
+    # Total person time per stratification: A = 8+12+15 = 35, B = 20+6+10 = 36
+    expected_index = pd.MultiIndex.from_tuples(
+        [
+            ("cat1", "A"),
+            ("cat2", "A"),
+            ("cat3", "A"),
+            ("cat1", "B"),
+            ("cat2", "B"),
+            ("cat3", "B"),
+        ],
+        names=["parameter", "stratify_column"],
+    )
+    expected_numerator_data = pd.DataFrame(
+        {
+            "value": [8.0, 12.0, 15.0, 20.0, 6.0, 10.0],
+        },
+        index=expected_index,
+    )
+    expected_denominator_data = pd.DataFrame(
+        {
+            "value": [35.0, 35.0, 35.0, 36.0, 36.0, 36.0],
+        },
+        index=expected_index,
+    )
+
+    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
+    assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
+
+    measure_data = measure.get_measure_data_from_sim(
+        numerator_data=risk_state_person_time_data,
+        denominator_data=risk_state_person_time_data,
+    )
+
+    expected_measure_data = pd.DataFrame(
+        {
+            "value": [
+                8.0 / 35.0,
+                12.0 / 35.0,
+                15.0 / 35.0,
+                20.0 / 36.0,
+                6.0 / 36.0,
+                10.0 / 36.0,
+            ]
+        },
+        index=expected_index,
     )
     assert_frame_equal(measure_data, expected_measure_data)
 
