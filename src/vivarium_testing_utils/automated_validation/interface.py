@@ -12,8 +12,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     resolve_age_groups,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
-    MEASURE_KEY_MAPPINGS,
     Measure,
+    RatioMeasure,
+    get_measure_from_key,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
@@ -55,8 +56,7 @@ class ValidationContext:
         stratifications: list[str] = [],
     ) -> None:
         """Add a comparison to the context given a measure key and data sources."""
-        entity_type, entity, measure_name = measure_key.split(".")
-        measure = MEASURE_KEY_MAPPINGS[entity_type][measure_name](entity)
+        measure = get_measure_from_key(measure_key, list(self.scenario_columns))
 
         test_source_enum = DataSource.from_str(test_source)
         ref_source_enum = DataSource.from_str(ref_source)
@@ -64,6 +64,12 @@ class ValidationContext:
         if not test_source_enum == DataSource.SIM:
             raise NotImplementedError(
                 f"Comparison for {test_source} source not implemented. Must be SIM."
+            )
+
+        # Check if the measure is a RatioMeasure for FuzzyComparison
+        if not isinstance(measure, RatioMeasure):
+            raise NotImplementedError(
+                f"Measure {measure_key} is not a RatioMeasure. Only RatioMeasures are currently supported for comparisons."
             )
 
         for source, scenarios in (

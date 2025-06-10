@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import (
     DataLoader,
     DataSource,
@@ -131,7 +132,7 @@ def test__load_from_artifact(
     assert set(art_dataset.index.names) == {
         "stratify_column",
         "other_stratify_column",
-        "input_draw",
+        DRAW_INDEX,
     }
     assert set(art_dataset.columns) == {"value"}
 

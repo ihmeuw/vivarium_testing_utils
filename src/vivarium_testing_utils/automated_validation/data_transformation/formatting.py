@@ -1,8 +1,10 @@
 import pandas as pd
 
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
     marginalize,
+    stratify,
 )
 
 
@@ -54,6 +56,35 @@ class StatePersonTime(SimDataFormatter):
             measure="person_time",
             entity=entity or "total",
             filter_value=filter_value or "total",
+        )
+
+
+class TotalPopulationPersonTime(StatePersonTime):
+    """Formatter for simulation data that contains total person time."""
+
+    def __init__(self, scenario_columns: list[str]) -> None:
+        """
+        Get person time aggregated over populations from total person time dataset.
+
+        Parameters
+        ----------
+        scenario_columns : list[str], optional
+            Column names for scenario stratification. Defaults to an empty list.
+        """
+        super().__init__(entity="total", filter_value="total")
+        self.data_key = "person_time_total"
+        self.name = "total_population_person_time"
+        self.scenario_columns = scenario_columns
+
+    def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        dataset = super().format_dataset(dataset)
+        between_scenario_levels = [DRAW_INDEX, SEED_INDEX] + self.scenario_columns
+        levels_to_stratify = [
+            level for level in between_scenario_levels if level in dataset.index.names
+        ]
+        return stratify(
+            data=dataset,
+            stratification_cols=levels_to_stratify,
         )
 
 

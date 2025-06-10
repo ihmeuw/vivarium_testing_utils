@@ -138,9 +138,9 @@ def test_add_comparison(
     assert "numerator_data" in comparison.test_datasets
     assert "denominator_data" in comparison.test_datasets
 
-    expected_index = pd.Index(
-        ["A", "B"],
-        name="stratify_column",
+    expected_index = pd.MultiIndex.from_tuples(
+        [("A", "baseline"), ("B", "baseline")],
+        names=["stratify_column", "scenario"],
     )
 
     expected_numerator_data = pd.DataFrame(

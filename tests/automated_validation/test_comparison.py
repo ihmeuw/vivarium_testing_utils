@@ -10,6 +10,7 @@ from vivarium_testing_utils.automated_validation.comparison import (
     FuzzyComparison,
     RatioMeasure,
 )
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     get_singular_indices,
     ratio,
@@ -26,7 +27,7 @@ def test_data() -> dict[str, pd.DataFrame]:
             ("2025", "male", 0, 2, 42, "baseline"),
             ("2025", "male", 0, 2, 50, "baseline"),  # Add a seed to get marginalized over
         ],
-        names=["year", "sex", "age", "input_draw", "random_seed", "scenario"],
+        names=["year", "sex", "age", DRAW_INDEX, SEED_INDEX, "scenario"],
     )
     numerator_df = pd.DataFrame({"value": [10, 20, 30, 35]}, index=index)
     denominator_df = pd.DataFrame({"value": [100, 100, 100, 100]}, index=index)
@@ -149,8 +150,8 @@ def test_fuzzy_comparison_get_diff(
         assert "test_rate" in diff.columns
         assert "reference_rate" in diff.columns
         assert "percent_error" in diff.columns
-        assert "input_draw" in diff.index.names
-        assert "random_seed" not in diff.index.names
+        assert DRAW_INDEX in diff.index.names
+        assert SEED_INDEX not in diff.index.names
 
     # Test returning all rows
     all_diff = comparison.get_diff(stratifications=[], num_rows="all")
@@ -369,7 +370,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
             ("2020", "female", 0, 5, "baseline"),
             ("2025", "male", 0, 2, "baseline"),
         ],
-        names=["year", "sex", "age", "input_draw", "scenario"],
+        names=["year", "sex", "age", DRAW_INDEX, "scenario"],
     )
     assert_frame_equal(
         aligned_test_data,
