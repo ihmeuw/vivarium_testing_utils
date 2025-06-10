@@ -2,12 +2,16 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
+from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
+    TotalPopulationPersonTime,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CauseSpecificMortalityRate,
     ExcessMortalityRate,
     Incidence,
     PopulationStructure,
     Prevalence,
+    RatioMeasure,
     RiskExposure,
     SIRemission,
     get_measure_from_key,
@@ -486,7 +490,7 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         ("population.structure", PopulationStructure),
     ],
 )
-def test_get_measure_from_key(measure_key, expected_class):
+def test_get_measure_from_key(measure_key: str, expected_class: type[RatioMeasure]) -> None:
     """Test get_measure_from_key for 3-part measure keys."""
     scenario_columns = ["scenario"]
 
@@ -494,6 +498,7 @@ def test_get_measure_from_key(measure_key, expected_class):
     assert isinstance(measure, expected_class)
     assert measure.measure_key == measure_key
     if measure_key == "population.structure":
+        assert isinstance(measure.denominator, TotalPopulationPersonTime)
         assert measure.denominator.scenario_columns == scenario_columns
 
 
@@ -509,7 +514,9 @@ def test_get_measure_from_key(measure_key, expected_class):
         ("population.invalid_measure", KeyError),
     ],
 )
-def test_get_measure_from_key_invalid_inputs(invalid_key, expected_error):
+def test_get_measure_from_key_invalid_inputs(
+    invalid_key: str, expected_error: type[Exception]
+) -> None:
     """Test get_measure_from_key with invalid inputs."""
     scenario_columns = ["scenario"]
 
