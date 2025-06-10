@@ -10,7 +10,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     stratify,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    RatioData,
     SimOutputData,
     SingleNumericColumn,
 )
@@ -98,43 +97,37 @@ class RatioMeasure(Measure, ABC):
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
-    @check_io(ratio_data=RatioData, out=SingleNumericColumn)
-    def get_measure_data_from_ratio(self, ratio_data: pd.DataFrame) -> pd.DataFrame:
-        """Compute final measure data from split data."""
-        return ratio(
-            ratio_data,
-            numerator=self.numerator.new_value_column_name,
-            denominator=self.denominator.new_value_column_name,
-        )
+    @check_io(
+        numerator_data=SingleNumericColumn,
+        denominator_data=SingleNumericColumn,
+        out=SingleNumericColumn,
+    )
+    def get_measure_data_from_ratio(
+        self, numerator_data: pd.DataFrame, denominator_data: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Compute final measure data from separate numerator and denominator data."""
+        return ratio(numerator_data, denominator_data)
 
     @check_io(out=SingleNumericColumn)
     def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process raw simulation data into a format suitable for calculations."""
-        return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
+        return self.get_measure_data_from_ratio(
+            **self.get_ratio_datasets_from_sim(*args, **kwargs)
+        )
 
     @check_io(
         numerator_data=SimOutputData,
         denominator_data=SimOutputData,
-        out=RatioData,
     )
-    def get_ratio_data_from_sim(
+    def get_ratio_datasets_from_sim(
         self,
         numerator_data: pd.DataFrame,
         denominator_data: pd.DataFrame,
-    ) -> pd.DataFrame:
-        """Process raw simulation data into a RatioData frame with count columns to be divided later."""
+    ) -> dict[str, pd.DataFrame]:
+        """Process raw simulation data and return numerator and denominator DataFrames separately."""
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
-        # Ensure both numerator and denominator data have the same index structure
-        # Default to numerator order of index names
-        common_index = [
-            index
-            for index in numerator_data.index.names
-            if index in denominator_data.index.names
-        ]
-        numerator_data = stratify(numerator_data, common_index)
-        denominator_data = stratify(denominator_data, common_index)
-        return pd.concat([numerator_data, denominator_data], axis=1)
+        return {"numerator_data": numerator_data, "denominator_data": denominator_data}
 
 
 class Incidence(RatioMeasure):

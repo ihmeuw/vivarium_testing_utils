@@ -46,18 +46,37 @@ def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.Dat
     return data
 
 
-def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
-    """Return a series of the ratio of two columns in a DataFrame,
-    where the columns are specified by their names."""
-    zero_denominator = data[denominator] == 0
+@check_io(
+    numerator_data=SingleNumericColumn,
+    denominator_data=SingleNumericColumn,
+    out=SingleNumericColumn,
+)
+def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.DataFrame:
+    """Return a DataFrame with the ratio of two SingleNumericColumn DataFrames.
+
+    Their indexes do not need to match, but must be interoperable.
+
+    Parameters
+    ----------
+    numerator_data : pd.DataFrame
+        SingleNumericColumn DataFrame to use as the numerator
+    denominator_data : pd.DataFrame
+        SingleNumericColumn DataFrame  to use as the denominator
+
+    Returns
+    -------
+    pd.DataFrame
+        SingleNumericColumn DataFrame containing the ratio values
+    """
+    zero_denominator = denominator_data["value"] == 0
     if zero_denominator.any():
         logger.warning(
-            f"Denominator {denominator} has zero values. "
-            f"These will be put into the ratio dataframe as NaN."
+            "Denominator has zero values. "
+            "These will be put into the ratio dataframe as NaN."
         )
-    ratio = data[numerator] / data[denominator]
-    ratio[zero_denominator] = np.nan
-    return series_to_dataframe(ratio)
+    ratio_values = numerator_data["value"] / denominator_data["value"]
+    ratio_values[zero_denominator] = np.nan
+    return series_to_dataframe(ratio_values)
 
 
 def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str]) -> pd.DataFrame:
