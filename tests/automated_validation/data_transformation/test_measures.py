@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 from pandas.testing import assert_frame_equal
 
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
@@ -9,6 +10,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     Prevalence,
     RiskExposure,
     SIRemission,
+    get_measure_from_key,
 )
 
 
@@ -470,3 +472,46 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         ),
     )
     assert_frame_equal(measure_data, expected_measure_data)
+
+
+@pytest.mark.parametrize(
+    "measure_key,expected_class",
+    [
+        ("cause.heart_disease.incidence_rate", Incidence),
+        ("cause.diabetes.prevalence", Prevalence),
+        ("cause.tuberculosis.remission_rate", SIRemission),
+        ("cause.cancer.cause_specific_mortality_rate", CauseSpecificMortalityRate),
+        ("cause.stroke.excess_mortality_rate", ExcessMortalityRate),
+        ("risk_factor.child_wasting.exposure", RiskExposure),
+        ("population.structure", PopulationStructure),
+    ],
+)
+def test_get_measure_from_key(measure_key, expected_class):
+    """Test get_measure_from_key for 3-part measure keys."""
+    scenario_columns = ["scenario"]
+
+    measure = get_measure_from_key(measure_key, scenario_columns)
+    assert isinstance(measure, expected_class)
+    assert measure.measure_key == measure_key
+    if measure_key == "population.structure":
+        assert measure.denominator.scenario_columns == scenario_columns
+
+
+@pytest.mark.parametrize(
+    "invalid_key,expected_error",
+    [
+        ("invalid", ValueError),
+        ("too.many.parts.here", ValueError),
+        ("", ValueError),
+        ("invalid_entity.something.measure", KeyError),
+        ("cause.heart_disease.invalid_measure", KeyError),
+        ("risk_factor.child_wasting.invalid_measure", KeyError),
+        ("population.invalid_measure", KeyError),
+    ],
+)
+def test_get_measure_from_key_invalid_inputs(invalid_key, expected_error):
+    """Test get_measure_from_key with invalid inputs."""
+    scenario_columns = ["scenario"]
+
+    with pytest.raises(expected_error):
+        get_measure_from_key(invalid_key, scenario_columns)
