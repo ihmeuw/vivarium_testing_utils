@@ -289,6 +289,7 @@ def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
     ):
         test_data = fill_with_placeholder(test_data, ["input_draw"], np.nan)
 
+    test_data = test_data.reorder_levels(reference_data.index.names)
     combined_data = pd.concat(
         [test_data, reference_data],
         keys=[
