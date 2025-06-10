@@ -9,7 +9,6 @@ from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    fill_with_placeholder,
     filter_data,
 )
 
@@ -282,12 +281,14 @@ def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
         "input_draw" in test_data.index.names
         and "input_draw" not in reference_data.index.names
     ):
-        reference_data = fill_with_placeholder(reference_data, ["input_draw"], np.nan)
+        reference_data = reference_data.assign(input_draw=np.nan).set_index(
+            ["input_draw"], append=True
+        )
     elif (
         "input_draw" not in test_data.index.names
         and "input_draw" in reference_data.index.names
     ):
-        test_data = fill_with_placeholder(test_data, ["input_draw"], np.nan)
+        test_data = test_data.assign(input_draw=np.nan).set_index(["input_draw"], append=True)
 
     test_data = test_data.reorder_levels(reference_data.index.names)
     combined_data = pd.concat(

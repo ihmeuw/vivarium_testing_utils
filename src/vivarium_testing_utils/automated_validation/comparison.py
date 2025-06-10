@@ -5,7 +5,6 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    difference_by_set,
     filter_data,
     get_singular_indices,
     marginalize,
@@ -252,17 +251,16 @@ class FuzzyComparison(Comparison):
             for key in self.test_datasets
             for index_name in self.test_datasets[key].index.names
         }
+        reference_index_names = set(self.reference_data.index.names)
 
         # Get index levels that are only in the test data.
-        test_only_indexes, ref_only_indexes = difference_by_set(
-            combined_test_index_names, self.reference_data.index.names
-        )
-
+        test_only_indexes = combined_test_index_names - reference_index_names
+        reference_only_indexes = reference_index_names - combined_test_index_names
         # Don't aggregate over the scenarios, yet, because we may need them to join the datasets.
         test_indexes_to_marginalize = test_only_indexes.difference(
             tuple(self.test_scenarios.keys()), SAMPLING_INDEX_LEVELS
         )
-        reference_indexes_to_drop = ref_only_indexes.difference(
+        reference_indexes_to_drop = reference_only_indexes.difference(
             tuple(self.reference_scenarios.keys()), SAMPLING_INDEX_LEVELS
         )
 

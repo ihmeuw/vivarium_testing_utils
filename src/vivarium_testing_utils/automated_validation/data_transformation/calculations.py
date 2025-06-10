@@ -22,29 +22,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
 DRAW_PREFIX = "draw_"
 
 
-def difference_by_set(*s: Iterable[Any]) -> tuple[set[Any], ...]:
-    """For a collection of iterables, return a tuple of diffs,
-    the items that are in each set but not in any others."""
-    set_list = [set(x) for x in s]
-
-    return tuple(
-        set_list[i] - set.union(*set_list[:i], *set_list[i + 1 :]) for i in range(len(s))
-    )
-
-
-def fill_with_placeholder(
-    df: pd.DataFrame, indexes: Iterable[str], placeholder: Any
-) -> pd.DataFrame:
-    for index in indexes:
-        if index in df.index.names:
-            # If the index already exists, we don't need to add it
-            raise ValueError("Index {} already exists in the DataFrame.".format(index))
-
-    return df.assign(**{index: placeholder for index in indexes}).set_index(
-        list(indexes), append=True
-    )
-
-
 def filter_data(
     data: pd.DataFrame, filter_cols: Mapping[str, str | list[str]], drop_singles: bool = True
 ) -> pd.DataFrame:
