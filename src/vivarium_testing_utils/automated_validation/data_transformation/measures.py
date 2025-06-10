@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Any
-
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
@@ -181,7 +180,7 @@ class PopulationStructure(RatioMeasure):
     that the simulation maintains realistic demographic distributions.
     """
 
-    def __init__(self, scenario_columns: list[str] = None):
+    def __init__(self, scenario_columns: list[str]):
         """Initialize PopulationStructure measure.
 
         Parameters
@@ -198,7 +197,7 @@ class PopulationStructure(RatioMeasure):
         return artifact_data / artifact_data.sum()
 
 
-MEASURE_KEY_MAPPINGS = {
+MEASURE_KEY_MAPPINGS: dict[str, dict[str, type[Measure]]] = {
     "cause": {
         "incidence_rate": Incidence,
         "prevalence": Prevalence,
