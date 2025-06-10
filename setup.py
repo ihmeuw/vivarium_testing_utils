@@ -60,6 +60,7 @@ if __name__ == "__main__":
         "scipy-stubs",
         "types-docutils",
         "types-setuptools",
+        "types-PyYAML",
     ]
 
     setup_requires = ["setuptools_scm"]
