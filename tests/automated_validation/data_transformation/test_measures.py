@@ -18,6 +18,19 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 )
 
 
+def get_expected_dataframe(value_1: float, value_2: float) -> pd.DataFrame:
+    """Create the expected dataframe by passing in two values to a reliable index."""
+    return pd.DataFrame(
+        {
+            "value": [value_1, value_2],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [("A", "baseline"), ("B", "baseline")],
+            names=["stratify_column", "scenario"],
+        ),
+    )
+
+
 def test_incidence(
     transition_count_data: pd.DataFrame, person_time_data: pd.DataFrame
 ) -> None:
@@ -35,39 +48,16 @@ def test_incidence(
         numerator_data=transition_count_data,
         denominator_data=person_time_data,
     )
-    expected_numerator_data = pd.DataFrame(
-        {
-            "value": [3.0, 5.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-    expected_denominator_data = pd.DataFrame(
-        {
-            "value": [17.0, 29.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-    assert ratio_datasets["numerator_data"].equals(expected_numerator_data)
-    assert ratio_datasets["denominator_data"].equals(expected_denominator_data)
+    assert ratio_datasets["numerator_data"].equals(get_expected_dataframe(3.0, 5.0))
+    assert ratio_datasets["denominator_data"].equals(get_expected_dataframe(17.0, 29.0))
 
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
 
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=transition_count_data, denominator_data=person_time_data
     )
-    expected_measure_data = pd.DataFrame(
-        {"value": [3 / 17.0, 5 / 29.0]},
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
+    expected_measure_data = get_expected_dataframe(3 / 17.0, 5 / 29.0)
+
     assert measure_data.equals(expected_measure_data)
     assert measure_data_from_ratio.equals(expected_measure_data)
 
@@ -87,38 +77,16 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
         numerator_data=person_time_data,
         denominator_data=person_time_data,
     )
-    expected_numerator_data = pd.DataFrame(
-        {
-            "value": [23.0, 37.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
+
+    assert ratio_datasets["numerator_data"].equals(get_expected_dataframe(23.0, 37.0))
+    assert ratio_datasets["denominator_data"].equals(
+        get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0)
     )
-    expected_denominator_data = pd.DataFrame(
-        {
-            "value": [17.0 + 23.0, 29.0 + 37.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-    assert ratio_datasets["numerator_data"].equals(expected_numerator_data)
-    assert ratio_datasets["denominator_data"].equals(expected_denominator_data)
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=person_time_data, denominator_data=person_time_data
     )
-    expected_measure_data = pd.DataFrame(
-        {"value": [23.0 / (17.0 + 23.0), 37.0 / (29.0 + 37.0)]},
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-
+    expected_measure_data = get_expected_dataframe(23.0 / (17.0 + 23.0), 37.0 / (29.0 + 37.0))
     assert measure_data.equals(expected_measure_data)
     assert measure_data_from_ratio.equals(expected_measure_data)
 
@@ -140,38 +108,14 @@ def test_si_remission(
         numerator_data=transition_count_data,
         denominator_data=person_time_data,
     )
-    expected_numerator_data = pd.DataFrame(
-        {
-            "value": [7.0, 13.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-    expected_denominator_data = pd.DataFrame(
-        {
-            "value": [23.0, 37.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
 
-    assert ratio_datasets["numerator_data"].equals(expected_numerator_data)
-    assert ratio_datasets["denominator_data"].equals(expected_denominator_data)
+    assert ratio_datasets["numerator_data"].equals(get_expected_dataframe(7.0, 13.0))
+    assert ratio_datasets["denominator_data"].equals(get_expected_dataframe(23.0, 37.0))
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=transition_count_data, denominator_data=person_time_data
     )
-    expected_measure_data = pd.DataFrame(
-        {"value": [7 / 23.0, 13 / 37.0]},
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
+    expected_measure_data = get_expected_dataframe(7.0 / 23.0, 13.0 / 37.0)
     assert measure_data.equals(expected_measure_data)
     assert measure_data_from_ratio.equals(expected_measure_data)
 
@@ -196,46 +140,21 @@ def test_all_cause_mortality_rate(
     # Expected dataframe for the numerator and denominator data
     # The Deaths formatter with no cause will marginalize over entity and sub_entity
     # to get total deaths by stratify_column
-    expected_numerator_data = pd.DataFrame(
-        {
-            "value": [5.0, 9.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-    expected_denominator_data = pd.DataFrame(
-        {
-            "value": [
-                40.0,
-                66.0,
-            ],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
-    assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
-
+    assert_frame_equal(ratio_datasets["numerator_data"], get_expected_dataframe(5.0, 9.0))
+    assert_frame_equal(ratio_datasets["denominator_data"], get_expected_dataframe(40.0, 66.0))
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=total_person_time_data
     )
 
-    expected_measure_data = pd.DataFrame(
-        {"value": [5.0 / 40.0, 9.0 / 66.0]},
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
+    expected_measure_data = get_expected_dataframe(5.0 / 40.0, 9.0 / 66.0)
     assert_frame_equal(measure_data, expected_measure_data)
+    assert_frame_equal(measure_data_from_ratio, expected_measure_data)
 
 
 def test_cause_specific_mortality_rate(
-    deaths_data: pd.DataFrame, total_person_time_data: pd.DataFrame
+    deaths_data: pd.DataFrame,
+    total_person_time_data: pd.DataFrame,
 ) -> None:
     """Test the CauseSpecificMortalityRate measure."""
     cause = "disease"
@@ -255,42 +174,16 @@ def test_cause_specific_mortality_rate(
     # Expected dataframe for the numerator and denominator data
     # The Deaths formatter with a specific cause will filter for that cause
     # The TotalPersonTime formatter will marginalize person_time over all states
-    expected_numerator_data = pd.DataFrame(
-        {
-            "value": [2.0, 4.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-    expected_denominator_data = pd.DataFrame(
-        {
-            "value": [
-                40.0,
-                66.0,
-            ],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
-    assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
-
+    assert_frame_equal(ratio_datasets["numerator_data"], get_expected_dataframe(2.0, 4.0))
+    assert_frame_equal(ratio_datasets["denominator_data"], get_expected_dataframe(40.0, 66.0))
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=total_person_time_data
     )
 
-    expected_measure_data = pd.DataFrame(
-        {"value": [2.0 / 40.0, 4.0 / 66.0]},
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
+    expected_measure_data = get_expected_dataframe(2.0 / 40.0, 4.0 / 66.0)
     assert_frame_equal(measure_data, expected_measure_data)
+    assert_frame_equal(measure_data_from_ratio, expected_measure_data)
 
 
 def test_excess_mortality_rate(
@@ -315,42 +208,17 @@ def test_excess_mortality_rate(
     # Expected dataframe for the numerator and denominator data
     # The Deaths formatter with a specific cause will filter for that cause
     # The PersonTime formatter with a specific state will filter for that state
-    expected_numerator_data = pd.DataFrame(
-        {
-            "value": [2.0, 4.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-    expected_denominator_data = pd.DataFrame(
-        {
-            "value": [
-                23.0,
-                37.0,
-            ],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
-    assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
+    assert_frame_equal(ratio_datasets["numerator_data"], get_expected_dataframe(2.0, 4.0))
+    assert_frame_equal(ratio_datasets["denominator_data"], get_expected_dataframe(23.0, 37.0))
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
 
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=person_time_data
     )
 
-    expected_measure_data = pd.DataFrame(
-        {"value": [2.0 / 23.0, 4.0 / 37.0]},
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
+    expected_measure_data = get_expected_dataframe(2.0 / 23.0, 4.0 / 37.0)
     assert_frame_equal(measure_data, expected_measure_data)
+    assert_frame_equal(measure_data_from_ratio, expected_measure_data)
 
 
 def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
@@ -438,14 +306,6 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         denominator_data=person_time_data,
     )
 
-    expected_numerator_data = pd.DataFrame(
-        {"value": [17.0 + 23.0, 29.0 + 37.0]},
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
-    )
-
     expected_denominator_data = pd.DataFrame(
         {
             "value": [17.0 + 23.0 + 29.0 + 37.0],
@@ -456,26 +316,22 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         ),
     )
 
-    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
+    assert_frame_equal(
+        ratio_datasets["numerator_data"], get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0)
+    )
     assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
 
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=person_time_data, denominator_data=person_time_data
     )
 
-    expected_measure_data = pd.DataFrame(
-        {
-            "value": [
-                (17.0 + 23.0) / (17.0 + 23.0 + 29.0 + 37.0),
-                (29.0 + 37.0) / (17.0 + 23.0 + 29.0 + 37.0),
-            ]
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
+    expected_measure_data = get_expected_dataframe(
+        (17.0 + 23.0) / (17.0 + 23.0 + 29.0 + 37.0),
+        (29.0 + 37.0) / (17.0 + 23.0 + 29.0 + 37.0),
     )
     assert_frame_equal(measure_data, expected_measure_data)
+    assert_frame_equal(measure_data_from_ratio, expected_measure_data)
 
 
 @pytest.mark.parametrize(

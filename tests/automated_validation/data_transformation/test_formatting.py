@@ -11,6 +11,19 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
 )
 
 
+def get_expected_dataframe(value_1: float, value_2: float) -> pd.DataFrame:
+    """Create an expected dataframe for testing."""
+    return pd.DataFrame(
+        {
+            "value": [value_1, value_2],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [("A", "baseline"), ("B", "baseline")],
+            names=["stratify_column", "scenario"],
+        ),
+    )
+
+
 def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     """Test TransitionCounts formatting."""
     formatter = TransitionCounts("disease", "susceptible_to_disease", "disease")
@@ -24,17 +37,9 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     assert formatter.name == "susceptible_to_disease_to_disease_transition_count"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
-    expected_dataframe = pd.DataFrame(
-        {
-            "value": [3.0, 5.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
+    assert_frame_equal(
+        formatter.format_dataset(transition_count_data), get_expected_dataframe(3.0, 5.0)
     )
-
-    assert_frame_equal(formatter.format_dataset(transition_count_data), expected_dataframe)
 
 
 def test_person_time(person_time_data: pd.DataFrame) -> None:
@@ -49,17 +54,9 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
     assert formatter.name == "disease_person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
-    expected_dataframe = pd.DataFrame(
-        {
-            "value": [23.0, 37.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
+    assert_frame_equal(
+        formatter.format_dataset(person_time_data), get_expected_dataframe(23.0, 37.0)
     )
-
-    assert_frame_equal(formatter.format_dataset(person_time_data), expected_dataframe)
 
 
 def test_person_time_state_total(person_time_data: pd.DataFrame) -> None:
@@ -73,17 +70,10 @@ def test_person_time_state_total(person_time_data: pd.DataFrame) -> None:
     assert formatter.name == "total_person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
-    expected_dataframe = pd.DataFrame(
-        {
-            "value": [17.0 + 23.0, 29.0 + 37.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
+    assert_frame_equal(
+        formatter.format_dataset(person_time_data),
+        get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0),
     )
-
-    assert_frame_equal(formatter.format_dataset(person_time_data), expected_dataframe)
 
 
 def test_total_person_time(total_person_time_data: pd.DataFrame) -> None:
@@ -97,17 +87,10 @@ def test_total_person_time(total_person_time_data: pd.DataFrame) -> None:
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
     assert formatter.filters == {"sub_entity": ["total"]}
 
-    expected_dataframe = pd.DataFrame(
-        {
-            "value": [17.0 + 23.0, 29.0 + 37.0],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
+    assert_frame_equal(
+        formatter.format_dataset(total_person_time_data),
+        get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0),
     )
-
-    assert_frame_equal(formatter.format_dataset(total_person_time_data), expected_dataframe)
 
 
 def test_total_population_person_time(total_person_time_data: pd.DataFrame) -> None:
@@ -149,19 +132,9 @@ def test_deaths_cause_specific(deaths_data: pd.DataFrame) -> None:
     assert formatter.name == "disease_deaths"
     assert formatter.unused_columns == ["measure", "entity_type"]
 
-    # Filter out only data related to the disease itself, since we want
-    # deaths directly attributed to the disease
-    expected_dataframe = pd.DataFrame(
-        {
-            "value": [2.0, 4.0],  # Deaths data for the disease itself
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
+    assert_frame_equal(
+        formatter.format_dataset(deaths_data), get_expected_dataframe(2.0, 4.0)
     )
-
-    assert_frame_equal(formatter.format_dataset(deaths_data), expected_dataframe)
 
 
 def test_deaths_all_causes(deaths_data: pd.DataFrame) -> None:
@@ -174,16 +147,9 @@ def test_deaths_all_causes(deaths_data: pd.DataFrame) -> None:
     assert formatter.name == "total_deaths"
     assert formatter.unused_columns == ["measure", "entity_type"]
 
-    expected_dataframe = pd.DataFrame(
-        {
-            "value": [5.0, 9.0],  # All deaths, regardless of cause
-        },
-        index=pd.MultiIndex.from_tuples(
-            [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
-        ),
+    assert_frame_equal(
+        formatter.format_dataset(deaths_data), get_expected_dataframe(5.0, 9.0)
     )
-    assert_frame_equal(formatter.format_dataset(deaths_data), expected_dataframe)
 
 
 def test_risk_state_person_time(risk_state_person_time_data: pd.DataFrame) -> None:
