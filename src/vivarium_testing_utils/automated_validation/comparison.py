@@ -243,9 +243,6 @@ class FuzzyComparison(Comparison):
 
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
-        test_datasets = self.test_datasets.copy()
-        reference_data = self.reference_data.copy()
-
         # Get union of test data index names
 
         combined_test_index_names = {
