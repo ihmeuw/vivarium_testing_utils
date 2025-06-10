@@ -75,3 +75,32 @@ class Deaths(SimDataFormatter):
         self.filter_value = "total" if cause == "all_causes" else cause
         self.filters = {"entity": [self.filter_value], "sub_entity": [self.filter_value]}
         self.name = f"{self.filter_value}_{self.measure}"
+
+
+class RiskStatePersonTime(SimDataFormatter):
+    """RiskStatePersonTime changes the sub_entity name to 'parameter' and, if total=True, replaces the value for *each* risk state
+    with the sum over all risk states for the given sub-index.
+
+    """
+
+    def __init__(self, entity: str, sum_all: bool = False) -> None:
+        self.entity = entity
+        self.data_key = f"person_time_{self.entity}"
+        self.sum_all = sum_all
+        self.name = "person_time"
+        if sum_all:
+            self.name += "_total"
+        self.unused_columns = ["measure", "entity_type", "entity"]
+
+    def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        dataset = marginalize(dataset, self.unused_columns)
+        if self.sum_all:
+            # Get the levels to group by (all except 'sub_entity')
+            group_levels = [
+                i for i, name in enumerate(dataset.index.names) if name != "sub_entity"
+            ]
+            # Use groupby with level numbers and transform to apply sum while preserving index
+            dataset["value"] = dataset.groupby(level=group_levels)["value"].transform("sum")
+
+        dataset = dataset.rename_axis(index={"sub_entity": "parameter"})
+        return dataset
