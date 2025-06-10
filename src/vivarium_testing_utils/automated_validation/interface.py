@@ -13,6 +13,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
+    RatioMeasure,
     get_measure_from_key,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
@@ -63,6 +64,12 @@ class ValidationContext:
         if not test_source_enum == DataSource.SIM:
             raise NotImplementedError(
                 f"Comparison for {test_source} source not implemented. Must be SIM."
+            )
+
+        # Check if the measure is a RatioMeasure for FuzzyComparison
+        if not isinstance(measure, RatioMeasure):
+            raise NotImplementedError(
+                f"Measure {measure_key} is not a RatioMeasure. Only RatioMeasures are currently supported for comparisons."
             )
 
         for source, scenarios in (
