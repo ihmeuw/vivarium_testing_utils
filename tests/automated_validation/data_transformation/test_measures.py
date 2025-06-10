@@ -82,6 +82,7 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
     assert ratio_datasets["denominator_data"].equals(
         get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0)
     )
+
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=person_time_data, denominator_data=person_time_data
@@ -111,6 +112,7 @@ def test_si_remission(
 
     assert ratio_datasets["numerator_data"].equals(get_expected_dataframe(7.0, 13.0))
     assert ratio_datasets["denominator_data"].equals(get_expected_dataframe(23.0, 37.0))
+
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=transition_count_data, denominator_data=person_time_data
@@ -142,6 +144,7 @@ def test_all_cause_mortality_rate(
     # to get total deaths by stratify_column
     assert_frame_equal(ratio_datasets["numerator_data"], get_expected_dataframe(5.0, 9.0))
     assert_frame_equal(ratio_datasets["denominator_data"], get_expected_dataframe(40.0, 66.0))
+
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=total_person_time_data
@@ -176,6 +179,7 @@ def test_cause_specific_mortality_rate(
     # The TotalPersonTime formatter will marginalize person_time over all states
     assert_frame_equal(ratio_datasets["numerator_data"], get_expected_dataframe(2.0, 4.0))
     assert_frame_equal(ratio_datasets["denominator_data"], get_expected_dataframe(40.0, 66.0))
+
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=deaths_data, denominator_data=total_person_time_data
@@ -210,6 +214,7 @@ def test_excess_mortality_rate(
     # The PersonTime formatter with a specific state will filter for that state
     assert_frame_equal(ratio_datasets["numerator_data"], get_expected_dataframe(2.0, 4.0))
     assert_frame_equal(ratio_datasets["denominator_data"], get_expected_dataframe(23.0, 37.0))
+
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
 
     measure_data = measure.get_measure_data_from_sim(
@@ -320,8 +325,8 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         ratio_datasets["numerator_data"], get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0)
     )
     assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
-    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
 
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=person_time_data, denominator_data=person_time_data
     )
