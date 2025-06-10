@@ -162,12 +162,12 @@ def test_risk_state_person_time(risk_state_person_time_data: pd.DataFrame) -> No
     assert formatter.entity == "child_stunting"
     assert formatter.data_key == "person_time_child_stunting"
     assert formatter.sum_all == False
-    assert formatter.new_value_column_name == "person_time"
+    assert formatter.name == "person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
     expected_dataframe = pd.DataFrame(
         {
-            "person_time": [8.0, 12.0, 15.0, 20.0, 6.0, 10.0],
+            "value": [8.0, 12.0, 15.0, 20.0, 6.0, 10.0],
         },
         index=pd.MultiIndex.from_tuples(
             [
@@ -194,14 +194,14 @@ def test_risk_state_person_time_sum_all(risk_state_person_time_data: pd.DataFram
     assert formatter.entity == "child_stunting"
     assert formatter.data_key == "person_time_child_stunting"
     assert formatter.sum_all == True
-    assert formatter.new_value_column_name == "person_time_total"
+    assert formatter.name == "person_time_total"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
     # With sum_all=True, each risk state gets the total person time for its stratification
     # Total for A = 8+12+15 = 35, Total for B = 20+6+10 = 36
     expected_dataframe = pd.DataFrame(
         {
-            "person_time_total": [35.0, 35.0, 35.0, 36.0, 36.0, 36.0],
+            "value": [35.0, 35.0, 35.0, 36.0, 36.0, 36.0],
         },
         index=pd.MultiIndex.from_tuples(
             [
