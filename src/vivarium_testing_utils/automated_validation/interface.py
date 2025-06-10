@@ -55,7 +55,7 @@ class ValidationContext:
         stratifications: list[str] = [],
     ) -> None:
         """Add a comparison to the context given a measure key and data sources."""
-        measure = get_measure_from_key(measure_key)
+        measure = get_measure_from_key(measure_key, list(self.scenario_columns))
 
         test_source_enum = DataSource.from_str(test_source)
         ref_source_enum = DataSource.from_str(ref_source)

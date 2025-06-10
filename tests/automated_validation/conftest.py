@@ -6,6 +6,7 @@ import yaml
 from pytest import TempPathFactory
 from vivarium.framework.artifact import Artifact
 
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import (
     _convert_to_total_person_time,
 )
@@ -240,7 +241,7 @@ def artifact_disease_incidence() -> pd.DataFrame:
                 ("B", "D", 0),
                 ("B", "D", 1),
             ],
-            names=["stratify_column", "other_stratify_column", "input_draw"],
+            names=["stratify_column", "other_stratify_column", DRAW_INDEX],
         ),
     )
 

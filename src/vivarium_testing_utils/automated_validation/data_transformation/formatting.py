@@ -1,11 +1,12 @@
 import pandas as pd
 
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
     marginalize,
     stratify,
 )
-from vivarium_testing_utils.automated_validation.constants import SAMPLING_INDEX_LEVELS
+
 
 class SimDataFormatter:
     """A SimDataFormatter contains information about how to format particular kinds of
@@ -61,19 +62,25 @@ class StatePersonTime(SimDataFormatter):
 class TotalPopulationPersonTime(StatePersonTime):
     """Formatter for simulation data that contains total person time."""
 
-    def __init__(self) -> None:
+    def __init__(self, scenario_columns: list[str]) -> None:
         """
         Get person time aggregated over populations from total person time dataset.
+
+        Parameters
+        ----------
+        scenario_columns : list[str], optional
+            Column names for scenario stratification. Defaults to an empty list.
         """
         super().__init__(entity="total", filter_value="total")
         self.data_key = "person_time_total"
         self.name = "total_population_person_time"
+        self.scenario_columns = scenario_columns
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         dataset = super().format_dataset(dataset)
         return stratify(
             data=dataset,
-            stratification_cols=list(SAMPLING_INDEX_LEVELS) + scenario_columns,
+            stratification_cols=[DRAW_INDEX, SEED_INDEX] + self.scenario_columns,
         )
 
 

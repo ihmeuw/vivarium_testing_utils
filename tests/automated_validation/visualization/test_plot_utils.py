@@ -9,6 +9,7 @@ from pandas.testing import assert_frame_equal
 from pytest_mock import MockerFixture
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.plot_utils import (
     _append_condition_to_title,
@@ -56,9 +57,9 @@ def sample_test_data(base_sample_data: pd.DataFrame) -> pd.DataFrame:
     """Create test data with two unconditioned variables where the first has more unique values."""
     # rename extra column to extra test column
     test_data = base_sample_data.copy()
-    test_data["input_draw"] = 0  # Add input_draw column
+    test_data[DRAW_INDEX] = 0  # Add input_draw column
     test_data["scenario"] = "baseline"
-    test_data.set_index("input_draw", append=True, inplace=True)
+    test_data.set_index(DRAW_INDEX, append=True, inplace=True)
     test_data.set_index("scenario", append=True, inplace=True)
     return test_data
 
@@ -387,7 +388,7 @@ class TestHelperFunctions:
     def test_get_unconditioned_index_names(self) -> None:
         index = pd.MultiIndex.from_tuples(
             [("male", "A", "Test", 0, 42)],
-            names=["sex", "age_group", "source", "input_draw", "random_seed"],
+            names=["sex", "age_group", "source", DRAW_INDEX, SEED_INDEX],
         )
 
         # Test with different x_axis values
@@ -403,7 +404,7 @@ class TestHelperFunctions:
         """Test that combined data has correct index structure."""
         test_data = sample_test_data.droplevel("scenario")
         ref_data = sample_ref_data.assign(input_draw=np.nan).set_index(
-            ["input_draw"], append=True
+            [DRAW_INDEX], append=True
         )
         test_data = test_data.reorder_levels(ref_data.index.names)
         combined_data = pd.concat(

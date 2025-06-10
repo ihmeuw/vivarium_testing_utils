@@ -1,1 +1,4 @@
-SAMPLING_INDEX_LEVELS = ("input_draw",)
+DRAW_PREFIX = "draw_"
+
+DRAW_INDEX = "input_draw"
+SEED_INDEX = "random_seed"

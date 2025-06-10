@@ -181,10 +181,17 @@ class PopulationStructure(RatioMeasure):
     that the simulation maintains realistic demographic distributions.
     """
 
-    def __init__(self):
+    def __init__(self, scenario_columns: list[str] = None):
+        """Initialize PopulationStructure measure.
+
+        Parameters
+        ----------
+        scenario_columns : list[str], optional
+            Column names for scenario stratification. Defaults to an empty list.
+        """
         self.measure_key = "population.structure"
         self.numerator = StatePersonTime()
-        self.denominator = TotalPopulationPersonTime()
+        self.denominator = TotalPopulationPersonTime(scenario_columns)
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
@@ -205,13 +212,31 @@ MEASURE_KEY_MAPPINGS = {
 }
 
 
-def get_measure_from_key(measure_key: str) -> Measure:
+def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measure:
+    """Get a measure instance from a measure key string.
+
+    Parameters
+    ----------
+    measure_key : str
+        The measure key in format 'entity_type.entity.measure_name' or 'entity_type.measure_name'
+    scenario_columns : list[str], optional
+        Column names for scenario stratification. Used by some measures like PopulationStructure.
+
+    Returns
+    -------
+    Measure
+        The instantiated measure object
+    """
     parts = measure_key.split(".")
     if len(parts) == 3:
         entity_type, entity, measure_name = parts
         return MEASURE_KEY_MAPPINGS[entity_type][measure_name](entity)
     elif len(parts) == 2:
         entity_type, measure_name = parts
-        return MEASURE_KEY_MAPPINGS[entity_type][measure_name]()
+        # Special case for PopulationStructure which needs scenario_columns
+        if entity_type == "population" and measure_name == "structure":
+            return MEASURE_KEY_MAPPINGS[entity_type][measure_name](scenario_columns)
+        else:
+            return MEASURE_KEY_MAPPINGS[entity_type][measure_name]()
     else:
         raise ValueError(f"Invalid measure key format: {measure_key}")
