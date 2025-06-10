@@ -5,6 +5,7 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    filter_data,
     get_singular_indices,
     marginalize,
 )
@@ -16,6 +17,8 @@ from vivarium_testing_utils.automated_validation.visualization.dataframe_utils i
     format_draws_sample,
     format_metadata,
 )
+
+SAMPLING_INDEX_LEVELS = ("input_draw",)
 
 
 class Comparison(ABC):
@@ -29,6 +32,8 @@ class Comparison(ABC):
     test_datasets: dict[str, pd.DataFrame]
     reference_source: DataSource
     reference_data: pd.DataFrame
+    test_scenarios: dict[str, str] | None
+    reference_scenarios: dict[str, str] | None
     stratifications: Collection[str]
 
     @property
@@ -87,13 +92,26 @@ class FuzzyComparison(Comparison):
         test_datasets: dict[str, pd.DataFrame],
         reference_source: DataSource,
         reference_data: pd.DataFrame,
+        test_scenarios: dict[str, str] | None = None,
+        reference_scenarios: dict[str, str] | None = None,
         stratifications: Collection[str] = (),
     ):
         self.measure: RatioMeasure = measure
+
         self.test_source = test_source
-        self.test_datasets = test_datasets
+        self.test_scenarios: dict[str, str] = test_scenarios if test_scenarios else {}
+        self.test_datasets = {
+            key: filter_data(dataset, self.test_scenarios, drop_singles=False)
+            for key, dataset in test_datasets.items()
+        }
         self.reference_source = reference_source
-        self.reference_data = reference_data
+        self.reference_scenarios: dict[str, str] = (
+            reference_scenarios if reference_scenarios else {}
+        )
+        self.reference_data = filter_data(
+            reference_data, self.reference_scenarios, drop_singles=False
+        )
+
         if stratifications:
             # TODO: MIC-6075
             raise NotImplementedError(
@@ -227,45 +245,45 @@ class FuzzyComparison(Comparison):
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
         # Get union of test data index names
-        combined_test_index_names = set(
+
+        combined_test_index_names = {
             index_name
             for key in self.test_datasets
             for index_name in self.test_datasets[key].index.names
-        )
+        }
+        reference_index_names = set(self.reference_data.index.names)
+
         # Get index levels that are only in the test data.
-        test_only_indexes = [
-            index
-            for index in combined_test_index_names
-            if index not in self.reference_data.index.names
-        ]
-        # Likewise, get index levels that are only in the reference data.
-        ref_only_indexes = [
-            index
-            for index in self.reference_data.index.names
-            if index not in combined_test_index_names
-        ]
+        test_only_indexes = combined_test_index_names - reference_index_names
+        reference_only_indexes = reference_index_names - combined_test_index_names
+        # Don't aggregate over the scenarios, yet, because we may need them to join the datasets.
+        test_indexes_to_marginalize = test_only_indexes.difference(
+            tuple(self.test_scenarios.keys()), SAMPLING_INDEX_LEVELS
+        )
+        reference_indexes_to_drop = reference_only_indexes.difference(
+            tuple(self.reference_scenarios.keys()), SAMPLING_INDEX_LEVELS
+        )
 
         # If the test data has any index levels that are not in the reference data, marginalize
         # over those index levels.)
         test_datasets = {
-            key: marginalize(self.test_datasets[key], test_only_indexes)
+            key: marginalize(self.test_datasets[key], test_indexes_to_marginalize)
             for key in self.test_datasets
         }
 
         # Drop any singular index levels from the reference data if they are not in the test data.
         # If any ref-only index level is not singular, raise an error.
-        redundant_ref_indexes = get_singular_indices(self.reference_data).keys()
-        if not set(ref_only_indexes).issubset(set(redundant_ref_indexes)):
+        redundant_ref_indexes = set(get_singular_indices(self.reference_data).keys())
+        if not reference_indexes_to_drop.issubset(redundant_ref_indexes):
             # TODO: MIC-6075
-            diff = set(ref_only_indexes) - set(redundant_ref_indexes)
+            diff = reference_indexes_to_drop - redundant_ref_indexes
             raise ValueError(
                 f"Reference data has non-trivial index levels {diff} that are not in the test data. "
                 "We cannot currently marginalize over these index levels."
             )
-        reference_data = self.reference_data.droplevel(ref_only_indexes)  # type: ignore[arg-type]
-        # Mypy complains about list[str] being passed to droplevel, I think because list is invariabt
-        # and it wants list[Hashable]. That's an issue on the pandas side, not ours.
-        # Regardless, this is a valid use of the droplevel API.
+        reference_data = self.reference_data.droplevel(list(reference_indexes_to_drop))
 
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
+
+        ## At this point, the only non-common index levels should be scenarios and draws.
         return converted_test_data, reference_data
