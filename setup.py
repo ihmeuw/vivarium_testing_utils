@@ -52,7 +52,6 @@ if __name__ == "__main__":
         "tables",
         "networkx",
         "loguru",
-        "pyarrow",
         "seaborn",
         # Type stubs
         "pandas-stubs",
@@ -60,12 +59,13 @@ if __name__ == "__main__":
         "scipy-stubs",
         "types-docutils",
         "types-setuptools",
+        "types-PyYAML",
     ]
 
     setup_requires = ["setuptools_scm"]
 
     validation_requirements = [
-        "vivarium",
+        "vivarium>=3.4.0",
         "vivarium-inputs",
         "pandera",
     ]
