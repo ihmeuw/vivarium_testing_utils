@@ -5,7 +5,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     marginalize,
     stratify,
 )
-
+from vivarium_testing_utils.automated_validation.constants import SAMPLING_INDEX_LEVELS
 
 class SimDataFormatter:
     """A SimDataFormatter contains information about how to format particular kinds of
@@ -71,19 +71,10 @@ class TotalPopulationPersonTime(StatePersonTime):
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         dataset = super().format_dataset(dataset)
-        ## HACK
-        ########################################################################
         return stratify(
             data=dataset,
-            stratification_cols=[
-                "input_draw",
-                "random_seed",
-                "sqlns_effect_size",
-                "child_scenario",
-                "maternal_scenario",
-            ],
+            stratification_cols=list(SAMPLING_INDEX_LEVELS) + scenario_columns,
         )
-        #######################################################################
 
 
 class Deaths(SimDataFormatter):

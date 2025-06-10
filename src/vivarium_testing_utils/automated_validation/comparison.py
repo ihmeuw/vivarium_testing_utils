@@ -18,8 +18,7 @@ from vivarium_testing_utils.automated_validation.visualization.dataframe_utils i
     format_draws_sample,
     format_metadata,
 )
-
-SAMPLING_INDEX_LEVELS = ("input_draw",)
+from vivarium_testing_utils.automated_validation.constants import SAMPLING_INDEX_LEVELS
 
 
 class Comparison(ABC):
