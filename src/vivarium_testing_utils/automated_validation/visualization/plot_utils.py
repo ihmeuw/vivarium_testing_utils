@@ -8,7 +8,9 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison
-from vivarium_testing_utils.automated_validation.data_loader import DataSource
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    filter_data,
+)
 
 
 def plot_comparison(
@@ -42,8 +44,13 @@ def plot_comparison(
             f"Unsupported plot type: {type}. Supported types are: {list(PLOT_TYPE_MAPPING.keys())}"
         )
     title = _format_title(comparison.measure.measure_key)
+
+    # Add the scenario columns to the list of values to append to the title.
+    for modifiers in (comparison.test_scenarios, comparison.reference_scenarios, condition):
+        title = _append_condition_to_title(modifiers, title)
+
     combined_data = _get_combined_data(comparison)
-    title, combined_data = _conditionalize(condition, title, combined_data)
+    combined_data = filter_data(combined_data, filter_cols=condition)
 
     default_kwargs = {
         "title": title,
@@ -241,17 +248,6 @@ def _heatmap(
 ##################
 
 
-def _append_source(
-    data: pd.DataFrame,
-    source: DataSource,
-) -> pd.DataFrame:
-    """Append a source column to the DataFrame."""
-    data_with_source = data.copy()
-    data_with_source["source"] = source.name.lower().capitalize()
-    data_with_source.set_index("source", append=True, inplace=True)
-    return data_with_source
-
-
 def _format_title(measure_key: str) -> str:
     """Convert a measure key to a more readable format."""
     parts = measure_key.split(".")
@@ -278,43 +274,39 @@ def _get_unconditioned_index_names(
 def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
     """Get the combined data from the test and reference datasets."""
     test_data, reference_data = comparison._align_datasets()
-    test_data = _append_source(test_data, comparison.test_source)
-    reference_data = _append_source(reference_data, comparison.reference_source)
 
-    # Ensure both datasets have the same index structure
-    test_index_names = set(test_data.index.names)
-    ref_index_names = set(reference_data.index.names)
+    # Drop the scenario columns, which should already be filtered.
+    test_data = filter_data(test_data, filter_cols=comparison.test_scenarios)
+    reference_data = filter_data(reference_data, filter_cols=comparison.reference_scenarios)
 
-    # Add missing index levels with NaN values
-    missing_in_ref = test_index_names - ref_index_names
-    missing_in_test = ref_index_names - test_index_names
+    # Add input draw with placeholder if necessary
+    if (
+        "input_draw" in test_data.index.names
+        and "input_draw" not in reference_data.index.names
+    ):
+        reference_data = reference_data.assign(input_draw=np.nan).set_index(
+            ["input_draw"], append=True
+        )
+    elif (
+        "input_draw" not in test_data.index.names
+        and "input_draw" in reference_data.index.names
+    ):
+        test_data = test_data.assign(input_draw=np.nan).set_index(["input_draw"], append=True)
 
-    if missing_in_ref:
-        for level_name in missing_in_ref:
-            reference_data[level_name] = np.nan
-            reference_data = reference_data.set_index(level_name, append=True)
-
-    if missing_in_test:
-        for level_name in missing_in_test:
-            test_data[level_name] = np.nan
-            test_data = test_data.set_index(level_name, append=True)
-
-    # Reorder the index levels to match
-    if test_data.index.names != reference_data.index.names:
-        test_data = test_data.reorder_levels(reference_data.index.names)
-
-    combined_data = pd.concat([test_data, reference_data])
+    test_data = test_data.reorder_levels(reference_data.index.names)
+    combined_data = pd.concat(
+        [test_data, reference_data],
+        keys=[
+            comparison.test_source.name.lower().capitalize(),
+            comparison.reference_source.name.lower().capitalize(),
+        ],
+        names=["source"],
+    )
     return combined_data
 
 
-def _conditionalize(
-    condition_dict: dict[str, Any], title: str, data: pd.DataFrame
-) -> tuple[str, pd.DataFrame]:
-    """Filter the data based on the condition dictionary."""
-    for condition_level, condition_value in condition_dict.items():
-        data = data.query(f"{condition_level} == '{condition_value}'")
-        data = data.droplevel(condition_level)
-
+def _append_condition_to_title(condition_dict: dict[str, Any], title: str) -> str:
+    """Append the condition dictionary to the title."""
     if condition_dict:
         title += f"\n{' | '.join([f'{k} = {v}' for k, v in condition_dict.items()])}"
-    return title, data
+    return title

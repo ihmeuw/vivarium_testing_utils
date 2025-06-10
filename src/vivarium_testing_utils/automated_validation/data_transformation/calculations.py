@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Collection, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -22,7 +22,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
 DRAW_PREFIX = "draw_"
 
 
-def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.DataFrame:
+def filter_data(
+    data: pd.DataFrame, filter_cols: Mapping[str, str | list[str]], drop_singles: bool = True
+) -> pd.DataFrame:
     """Filter a DataFrame by the given index columns and values.
 
     The filter_cols argument
@@ -30,9 +32,12 @@ def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.Dat
     values to keep. If we filter to a single value, drop the column. If the dataframe is empty
     after filtering, raise an error."""
     for col, values in filter_cols.items():
+        if isinstance(values, str):
+            values = [values]
         if len(values) == 1:
             data = data[data.index.get_level_values(col) == values[0]]
-            data = data.droplevel([col])
+            if drop_singles:
+                data = data.droplevel([col])
         else:
             data = data[data.index.get_level_values(col).isin(values)]
     if data.empty:
@@ -94,7 +99,7 @@ def stratify(data: pd.DataFrame, stratification_cols: list[str]) -> pd.DataFrame
     return aggregate_sum(data, stratification_cols)
 
 
-def marginalize(data: pd.DataFrame, marginalize_cols: list[str]) -> pd.DataFrame:
+def marginalize(data: pd.DataFrame, marginalize_cols: Collection[str]) -> pd.DataFrame:
     """Sum over marginalize columns, keeping the rest. Syntactic sugar for aggregate."""
     return aggregate_sum(data, [x for x in data.index.names if x not in marginalize_cols])
 

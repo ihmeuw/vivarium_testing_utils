@@ -19,10 +19,11 @@ from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
 
 class ValidationContext:
-    def __init__(self, results_dir: str | Path):
+    def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
         self._data_loader = DataLoader(Path(results_dir))
         self.comparisons: dict[str, Comparison] = {}
         self.age_groups = self._get_age_groups()
+        self.scenario_columns = scenario_columns
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -49,17 +50,33 @@ class ValidationContext:
         measure_key: str,
         test_source: str,
         ref_source: str,
+        test_scenarios: dict[str, str] = {},
+        ref_scenarios: dict[str, str] = {},
         stratifications: list[str] = [],
     ) -> None:
         """Add a comparison to the context given a measure key and data sources."""
         measure = get_measure_from_key(measure_key)
 
         test_source_enum = DataSource.from_str(test_source)
+        ref_source_enum = DataSource.from_str(ref_source)
 
         if not test_source_enum == DataSource.SIM:
             raise NotImplementedError(
                 f"Comparison for {test_source} source not implemented. Must be SIM."
             )
+
+        for source, scenarios in (
+            (test_source_enum, test_scenarios),
+            (ref_source_enum, ref_scenarios),
+        ):
+            if source == DataSource.SIM and set(scenarios.keys()) != set(
+                self.scenario_columns
+            ):
+                raise ValueError(
+                    f"Each simulation comparison subject must choose a specific scenario. "
+                    f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."
+                )
+
         test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
         test_raw_datasets = {
             dataset_name: resolve_age_groups(dataset, self.age_groups)
@@ -69,7 +86,6 @@ class ValidationContext:
             **test_raw_datasets,
         )
 
-        ref_source_enum = DataSource.from_str(ref_source)
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
         ref_raw_datasets = {
             dataset_name: resolve_age_groups(dataset, self.age_groups)
@@ -83,6 +99,8 @@ class ValidationContext:
             test_datasets=test_datasets,
             reference_source=ref_source_enum,
             reference_data=ref_data,
+            test_scenarios=test_scenarios,
+            reference_scenarios=ref_scenarios,
             stratifications=stratifications,
         )
         self.comparisons[measure_key] = comparison
