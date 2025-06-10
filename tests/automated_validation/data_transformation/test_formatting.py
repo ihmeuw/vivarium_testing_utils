@@ -1,9 +1,11 @@
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     Deaths,
     StatePersonTime,
+    TotalPopulationPersonTime,
     TransitionCounts,
 )
 
@@ -101,6 +103,35 @@ def test_total_person_time(total_person_time_data: pd.DataFrame) -> None:
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",
+        ),
+    )
+
+    assert_frame_equal(formatter.format_dataset(total_person_time_data), expected_dataframe)
+
+
+def test_total_population_person_time(total_person_time_data: pd.DataFrame) -> None:
+    """Test TotalPopulationPersonTime formatter with scenario columns."""
+    scenario_columns = ["scenario"]
+    formatter = TotalPopulationPersonTime(scenario_columns)
+
+    assert formatter.measure == "person_time"
+    assert formatter.entity == "total"
+    assert formatter.data_key == "person_time_total"
+    assert formatter.name == "total_population_person_time"
+    assert formatter.unused_columns == ["measure", "entity_type", "entity"]
+    assert formatter.filters == {"sub_entity": ["total"]}
+    assert formatter.scenario_columns == ["scenario"]
+
+    # Create test data with DRAW_INDEX, SEED_INDEX, and scenario columns
+
+    # The formatter should sum over everything except DRAW_INDEX, SEED_INDEX, and scenario columns
+    expected_dataframe = pd.DataFrame(
+        {
+            "value": [17.0 + 23.0 + 29.0 + 37.0],
+        },
+        index=pd.Index(
+            ["baseline"],
+            name="scenario",
         ),
     )
 

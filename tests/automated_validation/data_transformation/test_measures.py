@@ -5,6 +5,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     CauseSpecificMortalityRate,
     ExcessMortalityRate,
     Incidence,
+    PopulationStructure,
     Prevalence,
     SIRemission,
 )
@@ -337,6 +338,60 @@ def test_excess_mortality_rate(
 
     expected_measure_data = pd.DataFrame(
         {"value": [2.0 / 23.0, 4.0 / 37.0]},
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+    assert_frame_equal(measure_data, expected_measure_data)
+
+
+def test_population_structure(person_time_data: pd.DataFrame) -> None:
+    """Test the PopulationStructure measure."""
+    scenario_columns = ["scenario"]
+    measure = PopulationStructure(scenario_columns)
+
+    assert measure.measure_key == "population.structure"
+    assert measure.sim_datasets == {
+        "numerator_data": "person_time_total",
+        "denominator_data": "person_time_total",
+    }
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
+        numerator_data=person_time_data,
+        denominator_data=person_time_data,
+    )
+
+    expected_numerator_data = pd.DataFrame(
+        {
+            "value": [17.0, 29.0],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+
+    expected_denominator_data = pd.DataFrame(
+        {
+            "value": [17.0 + 23.0, 29.0 + 37.0],
+        },
+        index=pd.Index(
+            ["A", "B"],
+            name="stratify_column",
+        ),
+    )
+
+    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
+    assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
+
+    measure_data = measure.get_measure_data_from_sim(
+        numerator_data=person_time_data, denominator_data=person_time_data
+    )
+
+    expected_measure_data = pd.DataFrame(
+        {"value": [17.0 / (17.0 + 23.0), 29.0 / (29.0 + 37.0)]},
         index=pd.Index(
             ["A", "B"],
             name="stratify_column",

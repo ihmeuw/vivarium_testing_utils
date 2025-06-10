@@ -78,9 +78,13 @@ class TotalPopulationPersonTime(StatePersonTime):
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         dataset = super().format_dataset(dataset)
+        between_scenario_levels = [DRAW_INDEX, SEED_INDEX] + self.scenario_columns
+        levels_to_stratify = [
+            level for level in between_scenario_levels if level in dataset.index.names
+        ]
         return stratify(
             data=dataset,
-            stratification_cols=[DRAW_INDEX, SEED_INDEX] + self.scenario_columns,
+            stratification_cols=levels_to_stratify,
         )
 
 

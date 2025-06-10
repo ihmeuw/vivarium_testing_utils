@@ -39,6 +39,7 @@ def _create_transition_count_data() -> pd.DataFrame:
                     "disease",
                     "susceptible_to_disease_to_disease",
                     "A",
+                    "baseline",
                 ),
                 (
                     "transition_count",
@@ -46,6 +47,7 @@ def _create_transition_count_data() -> pd.DataFrame:
                     "disease",
                     "susceptible_to_disease_to_disease",
                     "B",
+                    "baseline",
                 ),
                 (
                     "transition_count",
@@ -53,6 +55,7 @@ def _create_transition_count_data() -> pd.DataFrame:
                     "disease",
                     "disease_to_susceptible_to_disease",
                     "A",
+                    "baseline",
                 ),
                 (
                     "transition_count",
@@ -60,9 +63,17 @@ def _create_transition_count_data() -> pd.DataFrame:
                     "disease",
                     "disease_to_susceptible_to_disease",
                     "B",
+                    "baseline",
                 ),
             ],
-            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
+            names=[
+                "measure",
+                "entity_type",
+                "entity",
+                "sub_entity",
+                "stratify_column",
+                "scenario",
+            ],
         ),
     )
 
@@ -76,12 +87,33 @@ def _create_person_time_data() -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("person_time", "cause", "disease", "susceptible_to_disease", "A"),
-                ("person_time", "cause", "disease", "disease", "A"),
-                ("person_time", "cause", "disease", "susceptible_to_disease", "B"),
-                ("person_time", "cause", "disease", "disease", "B"),
+                (
+                    "person_time",
+                    "cause",
+                    "disease",
+                    "susceptible_to_disease",
+                    "A",
+                    "baseline",
+                ),
+                ("person_time", "cause", "disease", "disease", "A", "baseline"),
+                (
+                    "person_time",
+                    "cause",
+                    "disease",
+                    "susceptible_to_disease",
+                    "B",
+                    "baseline",
+                ),
+                ("person_time", "cause", "disease", "disease", "B", "baseline"),
             ],
-            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
+            names=[
+                "measure",
+                "entity_type",
+                "entity",
+                "sub_entity",
+                "stratify_column",
+                "scenario",
+            ],
         ),
     )
 
@@ -95,12 +127,19 @@ def _create_deaths_data() -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("deaths", "cause", "disease", "disease", "A"),
-                ("deaths", "cause", "other_causes", "other_causes", "A"),
-                ("deaths", "cause", "disease", "disease", "B"),
-                ("deaths", "cause", "other_causes", "other_causes", "B"),
+                ("deaths", "cause", "disease", "disease", "A", "baseline"),
+                ("deaths", "cause", "other_causes", "other_causes", "A", "baseline"),
+                ("deaths", "cause", "disease", "disease", "B", "baseline"),
+                ("deaths", "cause", "other_causes", "other_causes", "B", "baseline"),
             ],
-            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
+            names=[
+                "measure",
+                "entity_type",
+                "entity",
+                "sub_entity",
+                "stratify_column",
+                "scenario",
+            ],
         ),
     )
 
