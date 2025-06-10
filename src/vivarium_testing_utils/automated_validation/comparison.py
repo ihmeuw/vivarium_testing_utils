@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Collection, Literal
 
-import numpy as np
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
