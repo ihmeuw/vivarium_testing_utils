@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 
 import pandas as pd
-import pandera as pa
 from loguru import logger
 
 AGE_GROUP_COLUMN = "age_group"
