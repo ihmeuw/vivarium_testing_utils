@@ -5,10 +5,7 @@ from typing import Any
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    ratio,
-    stratify,
-)
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import ratio
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
     SingleNumericColumn,

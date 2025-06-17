@@ -69,8 +69,8 @@ def test_format_metadata_missing_fields() -> None:
 
     with check:
         for i in range(2, 6):
-            assert df["Test Data"][i] == "N/A"
-            assert df["Reference Data"][i] == "N/A"
+            assert df["Test Data"].iloc[i] == "N/A"
+            assert df["Reference Data"].iloc[i] == "N/A"
 
 
 @pytest.mark.parametrize(
