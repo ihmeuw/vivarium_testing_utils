@@ -498,7 +498,7 @@ def rebin_count_dataframe(
 
         # Stack the new age group columns into the index
         stacked_series_for_col = result_matrix_for_col.stack(
-            level=AGE_GROUP_COLUMN, dropna=False
+            level=AGE_GROUP_COLUMN, future_stack=True
         )
         stacked_series_for_col.name = val_col
 

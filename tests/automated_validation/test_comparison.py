@@ -1,6 +1,5 @@
 from unittest import mock
 
-import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
@@ -22,12 +21,12 @@ def test_data() -> dict[str, pd.DataFrame]:
     """A sample test data dictionary with separate numerator and denominator DataFrames."""
     index = pd.MultiIndex.from_tuples(
         [
-            ("2020", "male", 0, 1, 1337),
-            ("2020", "female", 0, 5, 1337),
-            ("2025", "male", 0, 2, 42),
-            ("2025", "male", 0, 2, 50),  # Add a seed to get marginalized over
+            ("2020", "male", 0, 1, 1337, "baseline"),
+            ("2020", "female", 0, 5, 1337, "baseline"),
+            ("2025", "male", 0, 2, 42, "baseline"),
+            ("2025", "male", 0, 2, 50, "baseline"),  # Add a seed to get marginalized over
         ],
-        names=["year", "sex", "age", "input_draw", "random_seed"],
+        names=["year", "sex", "age", "input_draw", "random_seed", "scenario"],
     )
     numerator_df = pd.DataFrame({"value": [10, 20, 30, 35]}, index=index)
     denominator_df = pd.DataFrame({"value": [100, 100, 100, 100]}, index=index)
@@ -76,15 +75,22 @@ def test_fuzzy_comparison_init(
         test_data,
         DataSource.GBD,
         reference_data,
+        test_scenarios={"scenario": "baseline"},
         stratifications=[],
     )
 
     with check:
         assert comparison.measure == mock_ratio_measure
         assert comparison.test_source == DataSource.SIM
-        assert comparison.test_datasets == test_data
+        assert comparison.test_datasets.keys() == {"numerator_data", "denominator_data"}
+        assert comparison.test_datasets["numerator_data"].equals(test_data["numerator_data"])
+        assert comparison.test_datasets["denominator_data"].equals(
+            test_data["denominator_data"]
+        )
         assert comparison.reference_source == DataSource.GBD
         assert comparison.reference_data.equals(reference_data)
+        assert comparison.test_scenarios == {"scenario": "baseline"}
+        assert not comparison.reference_scenarios
         assert list(comparison.stratifications) == []
 
 
@@ -95,7 +101,12 @@ def test_fuzzy_comparison_metadata(
 ) -> None:
     """Test the metadata property of the FuzzyComparison class."""
     comparison = FuzzyComparison(
-        mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data,
+        test_scenarios={"scenario": "baseline"},
     )
 
     metadata = comparison.metadata
@@ -103,7 +114,11 @@ def test_fuzzy_comparison_metadata(
     expected_metadata = [
         ("Measure Key", "mock_measure", "mock_measure"),
         ("Source", "sim", "gbd"),
-        ("Index Columns", "year, sex, age, input_draw, random_seed", "year, sex, age"),
+        (
+            "Index Columns",
+            "year, sex, age, input_draw, random_seed, scenario",
+            "year, sex, age",
+        ),
         ("Size", "4 rows × 1 columns", "3 rows × 1 columns"),
         ("Num Draws", "3", "N/A"),
         ("Input Draws", "[1, 2, 5]", "N/A"),
@@ -134,7 +149,7 @@ def test_fuzzy_comparison_get_diff(
         assert "test_rate" in diff.columns
         assert "reference_rate" in diff.columns
         assert "percent_error" in diff.columns
-        assert "input_draw" not in diff.index.names
+        assert "input_draw" in diff.index.names
         assert "random_seed" not in diff.index.names
 
     # Test returning all rows
@@ -224,7 +239,7 @@ def test_get_metadata_from_dataset(
     result = comparison._get_metadata_from_datasets("test")
     with check:
         assert result["source"] == DataSource.SIM.value
-        assert result["index_columns"] == "year, sex, age, input_draw, random_seed"
+        assert result["index_columns"] == "year, sex, age, input_draw, random_seed, scenario"
         assert (
             result["size"] == "4 rows × 1 columns"
         )  # 2 years * 2 sexes * 3 draws * 2 seeds = 24 rows, 1 column
@@ -340,6 +355,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
         test_data,
         DataSource.GBD,
         reference_data,
+        test_scenarios={"scenario": "baseline"},
     )
 
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
@@ -347,11 +363,18 @@ def test_fuzzy_comparison_align_datasets_calculation(
     assert_frame_equal(aligned_reference_data, reference_data)
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
-
+    expected_index = pd.MultiIndex.from_tuples(
+        [
+            ("2020", "male", 0, 1, "baseline"),
+            ("2020", "female", 0, 5, "baseline"),
+            ("2025", "male", 0, 2, "baseline"),
+        ],
+        names=["year", "sex", "age", "input_draw", "scenario"],
+    )
     assert_frame_equal(
         aligned_test_data,
         pd.DataFrame(
             {"value": expected_values},
-            index=aligned_test_data.index,
+            index=expected_index,
         ),
     )
