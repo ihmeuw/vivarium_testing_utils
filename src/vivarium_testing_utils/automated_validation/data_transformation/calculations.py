@@ -6,6 +6,10 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_INDEX,
+    DRAW_PREFIX,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,
     format_dataframe,
@@ -18,8 +22,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     check_io,
     series_to_dataframe,
 )
-
-DRAW_PREFIX = "draw_"
 
 
 def filter_data(
@@ -63,14 +65,13 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
 
     Parameters
     ----------
-    numerator_data : pd.DataFrame
+    numerator_data
         SingleNumericColumn DataFrame to use as the numerator
-    denominator_data : pd.DataFrame
+    denominator_data
         SingleNumericColumn DataFrame  to use as the denominator
 
     Returns
     -------
-    pd.DataFrame
         SingleNumericColumn DataFrame containing the ratio values
     """
     zero_denominator = denominator_data["value"] == 0
@@ -133,13 +134,13 @@ def _clean_artifact_draws(
     # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
     # and melt the data into long format
     data = data.melt(
-        var_name="input_draw",
+        var_name=DRAW_INDEX,
         value_name="value",
         ignore_index=False,
     )
-    data["input_draw"] = data["input_draw"].str.replace(DRAW_PREFIX, "", regex=False)
-    data["input_draw"] = data["input_draw"].astype(int)
-    data = data.set_index("input_draw", append=True).sort_index()
+    data[DRAW_INDEX] = data[DRAW_INDEX].str.replace(DRAW_PREFIX, "", regex=False)
+    data[DRAW_INDEX] = data[DRAW_INDEX].astype(int)
+    data = data.set_index(DRAW_INDEX, append=True).sort_index()
     return data
 
 
