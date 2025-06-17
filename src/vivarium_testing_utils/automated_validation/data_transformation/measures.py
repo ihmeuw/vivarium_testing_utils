@@ -15,6 +15,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     RiskStatePersonTime,
     SimDataFormatter,
     StatePersonTime,
+    TotalPopulationPersonTime,
     TransitionCounts,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
@@ -79,8 +80,8 @@ class RatioMeasure(Measure, ABC):
     def sim_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
-            "numerator_data": self.numerator.data_key,
-            "denominator_data": self.denominator.data_key,
+            "numerator_data": self.numerator.raw_dataset_name,
+            "denominator_data": self.denominator.raw_dataset_name,
         }
 
     @property
@@ -174,6 +175,31 @@ class ExcessMortalityRate(RatioMeasure):
         )  # Person time among those with the disease
 
 
+class PopulationStructure(RatioMeasure):
+    """Compares simulation population structure against artifact population structure.
+
+    This measure aggregates person time data by age groups and sex to match
+    the population structure format from the artifact. It's useful for validating
+    that the simulation maintains realistic demographic distributions.
+    """
+
+    def __init__(self, scenario_columns: list[str]):
+        """Initialize PopulationStructure measure.
+
+        Parameters
+        ----------
+        scenario_columns
+            Column names for scenario stratification. Defaults to an empty list.
+        """
+        self.measure_key = "population.structure"
+        self.numerator = StatePersonTime()
+        self.denominator = TotalPopulationPersonTime(scenario_columns)
+
+    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
+        return artifact_data / artifact_data.sum()
+
+
 class RiskExposure(RatioMeasure):
     """Computes risk factor exposure levels in the population.
 
@@ -194,7 +220,7 @@ class RiskExposure(RatioMeasure):
         self.denominator = RiskStatePersonTime(risk_factor, sum_all=True)
 
 
-MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[[str], RatioMeasure]]] = {
+MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[..., Measure]]] = {
     "cause": {
         "incidence_rate": Incidence,
         "prevalence": Prevalence,
@@ -202,7 +228,41 @@ MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[[str], RatioMeasure]]] = {
         "cause_specific_mortality_rate": CauseSpecificMortalityRate,
         "excess_mortality_rate": ExcessMortalityRate,
     },
+    "population": {
+        "structure": PopulationStructure,
+    },
     "risk_factor": {
         "exposure": RiskExposure,
     },
 }
+
+
+def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measure:
+    """Get a measure instance from a measure key string.
+
+    Parameters
+    ----------
+    measure_key
+        The measure key in format 'entity_type.entity.measure_name' or 'entity_type.measure_name'
+    scenario_columns
+        Column names for scenario stratification. Used by some measures like PopulationStructure.
+
+    Returns
+    -------
+        The instantiated measure object
+    """
+    parts = measure_key.split(".")
+    if len(parts) == 3:
+        entity_type, entity, measure_name = parts
+        return MEASURE_KEY_MAPPINGS[entity_type][measure_name](entity)
+    elif len(parts) == 2:
+        entity_type, measure_name = parts
+        # Special case for PopulationStructure which needs scenario_columns
+        if entity_type == "population" and measure_name == "structure":
+            return MEASURE_KEY_MAPPINGS[entity_type][measure_name](scenario_columns)
+        else:
+            return MEASURE_KEY_MAPPINGS[entity_type][measure_name]()
+    else:
+        raise ValueError(
+            f"Invalid measure key format: {measure_key}. Expected format is two or three period-delimited strings e.g. 'population.structure' or 'cause.deaths.excess_mortality_rate'."
+        )

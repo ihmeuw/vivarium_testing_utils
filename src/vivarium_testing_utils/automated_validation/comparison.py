@@ -3,6 +3,7 @@ from typing import Any, Collection, Literal
 
 import pandas as pd
 
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
@@ -17,8 +18,6 @@ from vivarium_testing_utils.automated_validation.visualization.dataframe_utils i
     format_draws_sample,
     format_metadata,
 )
-
-SAMPLING_INDEX_LEVELS = ("input_draw",)
 
 
 class Comparison(ABC):
@@ -229,15 +228,15 @@ class FuzzyComparison(Comparison):
         data_info["size"] = f"{size[0]:,} rows × {size[1]:,} columns"
 
         # Draw information
-        if "input_draw" in dataframe.index.names:
-            num_draws = dataframe.index.get_level_values("input_draw").nunique()
+        if DRAW_INDEX in dataframe.index.names:
+            num_draws = dataframe.index.get_level_values(DRAW_INDEX).nunique()
             data_info["num_draws"] = f"{num_draws:,}"
-            draw_values = list(dataframe.index.get_level_values("input_draw").unique())
-            data_info["input_draws"] = format_draws_sample(draw_values)
+            draw_values = list(dataframe.index.get_level_values(DRAW_INDEX).unique())
+            data_info[DRAW_INDEX + "s"] = format_draws_sample(draw_values)
 
         # Seeds information
-        if "random_seed" in dataframe.index.names:
-            num_seeds = dataframe.index.get_level_values("random_seed").nunique()
+        if SEED_INDEX in dataframe.index.names:
+            num_seeds = dataframe.index.get_level_values(SEED_INDEX).nunique()
             data_info["num_seeds"] = f"{num_seeds:,}"
 
         return data_info
@@ -258,14 +257,14 @@ class FuzzyComparison(Comparison):
         reference_only_indexes = reference_index_names - combined_test_index_names
         # Don't aggregate over the scenarios, yet, because we may need them to join the datasets.
         test_indexes_to_marginalize = test_only_indexes.difference(
-            tuple(self.test_scenarios.keys()), SAMPLING_INDEX_LEVELS
+            tuple(self.test_scenarios.keys()), [DRAW_INDEX]
         )
         reference_indexes_to_drop = reference_only_indexes.difference(
-            tuple(self.reference_scenarios.keys()), SAMPLING_INDEX_LEVELS
+            tuple(self.reference_scenarios.keys()), [DRAW_INDEX]
         )
 
         # If the test data has any index levels that are not in the reference data, marginalize
-        # over those index levels.)
+        # over those index levels.
         test_datasets = {
             key: marginalize(self.test_datasets[key], test_indexes_to_marginalize)
             for key in self.test_datasets
