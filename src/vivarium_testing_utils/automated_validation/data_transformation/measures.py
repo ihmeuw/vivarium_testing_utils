@@ -263,4 +263,6 @@ def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measu
         else:
             return MEASURE_KEY_MAPPINGS[entity_type][measure_name]()
     else:
-        raise ValueError(f"Invalid measure key format: {measure_key}")
+        raise ValueError(
+            f"Invalid measure key format: {measure_key}. Expected format is two or three period-delimited strings e.g. 'population.structure' or 'cause.deaths.excess_mortality_rate'."
+        )

@@ -250,7 +250,10 @@ def _heatmap(
 
 
 def _format_title(measure_key: str) -> str:
-    """Convert a measure key to a more readable format."""
+    """Convert a measure key to a more readable format.
+
+    For example, "cause.disease.incidence_rate" becomes "Disease Incidence Rate".
+    """
     parts = measure_key.split(".")
     if len(parts) > 2:
         parts = parts[1:]
