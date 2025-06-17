@@ -97,7 +97,7 @@ class Deaths(SimDataFormatter):
 
         Parameters
         ----------
-        cause : str, optional
+        cause
             The specific cause of death to filter for. If None, all deaths are included.
         """
 

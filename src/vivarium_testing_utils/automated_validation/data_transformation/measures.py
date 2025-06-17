@@ -188,7 +188,7 @@ class PopulationStructure(RatioMeasure):
 
         Parameters
         ----------
-        scenario_columns : list[str], optional
+        scenario_columns
             Column names for scenario stratification. Defaults to an empty list.
         """
         self.measure_key = "population.structure"
@@ -242,14 +242,13 @@ def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measu
 
     Parameters
     ----------
-    measure_key : str
+    measure_key
         The measure key in format 'entity_type.entity.measure_name' or 'entity_type.measure_name'
-    scenario_columns : list[str], optional
+    scenario_columns
         Column names for scenario stratification. Used by some measures like PopulationStructure.
 
     Returns
     -------
-    Measure
         The instantiated measure object
     """
     parts = measure_key.split(".")

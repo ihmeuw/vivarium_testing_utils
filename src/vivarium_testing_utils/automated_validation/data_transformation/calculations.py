@@ -65,14 +65,13 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
 
     Parameters
     ----------
-    numerator_data : pd.DataFrame
+    numerator_data
         SingleNumericColumn DataFrame to use as the numerator
-    denominator_data : pd.DataFrame
+    denominator_data
         SingleNumericColumn DataFrame  to use as the denominator
 
     Returns
     -------
-    pd.DataFrame
         SingleNumericColumn DataFrame containing the ratio values
     """
     zero_denominator = denominator_data["value"] == 0
