@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
 )
@@ -249,8 +250,14 @@ def _heatmap(
 
 
 def _format_title(measure_key: str) -> str:
-    """Convert a measure key to a more readable format."""
-    title = " ".join(measure_key.split(".")[1:])
+    """Convert a measure key to a more readable format.
+
+    For example, "cause.disease.incidence_rate" becomes "Disease Incidence Rate".
+    """
+    parts = measure_key.split(".")
+    if len(parts) > 2:
+        parts = parts[1:]
+    title = " ".join(parts)
     title = title.replace("_", " ")
     title = " ".join([word.capitalize() for word in title.split()])
     return title
@@ -262,7 +269,7 @@ def _get_unconditioned_index_names(
 ) -> list[str]:
     """Get the columns that are not conditioned on."""
     all_index_names = index.names
-    stat_cols = ["input_draw", "random_seed"]
+    stat_cols = [DRAW_INDEX, SEED_INDEX]
     plotted_cols = ["source", x_axis]
     unconditioned = list(set(all_index_names) - set(stat_cols) - set(plotted_cols))
     return unconditioned
@@ -277,18 +284,12 @@ def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
     reference_data = filter_data(reference_data, filter_cols=comparison.reference_scenarios)
 
     # Add input draw with placeholder if necessary
-    if (
-        "input_draw" in test_data.index.names
-        and "input_draw" not in reference_data.index.names
-    ):
+    if DRAW_INDEX in test_data.index.names and DRAW_INDEX not in reference_data.index.names:
         reference_data = reference_data.assign(input_draw=np.nan).set_index(
-            ["input_draw"], append=True
+            [DRAW_INDEX], append=True
         )
-    elif (
-        "input_draw" not in test_data.index.names
-        and "input_draw" in reference_data.index.names
-    ):
-        test_data = test_data.assign(input_draw=np.nan).set_index(["input_draw"], append=True)
+    elif DRAW_INDEX not in test_data.index.names and DRAW_INDEX in reference_data.index.names:
+        test_data = test_data.assign(input_draw=np.nan).set_index([DRAW_INDEX], append=True)
 
     test_data = test_data.reorder_levels(reference_data.index.names)
     combined_data = pd.concat(
