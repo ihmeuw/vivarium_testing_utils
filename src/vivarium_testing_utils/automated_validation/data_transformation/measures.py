@@ -80,8 +80,8 @@ class RatioMeasure(Measure, ABC):
     def sim_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
-            "numerator_data": self.numerator.data_key,
-            "denominator_data": self.denominator.data_key,
+            "numerator_data": self.numerator.raw_dataset_name,
+            "denominator_data": self.denominator.raw_dataset_name,
         }
 
     @property

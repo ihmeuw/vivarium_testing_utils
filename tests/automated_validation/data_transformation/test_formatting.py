@@ -31,7 +31,7 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     assert len(formatter.__dict__) == 7
     assert formatter.measure == "transition_count"
     assert formatter.entity == "disease"
-    assert formatter.data_key == "transition_count_disease"
+    assert formatter.raw_dataset_name == "transition_count_disease"
     assert formatter.filter_value == "susceptible_to_disease_to_disease"
     assert formatter.filters == {"sub_entity": ["susceptible_to_disease_to_disease"]}
     assert formatter.name == "susceptible_to_disease_to_disease_transition_count"
@@ -49,7 +49,7 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
     assert len(formatter.__dict__) == 7
     assert formatter.measure == "person_time"
     assert formatter.entity == "disease"
-    assert formatter.data_key == "person_time_disease"
+    assert formatter.raw_dataset_name == "person_time_disease"
     assert formatter.filters == {"sub_entity": ["disease"]}
     assert formatter.name == "disease_person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
@@ -65,7 +65,7 @@ def test_person_time_state_total(person_time_data: pd.DataFrame) -> None:
     assert len(formatter.__dict__) == 7
     assert formatter.measure == "person_time"
     assert formatter.entity == "disease"
-    assert formatter.data_key == "person_time_disease"
+    assert formatter.raw_dataset_name == "person_time_disease"
     assert formatter.filters == {"sub_entity": ["total"]}
     assert formatter.name == "total_person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
@@ -82,7 +82,7 @@ def test_total_person_time(total_person_time_data: pd.DataFrame) -> None:
 
     assert formatter.measure == "person_time"
     assert formatter.entity == "total"
-    assert formatter.data_key == "person_time_total"
+    assert formatter.raw_dataset_name == "person_time_total"
     assert formatter.name == "total_person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
     assert formatter.filters == {"sub_entity": ["total"]}
@@ -100,7 +100,7 @@ def test_total_population_person_time(total_person_time_data: pd.DataFrame) -> N
 
     assert formatter.measure == "person_time"
     assert formatter.entity == "total"
-    assert formatter.data_key == "person_time_total"
+    assert formatter.raw_dataset_name == "person_time_total"
     assert formatter.name == "total_population_person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
     assert formatter.filters == {"sub_entity": ["total"]}
@@ -127,7 +127,7 @@ def test_deaths_cause_specific(deaths_data: pd.DataFrame) -> None:
     formatter = Deaths("disease")
 
     assert formatter.measure == "deaths"
-    assert formatter.data_key == "deaths"
+    assert formatter.raw_dataset_name == "deaths"
     assert formatter.filters == {"entity": ["disease"], "sub_entity": ["disease"]}
     assert formatter.name == "disease_deaths"
     assert formatter.unused_columns == ["measure", "entity_type"]
@@ -142,7 +142,7 @@ def test_deaths_all_causes(deaths_data: pd.DataFrame) -> None:
     formatter = Deaths("all_causes")
 
     assert formatter.measure == "deaths"
-    assert formatter.data_key == "deaths"
+    assert formatter.raw_dataset_name == "deaths"
     assert formatter.filters == {"entity": ["total"], "sub_entity": ["total"]}
     assert formatter.name == "total_deaths"
     assert formatter.unused_columns == ["measure", "entity_type"]
@@ -157,7 +157,7 @@ def test_risk_state_person_time(risk_state_person_time_data: pd.DataFrame) -> No
     formatter = RiskStatePersonTime("child_stunting")
 
     assert formatter.entity == "child_stunting"
-    assert formatter.data_key == "person_time_child_stunting"
+    assert formatter.raw_dataset_name == "person_time_child_stunting"
     assert formatter.sum_all == False
     assert formatter.name == "person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
@@ -189,7 +189,7 @@ def test_risk_state_person_time_sum_all(risk_state_person_time_data: pd.DataFram
     formatter = RiskStatePersonTime("child_stunting", sum_all=True)
 
     assert formatter.entity == "child_stunting"
-    assert formatter.data_key == "person_time_child_stunting"
+    assert formatter.raw_dataset_name == "person_time_child_stunting"
     assert formatter.sum_all == True
     assert formatter.name == "person_time_total"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
