@@ -3,12 +3,25 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
+from pandas.testing import assert_frame_equal
 from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
-from vivarium_testing_utils.automated_validation.data_loader import DataSource
+from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
+
+
+def test_context_initialization(
+    sim_result_dir: Path, sample_age_group_df: pd.DataFrame
+) -> None:
+    """Ensure that we can initialize a ValidationContext with a simulation result directory"""
+    context = ValidationContext(sim_result_dir, scenario_columns=["foo"])
+    assert isinstance(context, ValidationContext)
+    assert isinstance(context._data_loader, DataLoader)
+    assert_frame_equal(context.age_groups, sample_age_group_df)
+    assert context.comparisons == {}
+    assert context.scenario_columns == ["foo"]
 
 
 @pytest.mark.skip("Not implemented")
@@ -97,13 +110,23 @@ def test___get_raw_datasets_from_source(
     assert ref_raw_datasets["artifact_data"].equals(artifact_disease_incidence)
 
 
+def test_add_comparison_bad_scenarios(sim_result_dir: Path) -> None:
+    """Ensure that we raise an error if the scenarios are not provided correctly"""
+    measure_key = "cause.disease.incidence_rate"
+    context = ValidationContext(sim_result_dir, scenario_columns=["scenario_column"])
+
+    # Test with missing scenarios
+    with pytest.raises(ValueError, match="missing scenarios for: {'scenario_column'}"):
+        context.add_comparison(measure_key, "sim", "artifact")
+
+
 def test_add_comparison(
     sim_result_dir: Path, artifact_disease_incidence: pd.DataFrame
 ) -> None:
     """Ensure that we can add a comparison"""
     measure_key = "cause.disease.incidence_rate"
     context = ValidationContext(sim_result_dir)
-    context.add_comparison(measure_key, "sim", "artifact", [])
+    context.add_comparison(measure_key, "sim", "artifact")
     assert measure_key in context.comparisons
     comparison = context.comparisons[measure_key]
 
@@ -115,23 +138,22 @@ def test_add_comparison(
     assert "numerator_data" in comparison.test_datasets
     assert "denominator_data" in comparison.test_datasets
 
+    expected_index = pd.Index(
+        ["A", "B"],
+        name="stratify_column",
+    )
+
     expected_numerator_data = pd.DataFrame(
         {
             "value": [3.0, 5.0],
         },
-        index=pd.Index(
-            ["A", "B"],
-            name="stratify_column",
-        ),
+        index=expected_index,
     )
     expected_denominator_data = pd.DataFrame(
         {
             "value": [17.0, 29.0],
         },
-        index=pd.Index(
-            ["A", "B"],
-            name="stratify_column",
-        ),
+        index=expected_index,
     )
 
     assert comparison.test_datasets["numerator_data"].equals(expected_numerator_data)
@@ -185,7 +207,7 @@ def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:
     # Create a context and add a comparison
     context = ValidationContext(sim_result_dir)
     measure_key = "cause.disease.incidence_rate"
-    context.add_comparison(measure_key, "sim", "artifact", [])
+    context.add_comparison(measure_key, "sim", "artifact")
 
     # Call plot_comparison with various parameters
     plot_type = "line"
