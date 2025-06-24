@@ -115,3 +115,7 @@ notebooks/
 
 # Version file
 src/vivarium_testing_utils/_version.py
+
+# Copilot
+.github/prompts
+.github/copilot_instructions.md
