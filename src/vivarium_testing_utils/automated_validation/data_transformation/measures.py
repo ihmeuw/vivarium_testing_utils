@@ -5,7 +5,10 @@ from typing import Any
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import ratio, marginalize
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    marginalize,
+    ratio,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
     SingleNumericColumn,
@@ -199,7 +202,7 @@ class PopulationStructure(RatioMeasure):
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data / artifact_data.sum()
-    
+
     @check_io(
         numerator_data=SimOutputData,
         denominator_data=SimOutputData,
@@ -213,7 +216,8 @@ class PopulationStructure(RatioMeasure):
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
         return {"numerator_data": numerator_data, "denominator_data": denominator_data}
-    
+
+
 class RiskExposure(RatioMeasure):
     """Computes risk factor exposure levels in the population.
 
@@ -281,12 +285,13 @@ def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measu
             f"Invalid measure key format: {measure_key}. Expected format is two or three period-delimited strings e.g. 'population.structure' or 'cause.deaths.excess_mortality_rate'."
         )
 
-def _align_indexes(numerator: pd.DataFrame, denominator: pd.DataFrame) -> tuple[pd.DataFrame]:
+
+def _align_indexes(numerator: pd.DataFrame, denominator: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Reconcile indexes between numerator and denominator DataFrames. Dataframes can have unique columns given by the numerator_only_indexes and denominator_only_indexes.
     All other index levels must be summed over."""
     numerator_index_levels = set(numerator.index.names)
     denominator_index_levels = set(denominator.index.names)
-    
+
     for level in numerator_index_levels - denominator_index_levels:
         numerator = marginalize(numerator, [level])
     for level in denominator_index_levels - numerator_index_levels:
