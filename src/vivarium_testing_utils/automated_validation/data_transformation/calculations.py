@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Collection, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
 from loguru import logger
 
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_INDEX,
+    DRAW_PREFIX,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,
     format_dataframe,
@@ -19,20 +23,10 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     series_to_dataframe,
 )
 
-DRAW_PREFIX = "draw_"
 
-
-def align_indexes(datasets: list[pd.DataFrame]) -> list[pd.DataFrame]:
-    """Put each dataframe on a common index by choosing the intersection of index columns
-    and marginalizing over the rest."""
-    # Get the common index columns
-    common_index = list(set.intersection(*(set(data.index.names) for data in datasets)))
-
-    # Marginalize over the rest
-    return [stratify(data, common_index) for data in datasets]
-
-
-def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.DataFrame:
+def filter_data(
+    data: pd.DataFrame, filter_cols: Mapping[str, str | list[str]], drop_singles: bool = True
+) -> pd.DataFrame:
     """Filter a DataFrame by the given index columns and values.
 
     The filter_cols argument
@@ -40,9 +34,12 @@ def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.Dat
     values to keep. If we filter to a single value, drop the column. If the dataframe is empty
     after filtering, raise an error."""
     for col, values in filter_cols.items():
+        if isinstance(values, str):
+            values = [values]
         if len(values) == 1:
             data = data[data.index.get_level_values(col) == values[0]]
-            data = data.droplevel([col])
+            if drop_singles:
+                data = data.droplevel([col])
         else:
             data = data[data.index.get_level_values(col).isin(values)]
     if data.empty:
@@ -56,18 +53,35 @@ def filter_data(data: pd.DataFrame, filter_cols: dict[str, list[str]]) -> pd.Dat
     return data
 
 
-def ratio(data: pd.DataFrame, numerator: str, denominator: str) -> pd.DataFrame:
-    """Return a series of the ratio of two columns in a DataFrame,
-    where the columns are specified by their names."""
-    zero_denominator = data[denominator] == 0
+@check_io(
+    numerator_data=SingleNumericColumn,
+    denominator_data=SingleNumericColumn,
+    out=SingleNumericColumn,
+)
+def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.DataFrame:
+    """Return a DataFrame with the ratio of two SingleNumericColumn DataFrames.
+
+    Their indexes do not need to match, but must be interoperable.
+
+    Parameters
+    ----------
+    numerator_data
+        SingleNumericColumn DataFrame to use as the numerator
+    denominator_data
+        SingleNumericColumn DataFrame  to use as the denominator
+
+    Returns
+    -------
+        SingleNumericColumn DataFrame containing the ratio values
+    """
+    zero_denominator = denominator_data["value"] == 0
     if zero_denominator.any():
         logger.warning(
-            f"Denominator {denominator} has zero values. "
-            f"These will be put into the ratio dataframe as NaN."
+            "Denominator has zero values. "
+            "These will be put into the ratio dataframe as NaN."
         )
-    ratio = data[numerator] / data[denominator]
-    ratio[zero_denominator] = np.nan
-    return series_to_dataframe(ratio)
+    denominator_data[zero_denominator] = np.nan
+    return numerator_data / denominator_data
 
 
 def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str]) -> pd.DataFrame:
@@ -86,7 +100,7 @@ def stratify(data: pd.DataFrame, stratification_cols: list[str]) -> pd.DataFrame
     return aggregate_sum(data, stratification_cols)
 
 
-def marginalize(data: pd.DataFrame, marginalize_cols: list[str]) -> pd.DataFrame:
+def marginalize(data: pd.DataFrame, marginalize_cols: Collection[str]) -> pd.DataFrame:
     """Sum over marginalize columns, keeping the rest. Syntactic sugar for aggregate."""
     return aggregate_sum(data, [x for x in data.index.names if x not in marginalize_cols])
 
@@ -120,13 +134,13 @@ def _clean_artifact_draws(
     # if data has value columns of format draw_1, draw_2, etc., drop the draw_ prefix
     # and melt the data into long format
     data = data.melt(
-        var_name="input_draw",
+        var_name=DRAW_INDEX,
         value_name="value",
         ignore_index=False,
     )
-    data["input_draw"] = data["input_draw"].str.replace(DRAW_PREFIX, "", regex=False)
-    data["input_draw"] = data["input_draw"].astype(int)
-    data = data.set_index("input_draw", append=True).sort_index()
+    data[DRAW_INDEX] = data[DRAW_INDEX].str.replace(DRAW_PREFIX, "", regex=False)
+    data[DRAW_INDEX] = data[DRAW_INDEX].astype(int)
+    data = data.set_index(DRAW_INDEX, append=True).sort_index()
     return data
 
 

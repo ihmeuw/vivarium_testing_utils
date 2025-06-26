@@ -1,23 +1,21 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
-import pandera as pa
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    align_indexes,
-    ratio,
-)
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import ratio
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    RatioData,
     SimOutputData,
     SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     Deaths,
+    RiskStatePersonTime,
     SimDataFormatter,
     StatePersonTime,
+    TotalPopulationPersonTime,
     TransitionCounts,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
@@ -82,8 +80,8 @@ class RatioMeasure(Measure, ABC):
     def sim_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
-            "numerator_data": self.numerator.data_key,
-            "denominator_data": self.denominator.data_key,
+            "numerator_data": self.numerator.raw_dataset_name,
+            "denominator_data": self.denominator.raw_dataset_name,
         }
 
     @property
@@ -97,35 +95,37 @@ class RatioMeasure(Measure, ABC):
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
-    @check_io(ratio_data=RatioData, out=SingleNumericColumn)
-    def get_measure_data_from_ratio(self, ratio_data: pd.DataFrame) -> pd.DataFrame:
-        """Compute final measure data from split data."""
-        return ratio(
-            ratio_data,
-            numerator=self.numerator.new_value_column_name,
-            denominator=self.denominator.new_value_column_name,
-        )
+    @check_io(
+        numerator_data=SingleNumericColumn,
+        denominator_data=SingleNumericColumn,
+        out=SingleNumericColumn,
+    )
+    def get_measure_data_from_ratio(
+        self, numerator_data: pd.DataFrame, denominator_data: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Compute final measure data from separate numerator and denominator data."""
+        return ratio(numerator_data, denominator_data)
 
     @check_io(out=SingleNumericColumn)
     def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process raw simulation data into a format suitable for calculations."""
-        return self.get_measure_data_from_ratio(self.get_ratio_data_from_sim(*args, **kwargs))
+        return self.get_measure_data_from_ratio(
+            **self.get_ratio_datasets_from_sim(*args, **kwargs)
+        )
 
     @check_io(
         numerator_data=SimOutputData,
         denominator_data=SimOutputData,
-        out=RatioData,
     )
-    def get_ratio_data_from_sim(
+    def get_ratio_datasets_from_sim(
         self,
         numerator_data: pd.DataFrame,
         denominator_data: pd.DataFrame,
-    ) -> pd.DataFrame:
-        """Process raw simulation data into a RatioData frame with count columns to be divided later."""
+    ) -> dict[str, pd.DataFrame]:
+        """Process raw simulation data and return numerator and denominator DataFrames separately."""
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
-        numerator_data, denominator_data = align_indexes([numerator_data, denominator_data])
-        return pd.concat([numerator_data, denominator_data], axis=1)
+        return {"numerator_data": numerator_data, "denominator_data": denominator_data}
 
 
 class Incidence(RatioMeasure):
@@ -175,7 +175,52 @@ class ExcessMortalityRate(RatioMeasure):
         )  # Person time among those with the disease
 
 
-MEASURE_KEY_MAPPINGS = {
+class PopulationStructure(RatioMeasure):
+    """Compares simulation population structure against artifact population structure.
+
+    This measure aggregates person time data by age groups and sex to match
+    the population structure format from the artifact. It's useful for validating
+    that the simulation maintains realistic demographic distributions.
+    """
+
+    def __init__(self, scenario_columns: list[str]):
+        """Initialize PopulationStructure measure.
+
+        Parameters
+        ----------
+        scenario_columns
+            Column names for scenario stratification. Defaults to an empty list.
+        """
+        self.measure_key = "population.structure"
+        self.numerator = StatePersonTime()
+        self.denominator = TotalPopulationPersonTime(scenario_columns)
+
+    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
+        return artifact_data / artifact_data.sum()
+
+
+class RiskExposure(RatioMeasure):
+    """Computes risk factor exposure levels in the population.
+
+    This measure calculates exposure prevalence from state-specific person time data.
+    For categorical risk factors (e.g., child wasting, stunting), exposure is computed
+    as the proportion of person time spent in each risk state.
+
+    Numerator: Person time in specific risk state
+    Denominator: Total person time across all risk states
+    """
+
+    def __init__(self, risk_factor: str) -> None:
+        self.measure_key = f"risk_factor.{risk_factor}.exposure"
+        self.risk_factor = risk_factor
+
+        # Create custom formatters for risk exposure
+        self.numerator = RiskStatePersonTime(risk_factor)
+        self.denominator = RiskStatePersonTime(risk_factor, sum_all=True)
+
+
+MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[..., Measure]]] = {
     "cause": {
         "incidence_rate": Incidence,
         "prevalence": Prevalence,
@@ -183,4 +228,41 @@ MEASURE_KEY_MAPPINGS = {
         "cause_specific_mortality_rate": CauseSpecificMortalityRate,
         "excess_mortality_rate": ExcessMortalityRate,
     },
+    "population": {
+        "structure": PopulationStructure,
+    },
+    "risk_factor": {
+        "exposure": RiskExposure,
+    },
 }
+
+
+def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measure:
+    """Get a measure instance from a measure key string.
+
+    Parameters
+    ----------
+    measure_key
+        The measure key in format 'entity_type.entity.measure_name' or 'entity_type.measure_name'
+    scenario_columns
+        Column names for scenario stratification. Used by some measures like PopulationStructure.
+
+    Returns
+    -------
+        The instantiated measure object
+    """
+    parts = measure_key.split(".")
+    if len(parts) == 3:
+        entity_type, entity, measure_name = parts
+        return MEASURE_KEY_MAPPINGS[entity_type][measure_name](entity)
+    elif len(parts) == 2:
+        entity_type, measure_name = parts
+        # Special case for PopulationStructure which needs scenario_columns
+        if entity_type == "population" and measure_name == "structure":
+            return MEASURE_KEY_MAPPINGS[entity_type][measure_name](scenario_columns)
+        else:
+            return MEASURE_KEY_MAPPINGS[entity_type][measure_name]()
+    else:
+        raise ValueError(
+            f"Invalid measure key format: {measure_key}. Expected format is two or three period-delimited strings e.g. 'population.structure' or 'cause.deaths.excess_mortality_rate'."
+        )

@@ -1,8 +1,10 @@
 import pandas as pd
 
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
     marginalize,
+    stratify,
 )
 
 
@@ -15,7 +17,7 @@ class SimDataFormatter:
     def __init__(self, measure: str, entity: str, filter_value: str) -> None:
         self.measure = measure
         self.entity = entity
-        self.data_key = f"{self.measure}_{self.entity}"
+        self.raw_dataset_name = f"{self.measure}_{self.entity}"
         self.unused_columns = [
             "measure",
             "entity_type",
@@ -23,16 +25,15 @@ class SimDataFormatter:
         ]
         self.filters = {"sub_entity": [filter_value]}
         self.filter_value = filter_value
-        self.new_value_column_name = f"{self.filter_value}_{self.measure}"
+        self.name = f"{self.filter_value}_{self.measure}"
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        """Clean up unused columns, filter for the state, and rename the value column."""
+        """Clean up unused columns, and filter for the state."""
         dataset = marginalize(dataset, self.unused_columns)
         if self.filter_value == "total":
             dataset = marginalize(dataset, [*self.filters])
         else:
             dataset = filter_data(dataset, self.filters)
-        dataset = dataset.rename(columns={"value": self.new_value_column_name})
         return dataset
 
 
@@ -58,6 +59,35 @@ class StatePersonTime(SimDataFormatter):
         )
 
 
+class TotalPopulationPersonTime(StatePersonTime):
+    """Formatter for simulation data that contains total person time."""
+
+    def __init__(self, scenario_columns: list[str]) -> None:
+        """
+        Get person time aggregated over populations from total person time dataset.
+
+        Parameters
+        ----------
+        scenario_columns
+            Column names for scenario stratification. Defaults to an empty list.
+        """
+        super().__init__(entity="total", filter_value="total")
+        self.raw_dataset_name = "person_time_total"
+        self.name = "total_population_person_time"
+        self.scenario_columns = scenario_columns
+
+    def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        dataset = super().format_dataset(dataset)
+        between_scenario_levels = [DRAW_INDEX, SEED_INDEX] + self.scenario_columns
+        levels_to_stratify = [
+            level for level in between_scenario_levels if level in dataset.index.names
+        ]
+        return stratify(
+            data=dataset,
+            stratification_cols=levels_to_stratify,
+        )
+
+
 class Deaths(SimDataFormatter):
     """Formatter for simulation data that contains death counts."""
 
@@ -67,12 +97,41 @@ class Deaths(SimDataFormatter):
 
         Parameters
         ----------
-        cause : str, optional
+        cause
             The specific cause of death to filter for. If None, all deaths are included.
         """
 
-        self.measure = self.data_key = "deaths"
+        self.measure = self.raw_dataset_name = "deaths"
         self.unused_columns = ["measure", "entity_type"]
         self.filter_value = "total" if cause == "all_causes" else cause
         self.filters = {"entity": [self.filter_value], "sub_entity": [self.filter_value]}
-        self.new_value_column_name = f"{self.filter_value}_{self.measure}"
+        self.name = f"{self.filter_value}_{self.measure}"
+
+
+class RiskStatePersonTime(SimDataFormatter):
+    """RiskStatePersonTime changes the sub_entity name to 'parameter' and, if total=True, replaces the value for *each* risk state
+    with the sum over all risk states for the given sub-index.
+
+    """
+
+    def __init__(self, entity: str, sum_all: bool = False) -> None:
+        self.entity = entity
+        self.raw_dataset_name = f"person_time_{self.entity}"
+        self.sum_all = sum_all
+        self.name = "person_time"
+        if sum_all:
+            self.name += "_total"
+        self.unused_columns = ["measure", "entity_type", "entity"]
+
+    def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        dataset = marginalize(dataset, self.unused_columns)
+        if self.sum_all:
+            # Get the levels to group by (all except 'sub_entity')
+            group_levels = [
+                i for i, name in enumerate(dataset.index.names) if name != "sub_entity"
+            ]
+            # Use groupby with level numbers and transform to apply sum while preserving index
+            dataset["value"] = dataset.groupby(level=group_levels)["value"].transform("sum")
+
+        dataset = dataset.rename_axis(index={"sub_entity": "parameter"})
+        return dataset
