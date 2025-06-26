@@ -71,7 +71,7 @@ def _create_transition_count_data() -> pd.DataFrame:
                 "entity_type",
                 "entity",
                 "sub_entity",
-                "stratify_column",
+                "common_stratify_column",
                 "scenario",
             ],
         ),
@@ -111,7 +111,7 @@ def _create_person_time_data() -> pd.DataFrame:
                 "entity_type",
                 "entity",
                 "sub_entity",
-                "stratify_column",
+                "common_stratify_column",
                 "scenario",
             ],
         ),
@@ -137,7 +137,7 @@ def _create_deaths_data() -> pd.DataFrame:
                 "entity_type",
                 "entity",
                 "sub_entity",
-                "stratify_column",
+                "common_stratify_column",
                 "scenario",
             ],
         ),
@@ -163,7 +163,7 @@ def _create_raw_artifact_disease_incidence() -> pd.DataFrame:
                     "D",
                 ),
             ],
-            names=["stratify_column", "other_stratify_column"],
+            names=["common_stratify_column", "other_stratify_column"],
         ),
     )
 
@@ -195,7 +195,13 @@ def _create_risk_state_person_time_data() -> pd.DataFrame:
                 ("person_time", "rei", "child_stunting", "cat2", "B"),
                 ("person_time", "rei", "child_stunting", "cat3", "B"),
             ],
-            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
+            names=[
+                "measure",
+                "entity_type",
+                "entity",
+                "sub_entity",
+                "common_stratify_column",
+            ],
         ),
     )
 
@@ -217,7 +223,7 @@ def _create_raw_artifact_risk_exposure() -> pd.DataFrame:
                 ("B", "cat2"),
                 ("B", "cat3"),
             ],
-            names=["stratify_column", "parameter"],
+            names=["common_stratify_column", "parameter"],
         ),
     )
 
@@ -329,7 +335,7 @@ def artifact_disease_incidence() -> pd.DataFrame:
                 ("B", "D", 0),
                 ("B", "D", 1),
             ],
-            names=["stratify_column", "other_stratify_column", DRAW_INDEX],
+            names=["common_stratify_column", "other_stratify_column", DRAW_INDEX],
         ),
     )
 
@@ -420,6 +426,6 @@ def artifact_risk_exposure() -> pd.DataFrame:
                 ("B", "cat3", 0),
                 ("B", "cat3", 1),
             ],
-            names=["stratify_column", "parameter", "input_draw"],
+            names=["common_stratify_column", "parameter", "input_draw"],
         ),
     )

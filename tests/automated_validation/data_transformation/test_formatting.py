@@ -18,7 +18,7 @@ def get_expected_dataframe(value_1: float, value_2: float) -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
+            names=["common_stratify_column", "scenario"],
         ),
     )
 
@@ -174,7 +174,7 @@ def test_risk_state_person_time(risk_state_person_time_data: pd.DataFrame) -> No
                 ("cat2", "B"),
                 ("cat3", "B"),
             ],
-            names=["parameter", "stratify_column"],
+            names=["parameter", "common_stratify_column"],
         ),
     )
 
@@ -208,7 +208,7 @@ def test_risk_state_person_time_sum_all(risk_state_person_time_data: pd.DataFram
                 ("cat2", "B"),
                 ("cat3", "B"),
             ],
-            names=["parameter", "stratify_column"],
+            names=["parameter", "common_stratify_column"],
         ),
     )
 

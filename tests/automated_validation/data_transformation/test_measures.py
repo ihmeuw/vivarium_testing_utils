@@ -26,7 +26,7 @@ def get_expected_dataframe(value_1: float, value_2: float) -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
+            names=["common_stratify_column", "scenario"],
         ),
     )
 
@@ -255,7 +255,7 @@ def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
             ("cat2", "B"),
             ("cat3", "B"),
         ],
-        names=["parameter", "stratify_column"],
+        names=["parameter", "common_stratify_column"],
     )
     expected_numerator_data = pd.DataFrame(
         {
