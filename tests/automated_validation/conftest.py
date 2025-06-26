@@ -176,14 +176,10 @@ def _create_raw_artifact_risk_exposure() -> pd.DataFrame:
             "draw_0": [0.25, 0.35, 0.40, 0.30, 0.20, 0.50],
             "draw_1": [0.28, 0.32, 0.42, 0.28, 0.22, 0.48],
         },
-        index=pd.MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_product(
             [
-                ("A", "cat1"),
-                ("A", "cat2"),
-                ("A", "cat3"),
-                ("B", "cat1"),
-                ("B", "cat2"),
-                ("B", "cat3"),
+                ["A", "B"],
+                ["cat1", "cat2", "cat3"],
             ],
             names=["common_stratify_column", "parameter"],
         ),
@@ -373,20 +369,12 @@ def artifact_risk_exposure() -> pd.DataFrame:
                 0.48,  # B, cat3, draws 0 and 1
             ],
         },
-        index=pd.MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_product(
+            
             [
-                ("A", "cat1", 0),
-                ("A", "cat1", 1),
-                ("A", "cat2", 0),
-                ("A", "cat2", 1),
-                ("A", "cat3", 0),
-                ("A", "cat3", 1),
-                ("B", "cat1", 0),
-                ("B", "cat1", 1),
-                ("B", "cat2", 0),
-                ("B", "cat2", 1),
-                ("B", "cat3", 0),
-                ("B", "cat3", 1),
+                ["A", "B"],
+                ["cat1", "cat2", "cat3"],
+                [0, 1],
             ],
             names=["common_stratify_column", "parameter", "input_draw"],
         ),
