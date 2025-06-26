@@ -36,9 +36,25 @@ def test_transition_counts(transition_count_data: pd.DataFrame) -> None:
     assert formatter.name == "susceptible_to_disease_to_disease_transition_count"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
-    assert_frame_equal(
-        formatter.format_dataset(transition_count_data), get_expected_dataframe(3.0, 5.0)
+    expected_dataframe = pd.DataFrame(
+        {
+            "value": [1.0, 2.0, 2.0, 3.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "tc_unique_stratification",
+            ],
+        ),
     )
+
+    assert_frame_equal(formatter.format_dataset(transition_count_data), expected_dataframe)
 
 
 def test_person_time(person_time_data: pd.DataFrame) -> None:
@@ -53,9 +69,25 @@ def test_person_time(person_time_data: pd.DataFrame) -> None:
     assert formatter.name == "disease_person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
-    assert_frame_equal(
-        formatter.format_dataset(person_time_data), get_expected_dataframe(23.0, 37.0)
+    expected_dataframe = pd.DataFrame(
+        {
+            "value": [9.0, 14.0, 15.0, 22.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
     )
+
+    assert_frame_equal(formatter.format_dataset(person_time_data), expected_dataframe)
 
 
 def test_person_time_state_total(person_time_data: pd.DataFrame) -> None:
@@ -69,10 +101,25 @@ def test_person_time_state_total(person_time_data: pd.DataFrame) -> None:
     assert formatter.name == "total_person_time"
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
 
-    assert_frame_equal(
-        formatter.format_dataset(person_time_data),
-        get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0),
+    expected_dataframe = pd.DataFrame(
+        {
+            "value": [7.0 + 9.0, 10.0 + 14.0, 12.0 + 15.0, 17.0 + 22.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
     )
+
+    assert_frame_equal(formatter.format_dataset(person_time_data), expected_dataframe)
 
 
 def test_total_person_time(total_person_time_data: pd.DataFrame) -> None:
@@ -86,10 +133,25 @@ def test_total_person_time(total_person_time_data: pd.DataFrame) -> None:
     assert formatter.unused_columns == ["measure", "entity_type", "entity"]
     assert formatter.filters == {"sub_entity": ["total"]}
 
-    assert_frame_equal(
-        formatter.format_dataset(total_person_time_data),
-        get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0),
+    expected_dataframe = pd.DataFrame(
+        {
+            "value": [7.0 + 9.0, 10.0 + 14.0, 12.0 + 15.0, 17.0 + 22.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
     )
+
+    assert_frame_equal(formatter.format_dataset(total_person_time_data), expected_dataframe)
 
 
 def test_total_population_person_time(total_person_time_data: pd.DataFrame) -> None:

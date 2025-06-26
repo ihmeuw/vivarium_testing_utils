@@ -29,7 +29,7 @@ def _create_transition_count_data() -> pd.DataFrame:
     """Create transition count data for testing."""
     return pd.DataFrame(
         {
-            "value": [3.0, 5.0, 7.0, 13.0],
+            "value": [1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 5.0, 8.0],
         },
         index=pd.MultiIndex.from_product(
             [
@@ -39,6 +39,7 @@ def _create_transition_count_data() -> pd.DataFrame:
                 ["susceptible_to_disease_to_disease", "disease_to_susceptible_to_disease"],
                 ["A", "B"],
                 ["baseline"],
+                ["foo", "bar"],
             ],
             names=[
                 "measure",
@@ -47,6 +48,7 @@ def _create_transition_count_data() -> pd.DataFrame:
                 "sub_entity",
                 "common_stratify_column",
                 "scenario",
+                "tc_unique_stratification",
             ],
         ),
     )
@@ -57,7 +59,7 @@ def _create_person_time_data() -> pd.DataFrame:
     """Create person time data for testing."""
     return pd.DataFrame(
         {
-            "value": [17.0, 29.0, 23.0, 37.0],
+            "value": [7.0, 10.0, 12.0, 17.0, 9.0, 14.0, 15.0, 22.0],
         },
         index=pd.MultiIndex.from_product(
             [
@@ -67,6 +69,7 @@ def _create_person_time_data() -> pd.DataFrame:
                 ["susceptible_to_disease", "disease"],
                 ["A", "B"],
                 ["baseline"],
+                ["foo", "bar"],
             ],
             names=[
                 "measure",
@@ -75,6 +78,7 @@ def _create_person_time_data() -> pd.DataFrame:
                 "sub_entity",
                 "common_stratify_column",
                 "scenario",
+                "pt_unique_stratification",
             ],
         ),
     )
@@ -370,7 +374,6 @@ def artifact_risk_exposure() -> pd.DataFrame:
             ],
         },
         index=pd.MultiIndex.from_product(
-            
             [
                 ["A", "B"],
                 ["cat1", "cat2", "cat3"],
