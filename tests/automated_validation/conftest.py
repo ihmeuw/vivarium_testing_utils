@@ -31,40 +31,14 @@ def _create_transition_count_data() -> pd.DataFrame:
         {
             "value": [3.0, 5.0, 7.0, 13.0],
         },
-        index=pd.MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_product(
             [
-                (
-                    "transition_count",
-                    "cause",
-                    "disease",
-                    "susceptible_to_disease_to_disease",
-                    "A",
-                    "baseline",
-                ),
-                (
-                    "transition_count",
-                    "cause",
-                    "disease",
-                    "susceptible_to_disease_to_disease",
-                    "B",
-                    "baseline",
-                ),
-                (
-                    "transition_count",
-                    "cause",
-                    "disease",
-                    "disease_to_susceptible_to_disease",
-                    "A",
-                    "baseline",
-                ),
-                (
-                    "transition_count",
-                    "cause",
-                    "disease",
-                    "disease_to_susceptible_to_disease",
-                    "B",
-                    "baseline",
-                ),
+                ["transition_count"],
+                ["cause"],
+                ["disease"],
+                ["susceptible_to_disease_to_disease", "disease_to_susceptible_to_disease"],
+                ["A", "B"],
+                ["baseline"],
             ],
             names=[
                 "measure",
@@ -83,28 +57,16 @@ def _create_person_time_data() -> pd.DataFrame:
     """Create person time data for testing."""
     return pd.DataFrame(
         {
-            "value": [17.0, 23.0, 29.0, 37.0],
+            "value": [17.0, 29.0, 23.0, 37.0],
         },
-        index=pd.MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_product(
             [
-                (
-                    "person_time",
-                    "cause",
-                    "disease",
-                    "susceptible_to_disease",
-                    "A",
-                    "baseline",
-                ),
-                ("person_time", "cause", "disease", "disease", "A", "baseline"),
-                (
-                    "person_time",
-                    "cause",
-                    "disease",
-                    "susceptible_to_disease",
-                    "B",
-                    "baseline",
-                ),
-                ("person_time", "cause", "disease", "disease", "B", "baseline"),
+                ["person_time"],
+                ["cause"],
+                ["disease"],
+                ["susceptible_to_disease", "disease"],
+                ["A", "B"],
+                ["baseline"],
             ],
             names=[
                 "measure",
