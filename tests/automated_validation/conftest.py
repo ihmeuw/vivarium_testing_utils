@@ -382,3 +382,47 @@ def artifact_risk_exposure() -> pd.DataFrame:
             names=["common_stratify_column", "parameter", "input_draw"],
         ),
     )
+
+
+@pytest.fixture
+def artifact_relative_risk() -> pd.DataFrame:
+    """Sample relative risks artifact data."""
+    return pd.DataFrame(
+        {
+            "value": [1.5, 2.0, 1.8, 1.2],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("disease", "excess_mortality_rate", "A", "B", 0),
+                ("disease", "excess_mortality_rate", "A", "B", 1),
+                ("disease", "excess_mortality_rate", "C", "D", 0),
+                ("disease", "excess_mortality_rate", "C", "D", 1),
+            ],
+            names=[
+                "affected_entity",
+                "affected_measure",
+                "parameter",
+                "other_stratify_column",
+                DRAW_INDEX,
+            ],
+        ),
+    )
+
+
+@pytest.fixture
+def artifact_excess_mortality_rate() -> pd.DataFrame:
+    """Sample excess mortality rate artifact data."""
+    return pd.DataFrame(
+        {
+            "value": [0.02, 0.03, 0.01, 0.04],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("B", 0),
+                ("B", 1),
+                ("D", 0),
+                ("D", 1),
+            ],
+            names=["other_stratify_column", DRAW_INDEX],
+        ),
+    )

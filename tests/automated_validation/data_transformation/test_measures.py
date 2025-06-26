@@ -1,11 +1,12 @@
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
-
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
     TotalPopulationPersonTime,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    CategoricalRelativeRisk,
     CauseSpecificMortalityRate,
     ExcessMortalityRate,
     Incidence,
@@ -423,6 +424,73 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
             ],
         ),
     )
+    assert_frame_equal(measure_data, expected_measure_data)
+    assert_frame_equal(measure_data_from_ratio, expected_measure_data)
+
+
+def test_categorical_relative_risk(
+    deaths_data: pd.DataFrame,
+    person_time_data: pd.DataFrame,
+    artifact_relative_risk: pd.DataFrame,
+    artifact_excess_mortality_rate: pd.DataFrame,
+) -> None:
+    """Test the CategoricalRelativeRisk measure."""
+    risk_factor = "risky_risk"
+    affected_entity = "disease"
+    measure = CategoricalRelativeRisk(
+        risk_factor=risk_factor,
+        affected_entity="disease",
+        affected_measure="excess_mortality_rate",
+        risk_stratification_column="common_stratify_column",
+    )
+    assert measure.measure_key == f"risk_factor.{risk_factor}.relative_risk"
+    assert measure.affected_entity == affected_entity
+    assert measure.affected_measure_name == "excess_mortality_rate"
+    assert measure.sim_datasets == {
+        "numerator_data": "deaths",
+        "denominator_data": f"person_time_{affected_entity}",
+    }
+    assert measure.artifact_datasets == {
+        "relative_risks": f"risk_factor.{risk_factor}.relative_risk",
+        "affected_data": f"cause.{affected_entity}.excess_mortality_rate",
+    }
+
+    artifact_data = measure.get_measure_data_from_artifact(
+        relative_risks=artifact_relative_risk,
+        affected_data=artifact_excess_mortality_rate,
+    )
+
+    expected_artifact_data = pd.DataFrame(
+        {
+            "value": [1.5 * 0.02, 2.0 * 0.03, 1.8 * 0.01, 1.2 * 0.04],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("A", "B", 0),
+                ("A", "B", 1),
+                ("C", "D", 0),
+                ("C", "D", 1),
+            ],
+            names=["parameter", "other_stratify_column", DRAW_INDEX],
+        ),
+    )
+
+    assert_frame_equal(artifact_data, expected_artifact_data)
+
+    ratio_datasets = measure.get_ratio_datasets_from_sim(
+        numerator_data=deaths_data,
+        denominator_data=person_time_data,
+    )
+    assert_frame_equal(ratio_datasets["numerator_data"], get_expected_dataframe(2.0, 4.0))
+    assert_frame_equal(ratio_datasets["denominator_data"], get_expected_dataframe(23.0, 37.0))
+
+    measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
+
+    measure_data = measure.get_measure_data_from_sim(
+        numerator_data=deaths_data, denominator_data=person_time_data
+    )
+
+    expected_measure_data = get_expected_dataframe(2.0 / 23.0, 4.0 / 37.0)
     assert_frame_equal(measure_data, expected_measure_data)
     assert_frame_equal(measure_data_from_ratio, expected_measure_data)
 
