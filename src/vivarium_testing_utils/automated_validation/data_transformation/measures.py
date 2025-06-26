@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from typing import Any
 
 import pandas as pd
@@ -8,6 +8,7 @@ from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     ratio,
     filter_data,
+    marginalize,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
@@ -128,6 +129,7 @@ class RatioMeasure(Measure, ABC):
         """Process raw simulation data and return numerator and denominator DataFrames separately."""
         numerator_data = self.numerator.format_dataset(numerator_data)
         denominator_data = self.denominator.format_dataset(denominator_data)
+        numerator_data, denominator_data = _align_indexes(numerator_data, denominator_data)
         return {"numerator_data": numerator_data, "denominator_data": denominator_data}
 
 
@@ -201,6 +203,20 @@ class PopulationStructure(RatioMeasure):
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data / artifact_data.sum()
+
+    @check_io(
+        numerator_data=SimOutputData,
+        denominator_data=SimOutputData,
+    )
+    def get_ratio_datasets_from_sim(
+        self,
+        numerator_data: pd.DataFrame,
+        denominator_data: pd.DataFrame,
+    ) -> dict[str, pd.DataFrame]:
+        """Process raw simulation data and return numerator and denominator DataFrames separately."""
+        numerator_data = self.numerator.format_dataset(numerator_data)
+        denominator_data = self.denominator.format_dataset(denominator_data)
+        return {"numerator_data": numerator_data, "denominator_data": denominator_data}
 
 
 class RiskExposure(RatioMeasure):
@@ -339,3 +355,16 @@ def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measu
         raise ValueError(
             f"Invalid measure key format: {measure_key}. Expected format is two or three period-delimited strings e.g. 'population.structure' or 'cause.deaths.excess_mortality_rate'."
         )
+
+
+def _align_indexes(numerator: pd.DataFrame, denominator: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Reconcile indexes between numerator and denominator DataFrames. Dataframes can have unique columns given by the numerator_only_indexes and denominator_only_indexes.
+    All other index levels must be summed over."""
+    numerator_index_levels = set(numerator.index.names)
+    denominator_index_levels = set(denominator.index.names)
+
+    for level in numerator_index_levels - denominator_index_levels:
+        numerator = marginalize(numerator, [level])
+    for level in denominator_index_levels - numerator_index_levels:
+        denominator = marginalize(denominator, [level])
+    return (numerator, denominator)

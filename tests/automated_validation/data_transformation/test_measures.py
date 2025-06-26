@@ -26,7 +26,7 @@ def get_expected_dataframe(value_1: float, value_2: float) -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
+            names=["common_stratify_column", "scenario"],
         ),
     )
 
@@ -77,17 +77,72 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
         numerator_data=person_time_data,
         denominator_data=person_time_data,
     )
-
-    assert ratio_datasets["numerator_data"].equals(get_expected_dataframe(23.0, 37.0))
-    assert ratio_datasets["denominator_data"].equals(
-        get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0)
+    expected_numerator = pd.DataFrame(
+        {
+            "value": [9.0, 14.0, 15.0, 22.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
     )
+
+    assert ratio_datasets["numerator_data"].equals(expected_numerator)
+
+    expected_denominator = pd.DataFrame(
+        {
+            "value": [7.0 + 9.0, 10.0 + 14.0, 12.0 + 15.0, 17.0 + 22.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
+    )
+    assert ratio_datasets["denominator_data"].equals(expected_denominator)
 
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=person_time_data, denominator_data=person_time_data
     )
-    expected_measure_data = get_expected_dataframe(23.0 / (17.0 + 23.0), 37.0 / (29.0 + 37.0))
+    expected_measure_data = pd.DataFrame(
+        {
+            "value": [
+                9.0 / (7.0 + 9.0),
+                14.0 / (10.0 + 14.0),
+                15.0 / (12.0 + 15.0),
+                22.0 / (17.0 + 22.0),
+            ],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
+    )
+
     assert measure_data.equals(expected_measure_data)
     assert measure_data_from_ratio.equals(expected_measure_data)
 
@@ -255,7 +310,7 @@ def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
             ("cat2", "B"),
             ("cat3", "B"),
         ],
-        names=["parameter", "stratify_column"],
+        names=["parameter", "common_stratify_column"],
     )
     expected_numerator_data = pd.DataFrame(
         {
@@ -310,6 +365,23 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         numerator_data=person_time_data,
         denominator_data=person_time_data,
     )
+    expected_numerator_data = pd.DataFrame(
+        {
+            "value": [16.0, 24.0, 27.0, 39.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
+    )
 
     expected_denominator_data = pd.DataFrame(
         {
@@ -321,9 +393,7 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         ),
     )
 
-    assert_frame_equal(
-        ratio_datasets["numerator_data"], get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0)
-    )
+    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
     assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
 
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
@@ -331,9 +401,27 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         numerator_data=person_time_data, denominator_data=person_time_data
     )
 
-    expected_measure_data = get_expected_dataframe(
-        (17.0 + 23.0) / (17.0 + 23.0 + 29.0 + 37.0),
-        (29.0 + 37.0) / (17.0 + 23.0 + 29.0 + 37.0),
+    expected_measure_data = pd.DataFrame(
+        {
+            "value": [
+                16.0 / (17.0 + 23.0 + 29.0 + 37.0),
+                24.0 / (17.0 + 23.0 + 29.0 + 37.0),
+                27.0 / (17.0 + 23.0 + 29.0 + 37.0),
+                39.0 / (17.0 + 23.0 + 29.0 + 37.0),
+            ],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
     )
     assert_frame_equal(measure_data, expected_measure_data)
     assert_frame_equal(measure_data_from_ratio, expected_measure_data)
