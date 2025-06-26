@@ -12,17 +12,19 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     resolve_age_groups,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
-    MEASURE_KEY_MAPPINGS,
     Measure,
+    RatioMeasure,
+    get_measure_from_key,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
 
 class ValidationContext:
-    def __init__(self, results_dir: str | Path):
+    def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
         self._data_loader = DataLoader(Path(results_dir))
         self.comparisons: dict[str, Comparison] = {}
         self.age_groups = self._get_age_groups()
+        self.scenario_columns = scenario_columns
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -49,35 +51,63 @@ class ValidationContext:
         measure_key: str,
         test_source: str,
         ref_source: str,
+        test_scenarios: dict[str, str] = {},
+        ref_scenarios: dict[str, str] = {},
         stratifications: list[str] = [],
     ) -> None:
         """Add a comparison to the context given a measure key and data sources."""
-        entity_type, entity, measure_name = measure_key.split(".")
-        measure = MEASURE_KEY_MAPPINGS[entity_type][measure_name](entity)
+        measure = get_measure_from_key(measure_key, list(self.scenario_columns))
 
         test_source_enum = DataSource.from_str(test_source)
+        ref_source_enum = DataSource.from_str(ref_source)
 
         if not test_source_enum == DataSource.SIM:
             raise NotImplementedError(
                 f"Comparison for {test_source} source not implemented. Must be SIM."
             )
+
+        # Check if the measure is a RatioMeasure for FuzzyComparison
+        if not isinstance(measure, RatioMeasure):
+            raise NotImplementedError(
+                f"Measure {measure_key} is not a RatioMeasure. Only RatioMeasures are currently supported for comparisons."
+            )
+
+        for source, scenarios in (
+            (test_source_enum, test_scenarios),
+            (ref_source_enum, ref_scenarios),
+        ):
+            if source == DataSource.SIM and set(scenarios.keys()) != set(
+                self.scenario_columns
+            ):
+                raise ValueError(
+                    f"Each simulation comparison subject must choose a specific scenario. "
+                    f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."
+                )
+
         test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
-        test_data = measure.get_ratio_data_from_sim(
+        test_raw_datasets = {
+            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            for dataset_name, dataset in test_raw_datasets.items()
+        }
+        test_datasets = measure.get_ratio_datasets_from_sim(
             **test_raw_datasets,
         )
 
-        ref_source_enum = DataSource.from_str(ref_source)
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
+        ref_raw_datasets = {
+            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            for dataset_name, dataset in ref_raw_datasets.items()
+        }
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
 
-        test_data = resolve_age_groups(test_data, self.age_groups)
-        ref_data = resolve_age_groups(ref_data, self.age_groups)
         comparison = FuzzyComparison(
             measure=measure,
             test_source=test_source_enum,
-            test_data=test_data,
+            test_datasets=test_datasets,
             reference_source=ref_source_enum,
             reference_data=ref_data,
+            test_scenarios=test_scenarios,
+            reference_scenarios=ref_scenarios,
             stratifications=stratifications,
         )
         self.comparisons[measure_key] = comparison
