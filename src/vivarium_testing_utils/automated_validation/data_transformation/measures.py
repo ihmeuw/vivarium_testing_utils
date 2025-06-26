@@ -5,7 +5,10 @@ from typing import Any
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import ratio
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    ratio,
+    filter_data,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
     SingleNumericColumn,
@@ -231,6 +234,8 @@ class CategoricalRelativeRisk(RatioMeasure):
         risk_stratification_column: str,
     ) -> None:
         self.measure_key = f"risk_factor.{risk_factor}.relative_risk"
+        self.affected_entity = affected_entity
+        self.affected_measure_name = affected_measure
         self.affected_measure: RatioMeasure = MEASURE_KEY_MAPPINGS["cause"][affected_measure](
             affected_entity
         )
@@ -246,12 +251,25 @@ class CategoricalRelativeRisk(RatioMeasure):
             "affected_data": self.affected_measure.measure_key,
         }
 
-    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    @check_io(
+        relative_risks=SingleNumericColumn,
+        affected_data=SingleNumericColumn,
+        out=SingleNumericColumn,
+    )
     def get_measure_data_from_artifact(
         self, relative_risks: pd.DataFrame, affected_data: pd.DataFrame
     ) -> pd.DataFrame:
         """Multiply relative risks by affected data to get final measure data."""
-        return relative_risks * affected_data
+        relative_risks = filter_data(
+            relative_risks,
+            filter_cols={
+                "affected_entity": self.affected_entity,
+                "affected_measure": self.affected_measure_name,
+            },
+        )
+        ## multiply relative risks by affected data being sure to broadcast unequal index levels
+        risk_stratified_measure_data = relative_risks * affected_data
+        return risk_stratified_measure_data
 
     @check_io(
         numerator_data=SimOutputData,
@@ -267,11 +285,11 @@ class CategoricalRelativeRisk(RatioMeasure):
             numerator_data=numerator_data,
             denominator_data=denominator_data,
         )
-        for dataset in ratio_datasets.values():
-            if not self.risk_stratification_column in dataset.index.names:
-                raise ValueError(
-                    f"Risk stratification column '{self.risk_stratification_column}' not found in dataset index names."
-                )
+        # for dataset in ratio_datasets.values():
+        #     if not self.risk_stratification_column in dataset.index.names:
+        #         raise ValueError(
+        #             f"Risk stratification column '{self.risk_stratification_column}' not found in dataset index names."
+        #         )
         return ratio_datasets
 
 
