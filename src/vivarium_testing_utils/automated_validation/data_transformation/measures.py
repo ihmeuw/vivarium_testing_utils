@@ -220,6 +220,61 @@ class RiskExposure(RatioMeasure):
         self.denominator = RiskStatePersonTime(risk_factor, sum_all=True)
 
 
+class CategoricalRelativeRisk(RatioMeasure):
+    """Computes relative risk of a categorical variable."""
+
+    def __init__(
+        self,
+        risk_factor: str,
+        affected_entity: str,
+        affected_measure: str,
+        risk_stratification_column: str,
+    ) -> None:
+        self.measure_key = f"risk_factor.{risk_factor}.relative_risk"
+        self.affected_measure: RatioMeasure = MEASURE_KEY_MAPPINGS["cause"][affected_measure](
+            affected_entity
+        )
+        self.numerator = self.affected_measure.numerator
+        self.denominator = self.affected_measure.denominator
+        self.risk_stratification_column = risk_stratification_column
+
+    @property
+    def artifact_datasets(self) -> dict[str, str]:
+        """Return a dictionary of required datasets for this measure."""
+        return {
+            "relative_risks": self.measure_key,
+            "affected_data": self.affected_measure.measure_key,
+        }
+
+    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact(
+        self, relative_risks: pd.DataFrame, affected_data: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Multiply relative risks by affected data to get final measure data."""
+        return relative_risks * affected_data
+
+    @check_io(
+        numerator_data=SimOutputData,
+        denominator_data=SimOutputData,
+    )
+    def get_ratio_datasets_from_sim(
+        self,
+        numerator_data: pd.DataFrame,
+        denominator_data: pd.DataFrame,
+    ) -> dict[str, pd.DataFrame]:
+        """Process raw simulation data and return numerator and denominator DataFrames separately."""
+        ratio_datasets = self.affected_measure.get_ratio_datasets_from_sim(
+            numerator_data=numerator_data,
+            denominator_data=denominator_data,
+        )
+        for dataset in ratio_datasets.values():
+            if not self.risk_stratification_column in dataset.index.names:
+                raise ValueError(
+                    f"Risk stratification column '{self.risk_stratification_column}' not found in dataset index names."
+                )
+        return ratio_datasets
+
+
 MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[..., Measure]]] = {
     "cause": {
         "incidence_rate": Incidence,
