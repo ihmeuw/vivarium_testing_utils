@@ -250,6 +250,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         affected_entity: str,
         affected_measure: str,
         risk_stratification_column: str,
+        risk_state_mapping: dict[str, str] | None,
     ) -> None:
         self.measure_name = (
             f"risk_factor.{risk_factor}.relative_risk.{affected_entity}.{affected_measure}"
@@ -263,6 +264,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         self.numerator = self.affected_measure.numerator
         self.denominator = self.affected_measure.denominator
         self.risk_stratification_column = risk_stratification_column
+        self.risk_state_mapping = risk_state_mapping
 
     @property
     def artifact_datasets(self) -> dict[str, str]:
@@ -290,7 +292,12 @@ class CategoricalRelativeRisk(RatioMeasure):
         )
         ## multiply relative risks by affected data being sure to broadcast unequal index levels
         risk_stratified_measure_data = relative_risks * affected_data
-        return risk_stratified_measure_data
+        if self.risk_state_mapping:
+            # Map level 'parameter' values to risk states given by risk_state_mapping
+            risk_stratified_measure_data = risk_stratified_measure_data.rename(
+                index=self.risk_state_mapping, level="parameter"
+            ).rename_axis(index={"parameter": self.risk_stratification_column})
+            return risk_stratified_measure_data
 
     @check_io(
         numerator_data=SimOutputData,

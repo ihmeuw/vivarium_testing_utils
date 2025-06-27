@@ -38,12 +38,12 @@ def test_incidence(
     """Test the Incidence measure."""
     cause = "disease"
     measure = Incidence(cause)
-    assert measure.measure_key == f"cause.{cause}.incidence_rate"
+    assert measure.measure_name == f"cause.{cause}.incidence_rate"
     assert measure.sim_datasets == {
         "numerator_data": f"transition_count_{cause}",
         "denominator_data": f"person_time_{cause}",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_name}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=transition_count_data,
@@ -67,12 +67,12 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
     """Test the Prevalence measure."""
     cause = "disease"
     measure = Prevalence(cause)
-    assert measure.measure_key == f"cause.{cause}.prevalence"
+    assert measure.measure_name == f"cause.{cause}.prevalence"
     assert measure.sim_datasets == {
         "numerator_data": f"person_time_{cause}",
         "denominator_data": f"person_time_{cause}",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_name}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=person_time_data,
@@ -154,12 +154,12 @@ def test_si_remission(
     """Test the SIRemission measure."""
     cause = "disease"
     measure = SIRemission(cause)
-    assert measure.measure_key == f"cause.{cause}.remission_rate"
+    assert measure.measure_name == f"cause.{cause}.remission_rate"
     assert measure.sim_datasets == {
         "numerator_data": f"transition_count_{cause}",
         "denominator_data": f"person_time_{cause}",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_name}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=transition_count_data,
@@ -183,12 +183,12 @@ def test_all_cause_mortality_rate(
 ) -> None:
     """Test the CauseMortalityRate measurefor all causes."""
     measure = CauseSpecificMortalityRate("all_causes")
-    assert measure.measure_key == "cause.all_causes.cause_specific_mortality_rate"
+    assert measure.measure_name == "cause.all_causes.cause_specific_mortality_rate"
     assert measure.sim_datasets == {
         "numerator_data": "deaths",
         "denominator_data": "person_time_total",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_name}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
@@ -218,12 +218,12 @@ def test_cause_specific_mortality_rate(
     """Test the CauseSpecificMortalityRate measure."""
     cause = "disease"
     measure = CauseSpecificMortalityRate(cause)
-    assert measure.measure_key == f"cause.{cause}.cause_specific_mortality_rate"
+    assert measure.measure_name == f"cause.{cause}.cause_specific_mortality_rate"
     assert measure.sim_datasets == {
         "numerator_data": f"deaths",
         "denominator_data": "person_time_total",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_name}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
@@ -252,13 +252,13 @@ def test_excess_mortality_rate(
     """Test the ExcessMortalityRate measure."""
     cause = "disease"
     measure = ExcessMortalityRate(cause)
-    assert measure.measure_key == f"cause.{cause}.excess_mortality_rate"
+    assert measure.measure_name == f"cause.{cause}.excess_mortality_rate"
     assert measure.sim_datasets == {
         "numerator_data": f"deaths",
         "denominator_data": f"person_time_{cause}",
     }
 
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_name}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
@@ -286,12 +286,12 @@ def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
     """Test the RiskExposure measure."""
     risk_factor = "child_stunting"
     measure = RiskExposure(risk_factor)
-    assert measure.measure_key == f"risk_factor.{risk_factor}.exposure"
+    assert measure.measure_name == f"risk_factor.{risk_factor}.exposure"
     assert measure.sim_datasets == {
         "numerator_data": f"person_time_{risk_factor}",
         "denominator_data": f"person_time_{risk_factor}",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_name}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=risk_state_person_time_data,
@@ -355,12 +355,12 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
     scenario_columns = ["scenario"]
     measure = PopulationStructure(scenario_columns)
 
-    assert measure.measure_key == "population.structure"
+    assert measure.measure_name == "population.structure"
     assert measure.sim_datasets == {
         "numerator_data": "person_time_total",
         "denominator_data": "person_time_total",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.artifact_datasets == {"artifact_data": measure.measure_name}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=person_time_data,
@@ -443,7 +443,7 @@ def test_categorical_relative_risk(
         affected_measure="excess_mortality_rate",
         risk_stratification_column="common_stratify_column",
     )
-    assert measure.measure_key == f"risk_factor.{risk_factor}.relative_risk"
+    assert measure.measure_name == f"risk_factor.{risk_factor}.relative_risk"
     assert measure.affected_entity == affected_entity
     assert measure.affected_measure_name == "excess_mortality_rate"
     assert measure.sim_datasets == {
@@ -513,7 +513,7 @@ def test_get_measure_from_key(measure_key: str, expected_class: type[RatioMeasur
 
     measure = get_measure_from_key(measure_key, scenario_columns)
     assert isinstance(measure, expected_class)
-    assert measure.measure_key == measure_key
+    assert measure.measure_name == measure_key
     if measure_key == "population.structure":
         assert isinstance(measure.denominator, TotalPopulationPersonTime)
         assert measure.denominator.scenario_columns == scenario_columns

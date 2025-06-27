@@ -76,6 +76,7 @@ class ValidationContext:
         risk_stratification_column: str,
         test_source: str,
         ref_source: str,
+        risk_state_mapping: dict[str, str] | None = None,
         test_scenarios: dict[str, str] = {},
         ref_scenarios: dict[str, str] = {},
         stratifications: list[str] = [],
@@ -105,7 +106,11 @@ class ValidationContext:
         """
 
         measure = CategoricalRelativeRisk(
-            risk_factor, affected_entity, affected_measure, risk_stratification_column
+            risk_factor,
+            affected_entity,
+            affected_measure,
+            risk_stratification_column,
+            risk_state_mapping,
         )
         self._add_comparison_with_measure(
             measure, test_source, ref_source, test_scenarios, ref_scenarios, stratifications
