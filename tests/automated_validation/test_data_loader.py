@@ -130,7 +130,7 @@ def test__load_from_artifact(
     assert art_dataset.equals(artifact_disease_incidence)
     # check that value is column and rest are indices
     assert set(art_dataset.index.names) == {
-        "stratify_column",
+        "common_stratify_column",
         "other_stratify_column",
         DRAW_INDEX,
     }

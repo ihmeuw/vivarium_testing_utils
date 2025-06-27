@@ -29,50 +29,26 @@ def _create_transition_count_data() -> pd.DataFrame:
     """Create transition count data for testing."""
     return pd.DataFrame(
         {
-            "value": [3.0, 5.0, 7.0, 13.0],
+            "value": [1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 5.0, 8.0],
         },
-        index=pd.MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_product(
             [
-                (
-                    "transition_count",
-                    "cause",
-                    "disease",
-                    "susceptible_to_disease_to_disease",
-                    "A",
-                    "baseline",
-                ),
-                (
-                    "transition_count",
-                    "cause",
-                    "disease",
-                    "susceptible_to_disease_to_disease",
-                    "B",
-                    "baseline",
-                ),
-                (
-                    "transition_count",
-                    "cause",
-                    "disease",
-                    "disease_to_susceptible_to_disease",
-                    "A",
-                    "baseline",
-                ),
-                (
-                    "transition_count",
-                    "cause",
-                    "disease",
-                    "disease_to_susceptible_to_disease",
-                    "B",
-                    "baseline",
-                ),
+                ["transition_count"],
+                ["cause"],
+                ["disease"],
+                ["susceptible_to_disease_to_disease", "disease_to_susceptible_to_disease"],
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
             ],
             names=[
                 "measure",
                 "entity_type",
                 "entity",
                 "sub_entity",
-                "stratify_column",
+                "common_stratify_column",
                 "scenario",
+                "tc_unique_stratification",
             ],
         ),
     )
@@ -83,36 +59,26 @@ def _create_person_time_data() -> pd.DataFrame:
     """Create person time data for testing."""
     return pd.DataFrame(
         {
-            "value": [17.0, 23.0, 29.0, 37.0],
+            "value": [7.0, 10.0, 12.0, 17.0, 9.0, 14.0, 15.0, 22.0],
         },
-        index=pd.MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_product(
             [
-                (
-                    "person_time",
-                    "cause",
-                    "disease",
-                    "susceptible_to_disease",
-                    "A",
-                    "baseline",
-                ),
-                ("person_time", "cause", "disease", "disease", "A", "baseline"),
-                (
-                    "person_time",
-                    "cause",
-                    "disease",
-                    "susceptible_to_disease",
-                    "B",
-                    "baseline",
-                ),
-                ("person_time", "cause", "disease", "disease", "B", "baseline"),
+                ["person_time"],
+                ["cause"],
+                ["disease"],
+                ["susceptible_to_disease", "disease"],
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
             ],
             names=[
                 "measure",
                 "entity_type",
                 "entity",
                 "sub_entity",
-                "stratify_column",
+                "common_stratify_column",
                 "scenario",
+                "pt_unique_stratification",
             ],
         ),
     )
@@ -137,7 +103,7 @@ def _create_deaths_data() -> pd.DataFrame:
                 "entity_type",
                 "entity",
                 "sub_entity",
-                "stratify_column",
+                "common_stratify_column",
                 "scenario",
             ],
         ),
@@ -163,7 +129,7 @@ def _create_raw_artifact_disease_incidence() -> pd.DataFrame:
                     "D",
                 ),
             ],
-            names=["stratify_column", "other_stratify_column"],
+            names=["common_stratify_column", "other_stratify_column"],
         ),
     )
 
@@ -195,7 +161,13 @@ def _create_risk_state_person_time_data() -> pd.DataFrame:
                 ("person_time", "rei", "child_stunting", "cat2", "B"),
                 ("person_time", "rei", "child_stunting", "cat3", "B"),
             ],
-            names=["measure", "entity_type", "entity", "sub_entity", "stratify_column"],
+            names=[
+                "measure",
+                "entity_type",
+                "entity",
+                "sub_entity",
+                "common_stratify_column",
+            ],
         ),
     )
 
@@ -208,16 +180,12 @@ def _create_raw_artifact_risk_exposure() -> pd.DataFrame:
             "draw_0": [0.25, 0.35, 0.40, 0.30, 0.20, 0.50],
             "draw_1": [0.28, 0.32, 0.42, 0.28, 0.22, 0.48],
         },
-        index=pd.MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_product(
             [
-                ("A", "cat1"),
-                ("A", "cat2"),
-                ("A", "cat3"),
-                ("B", "cat1"),
-                ("B", "cat2"),
-                ("B", "cat3"),
+                ["A", "B"],
+                ["cat1", "cat2", "cat3"],
             ],
-            names=["stratify_column", "parameter"],
+            names=["common_stratify_column", "parameter"],
         ),
     )
 
@@ -329,7 +297,7 @@ def artifact_disease_incidence() -> pd.DataFrame:
                 ("B", "D", 0),
                 ("B", "D", 1),
             ],
-            names=["stratify_column", "other_stratify_column", DRAW_INDEX],
+            names=["common_stratify_column", "other_stratify_column", DRAW_INDEX],
         ),
     )
 
@@ -405,21 +373,12 @@ def artifact_risk_exposure() -> pd.DataFrame:
                 0.48,  # B, cat3, draws 0 and 1
             ],
         },
-        index=pd.MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_product(
             [
-                ("A", "cat1", 0),
-                ("A", "cat1", 1),
-                ("A", "cat2", 0),
-                ("A", "cat2", 1),
-                ("A", "cat3", 0),
-                ("A", "cat3", 1),
-                ("B", "cat1", 0),
-                ("B", "cat1", 1),
-                ("B", "cat2", 0),
-                ("B", "cat2", 1),
-                ("B", "cat3", 0),
-                ("B", "cat3", 1),
+                ["A", "B"],
+                ["cat1", "cat2", "cat3"],
+                [0, 1],
             ],
-            names=["stratify_column", "parameter", "input_draw"],
+            names=["common_stratify_column", "parameter", "input_draw"],
         ),
     )

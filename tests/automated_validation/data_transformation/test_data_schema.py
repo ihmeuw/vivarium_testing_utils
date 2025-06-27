@@ -44,9 +44,9 @@ def test_sim_output(
     """
     Test that the SimOutputData schema correctly validates the transition count and person time data.
     We don't want it too permissive or too strict. Note that we are implicitly testing that extra index
-    levels are OK, because the sample data has the "stratify_column" index level.
+    levels are OK, because the sample data has the "common_stratify_column" index level.
     """
-    assert "stratify_column" in transition_count_data.index.names
+    assert "common_stratify_column" in transition_count_data.index.names
 
     # Test that the SimOutputData schema correctly validates the transition count and person time data
     SimOutputData.validate(transition_count_data)
