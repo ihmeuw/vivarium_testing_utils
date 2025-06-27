@@ -30,6 +30,7 @@ class Measure(ABC):
     and process it into an epidemiological measure suitable for use in a Comparison."""
 
     measure_key: str
+    artifact_key: str
 
     @property
     @abstractmethod
@@ -76,7 +77,8 @@ class Measure(ABC):
 class RatioMeasure(Measure, ABC):
     """A Measure that calculates ratio data from simulation data."""
 
-    measure_key: str
+    measure_name: str
+    artifact_key: str
     numerator: SimDataFormatter
     denominator: SimDataFormatter
 
@@ -92,7 +94,7 @@ class RatioMeasure(Measure, ABC):
     def artifact_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
-            "artifact_data": self.measure_key,
+            "artifact_data": self.artifact_key,
         }
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
@@ -137,7 +139,7 @@ class Incidence(RatioMeasure):
     """Computes Susceptible Population Incidence Rate."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_key = f"cause.{cause}.incidence_rate"
+        self.measure_name = self.artifact_key = f"cause.{cause}.incidence_rate"
         self.numerator = TransitionCounts(cause, f"susceptible_to_{cause}", cause)
         self.denominator = StatePersonTime(cause, f"susceptible_to_{cause}")
 
@@ -146,7 +148,7 @@ class Prevalence(RatioMeasure):
     """Computes Prevalence of cause in the population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_key = f"cause.{cause}.prevalence"
+        self.measure_name = self.artifact_key = f"cause.{cause}.prevalence"
         self.numerator = StatePersonTime(cause, cause)
         self.denominator = StatePersonTime(cause)
 
@@ -155,7 +157,7 @@ class SIRemission(RatioMeasure):
     """Computes (SI) remission rate among infected population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_key = f"cause.{cause}.remission_rate"
+        self.measure_name = self.artifact_key = f"cause.{cause}.remission_rate"
         self.numerator = TransitionCounts(cause, cause, f"susceptible_to_{cause}")
         self.denominator = StatePersonTime(cause, cause)
 
@@ -164,7 +166,7 @@ class CauseSpecificMortalityRate(RatioMeasure):
     """Computes cause-specific mortality rate in the population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_key = f"cause.{cause}.cause_specific_mortality_rate"
+        self.measure_name = self.artifact_key = f"cause.{cause}.cause_specific_mortality_rate"
         self.numerator = Deaths(cause)  # Deaths due to specific cause
         self.denominator = StatePersonTime()  # Total person time
 
@@ -173,7 +175,7 @@ class ExcessMortalityRate(RatioMeasure):
     """Computes excess mortality rate among those with the disease compared to the general population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_key = f"cause.{cause}.excess_mortality_rate"
+        self.measure_name = self.artifact_key = f"cause.{cause}.excess_mortality_rate"
         self.numerator = Deaths(cause)  # Deaths due to specific cause
         self.denominator = StatePersonTime(
             cause, cause
@@ -196,7 +198,7 @@ class PopulationStructure(RatioMeasure):
         scenario_columns
             Column names for scenario stratification. Defaults to an empty list.
         """
-        self.measure_key = "population.structure"
+        self.measure_name = self.artifact_key = "population.structure"
         self.numerator = StatePersonTime()
         self.denominator = TotalPopulationPersonTime(scenario_columns)
 
@@ -231,7 +233,7 @@ class RiskExposure(RatioMeasure):
     """
 
     def __init__(self, risk_factor: str) -> None:
-        self.measure_key = f"risk_factor.{risk_factor}.exposure"
+        self.measure_name = self.artifact_key = f"risk_factor.{risk_factor}.exposure"
         self.risk_factor = risk_factor
 
         # Create custom formatters for risk exposure
@@ -249,7 +251,10 @@ class CategoricalRelativeRisk(RatioMeasure):
         affected_measure: str,
         risk_stratification_column: str,
     ) -> None:
-        self.measure_key = f"risk_factor.{risk_factor}.relative_risk"
+        self.measure_name = (
+            f"risk_factor.{risk_factor}.relative_risk.{affected_entity}.{affected_measure}"
+        )
+        self.artifact_key = f"risk_factor.{risk_factor}.relative_risk"
         self.affected_entity = affected_entity
         self.affected_measure_name = affected_measure
         self.affected_measure: RatioMeasure = MEASURE_KEY_MAPPINGS["cause"][affected_measure](
@@ -263,8 +268,8 @@ class CategoricalRelativeRisk(RatioMeasure):
     def artifact_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
-            "relative_risks": self.measure_key,
-            "affected_data": self.affected_measure.measure_key,
+            "relative_risks": self.measure_name,
+            "affected_data": self.affected_measure.measure_name,
         }
 
     @check_io(

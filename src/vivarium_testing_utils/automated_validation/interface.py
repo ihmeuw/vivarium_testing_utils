@@ -174,7 +174,7 @@ class ValidationContext:
             reference_scenarios=ref_scenarios,
             stratifications=stratifications,
         )
-        self.comparisons[measure.measure_key] = comparison
+        self.comparisons[measure.measure_name] = comparison
 
     def verify(self, comparison_key: str, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         self.comparisons[comparison_key].verify(stratifications)
