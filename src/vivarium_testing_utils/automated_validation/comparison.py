@@ -128,10 +128,10 @@ class FuzzyComparison(Comparison):
         - number of draws
         - a sample of the input draws.
         """
-        measure_key = self.measure.measure_name
+        measure_name = self.measure.measure_name
         test_info = self._get_metadata_from_datasets("test")
         reference_info = self._get_metadata_from_datasets("reference")
-        return format_metadata(measure_key, test_info, reference_info)
+        return format_metadata(measure_name, test_info, reference_info)
 
     def get_diff(
         self,

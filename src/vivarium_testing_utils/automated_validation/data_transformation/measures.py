@@ -29,7 +29,7 @@ class Measure(ABC):
     """A Measure contains key information and methods to take raw data from a DataSource
     and process it into an epidemiological measure suitable for use in a Comparison."""
 
-    measure_key: str
+    measure_name: str
     artifact_key: str
 
     @property
@@ -270,7 +270,7 @@ class CategoricalRelativeRisk(RatioMeasure):
     def artifact_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
-            "relative_risks": self.measure_name,
+            "relative_risks": self.artifact_key,
             "affected_data": self.affected_measure.measure_name,
         }
 

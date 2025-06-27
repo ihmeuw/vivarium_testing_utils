@@ -44,7 +44,7 @@ def plot_comparison(
         raise NotImplementedError(
             f"Unsupported plot type: {type}. Supported types are: {list(PLOT_TYPE_MAPPING.keys())}"
         )
-    title = _format_title(comparison.measure.measure_key)
+    title = _format_title(comparison.measure.measure_name)
 
     # Add the scenario columns to the list of values to append to the title.
     for modifiers in (comparison.test_scenarios, comparison.reference_scenarios, condition):

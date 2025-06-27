@@ -138,7 +138,7 @@ class ValidationContext:
         # Check if the measure is a RatioMeasure for FuzzyComparison
         if not isinstance(measure, RatioMeasure):
             raise NotImplementedError(
-                f"Measure {measure.measure_key} is not a RatioMeasure. Only RatioMeasures are currently supported for comparisons."
+                f"Measure {measure.measure_name} is not a RatioMeasure. Only RatioMeasures are currently supported for comparisons."
             )
 
         for source, scenarios in (

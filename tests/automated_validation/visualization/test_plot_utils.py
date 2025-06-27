@@ -89,7 +89,7 @@ def sample_comparison(
 
     # Set up measure
     mock_comparison.measure = mocker.Mock()
-    mock_comparison.measure.measure_key = "measure.test_measure"
+    mock_comparison.measure.measure_name = "measure.test_measure"
 
     # Type narrow for mypy
     assert isinstance(mock_comparison, Mock)

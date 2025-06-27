@@ -57,7 +57,7 @@ def mock_ratio_measure() -> RatioMeasure:
     mock_denominator.name = "denominator"
 
     measure = mock.Mock(spec=RatioMeasure)
-    measure.measure_key = "mock_measure"
+    measure.measure_name = "mock_measure"
     measure.numerator = mock_numerator
     measure.denominator = mock_denominator
     measure.get_measure_data_from_ratio.side_effect = ratio
