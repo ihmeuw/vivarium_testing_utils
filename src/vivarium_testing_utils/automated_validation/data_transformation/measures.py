@@ -30,7 +30,7 @@ class Measure(ABC):
 
     measure_key: str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.measure_key
 
     @property
