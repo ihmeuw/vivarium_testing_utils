@@ -6,9 +6,9 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    ratio,
     filter_data,
     marginalize,
+    ratio,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
@@ -105,9 +105,18 @@ class RatioMeasure(Measure, ABC):
             "artifact_data": self.artifact_key,
         }
 
-    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    def get_measure_data_from_artifact(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
+        """Process artifact data into a format suitable for calculations.
+
+        Default implementation expects a single DataFrame as input.
+        Subclasses may override to handle different parameter signatures.
+        """
+        if len(args) == 1 and not kwargs and isinstance(args[0], pd.DataFrame):
+            return args[0]  # Default behavior for single artifact_data input
+        else:
+            raise NotImplementedError(
+                f"Class {self.__class__.__name__} doesn't implement custom artifact data handling"
+            )
 
     @check_io(
         numerator_data=SingleNumericColumn,
@@ -151,6 +160,10 @@ class Incidence(RatioMeasure):
         self.numerator = TransitionCounts(cause, f"susceptible_to_{cause}", cause)
         self.denominator = StatePersonTime(cause, f"susceptible_to_{cause}")
 
+    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
+        return super().get_measure_data_from_artifact(artifact_data)
+
 
 class Prevalence(RatioMeasure):
     """Computes Prevalence of cause in the population."""
@@ -159,6 +172,10 @@ class Prevalence(RatioMeasure):
         self.measure_key = self.artifact_key = f"cause.{cause}.prevalence"
         self.numerator = StatePersonTime(cause, cause)
         self.denominator = StatePersonTime(cause)
+
+    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
+        return super().get_measure_data_from_artifact(artifact_data)
 
 
 class SIRemission(RatioMeasure):
@@ -169,6 +186,10 @@ class SIRemission(RatioMeasure):
         self.numerator = TransitionCounts(cause, cause, f"susceptible_to_{cause}")
         self.denominator = StatePersonTime(cause, cause)
 
+    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
+        return super().get_measure_data_from_artifact(artifact_data)
+
 
 class CauseSpecificMortalityRate(RatioMeasure):
     """Computes cause-specific mortality rate in the population."""
@@ -177,6 +198,10 @@ class CauseSpecificMortalityRate(RatioMeasure):
         self.measure_key = self.artifact_key = f"cause.{cause}.cause_specific_mortality_rate"
         self.numerator = Deaths(cause)  # Deaths due to specific cause
         self.denominator = StatePersonTime()  # Total person time
+
+    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
+        return super().get_measure_data_from_artifact(artifact_data)
 
 
 class ExcessMortalityRate(RatioMeasure):
@@ -188,6 +213,10 @@ class ExcessMortalityRate(RatioMeasure):
         self.denominator = StatePersonTime(
             cause, cause
         )  # Person time among those with the disease
+
+    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
+        return super().get_measure_data_from_artifact(artifact_data)
 
 
 class PopulationStructure(RatioMeasure):
@@ -248,6 +277,10 @@ class RiskExposure(RatioMeasure):
         self.numerator = RiskStatePersonTime(risk_factor)
         self.denominator = RiskStatePersonTime(risk_factor, sum_all=True)
 
+    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
+        return super().get_measure_data_from_artifact(artifact_data)
+
 
 class CategoricalRelativeRisk(RatioMeasure):
     """Computes relative risk of a categorical variable."""
@@ -267,9 +300,15 @@ class CategoricalRelativeRisk(RatioMeasure):
         self.artifact_key = f"risk_factor.{risk_factor}.relative_risk"
         self.affected_entity = affected_entity
         self.affected_measure_name = affected_measure
-        self.affected_measure: RatioMeasure = MEASURE_KEY_MAPPINGS["cause"][affected_measure](
+        affected_measure_instance = MEASURE_KEY_MAPPINGS["cause"][affected_measure](
             affected_entity
         )
+
+        if not isinstance(affected_measure_instance, RatioMeasure):
+            raise TypeError(
+                f"Expected affected_measure to be a RatioMeasure, got {type(affected_measure_instance)}"
+            )
+        self.affected_measure = affected_measure_instance
         self.numerator = self.affected_measure.numerator
         self.denominator = self.affected_measure.denominator
         self.risk_stratification_column = risk_stratification_column
@@ -278,7 +317,7 @@ class CategoricalRelativeRisk(RatioMeasure):
     @property
     def title(self) -> str:
         """Return a human-readable title for the measure."""
-        format_str = lambda x: x.replace("_", " ").title()
+        format_str: Callable[[str], str] = lambda x: x.replace("_", " ").title()
         return f"Effect of {format_str(self.risk_factor)} on {format_str(self.affected_entity)} {format_str(self.affected_measure_name)}"
 
     @property
@@ -312,7 +351,7 @@ class CategoricalRelativeRisk(RatioMeasure):
             risk_stratified_measure_data = risk_stratified_measure_data.rename(
                 index=self.risk_state_mapping, level="parameter"
             ).rename_axis(index={"parameter": self.risk_stratification_column})
-            return risk_stratified_measure_data
+        return risk_stratified_measure_data
 
     @check_io(
         numerator_data=SimOutputData,
@@ -328,11 +367,11 @@ class CategoricalRelativeRisk(RatioMeasure):
             numerator_data=numerator_data,
             denominator_data=denominator_data,
         )
-        # for dataset in ratio_datasets.values():
-        #     if not self.risk_stratification_column in dataset.index.names:
-        #         raise ValueError(
-        #             f"Risk stratification column '{self.risk_stratification_column}' not found in dataset index names."
-        #         )
+        for dataset in ratio_datasets.values():
+            if not self.risk_stratification_column in dataset.index.names:
+                raise ValueError(
+                    f"Risk stratification column '{self.risk_stratification_column}' not found in dataset index names."
+                )
         return ratio_datasets
 
 

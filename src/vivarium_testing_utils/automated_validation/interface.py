@@ -12,10 +12,10 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     resolve_age_groups,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    CategoricalRelativeRisk,
     Measure,
     RatioMeasure,
     get_measure_from_key,
-    CategoricalRelativeRisk,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
@@ -118,7 +118,7 @@ class ValidationContext:
 
     def _add_comparison_with_measure(
         self,
-        measure,
+        measure: Measure,
         test_source: str,
         ref_source: str,
         test_scenarios: dict[str, str] = {},
