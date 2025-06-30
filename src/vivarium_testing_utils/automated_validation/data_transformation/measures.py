@@ -105,19 +105,6 @@ class RatioMeasure(Measure, ABC):
             "artifact_data": self.artifact_key,
         }
 
-    def get_measure_data_from_artifact(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
-        """Process artifact data into a format suitable for calculations.
-
-        Default implementation expects a single DataFrame as input.
-        Subclasses may override to handle different parameter signatures.
-        """
-        if len(args) == 1 and not kwargs and isinstance(args[0], pd.DataFrame):
-            return args[0]  # Default behavior for single artifact_data input
-        else:
-            raise NotImplementedError(
-                f"Class {self.__class__.__name__} doesn't implement custom artifact data handling"
-            )
-
     @check_io(
         numerator_data=SingleNumericColumn,
         denominator_data=SingleNumericColumn,
@@ -162,7 +149,7 @@ class Incidence(RatioMeasure):
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return super().get_measure_data_from_artifact(artifact_data)
+        return artifact_data
 
 
 class Prevalence(RatioMeasure):
@@ -175,7 +162,7 @@ class Prevalence(RatioMeasure):
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return super().get_measure_data_from_artifact(artifact_data)
+        return artifact_data
 
 
 class SIRemission(RatioMeasure):
@@ -188,7 +175,7 @@ class SIRemission(RatioMeasure):
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return super().get_measure_data_from_artifact(artifact_data)
+        return artifact_data
 
 
 class CauseSpecificMortalityRate(RatioMeasure):
@@ -201,7 +188,7 @@ class CauseSpecificMortalityRate(RatioMeasure):
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return super().get_measure_data_from_artifact(artifact_data)
+        return artifact_data
 
 
 class ExcessMortalityRate(RatioMeasure):
@@ -216,7 +203,7 @@ class ExcessMortalityRate(RatioMeasure):
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return super().get_measure_data_from_artifact(artifact_data)
+        return artifact_data
 
 
 class PopulationStructure(RatioMeasure):
@@ -279,7 +266,7 @@ class RiskExposure(RatioMeasure):
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return super().get_measure_data_from_artifact(artifact_data)
+        return artifact_data
 
 
 class CategoricalRelativeRisk(RatioMeasure):
