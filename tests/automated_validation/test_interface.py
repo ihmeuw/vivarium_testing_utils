@@ -130,7 +130,7 @@ def test_add_comparison(
     assert measure_key in context.comparisons
     comparison = context.comparisons[measure_key]
 
-    assert comparison.measure.measure_name == measure_key
+    assert comparison.measure.measure_key == measure_key
     assert comparison.stratifications == []
 
     # Test that test_data is now a dictionary with numerator and denominator

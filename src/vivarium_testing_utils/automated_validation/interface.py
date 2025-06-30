@@ -138,7 +138,7 @@ class ValidationContext:
         # Check if the measure is a RatioMeasure for FuzzyComparison
         if not isinstance(measure, RatioMeasure):
             raise NotImplementedError(
-                f"Measure {measure.measure_name} is not a RatioMeasure. Only RatioMeasures are currently supported for comparisons."
+                f"Measure {measure.measure_key} is not a RatioMeasure. Only RatioMeasures are currently supported for comparisons."
             )
 
         for source, scenarios in (
@@ -179,7 +179,7 @@ class ValidationContext:
             reference_scenarios=ref_scenarios,
             stratifications=stratifications,
         )
-        self.comparisons[measure.measure_name] = comparison
+        self.comparisons[measure.measure_key] = comparison
 
     def verify(self, comparison_key: str, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         self.comparisons[comparison_key].verify(stratifications)

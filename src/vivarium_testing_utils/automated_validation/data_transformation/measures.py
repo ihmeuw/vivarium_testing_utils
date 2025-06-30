@@ -29,7 +29,7 @@ class Measure(ABC):
     """A Measure contains key information and methods to take raw data from a DataSource
     and process it into an epidemiological measure suitable for use in a Comparison."""
 
-    measure_name: str
+    measure_key: str
     artifact_key: str
 
     def __str__(self) -> str:
@@ -85,7 +85,7 @@ class Measure(ABC):
 class RatioMeasure(Measure, ABC):
     """A Measure that calculates ratio data from simulation data."""
 
-    measure_name: str
+    measure_key: str
     artifact_key: str
     numerator: SimDataFormatter
     denominator: SimDataFormatter
@@ -147,7 +147,7 @@ class Incidence(RatioMeasure):
     """Computes Susceptible Population Incidence Rate."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_name = self.artifact_key = f"cause.{cause}.incidence_rate"
+        self.measure_key = self.artifact_key = f"cause.{cause}.incidence_rate"
         self.numerator = TransitionCounts(cause, f"susceptible_to_{cause}", cause)
         self.denominator = StatePersonTime(cause, f"susceptible_to_{cause}")
 
@@ -156,7 +156,7 @@ class Prevalence(RatioMeasure):
     """Computes Prevalence of cause in the population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_name = self.artifact_key = f"cause.{cause}.prevalence"
+        self.measure_key = self.artifact_key = f"cause.{cause}.prevalence"
         self.numerator = StatePersonTime(cause, cause)
         self.denominator = StatePersonTime(cause)
 
@@ -165,7 +165,7 @@ class SIRemission(RatioMeasure):
     """Computes (SI) remission rate among infected population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_name = self.artifact_key = f"cause.{cause}.remission_rate"
+        self.measure_key = self.artifact_key = f"cause.{cause}.remission_rate"
         self.numerator = TransitionCounts(cause, cause, f"susceptible_to_{cause}")
         self.denominator = StatePersonTime(cause, cause)
 
@@ -174,7 +174,7 @@ class CauseSpecificMortalityRate(RatioMeasure):
     """Computes cause-specific mortality rate in the population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_name = self.artifact_key = f"cause.{cause}.cause_specific_mortality_rate"
+        self.measure_key = self.artifact_key = f"cause.{cause}.cause_specific_mortality_rate"
         self.numerator = Deaths(cause)  # Deaths due to specific cause
         self.denominator = StatePersonTime()  # Total person time
 
@@ -183,7 +183,7 @@ class ExcessMortalityRate(RatioMeasure):
     """Computes excess mortality rate among those with the disease compared to the general population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_name = self.artifact_key = f"cause.{cause}.excess_mortality_rate"
+        self.measure_key = self.artifact_key = f"cause.{cause}.excess_mortality_rate"
         self.numerator = Deaths(cause)  # Deaths due to specific cause
         self.denominator = StatePersonTime(
             cause, cause
@@ -206,7 +206,7 @@ class PopulationStructure(RatioMeasure):
         scenario_columns
             Column names for scenario stratification. Defaults to an empty list.
         """
-        self.measure_name = self.artifact_key = "population.structure"
+        self.measure_key = self.artifact_key = "population.structure"
         self.numerator = StatePersonTime()
         self.denominator = TotalPopulationPersonTime(scenario_columns)
 
@@ -241,7 +241,7 @@ class RiskExposure(RatioMeasure):
     """
 
     def __init__(self, risk_factor: str) -> None:
-        self.measure_name = self.artifact_key = f"risk_factor.{risk_factor}.exposure"
+        self.measure_key = self.artifact_key = f"risk_factor.{risk_factor}.exposure"
         self.risk_factor = risk_factor
 
         # Create custom formatters for risk exposure
@@ -260,7 +260,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         risk_stratification_column: str,
         risk_state_mapping: dict[str, str] | None,
     ) -> None:
-        self.measure_name = (
+        self.measure_key = (
             f"risk_factor.{risk_factor}.relative_risk.{affected_entity}.{affected_measure}"
         )
         self.artifact_key = f"risk_factor.{risk_factor}.relative_risk"
@@ -285,7 +285,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         """Return a dictionary of required datasets for this measure."""
         return {
             "relative_risks": self.artifact_key,
-            "affected_data": self.affected_measure.measure_name,
+            "affected_data": self.affected_measure.measure_key,
         }
 
     @check_io(
@@ -358,7 +358,7 @@ def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measu
     Parameters
     ----------
     measure_key
-        The measure key in format 'entity_type.entity.measure_name' or 'entity_type.measure_name'
+        The measure key in format 'entity_type.entity.measure_key' or 'entity_type.measure_key'
     scenario_columns
         Column names for scenario stratification. Used by some measures like PopulationStructure.
 
@@ -368,15 +368,15 @@ def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measu
     """
     parts = measure_key.split(".")
     if len(parts) == 3:
-        entity_type, entity, measure_name = parts
-        return MEASURE_KEY_MAPPINGS[entity_type][measure_name](entity)
+        entity_type, entity, measure_key = parts
+        return MEASURE_KEY_MAPPINGS[entity_type][measure_key](entity)
     elif len(parts) == 2:
-        entity_type, measure_name = parts
+        entity_type, measure_key = parts
         # Special case for PopulationStructure which needs scenario_columns
-        if entity_type == "population" and measure_name == "structure":
-            return MEASURE_KEY_MAPPINGS[entity_type][measure_name](scenario_columns)
+        if entity_type == "population" and measure_key == "structure":
+            return MEASURE_KEY_MAPPINGS[entity_type][measure_key](scenario_columns)
         else:
-            return MEASURE_KEY_MAPPINGS[entity_type][measure_name]()
+            return MEASURE_KEY_MAPPINGS[entity_type][measure_key]()
     else:
         raise ValueError(
             f"Invalid measure key format: {measure_key}. Expected format is two or three period-delimited strings e.g. 'population.structure' or 'cause.deaths.excess_mortality_rate'."
