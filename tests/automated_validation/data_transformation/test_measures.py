@@ -15,6 +15,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     RatioMeasure,
     RiskExposure,
     SIRemission,
+    _format_title,
     get_measure_from_key,
 )
 
@@ -39,6 +40,7 @@ def test_incidence(
     cause = "disease"
     measure = Incidence(cause)
     assert measure.measure_name == f"cause.{cause}.incidence_rate"
+    assert measure.title == "Disease Incidence Rate"
     assert measure.sim_datasets == {
         "numerator_data": f"transition_count_{cause}",
         "denominator_data": f"person_time_{cause}",
@@ -68,6 +70,7 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
     cause = "disease"
     measure = Prevalence(cause)
     assert measure.measure_name == f"cause.{cause}.prevalence"
+    assert measure.title == "Disease Prevalence"
     assert measure.sim_datasets == {
         "numerator_data": f"person_time_{cause}",
         "denominator_data": f"person_time_{cause}",
@@ -155,6 +158,7 @@ def test_si_remission(
     cause = "disease"
     measure = SIRemission(cause)
     assert measure.measure_name == f"cause.{cause}.remission_rate"
+    assert measure.title == "Disease Remission Rate"
     assert measure.sim_datasets == {
         "numerator_data": f"transition_count_{cause}",
         "denominator_data": f"person_time_{cause}",
@@ -184,6 +188,7 @@ def test_all_cause_mortality_rate(
     """Test the CauseMortalityRate measurefor all causes."""
     measure = CauseSpecificMortalityRate("all_causes")
     assert measure.measure_name == "cause.all_causes.cause_specific_mortality_rate"
+    assert measure.title == "All Causes Cause Specific Mortality Rate"
     assert measure.sim_datasets == {
         "numerator_data": "deaths",
         "denominator_data": "person_time_total",
@@ -219,6 +224,7 @@ def test_cause_specific_mortality_rate(
     cause = "disease"
     measure = CauseSpecificMortalityRate(cause)
     assert measure.measure_name == f"cause.{cause}.cause_specific_mortality_rate"
+    assert measure.title == "Disease Cause Specific Mortality Rate"
     assert measure.sim_datasets == {
         "numerator_data": f"deaths",
         "denominator_data": "person_time_total",
@@ -253,6 +259,7 @@ def test_excess_mortality_rate(
     cause = "disease"
     measure = ExcessMortalityRate(cause)
     assert measure.measure_name == f"cause.{cause}.excess_mortality_rate"
+    assert measure.title == "Disease Excess Mortality Rate"
     assert measure.sim_datasets == {
         "numerator_data": f"deaths",
         "denominator_data": f"person_time_{cause}",
@@ -287,6 +294,7 @@ def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
     risk_factor = "child_stunting"
     measure = RiskExposure(risk_factor)
     assert measure.measure_name == f"risk_factor.{risk_factor}.exposure"
+    assert measure.title == "Child Stunting Exposure"
     assert measure.sim_datasets == {
         "numerator_data": f"person_time_{risk_factor}",
         "denominator_data": f"person_time_{risk_factor}",
@@ -356,6 +364,7 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
     measure = PopulationStructure(scenario_columns)
 
     assert measure.measure_name == "population.structure"
+    assert measure.title == "Population Structure"
     assert measure.sim_datasets == {
         "numerator_data": "person_time_total",
         "denominator_data": "person_time_total",
@@ -539,3 +548,12 @@ def test_get_measure_from_key_invalid_inputs(
 
     with pytest.raises(expected_error):
         get_measure_from_key(invalid_key, scenario_columns)
+
+
+def test_format_title() -> None:
+    assert _format_title("measure_type.measure.entity") == "Measure Entity"
+    assert (
+        _format_title("measure_type.measure.compound_name_example")
+        == "Measure Compound Name Example"
+    )
+    assert _format_title("measure.entity") == "Measure Entity"

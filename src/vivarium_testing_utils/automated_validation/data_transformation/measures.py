@@ -32,6 +32,14 @@ class Measure(ABC):
     measure_name: str
     artifact_key: str
 
+    def __str__(self) -> str:
+        return self.measure_key
+
+    @property
+    def title(self) -> str:
+        """Return a formatted title for the measure."""
+        return _format_title(self.measure_key)
+
     @property
     @abstractmethod
     def sim_datasets(self) -> dict[str, str]:
@@ -388,3 +396,17 @@ def _align_indexes(
     for level in denominator_index_levels - numerator_index_levels:
         denominator = marginalize(denominator, [level])
     return (numerator, denominator)
+
+
+def _format_title(measure_key: str) -> str:
+    """Convert a measure key to a more readable format.
+
+    For example, "cause.disease.incidence_rate" becomes "Disease Incidence Rate".
+    """
+    parts = measure_key.split(".")
+    if len(parts) > 2:
+        parts = parts[1:]
+    title = " ".join(parts)
+    title = title.replace("_", " ")
+    title = " ".join([word.capitalize() for word in title.split()])
+    return title
