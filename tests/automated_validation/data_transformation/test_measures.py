@@ -451,8 +451,13 @@ def test_categorical_relative_risk(
         affected_entity="disease",
         affected_measure="excess_mortality_rate",
         risk_stratification_column="common_stratify_column",
+        risk_state_mapping={"cat1": "A", "cat2": "C"},
     )
-    assert measure.measure_key == f"risk_factor.{risk_factor}.relative_risk"
+    assert (
+        measure.measure_key
+        == f"risk_factor.{risk_factor}.relative_risk.{affected_entity}.excess_mortality_rate"
+    )
+    assert measure.title == "Effect of Risky Risk on Disease Excess Mortality Rate"
     assert measure.affected_entity == affected_entity
     assert measure.affected_measure_name == "excess_mortality_rate"
     assert measure.sim_datasets == {
@@ -480,7 +485,7 @@ def test_categorical_relative_risk(
                 ("C", "D", 0),
                 ("C", "D", 1),
             ],
-            names=["parameter", "other_stratify_column", DRAW_INDEX],
+            names=["common_stratify_column", "other_stratify_column", DRAW_INDEX],
         ),
     )
 

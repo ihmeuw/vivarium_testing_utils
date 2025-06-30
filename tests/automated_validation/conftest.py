@@ -393,10 +393,10 @@ def artifact_relative_risk() -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("disease", "excess_mortality_rate", "A", "B", 0),
-                ("disease", "excess_mortality_rate", "A", "B", 1),
-                ("disease", "excess_mortality_rate", "C", "D", 0),
-                ("disease", "excess_mortality_rate", "C", "D", 1),
+                ("disease", "excess_mortality_rate", "cat1", "B", 0),
+                ("disease", "excess_mortality_rate", "cat1", "B", 1),
+                ("disease", "excess_mortality_rate", "cat2", "D", 0),
+                ("disease", "excess_mortality_rate", "cat2", "D", 1),
             ],
             names=[
                 "affected_entity",

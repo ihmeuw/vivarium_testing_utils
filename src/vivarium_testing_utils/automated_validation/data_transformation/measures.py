@@ -260,6 +260,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         risk_stratification_column: str,
         risk_state_mapping: dict[str, str] | None,
     ) -> None:
+        self.risk_factor = risk_factor
         self.measure_key = (
             f"risk_factor.{risk_factor}.relative_risk.{affected_entity}.{affected_measure}"
         )
@@ -277,8 +278,8 @@ class CategoricalRelativeRisk(RatioMeasure):
     @property
     def title(self) -> str:
         """Return a human-readable title for the measure."""
-        format_str = lambda x: x.replace("_", " ").capitalize()
-        return f"Risk Effect of {format_str(self.risk_factor)} on {format_str(self.affected_entity)} {format_str(self.affected_measure_name)}"
+        format_str = lambda x: x.replace("_", " ").title()
+        return f"Effect of {format_str(self.risk_factor)} on {format_str(self.affected_entity)} {format_str(self.affected_measure_name)}"
 
     @property
     def artifact_datasets(self) -> dict[str, str]:
