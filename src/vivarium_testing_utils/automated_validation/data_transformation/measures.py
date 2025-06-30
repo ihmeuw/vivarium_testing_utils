@@ -375,7 +375,9 @@ def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measu
         )
 
 
-def _align_indexes(numerator: pd.DataFrame, denominator: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def _align_indexes(
+    numerator: pd.DataFrame, denominator: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Reconcile indexes between numerator and denominator DataFrames. Dataframes can have unique columns given by the numerator_only_indexes and denominator_only_indexes.
     All other index levels must be summed over."""
     numerator_index_levels = set(numerator.index.names)
