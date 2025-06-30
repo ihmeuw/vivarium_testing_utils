@@ -72,7 +72,10 @@ def sample_ref_data(base_sample_data: pd.DataFrame) -> pd.DataFrame:
 
 @pytest.fixture
 def sample_comparison(
-    sample_test_data: pd.DataFrame, sample_ref_data: pd.DataFrame, mocker: MockerFixture
+    sample_test_data: pd.DataFrame,
+    sample_ref_data: pd.DataFrame,
+    mocker: MockerFixture,
+    test_title: str,
 ) -> Mock:
     # Mock Comparison object with the _align_datasets method
     mock_comparison = mocker.Mock(spec=Comparison)
@@ -89,6 +92,7 @@ def sample_comparison(
     # Set up measure
     mock_comparison.measure = mocker.Mock()
     mock_comparison.measure.measure_key = "measure.test_measure"
+    mock_comparison.measure.title = test_title
 
     # Type narrow for mypy
     assert isinstance(mock_comparison, Mock)
