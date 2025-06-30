@@ -14,8 +14,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     RatioMeasure,
     RiskExposure,
     SIRemission,
-    get_measure_from_key,
     _format_title,
+    get_measure_from_key,
 )
 
 

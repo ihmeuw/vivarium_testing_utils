@@ -376,7 +376,6 @@ class TestRelPlot:
 
 
 class TestHelperFunctions:
-
     def test_get_unconditioned_index_names(self) -> None:
         index = pd.MultiIndex.from_tuples(
             [("male", "A", "Test", 0, 42)],
