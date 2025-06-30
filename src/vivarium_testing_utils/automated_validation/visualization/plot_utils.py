@@ -44,7 +44,7 @@ def plot_comparison(
         raise NotImplementedError(
             f"Unsupported plot type: {type}. Supported types are: {list(PLOT_TYPE_MAPPING.keys())}"
         )
-    title = _format_title(comparison.measure.measure_key)
+    title = comparison.measure.title
 
     # Add the scenario columns to the list of values to append to the title.
     for modifiers in (comparison.test_scenarios, comparison.reference_scenarios, condition):
@@ -247,20 +247,6 @@ def _heatmap(
 ##################
 # Helper Methods #
 ##################
-
-
-def _format_title(measure_key: str) -> str:
-    """Convert a measure key to a more readable format.
-
-    For example, "cause.disease.incidence_rate" becomes "Disease Incidence Rate".
-    """
-    parts = measure_key.split(".")
-    if len(parts) > 2:
-        parts = parts[1:]
-    title = " ".join(parts)
-    title = title.replace("_", " ")
-    title = " ".join([word.capitalize() for word in title.split()])
-    return title
 
 
 def _get_unconditioned_index_names(

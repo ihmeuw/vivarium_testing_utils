@@ -13,7 +13,6 @@ from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SE
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.visualization.plot_utils import (
     _append_condition_to_title,
-    _format_title,
     _get_combined_data,
     _get_unconditioned_index_names,
     _line_plot,
@@ -377,13 +376,6 @@ class TestRelPlot:
 
 
 class TestHelperFunctions:
-    def test_format_title(self) -> None:
-        assert _format_title("measure_type.measure.entity") == "Measure Entity"
-        assert (
-            _format_title("measure_type.measure.compound_name_example")
-            == "Measure Compound Name Example"
-        )
-        assert _format_title("measure.entity") == "Measure Entity"
 
     def test_get_unconditioned_index_names(self) -> None:
         index = pd.MultiIndex.from_tuples(
