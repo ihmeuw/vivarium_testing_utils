@@ -452,7 +452,7 @@ def test_categorical_relative_risk(
         affected_entity="disease",
         affected_measure="excess_mortality_rate",
         risk_stratification_column="common_stratify_column",
-        risk_state_mapping={"cat1": "A", "cat2": "C"},
+        risk_category_mapping={"cat1": "A", "cat2": "C"},
     )
     assert (
         measure.measure_key
@@ -472,7 +472,7 @@ def test_categorical_relative_risk(
 
     artifact_data = measure.get_measure_data_from_artifact(
         relative_risks=artifact_relative_risk,
-        affected_data=artifact_excess_mortality_rate,
+        affected_measure_data=artifact_excess_mortality_rate,
     )
 
     expected_artifact_data = pd.DataFrame(

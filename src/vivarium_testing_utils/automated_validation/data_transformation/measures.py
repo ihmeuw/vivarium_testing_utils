@@ -278,7 +278,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         affected_entity: str,
         affected_measure: str,
         risk_stratification_column: str,
-        risk_state_mapping: dict[str, str] | None,
+        risk_category_mapping: dict[str, str] | None,
     ) -> None:
         self.risk_factor = risk_factor
         self.measure_key = (
@@ -298,8 +298,8 @@ class CategoricalRelativeRisk(RatioMeasure):
         self.affected_measure = affected_measure_instance
         self.numerator = self.affected_measure.numerator
         self.denominator = self.affected_measure.denominator
-        self.risk_stratification_column = risk_stratification_column
-        self.risk_state_mapping = risk_state_mapping
+        self.risk_stratification_column = risk_stratification_column if risk_stratification_column else risk_factor
+        self.risk_category_mapping = risk_category_mapping
 
     @property
     def title(self) -> str:
@@ -321,7 +321,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         out=SingleNumericColumn,
     )
     def get_measure_data_from_artifact(
-        self, relative_risks: pd.DataFrame, affected_data: pd.DataFrame
+        self, relative_risks: pd.DataFrame, affected_measure_data: pd.DataFrame
     ) -> pd.DataFrame:
         """Multiply relative risks by affected data to get final measure data."""
         relative_risks = filter_data(
@@ -332,11 +332,11 @@ class CategoricalRelativeRisk(RatioMeasure):
             },
         )
         ## multiply relative risks by affected data being sure to broadcast unequal index levels
-        risk_stratified_measure_data = relative_risks * affected_data
-        if self.risk_state_mapping:
+        risk_stratified_measure_data = relative_risks * affected_measure_data
+        if self.risk_category_mapping:
             # Map level 'parameter' values to risk states given by risk_state_mapping
             risk_stratified_measure_data = risk_stratified_measure_data.rename(
-                index=self.risk_state_mapping, level="parameter"
+                index=self.risk_category_mapping, level="parameter"
             ).rename_axis(index={"parameter": self.risk_stratification_column})
         return risk_stratified_measure_data
 
