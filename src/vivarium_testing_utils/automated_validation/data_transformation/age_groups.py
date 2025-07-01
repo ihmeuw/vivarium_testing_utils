@@ -12,10 +12,10 @@ AGE_END_COLUMN = "age_end"
 AgeTuple = tuple[str, int | float, int | float]
 AgeRange = tuple[int | float, int | float]
 
+from vivarium_testing_utils.automated_validation.data_transformation import utils
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SingleNumericColumn,
 )
-from vivarium_testing_utils.automated_validation.data_transformation import utils
 
 
 class AgeGroup:

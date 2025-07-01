@@ -10,6 +10,7 @@ from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import (
     _convert_to_total_person_time,
 )
+from vivarium_testing_utils.automated_validation.data_transformation import utils
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AGE_END_COLUMN,
     AGE_GROUP_COLUMN,
@@ -21,7 +22,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     DrawData,
     SingleNumericColumn,
 )
-from vivarium_testing_utils.automated_validation.data_transformation import utils
 
 
 @utils.check_io(out=SingleNumericColumn)

@@ -1,18 +1,20 @@
 from __future__ import annotations
+
 from pathlib import Path
 
 import pandas as pd
 import yaml
 from vivarium import Artifact
 
-from vivarium_testing_utils.automated_validation.data_transformation import calculations
+from vivarium_testing_utils.automated_validation.constants import DataSource
+from vivarium_testing_utils.automated_validation.data_transformation import (
+    calculations,
+    utils,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
     SingleNumericColumn,
 )
-from vivarium_testing_utils.automated_validation.data_transformation import utils
-from vivarium_testing_utils.automated_validation.constants import DataSource
-
 
 NONSTANDARD_ARTIFACT_KEYS = {"population.age_bins"}
 

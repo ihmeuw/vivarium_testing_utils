@@ -8,14 +8,14 @@ from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
-from vivarium_testing_utils.automated_validation.data_transformation import measures
+from vivarium_testing_utils.automated_validation.data_transformation import (
+    age_groups,
+    measures,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
     RatioMeasure,
 )
-
-from vivarium_testing_utils.automated_validation.data_transformation import age_groups
-
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
 

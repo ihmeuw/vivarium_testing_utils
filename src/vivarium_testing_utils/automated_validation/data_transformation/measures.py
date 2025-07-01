@@ -7,8 +7,10 @@ from typing import Any
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.constants import DataSource
-
-from vivarium_testing_utils.automated_validation.data_transformation import calculations
+from vivarium_testing_utils.automated_validation.data_transformation import (
+    calculations,
+    utils,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
     SingleNumericColumn,
@@ -21,7 +23,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     TotalPopulationPersonTime,
     TransitionCounts,
 )
-from vivarium_testing_utils.automated_validation.data_transformation import utils
 
 
 class Measure(ABC):

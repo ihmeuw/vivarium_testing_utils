@@ -12,10 +12,10 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     AgeRange,
     AgeSchema,
     AgeTuple,
-    _get_transform_matrix,
     _format_dataframe,
-    rebin_count_dataframe,
+    _get_transform_matrix,
     format_dataframe_from_age_bin_df,
+    rebin_count_dataframe,
 )
 
 
