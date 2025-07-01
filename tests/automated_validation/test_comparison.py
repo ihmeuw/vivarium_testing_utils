@@ -4,17 +4,15 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 from pytest_check import check
-
+from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    RatioMeasure,
+)
 from vivarium_testing_utils.automated_validation.comparison import (
     DataSource,
     FuzzyComparison,
-    RatioMeasure,
 )
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    get_singular_indices,
-    ratio,
-)
+from vivarium_testing_utils.automated_validation.data_transformation import calculations
 
 
 @pytest.fixture
@@ -60,7 +58,7 @@ def mock_ratio_measure() -> RatioMeasure:
     measure.measure_key = "mock_measure"
     measure.numerator = mock_numerator
     measure.denominator = mock_denominator
-    measure.get_measure_data_from_ratio.side_effect = ratio
+    measure.get_measure_data_from_ratio.side_effect = calculations.ratio
     return measure
 
 
@@ -297,7 +295,7 @@ def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
     assert "location" not in comparison.test_datasets["numerator_data"].index.names
 
     # Verify it's detected as a singular index
-    singular_indices = get_singular_indices(comparison.reference_data)
+    singular_indices = calculations.get_singular_indices(comparison.reference_data)
     assert "location" in singular_indices
     assert singular_indices["location"] == "Global"
 
@@ -333,7 +331,7 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     assert "location" not in comparison.test_datasets["numerator_data"].index.names
 
     # Verify it's not detected as a singular index
-    singular_indices = get_singular_indices(comparison.reference_data)
+    singular_indices = calculations.get_singular_indices(comparison.reference_data)
     assert "location" not in singular_indices
 
     # Execute and verify error is raised with correct message

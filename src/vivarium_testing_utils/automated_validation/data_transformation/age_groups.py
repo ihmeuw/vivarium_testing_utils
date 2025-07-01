@@ -15,7 +15,7 @@ AgeRange = tuple[int | float, int | float]
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SingleNumericColumn,
 )
-from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
+from vivarium_testing_utils.automated_validation.data_transformation import utils
 
 
 class AgeGroup:
@@ -396,7 +396,7 @@ class AgeSchema:
         return True
 
 
-def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame:
+def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame:
     """
     Format a DataFrame to match the current schema.
 
@@ -451,7 +451,7 @@ def format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame
         return data
 
 
-@check_io(df=SingleNumericColumn, out=SingleNumericColumn)
+@utils.check_io(df=SingleNumericColumn, out=SingleNumericColumn)
 def rebin_count_dataframe(
     target_schema: AgeSchema,
     df: pd.DataFrame,
@@ -535,3 +535,17 @@ def _get_transform_matrix(source_schema: AgeSchema, target_schema: AgeSchema) ->
             if fraction > 0:
                 transform_matrix.loc[target_group.name, source_group.name] = fraction
     return transform_matrix
+
+
+def format_dataframe_from_age_bin_df(
+    data: pd.DataFrame, age_groups: pd.DataFrame
+) -> pd.DataFrame:
+    """Try to merge the age groups with the data. If it fails, just return the data."""
+    context_age_schema = AgeSchema.from_dataframe(age_groups)
+    try:
+        return _format_dataframe(context_age_schema, data)
+    except ValueError:
+        logger.info(
+            "Could not resolve age groups. The DataFrame likely has no age data. Returning dataframe as-is."
+        )
+        return data

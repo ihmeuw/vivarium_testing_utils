@@ -10,18 +10,11 @@ from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     DRAW_PREFIX,
 )
-from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AgeSchema,
-    format_dataframe,
-)
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
     SingleNumericColumn,
 )
-from vivarium_testing_utils.automated_validation.data_transformation.utils import (
-    check_io,
-    series_to_dataframe,
-)
+from vivarium_testing_utils.automated_validation.data_transformation import utils
 
 
 def filter_data(
@@ -53,7 +46,7 @@ def filter_data(
     return data
 
 
-@check_io(
+@utils.check_io(
     numerator_data=SingleNumericColumn,
     denominator_data=SingleNumericColumn,
     out=SingleNumericColumn,
@@ -109,10 +102,10 @@ def linear_combination(
     data: pd.DataFrame, coeff_a: float, col_a: str, coeff_b: float, col_b: str
 ) -> pd.DataFrame:
     """Return a series that is the linear combination of two columns in a DataFrame."""
-    return series_to_dataframe((data[col_a] * coeff_a) + (data[col_b] * coeff_b))
+    return utils.series_to_dataframe((data[col_a] * coeff_a) + (data[col_b] * coeff_b))
 
 
-@check_io(out=SingleNumericColumn)
+@utils.check_io(out=SingleNumericColumn)
 def clean_artifact_data(
     dataset_key: str,
     data: pd.DataFrame,
@@ -125,7 +118,7 @@ def clean_artifact_data(
     return data
 
 
-@check_io(data=DrawData, out=SingleNumericColumn)
+@utils.check_io(data=DrawData, out=SingleNumericColumn)
 def _clean_artifact_draws(
     data: pd.DataFrame,
 ) -> pd.DataFrame:
@@ -142,18 +135,6 @@ def _clean_artifact_draws(
     data[DRAW_INDEX] = data[DRAW_INDEX].astype(int)
     data = data.set_index(DRAW_INDEX, append=True).sort_index()
     return data
-
-
-def resolve_age_groups(data: pd.DataFrame, age_groups: pd.DataFrame) -> pd.DataFrame:
-    """Try to merge the age groups with the data. If it fails, just return the data."""
-    context_age_schema = AgeSchema.from_dataframe(age_groups)
-    try:
-        return format_dataframe(context_age_schema, data)
-    except ValueError:
-        logger.info(
-            "Could not resolve age groups. The DataFrame likely has no age data. Returning dataframe as-is."
-        )
-        return data
 
 
 def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:

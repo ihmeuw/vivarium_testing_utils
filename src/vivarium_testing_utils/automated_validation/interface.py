@@ -8,14 +8,14 @@ from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    resolve_age_groups,
-)
+from vivarium_testing_utils.automated_validation.data_transformation import measures
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
     RatioMeasure,
-    get_measure_from_key,
 )
+
+from vivarium_testing_utils.automated_validation.data_transformation import age_groups
+
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
 
@@ -56,7 +56,7 @@ class ValidationContext:
         stratifications: list[str] = [],
     ) -> None:
         """Add a comparison to the context given a measure key and data sources."""
-        measure = get_measure_from_key(measure_key, list(self.scenario_columns))
+        measure = measures.get_measure_from_key(measure_key, list(self.scenario_columns))
 
         test_source_enum = DataSource.from_str(test_source)
         ref_source_enum = DataSource.from_str(ref_source)
@@ -86,7 +86,9 @@ class ValidationContext:
 
         test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
         test_raw_datasets = {
-            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            dataset_name: age_groups.format_dataframe_from_age_bin_df(
+                dataset, self.age_groups
+            )
             for dataset_name, dataset in test_raw_datasets.items()
         }
         test_datasets = measure.get_ratio_datasets_from_sim(
@@ -95,7 +97,9 @@ class ValidationContext:
 
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
         ref_raw_datasets = {
-            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            dataset_name: age_groups.format_dataframe_from_age_bin_df(
+                dataset, self.age_groups
+            )
             for dataset_name, dataset in ref_raw_datasets.items()
         }
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)

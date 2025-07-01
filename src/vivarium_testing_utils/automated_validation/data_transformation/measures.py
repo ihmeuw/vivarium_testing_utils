@@ -1,14 +1,14 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Collection
+from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
 
-from vivarium_testing_utils.automated_validation.data_loader import DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    marginalize,
-    ratio,
-)
+from vivarium_testing_utils.automated_validation.constants import DataSource
+
+from vivarium_testing_utils.automated_validation.data_transformation import calculations
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
     SingleNumericColumn,
@@ -21,7 +21,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     TotalPopulationPersonTime,
     TransitionCounts,
 )
-from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
+from vivarium_testing_utils.automated_validation.data_transformation import utils
 
 
 class Measure(ABC):
@@ -60,7 +60,7 @@ class Measure(ABC):
         """Process raw simulation data into a format suitable for calculations."""
         pass
 
-    @check_io(out=SingleNumericColumn)
+    @utils.check_io(out=SingleNumericColumn)
     def get_measure_data(self, source: DataSource, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process data from the specified source into a format suitable for calculations."""
         if source == DataSource.SIM:
@@ -102,11 +102,11 @@ class RatioMeasure(Measure, ABC):
             "artifact_data": self.measure_key,
         }
 
-    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
-    @check_io(
+    @utils.check_io(
         numerator_data=SingleNumericColumn,
         denominator_data=SingleNumericColumn,
         out=SingleNumericColumn,
@@ -115,16 +115,16 @@ class RatioMeasure(Measure, ABC):
         self, numerator_data: pd.DataFrame, denominator_data: pd.DataFrame
     ) -> pd.DataFrame:
         """Compute final measure data from separate numerator and denominator data."""
-        return ratio(numerator_data, denominator_data)
+        return calculations.ratio(numerator_data, denominator_data)
 
-    @check_io(out=SingleNumericColumn)
+    @utils.check_io(out=SingleNumericColumn)
     def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process raw simulation data into a format suitable for calculations."""
         return self.get_measure_data_from_ratio(
             **self.get_ratio_datasets_from_sim(*args, **kwargs)
         )
 
-    @check_io(
+    @utils.check_io(
         numerator_data=SimOutputData,
         denominator_data=SimOutputData,
     )
@@ -207,11 +207,11 @@ class PopulationStructure(RatioMeasure):
         self.numerator = StatePersonTime()
         self.denominator = TotalPopulationPersonTime(scenario_columns)
 
-    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data / artifact_data.sum()
 
-    @check_io(
+    @utils.check_io(
         numerator_data=SimOutputData,
         denominator_data=SimOutputData,
     )
@@ -303,9 +303,9 @@ def _align_indexes(
     denominator_index_levels = set(denominator.index.names)
 
     for level in numerator_index_levels - denominator_index_levels:
-        numerator = marginalize(numerator, [level])
+        numerator = calculations.marginalize(numerator, [level])
     for level in denominator_index_levels - numerator_index_levels:
-        denominator = marginalize(denominator, [level])
+        denominator = calculations.marginalize(denominator, [level])
     return (numerator, denominator)
 
 
