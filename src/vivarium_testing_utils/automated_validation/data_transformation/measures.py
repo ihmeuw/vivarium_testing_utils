@@ -277,7 +277,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         risk_factor: str,
         affected_entity: str,
         affected_measure: str,
-        risk_stratification_column: str,
+        risk_stratification_column: str | None,
         risk_category_mapping: dict[str, str] | None,
     ) -> None:
         self.risk_factor = risk_factor
