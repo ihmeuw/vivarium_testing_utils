@@ -14,6 +14,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     RatioMeasure,
     RiskExposure,
     SIRemission,
+    _format_title,
     get_measure_from_key,
 )
 
@@ -26,7 +27,7 @@ def get_expected_dataframe(value_1: float, value_2: float) -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [("A", "baseline"), ("B", "baseline")],
-            names=["stratify_column", "scenario"],
+            names=["common_stratify_column", "scenario"],
         ),
     )
 
@@ -38,6 +39,7 @@ def test_incidence(
     cause = "disease"
     measure = Incidence(cause)
     assert measure.measure_key == f"cause.{cause}.incidence_rate"
+    assert measure.title == "Disease Incidence Rate"
     assert measure.sim_datasets == {
         "numerator_data": f"transition_count_{cause}",
         "denominator_data": f"person_time_{cause}",
@@ -67,6 +69,7 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
     cause = "disease"
     measure = Prevalence(cause)
     assert measure.measure_key == f"cause.{cause}.prevalence"
+    assert measure.title == "Disease Prevalence"
     assert measure.sim_datasets == {
         "numerator_data": f"person_time_{cause}",
         "denominator_data": f"person_time_{cause}",
@@ -77,17 +80,72 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
         numerator_data=person_time_data,
         denominator_data=person_time_data,
     )
-
-    assert ratio_datasets["numerator_data"].equals(get_expected_dataframe(23.0, 37.0))
-    assert ratio_datasets["denominator_data"].equals(
-        get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0)
+    expected_numerator = pd.DataFrame(
+        {
+            "value": [9.0, 14.0, 15.0, 22.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
     )
+
+    assert ratio_datasets["numerator_data"].equals(expected_numerator)
+
+    expected_denominator = pd.DataFrame(
+        {
+            "value": [7.0 + 9.0, 10.0 + 14.0, 12.0 + 15.0, 17.0 + 22.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
+    )
+    assert ratio_datasets["denominator_data"].equals(expected_denominator)
 
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
     measure_data = measure.get_measure_data_from_sim(
         numerator_data=person_time_data, denominator_data=person_time_data
     )
-    expected_measure_data = get_expected_dataframe(23.0 / (17.0 + 23.0), 37.0 / (29.0 + 37.0))
+    expected_measure_data = pd.DataFrame(
+        {
+            "value": [
+                9.0 / (7.0 + 9.0),
+                14.0 / (10.0 + 14.0),
+                15.0 / (12.0 + 15.0),
+                22.0 / (17.0 + 22.0),
+            ],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
+    )
+
     assert measure_data.equals(expected_measure_data)
     assert measure_data_from_ratio.equals(expected_measure_data)
 
@@ -99,6 +157,7 @@ def test_si_remission(
     cause = "disease"
     measure = SIRemission(cause)
     assert measure.measure_key == f"cause.{cause}.remission_rate"
+    assert measure.title == "Disease Remission Rate"
     assert measure.sim_datasets == {
         "numerator_data": f"transition_count_{cause}",
         "denominator_data": f"person_time_{cause}",
@@ -128,6 +187,7 @@ def test_all_cause_mortality_rate(
     """Test the CauseMortalityRate measurefor all causes."""
     measure = CauseSpecificMortalityRate("all_causes")
     assert measure.measure_key == "cause.all_causes.cause_specific_mortality_rate"
+    assert measure.title == "All Causes Cause Specific Mortality Rate"
     assert measure.sim_datasets == {
         "numerator_data": "deaths",
         "denominator_data": "person_time_total",
@@ -163,6 +223,7 @@ def test_cause_specific_mortality_rate(
     cause = "disease"
     measure = CauseSpecificMortalityRate(cause)
     assert measure.measure_key == f"cause.{cause}.cause_specific_mortality_rate"
+    assert measure.title == "Disease Cause Specific Mortality Rate"
     assert measure.sim_datasets == {
         "numerator_data": f"deaths",
         "denominator_data": "person_time_total",
@@ -197,6 +258,7 @@ def test_excess_mortality_rate(
     cause = "disease"
     measure = ExcessMortalityRate(cause)
     assert measure.measure_key == f"cause.{cause}.excess_mortality_rate"
+    assert measure.title == "Disease Excess Mortality Rate"
     assert measure.sim_datasets == {
         "numerator_data": f"deaths",
         "denominator_data": f"person_time_{cause}",
@@ -231,6 +293,7 @@ def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
     risk_factor = "child_stunting"
     measure = RiskExposure(risk_factor)
     assert measure.measure_key == f"risk_factor.{risk_factor}.exposure"
+    assert measure.title == "Child Stunting Exposure"
     assert measure.sim_datasets == {
         "numerator_data": f"person_time_{risk_factor}",
         "denominator_data": f"person_time_{risk_factor}",
@@ -255,7 +318,7 @@ def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
             ("cat2", "B"),
             ("cat3", "B"),
         ],
-        names=["parameter", "stratify_column"],
+        names=["parameter", "common_stratify_column"],
     )
     expected_numerator_data = pd.DataFrame(
         {
@@ -300,6 +363,7 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
     measure = PopulationStructure(scenario_columns)
 
     assert measure.measure_key == "population.structure"
+    assert measure.title == "Population Structure"
     assert measure.sim_datasets == {
         "numerator_data": "person_time_total",
         "denominator_data": "person_time_total",
@@ -309,6 +373,23 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=person_time_data,
         denominator_data=person_time_data,
+    )
+    expected_numerator_data = pd.DataFrame(
+        {
+            "value": [16.0, 24.0, 27.0, 39.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
     )
 
     expected_denominator_data = pd.DataFrame(
@@ -321,9 +402,7 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         ),
     )
 
-    assert_frame_equal(
-        ratio_datasets["numerator_data"], get_expected_dataframe(17.0 + 23.0, 29.0 + 37.0)
-    )
+    assert_frame_equal(ratio_datasets["numerator_data"], expected_numerator_data)
     assert_frame_equal(ratio_datasets["denominator_data"], expected_denominator_data)
 
     measure_data_from_ratio = measure.get_measure_data_from_ratio(**ratio_datasets)
@@ -331,9 +410,27 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         numerator_data=person_time_data, denominator_data=person_time_data
     )
 
-    expected_measure_data = get_expected_dataframe(
-        (17.0 + 23.0) / (17.0 + 23.0 + 29.0 + 37.0),
-        (29.0 + 37.0) / (17.0 + 23.0 + 29.0 + 37.0),
+    expected_measure_data = pd.DataFrame(
+        {
+            "value": [
+                16.0 / (17.0 + 23.0 + 29.0 + 37.0),
+                24.0 / (17.0 + 23.0 + 29.0 + 37.0),
+                27.0 / (17.0 + 23.0 + 29.0 + 37.0),
+                39.0 / (17.0 + 23.0 + 29.0 + 37.0),
+            ],
+        },
+        index=pd.MultiIndex.from_product(
+            [
+                ["A", "B"],
+                ["baseline"],
+                ["foo", "bar"],
+            ],
+            names=[
+                "common_stratify_column",
+                "scenario",
+                "pt_unique_stratification",
+            ],
+        ),
     )
     assert_frame_equal(measure_data, expected_measure_data)
     assert_frame_equal(measure_data_from_ratio, expected_measure_data)
@@ -383,3 +480,12 @@ def test_get_measure_from_key_invalid_inputs(
 
     with pytest.raises(expected_error):
         get_measure_from_key(invalid_key, scenario_columns)
+
+
+def test_format_title() -> None:
+    assert _format_title("measure_type.measure.entity") == "Measure Entity"
+    assert (
+        _format_title("measure_type.measure.compound_name_example")
+        == "Measure Compound Name Example"
+    )
+    assert _format_title("measure.entity") == "Measure Entity"
