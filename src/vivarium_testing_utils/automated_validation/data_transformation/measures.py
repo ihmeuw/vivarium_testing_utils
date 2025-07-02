@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from typing import Any
 
 import pandas as pd
@@ -10,6 +10,7 @@ from vivarium_testing_utils.automated_validation.constants import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import (
     calculations,
     utils,
+
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
