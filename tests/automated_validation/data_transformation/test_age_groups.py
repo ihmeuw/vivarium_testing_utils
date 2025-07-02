@@ -304,7 +304,7 @@ def test_rebin_dataframe(sample_df_with_ages: pd.DataFrame) -> None:
     pd.testing.assert_frame_equal(rebinned_df, expected_df)
 
 
-def format_dataframe_from_age_bin_df(
+def test_format_dataframe_from_age_bin_df(
     sample_df_with_ages: pd.DataFrame,
     sample_age_group_df: pd.DataFrame,
     person_time_data: pd.DataFrame,
