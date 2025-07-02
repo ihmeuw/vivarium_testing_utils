@@ -40,6 +40,14 @@ class Measure(ABC):
         """Return a formatted title for the measure."""
         return _format_title(self.measure_key)
 
+    def __str__(self) -> str:
+        return self.measure_key
+
+    @property
+    def title(self) -> str:
+        """Return a formatted title for the measure."""
+        return _format_title(self.measure_key)
+
     @property
     @abstractmethod
     def sim_datasets(self) -> dict[str, str]:
