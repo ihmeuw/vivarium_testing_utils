@@ -154,20 +154,17 @@ class ValidationContext:
                 )
 
         test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
-        test_raw_datasets = {
-            dataset_name: resolve_age_groups(dataset, self.age_groups)
-            for dataset_name, dataset in test_raw_datasets.items()
-        }
         test_datasets = measure.get_ratio_datasets_from_sim(
             **test_raw_datasets,
         )
+        test_datasets = {
+            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            for dataset_name, dataset in test_datasets.items()
+        }
 
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
-        ref_raw_datasets = {
-            dataset_name: resolve_age_groups(dataset, self.age_groups)
-            for dataset_name, dataset in ref_raw_datasets.items()
-        }
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
+        ref_data = resolve_age_groups(ref_data, self.age_groups)
 
         comparison = FuzzyComparison(
             measure=measure,

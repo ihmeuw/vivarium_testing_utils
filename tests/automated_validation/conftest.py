@@ -426,3 +426,9 @@ def artifact_excess_mortality_rate() -> pd.DataFrame:
             names=["other_stratify_column", DRAW_INDEX],
         ),
     )
+
+
+@pytest.fixture
+def risk_categories() -> dict[str, str]:
+    """Sample risk categories mapping."""
+    return {"cat1": "high", "cat2": "medium", "cat3": "low", "cat4": "unexposed"}

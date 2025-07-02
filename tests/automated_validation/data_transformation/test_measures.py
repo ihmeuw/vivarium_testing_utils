@@ -438,11 +438,14 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
     assert_frame_equal(measure_data_from_ratio, expected_measure_data)
 
 
+@pytest.mark.parametrize("use_base_categories", [True, False])
 def test_categorical_relative_risk(
     deaths_data: pd.DataFrame,
     person_time_data: pd.DataFrame,
     artifact_relative_risk: pd.DataFrame,
     artifact_excess_mortality_rate: pd.DataFrame,
+    risk_categories: dict[str, str],
+    use_base_categories: bool,
 ) -> None:
     """Test the CategoricalRelativeRisk measure."""
     risk_factor = "risky_risk"
@@ -452,7 +455,7 @@ def test_categorical_relative_risk(
         affected_entity="disease",
         affected_measure="excess_mortality_rate",
         risk_stratification_column="common_stratify_column",
-        risk_category_mapping={"cat1": "A", "cat2": "C"},
+        risk_category_mapping={"cat1": "A", "cat2": "C"} if not use_base_categories else None,
     )
     assert (
         measure.measure_key
@@ -467,25 +470,35 @@ def test_categorical_relative_risk(
     }
     assert measure.artifact_datasets == {
         "relative_risks": f"risk_factor.{risk_factor}.relative_risk",
-        "affected_data": f"cause.{affected_entity}.excess_mortality_rate",
+        "affected_measure_data": f"cause.{affected_entity}.excess_mortality_rate",
+        "categories": f"risk_factor.{risk_factor}.categories",
     }
 
     artifact_data = measure.get_measure_data_from_artifact(
         relative_risks=artifact_relative_risk,
         affected_measure_data=artifact_excess_mortality_rate,
+        categories=risk_categories,
     )
-
+    if use_base_categories:
+        index_tuples = [
+            ("high", "B", 0),
+            ("high", "B", 1),
+            ("medium", "D", 0),
+            ("medium", "D", 1),
+        ]
+    else:
+        index_tuples = [
+            ("A", "B", 0),
+            ("A", "B", 1),
+            ("C", "D", 0),
+            ("C", "D", 1),
+        ]
     expected_artifact_data = pd.DataFrame(
         {
             "value": [1.5 * 0.02, 2.0 * 0.03, 1.8 * 0.01, 1.2 * 0.04],
         },
         index=pd.MultiIndex.from_tuples(
-            [
-                ("A", "B", 0),
-                ("A", "B", 1),
-                ("C", "D", 0),
-                ("C", "D", 1),
-            ],
+            index_tuples,
             names=["common_stratify_column", "other_stratify_column", DRAW_INDEX],
         ),
     )

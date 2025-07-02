@@ -314,16 +314,20 @@ class CategoricalRelativeRisk(RatioMeasure):
         """Return a dictionary of required datasets for this measure."""
         return {
             "relative_risks": self.artifact_key,
-            "affected_data": self.affected_measure.measure_key,
+            "affected_measure_data": self.affected_measure.measure_key,
+            "categories": f"risk_factor.{self.risk_factor}.categories",
         }
 
     @check_io(
         relative_risks=SingleNumericColumn,
-        affected_data=SingleNumericColumn,
+        affected_measure_data=SingleNumericColumn,
         out=SingleNumericColumn,
     )
     def get_measure_data_from_artifact(
-        self, relative_risks: pd.DataFrame, affected_measure_data: pd.DataFrame
+        self,
+        relative_risks: pd.DataFrame,
+        affected_measure_data: pd.DataFrame,
+        categories: dict[str, str],
     ) -> pd.DataFrame:
         """Multiply relative risks by affected data to get final measure data."""
         relative_risks = filter_data(
@@ -335,11 +339,14 @@ class CategoricalRelativeRisk(RatioMeasure):
         )
         ## multiply relative risks by affected data being sure to broadcast unequal index levels
         risk_stratified_measure_data = relative_risks * affected_measure_data
-        if self.risk_category_mapping:
-            # Map level 'parameter' values to risk states given by risk_state_mapping
-            risk_stratified_measure_data = risk_stratified_measure_data.rename(
-                index=self.risk_category_mapping, level="parameter"
-            ).rename_axis(index={"parameter": self.risk_stratification_column})
+        risk_category_mapping = (
+            self.risk_category_mapping if self.risk_category_mapping else categories
+        )
+
+        # Map level 'parameter' values to risk states given by risk_state_mapping
+        risk_stratified_measure_data = risk_stratified_measure_data.rename(
+            index=risk_category_mapping, level="parameter"
+        ).rename_axis(index={"parameter": self.risk_stratification_column})
         return risk_stratified_measure_data
 
     @check_io(
