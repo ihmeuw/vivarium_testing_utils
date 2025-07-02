@@ -298,7 +298,9 @@ class CategoricalRelativeRisk(RatioMeasure):
         self.affected_measure = affected_measure_instance
         self.numerator = self.affected_measure.numerator
         self.denominator = self.affected_measure.denominator
-        self.risk_stratification_column = risk_stratification_column if risk_stratification_column else risk_factor
+        self.risk_stratification_column = (
+            risk_stratification_column if risk_stratification_column else risk_factor
+        )
         self.risk_category_mapping = risk_category_mapping
 
     @property

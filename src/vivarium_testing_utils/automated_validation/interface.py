@@ -78,7 +78,7 @@ class ValidationContext:
         test_scenarios: dict[str, str] = {},
         ref_scenarios: dict[str, str] = {},
         stratifications: list[str] = [],
-        risk_stratification_column: str | None = None, 
+        risk_stratification_column: str | None = None,
         risk_state_mapping: dict[str, str] | None = None,
     ) -> None:
         """Add a relative risk comparison to the context.
