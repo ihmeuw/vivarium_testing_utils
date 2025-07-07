@@ -178,6 +178,37 @@ def test_fuzzy_comparison_get_diff(
         )
 
 
+def test_fuzzy_comparison_get_diff_aggregated(
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
+) -> None:
+    """Test the get_diff method of the FuzzyComparison class with aggregated draws."""
+    comparison = FuzzyComparison(
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data,
+    )
+    diff = comparison.get_diff(stratifications=[], num_rows="all", aggregate_draws=True)
+    expected_df = pd.DataFrame(
+        {
+            "test_mean": [0.1, 0.2, 0.325],
+            "test_2.5%": [0.1, 0.2, 0.325],
+            "test_97.5%": [0.1, 0.2, 0.325],
+            "reference_mean": [0.12, 0.2, 0.29],
+            "reference_2.5%": [0.12, 0.2, 0.29],
+            "reference_97.5%": [0.12, 0.2, 0.29],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
+            names=["year", "sex", "age"],
+        ),
+    )
+    assert_frame_equal(diff, expected_df)
+
+
 def test_fuzzy_comparison_init_with_stratifications(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
