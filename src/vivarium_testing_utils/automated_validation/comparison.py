@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Collection, Literal
 
 import pandas as pd
+import numpy as np
 
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
@@ -48,6 +49,7 @@ class Comparison(ABC):
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
+        aggregate_draws_and_seeds: bool = False,
     ) -> pd.DataFrame:
         """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
 
@@ -61,6 +63,8 @@ class Comparison(ABC):
             The column to sort by. Default is "percent_error".
         ascending
             Whether to sort in ascending order. Default is False.
+        aggregate_draws_and_seeds
+            If True, aggregate over draws and seeds to show means and 95% uncertainty intervals.
         Returns:
         --------
         A DataFrame of the comparison data.
@@ -132,6 +136,7 @@ class FuzzyComparison(Comparison):
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
+        aggregate_draws_and_seeds: bool = False,
     ) -> pd.DataFrame:
         """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
 
@@ -145,6 +150,10 @@ class FuzzyComparison(Comparison):
             The column to sort by. Default is "percent_error".
         ascending
             Whether to sort in ascending order. Default is False.
+        aggregate_draws_and_seeds
+            If True, aggregate over draws and seeds to show means and 95% uncertainty intervals.
+            Changes the output columns to show test_mean, test_lower_ui, test_upper_ui,
+            reference_mean, reference_lower_ui, reference_upper_ui, and standardized_difference.
         Returns:
         --------
         A DataFrame of the comparison data.
@@ -157,6 +166,24 @@ class FuzzyComparison(Comparison):
 
         test_proportion_data, reference_data = self._align_datasets()
 
+        if aggregate_draws_and_seeds:
+            return self._get_aggregated_diff(
+                test_proportion_data, reference_data, num_rows, sort_by, ascending
+            )
+        else:
+            return self._get_raw_diff(
+                test_proportion_data, reference_data, num_rows, sort_by, ascending
+            )
+
+    def _get_raw_diff(
+        self,
+        test_proportion_data: pd.DataFrame,
+        reference_data: pd.DataFrame,
+        num_rows: int | Literal["all"],
+        sort_by: str,
+        ascending: bool,
+    ) -> pd.DataFrame:
+        """Get the raw difference without aggregation."""
         test_proportion_data = test_proportion_data.rename(
             columns={"value": "test_rate"}
         ).dropna()
@@ -179,6 +206,108 @@ class FuzzyComparison(Comparison):
             return sorted_data
         else:
             return sorted_data.head(n=num_rows)
+
+    def _get_aggregated_diff(
+        self,
+        test_proportion_data: pd.DataFrame,
+        reference_data: pd.DataFrame,
+        num_rows: int | Literal["all"],
+        sort_by: str,
+        ascending: bool,
+    ) -> pd.DataFrame:
+        """Get the aggregated difference with means and uncertainty intervals."""
+        # Aggregate over draws and seeds
+        aggregation_levels = [DRAW_INDEX, SEED_INDEX]
+
+        test_agg = self._aggregate_over_draws_and_seeds(
+            test_proportion_data, aggregation_levels
+        )
+        reference_agg = self._aggregate_over_draws_and_seeds(
+            reference_data, aggregation_levels
+        )
+
+        # Merge the aggregated data
+        merged_data = pd.merge(
+            test_agg,
+            reference_agg,
+            left_index=True,
+            right_index=True,
+            suffixes=("_test", "_reference"),
+        )
+
+        # Calculate standardized difference (Cohen's d-like metric)
+        # Using pooled standard deviation for standardization
+        pooled_std = np.sqrt(
+            (merged_data["std_test"] ** 2 + merged_data["std_reference"] ** 2) / 2
+        )
+        merged_data["standardized_difference"] = (
+            merged_data["mean_test"] - merged_data["mean_reference"]
+        ) / pooled_std
+
+        # Rename columns for clarity
+        merged_data = merged_data.rename(
+            columns={
+                "mean_test": "test_mean",
+                "lower_ui_test": "test_lower_ui",
+                "upper_ui_test": "test_upper_ui",
+                "mean_reference": "reference_mean",
+                "lower_ui_reference": "reference_lower_ui",
+                "upper_ui_reference": "reference_upper_ui",
+            }
+        )
+
+        # Drop the standard deviation columns as they're not needed in the output
+        merged_data = merged_data.drop(columns=["std_test", "std_reference"])
+
+        # Sort the data
+        if sort_by == "percent_error":
+            sort_by = "standardized_difference"
+        sort_key = abs if sort_by == "standardized_difference" else None
+        sorted_data = merged_data.sort_values(
+            by=sort_by,
+            key=sort_key,
+            ascending=ascending,
+        )
+
+        if num_rows == "all":
+            return sorted_data
+        else:
+            return sorted_data.head(n=num_rows)
+
+    def _aggregate_over_draws_and_seeds(
+        self, data: pd.DataFrame, aggregation_levels: list[str]
+    ) -> pd.DataFrame:
+        """Aggregate data over draws and seeds, computing mean and 95% uncertainty intervals."""
+        # Get the levels to group by (everything except draws and seeds)
+        group_levels = [
+            level for level in data.index.names if level not in aggregation_levels
+        ]
+
+        if not group_levels:
+            # If no grouping levels, aggregate over the entire dataset
+            values = data["value"]
+            return pd.DataFrame(
+                {
+                    "mean": [values.mean()],
+                    "lower_ui": [values.quantile(0.025)],
+                    "upper_ui": [values.quantile(0.975)],
+                    "std": [values.std()],
+                }
+            )
+
+        # Group by the remaining levels and aggregate
+        grouped = data.groupby(group_levels, sort=False, observed=True)["value"]
+
+        result = pd.DataFrame(
+            {
+                "mean": grouped.mean(),
+                "lower_ui": grouped.quantile(0.025),
+                "upper_ui": grouped.quantile(0.975),
+                "std": grouped.std(),
+            }
+        )
+
+        return result
 
     def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         raise NotImplementedError
