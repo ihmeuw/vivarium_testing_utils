@@ -155,8 +155,7 @@ class FuzzyComparison(Comparison):
             Whether to sort in ascending order. Default is False.
         aggregate_draws
             If True, aggregate over draws to show means and 95% uncertainty intervals.
-            Changes the output columns to show test_mean, test_lower_ui, test_upper_ui,
-            reference_mean, reference_lower_ui, reference_upper_ui, and standardized_difference.
+            Changes the output columns to show mean, 2.5%, and 97.5 for each dataset.
         Returns:
         --------
         A DataFrame of the comparison data.
