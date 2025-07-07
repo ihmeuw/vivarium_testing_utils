@@ -129,7 +129,7 @@ class ValidationContext:
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
-        aggregate_draws_and_seeds: bool = False,
+        aggregate_draws: bool = False,
     ) -> pd.DataFrame:
         """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
 
@@ -145,15 +145,15 @@ class ValidationContext:
             The column to sort by. Default is "percent_error".
         ascending
             Whether to sort in ascending order. Default is False.
-        aggregate_draws_and_seeds
-            If True, aggregate over draws and seeds to show means and 95% uncertainty intervals.
+        aggregate_draws
+            If True, aggregate over draws to show means and 95% uncertainty intervals.
         Returns:
         --------
         A DataFrame of the comparison data.
         """
         if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
             return self.comparisons[comparison_key].get_diff(
-                stratifications, num_rows, sort_by, ascending, aggregate_draws_and_seeds
+                stratifications, num_rows, sort_by, ascending, aggregate_draws
             )
         else:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
