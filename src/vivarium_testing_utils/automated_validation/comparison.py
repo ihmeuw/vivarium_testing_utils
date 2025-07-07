@@ -46,7 +46,7 @@ class Comparison(ABC):
         pass
 
     @abstractmethod
-    def get_diff(
+    def get_frame(
         self,
         stratifications: Collection[str] = (),
         num_rows: int | Literal["all"] = 10,
@@ -133,7 +133,7 @@ class FuzzyComparison(Comparison):
         reference_info = self._get_metadata_from_datasets("reference")
         return dataframe_utils.format_metadata(measure_key, test_info, reference_info)
 
-    def get_diff(
+    def get_frame(
         self,
         stratifications: Collection[str] = (),
         num_rows: int | Literal["all"] = 10,

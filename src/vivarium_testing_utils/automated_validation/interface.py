@@ -127,7 +127,7 @@ class ValidationContext:
         comparison_key: str,
         stratifications: Collection[str] = (),
         num_rows: int | Literal["all"] = 10,
-        sort_by: str = "percent_error",
+        sort_by: str = "",
         ascending: bool = False,
         aggregate_draws: bool = False,
     ) -> pd.DataFrame:
@@ -142,7 +142,7 @@ class ValidationContext:
         num_rows
             The number of rows to return. If "all", return all rows.
         sort_by
-            The column to sort by. Default is "percent_error".
+            The column to sort by. Default is "percent_error" for non-aggregated data, and no sorting for aggregated data.
         ascending
             Whether to sort in ascending order. Default is False.
         aggregate_draws
@@ -152,7 +152,7 @@ class ValidationContext:
         A DataFrame of the comparison data.
         """
         if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
-            return self.comparisons[comparison_key].get_diff(
+            return self.comparisons[comparison_key].get_frame(
                 stratifications, num_rows, sort_by, ascending, aggregate_draws
             )
         else:
