@@ -52,7 +52,7 @@ class Comparison(ABC):
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "percent_error",
         ascending: bool = False,
-        aggregate_draws_and_seeds: bool = False,
+        aggregate_draws: bool = False,
     ) -> pd.DataFrame:
         """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
 
@@ -66,7 +66,7 @@ class Comparison(ABC):
             The column to sort by. Default is "percent_error".
         ascending
             Whether to sort in ascending order. Default is False.
-        aggregate_draws_and_seeds
+        aggregate_draws
             If True, aggregate over draws and seeds to show means and 95% uncertainty intervals.
         Returns:
         --------
