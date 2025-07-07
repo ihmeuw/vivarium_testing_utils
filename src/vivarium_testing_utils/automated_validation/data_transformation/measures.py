@@ -29,8 +29,21 @@ class Measure(ABC):
     """A Measure contains key information and methods to take raw data from a DataSource
     and process it into an epidemiological measure suitable for use in a Comparison."""
 
-    measure_key: str
-    artifact_key: str
+    def __init__(self, entity_type: str, entity: str, measure: str) -> None:
+        self.entity_type = entity_type
+        self.entity = entity
+        self.measure = measure
+
+    @property
+    def measure_key(self) -> str:
+        """Return the key for this measure."""
+        parts = [self.entity_type, self.entity, self.measure]
+        return ".".join([part for part in parts if part])
+
+    @property
+    def artifact_key(self) -> str:
+        parts = [self.entity_type, self.entity, self.measure]
+        return ".".join([part for part in parts if part])
 
     @property
     def title(self) -> str:
@@ -85,10 +98,17 @@ class Measure(ABC):
 class RatioMeasure(Measure, ABC):
     """A Measure that calculates ratio data from simulation data."""
 
-    measure_key: str
-    artifact_key: str
-    numerator: SimDataFormatter
-    denominator: SimDataFormatter
+    def __init__(
+        self,
+        entity_type: str,
+        entity: str,
+        measure: str,
+        numerator: SimDataFormatter,
+        denominator: SimDataFormatter,
+    ) -> None:
+        super().__init__(entity_type, entity, measure)
+        self.numerator = numerator
+        self.denominator = denominator
 
     @property
     def sim_datasets(self) -> dict[str, str]:
@@ -143,9 +163,13 @@ class Incidence(RatioMeasure):
     """Computes Susceptible Population Incidence Rate."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_key = self.artifact_key = f"cause.{cause}.incidence_rate"
-        self.numerator = TransitionCounts(cause, f"susceptible_to_{cause}", cause)
-        self.denominator = StatePersonTime(cause, f"susceptible_to_{cause}")
+        super().__init__(
+            entity_type="cause",
+            entity=cause,
+            measure="incidence_rate",
+            numerator=TransitionCounts(cause, f"susceptible_to_{cause}", cause),
+            denominator=StatePersonTime(cause, f"susceptible_to_{cause}"),
+        )
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
@@ -156,9 +180,13 @@ class Prevalence(RatioMeasure):
     """Computes Prevalence of cause in the population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_key = self.artifact_key = f"cause.{cause}.prevalence"
-        self.numerator = StatePersonTime(cause, cause)
-        self.denominator = StatePersonTime(cause)
+        super().__init__(
+            entity_type="cause",
+            entity=cause,
+            measure="prevalence",
+            numerator=StatePersonTime(cause, cause),
+            denominator=StatePersonTime(cause),
+        )
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
@@ -169,9 +197,13 @@ class SIRemission(RatioMeasure):
     """Computes (SI) remission rate among infected population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_key = self.artifact_key = f"cause.{cause}.remission_rate"
-        self.numerator = TransitionCounts(cause, cause, f"susceptible_to_{cause}")
-        self.denominator = StatePersonTime(cause, cause)
+        super().__init__(
+            entity_type="cause",
+            entity=cause,
+            measure="remission_rate",
+            numerator=TransitionCounts(cause, cause, f"susceptible_to_{cause}"),
+            denominator=StatePersonTime(cause, cause),
+        )
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
@@ -182,9 +214,13 @@ class CauseSpecificMortalityRate(RatioMeasure):
     """Computes cause-specific mortality rate in the population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_key = self.artifact_key = f"cause.{cause}.cause_specific_mortality_rate"
-        self.numerator = Deaths(cause)  # Deaths due to specific cause
-        self.denominator = StatePersonTime()  # Total person time
+        super().__init__(
+            entity_type="cause",
+            entity=cause,
+            measure="cause_specific_mortality_rate",
+            numerator=Deaths(cause),  # Deaths due to specific cause
+            denominator=StatePersonTime(),  # Total person time
+        )
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
@@ -195,11 +231,15 @@ class ExcessMortalityRate(RatioMeasure):
     """Computes excess mortality rate among those with the disease compared to the general population."""
 
     def __init__(self, cause: str) -> None:
-        self.measure_key = self.artifact_key = f"cause.{cause}.excess_mortality_rate"
-        self.numerator = Deaths(cause)  # Deaths due to specific cause
-        self.denominator = StatePersonTime(
-            cause, cause
-        )  # Person time among those with the disease
+        super().__init__(
+            entity_type="cause",
+            entity=cause,
+            measure="excess_mortality_rate",
+            numerator=Deaths(cause),  # Deaths due to specific cause
+            denominator=StatePersonTime(
+                cause, cause
+            ),  # Person time among those with the disease
+        )
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
@@ -222,9 +262,13 @@ class PopulationStructure(RatioMeasure):
         scenario_columns
             Column names for scenario stratification. Defaults to an empty list.
         """
-        self.measure_key = self.artifact_key = "population.structure"
-        self.numerator = StatePersonTime()
-        self.denominator = TotalPopulationPersonTime(scenario_columns)
+        super().__init__(
+            entity_type="",
+            entity="population",
+            measure="structure",
+            numerator=StatePersonTime(),
+            denominator=TotalPopulationPersonTime(scenario_columns),
+        )
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
@@ -257,12 +301,13 @@ class RiskExposure(RatioMeasure):
     """
 
     def __init__(self, risk_factor: str) -> None:
-        self.measure_key = self.artifact_key = f"risk_factor.{risk_factor}.exposure"
-        self.risk_factor = risk_factor
-
-        # Create custom formatters for risk exposure
-        self.numerator = RiskStatePersonTime(risk_factor)
-        self.denominator = RiskStatePersonTime(risk_factor, sum_all=True)
+        super().__init__(
+            entity_type="risk_factor",
+            entity=risk_factor,
+            measure="exposure",
+            numerator=RiskStatePersonTime(risk_factor),
+            denominator=RiskStatePersonTime(risk_factor, sum_all=True),
+        )
 
     @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
@@ -280,11 +325,6 @@ class CategoricalRelativeRisk(RatioMeasure):
         risk_stratification_column: str | None,
         risk_category_mapping: dict[str, str] | None,
     ) -> None:
-        self.risk_factor = risk_factor
-        self.measure_key = (
-            f"risk_factor.{risk_factor}.relative_risk.{affected_entity}.{affected_measure}"
-        )
-        self.artifact_key = f"risk_factor.{risk_factor}.relative_risk"
         self.affected_entity = affected_entity
         self.affected_measure_name = affected_measure
         affected_measure_instance = MEASURE_KEY_MAPPINGS["cause"][affected_measure](
@@ -296,18 +336,36 @@ class CategoricalRelativeRisk(RatioMeasure):
                 f"Expected affected_measure to be a RatioMeasure, got {type(affected_measure_instance)}"
             )
         self.affected_measure = affected_measure_instance
-        self.numerator = self.affected_measure.numerator
-        self.denominator = self.affected_measure.denominator
         self.risk_stratification_column = (
             risk_stratification_column if risk_stratification_column else risk_factor
         )
         self.risk_category_mapping = risk_category_mapping
+        super().__init__(
+            entity_type="risk_factor",
+            entity=risk_factor,
+            measure="relative_risk",
+            numerator=self.affected_measure.numerator,
+            denominator=self.affected_measure.denominator,
+        )
+
+    @property
+    def measure_key(self) -> str:
+        """Return the measure key for this measure."""
+        return ".".join(
+            [
+                self.entity_type,
+                self.entity,
+                self.measure,
+                self.affected_entity,
+                self.affected_measure_name,
+            ]
+        )
 
     @property
     def title(self) -> str:
         """Return a human-readable title for the measure."""
         format_str: Callable[[str], str] = lambda x: x.replace("_", " ").title()
-        return f"Effect of {format_str(self.risk_factor)} on {format_str(self.affected_entity)} {format_str(self.affected_measure_name)}"
+        return f"Effect of {format_str(self.entity)} on {format_str(self.affected_entity)} {format_str(self.affected_measure_name)}"
 
     @property
     def artifact_datasets(self) -> dict[str, str]:
@@ -315,7 +373,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         return {
             "relative_risks": self.artifact_key,
             "affected_measure_data": self.affected_measure.measure_key,
-            "categories": f"risk_factor.{self.risk_factor}.categories",
+            "categories": f"risk_factor.{self.entity}.categories",
         }
 
     @check_io(

@@ -461,6 +461,7 @@ def test_categorical_relative_risk(
         measure.measure_key
         == f"risk_factor.{risk_factor}.relative_risk.{affected_entity}.excess_mortality_rate"
     )
+    assert measure.entity == risk_factor
     assert measure.title == "Effect of Risky Risk on Disease Excess Mortality Rate"
     assert measure.affected_entity == affected_entity
     assert measure.affected_measure_name == "excess_mortality_rate"
