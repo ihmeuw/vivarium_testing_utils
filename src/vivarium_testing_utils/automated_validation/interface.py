@@ -12,6 +12,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     resolve_age_groups,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    CategoricalRelativeRisk,
     Measure,
     RatioMeasure,
     get_measure_from_key,
@@ -56,7 +57,75 @@ class ValidationContext:
         stratifications: list[str] = [],
     ) -> None:
         """Add a comparison to the context given a measure key and data sources."""
+        if measure_key.endswith(".relative_risk"):
+            raise ValueError(
+                f"For relative risk measures, use 'add_relative_risk_comparison' instead. "
+                f"Got measure_key='{measure_key}'"
+            )
+
         measure = get_measure_from_key(measure_key, list(self.scenario_columns))
+        self._add_comparison_with_measure(
+            measure, test_source, ref_source, test_scenarios, ref_scenarios, stratifications
+        )
+
+    def add_relative_risk_comparison(
+        self,
+        risk_factor: str,
+        affected_entity: str,
+        affected_measure: str,
+        test_source: str,
+        ref_source: str,
+        test_scenarios: dict[str, str] = {},
+        ref_scenarios: dict[str, str] = {},
+        stratifications: list[str] = [],
+        risk_stratification_column: str | None = None,
+        risk_state_mapping: dict[str, str] | None = None,
+    ) -> None:
+        """Add a relative risk comparison to the context.
+
+        Parameters
+        ----------
+        risk_factor
+            The risk factor name (e.g., 'child_stunting')
+        affected_entity
+            The entity affected by the risk factor (e.g., 'cause.diarrheal_diseases')
+        affected_measure
+            The measure to calculate (e.g., 'excess_mortality_rate', 'incidence_rate')
+        risk_stratification_column
+            The column to use for stratifying the risk factor in simulation data (e.g., 'risk_factor')
+        test_source
+            Source for test data ('sim', 'artifact', or 'custom')
+        ref_source
+            Source for reference data ('sim', 'artifact', or 'custom')
+        test_scenarios
+            Dictionary of scenario filters for test data
+        ref_scenarios
+            Dictionary of scenario filters for reference data
+        stratifications
+            List of stratification columns
+        """
+
+        measure = CategoricalRelativeRisk(
+            risk_factor,
+            affected_entity,
+            affected_measure,
+            risk_stratification_column,
+            risk_state_mapping,
+        )
+        self._add_comparison_with_measure(
+            measure, test_source, ref_source, test_scenarios, ref_scenarios, stratifications
+        )
+
+    def _add_comparison_with_measure(
+        self,
+        measure: Measure,
+        test_source: str,
+        ref_source: str,
+        test_scenarios: dict[str, str] = {},
+        ref_scenarios: dict[str, str] = {},
+        stratifications: list[str] = [],
+    ) -> None:
+        """Internal method to add a comparison with a pre-constructed measure."""
 
         test_source_enum = DataSource.from_str(test_source)
         ref_source_enum = DataSource.from_str(ref_source)
@@ -69,7 +138,7 @@ class ValidationContext:
         # Check if the measure is a RatioMeasure for FuzzyComparison
         if not isinstance(measure, RatioMeasure):
             raise NotImplementedError(
-                f"Measure {measure_key} is not a RatioMeasure. Only RatioMeasures are currently supported for comparisons."
+                f"Measure {measure.measure_key} is not a RatioMeasure. Only RatioMeasures are currently supported for comparisons."
             )
 
         for source, scenarios in (
@@ -85,20 +154,17 @@ class ValidationContext:
                 )
 
         test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
-        test_raw_datasets = {
-            dataset_name: resolve_age_groups(dataset, self.age_groups)
-            for dataset_name, dataset in test_raw_datasets.items()
-        }
         test_datasets = measure.get_ratio_datasets_from_sim(
             **test_raw_datasets,
         )
+        test_datasets = {
+            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            for dataset_name, dataset in test_datasets.items()
+        }
 
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
-        ref_raw_datasets = {
-            dataset_name: resolve_age_groups(dataset, self.age_groups)
-            for dataset_name, dataset in ref_raw_datasets.items()
-        }
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
+        ref_data = resolve_age_groups(ref_data, self.age_groups)
 
         comparison = FuzzyComparison(
             measure=measure,
@@ -110,7 +176,7 @@ class ValidationContext:
             reference_scenarios=ref_scenarios,
             stratifications=stratifications,
         )
-        self.comparisons[measure_key] = comparison
+        self.comparisons[measure.measure_key] = comparison
 
     def verify(self, comparison_key: str, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         self.comparisons[comparison_key].verify(stratifications)
