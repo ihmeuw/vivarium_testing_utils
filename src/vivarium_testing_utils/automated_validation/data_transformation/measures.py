@@ -372,7 +372,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         """Return a dictionary of required datasets for this measure."""
         return {
             "relative_risks": self.artifact_key,
-            "affected_measure_data": self.affected_measure.measure_key,
+            "affected_measure_data": self.affected_measure.artifact_key,
             "categories": f"risk_factor.{self.entity}.categories",
         }
 
