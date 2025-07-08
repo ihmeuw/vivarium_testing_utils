@@ -336,9 +336,7 @@ class CategoricalRelativeRisk(RatioMeasure):
                 f"Expected affected_measure to be a RatioMeasure, got {type(affected_measure_instance)}"
             )
         self.affected_measure = affected_measure_instance
-        self.risk_stratification_column = (
-            risk_stratification_column if risk_stratification_column else risk_factor
-        )
+        self.risk_stratification_column = risk_stratification_column or risk_factor
         self.risk_category_mapping = risk_category_mapping
         super().__init__(
             entity_type="risk_factor",
