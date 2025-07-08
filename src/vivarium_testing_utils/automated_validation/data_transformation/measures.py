@@ -37,8 +37,7 @@ class Measure(ABC):
     @property
     def measure_key(self) -> str:
         """Return the key for this measure."""
-        parts = [self.entity_type, self.entity, self.measure]
-        return ".".join([part for part in parts if part])
+        return self.artifact_key
 
     @property
     def artifact_key(self) -> str:
@@ -336,9 +335,7 @@ class CategoricalRelativeRisk(RatioMeasure):
                 f"Expected affected_measure to be a RatioMeasure, got {type(affected_measure_instance)}"
             )
         self.affected_measure = affected_measure_instance
-        self.risk_stratification_column = (
-            risk_stratification_column if risk_stratification_column else risk_factor
-        )
+        self.risk_stratification_column = risk_stratification_column or risk_factor
         self.risk_category_mapping = risk_category_mapping
         super().__init__(
             entity_type="risk_factor",
