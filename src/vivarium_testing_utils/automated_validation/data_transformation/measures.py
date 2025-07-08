@@ -174,7 +174,7 @@ class Incidence(RatioMeasure):
             denominator=StatePersonTime(cause, f"susceptible_to_{cause}"),
         )
 
-    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
@@ -191,7 +191,7 @@ class Prevalence(RatioMeasure):
             denominator=StatePersonTime(cause),
         )
 
-    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
@@ -208,7 +208,7 @@ class SIRemission(RatioMeasure):
             denominator=StatePersonTime(cause, cause),
         )
 
-    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
@@ -225,7 +225,7 @@ class CauseSpecificMortalityRate(RatioMeasure):
             denominator=StatePersonTime(),  # Total person time
         )
 
-    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
@@ -244,7 +244,7 @@ class ExcessMortalityRate(RatioMeasure):
             ),  # Person time among those with the disease
         )
 
-    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
@@ -312,7 +312,7 @@ class RiskExposure(RatioMeasure):
             denominator=RiskStatePersonTime(risk_factor, sum_all=True),
         )
 
-    @check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
+    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
@@ -377,7 +377,7 @@ class CategoricalRelativeRisk(RatioMeasure):
             "categories": f"risk_factor.{self.entity}.categories",
         }
 
-    @check_io(
+    @utils.check_io(
         relative_risks=SingleNumericColumn,
         affected_measure_data=SingleNumericColumn,
         out=SingleNumericColumn,
@@ -389,7 +389,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         categories: dict[str, str],
     ) -> pd.DataFrame:
         """Multiply relative risks by affected data to get final measure data."""
-        relative_risks = filter_data(
+        relative_risks = calculations.filter_data(
             relative_risks,
             filter_cols={
                 "affected_entity": self.affected_entity,
@@ -408,7 +408,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         ).rename_axis(index={"parameter": self.risk_stratification_column})
         return risk_stratified_measure_data
 
-    @check_io(
+    @utils.check_io(
         numerator_data=SimOutputData,
         denominator_data=SimOutputData,
     )
