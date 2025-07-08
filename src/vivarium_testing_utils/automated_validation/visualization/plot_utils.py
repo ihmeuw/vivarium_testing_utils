@@ -9,9 +9,7 @@ from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    filter_data,
-)
+from vivarium_testing_utils.automated_validation.data_transformation import calculations
 
 
 def plot_comparison(
@@ -51,7 +49,7 @@ def plot_comparison(
         title = _append_condition_to_title(modifiers, title)
 
     combined_data = _get_combined_data(comparison)
-    combined_data = filter_data(combined_data, filter_cols=condition)
+    combined_data = calculations.filter_data(combined_data, filter_cols=condition)
 
     default_kwargs = {
         "title": title,
@@ -266,8 +264,10 @@ def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
     test_data, reference_data = comparison._align_datasets()
 
     # Drop the scenario columns, which should already be filtered.
-    test_data = filter_data(test_data, filter_cols=comparison.test_scenarios)
-    reference_data = filter_data(reference_data, filter_cols=comparison.reference_scenarios)
+    test_data = calculations.filter_data(test_data, filter_cols=comparison.test_scenarios)
+    reference_data = calculations.filter_data(
+        reference_data, filter_cols=comparison.reference_scenarios
+    )
 
     # Add input draw with placeholder if necessary
     if DRAW_INDEX in test_data.index.names and DRAW_INDEX not in reference_data.index.names:
