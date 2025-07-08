@@ -37,8 +37,7 @@ class Measure(ABC):
     @property
     def measure_key(self) -> str:
         """Return the key for this measure."""
-        parts = [self.entity_type, self.entity, self.measure]
-        return ".".join([part for part in parts if part])
+        return self.artifact_key
 
     @property
     def artifact_key(self) -> str:
