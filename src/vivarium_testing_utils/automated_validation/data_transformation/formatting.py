@@ -1,11 +1,7 @@
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    filter_data,
-    marginalize,
-    stratify,
-)
+from vivarium_testing_utils.automated_validation.data_transformation import calculations
 
 
 class SimDataFormatter:
@@ -29,11 +25,11 @@ class SimDataFormatter:
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
         """Clean up unused columns, and filter for the state."""
-        dataset = marginalize(dataset, self.unused_columns)
+        dataset = calculations.marginalize(dataset, self.unused_columns)
         if self.filter_value == "total":
-            dataset = marginalize(dataset, [*self.filters])
+            dataset = calculations.marginalize(dataset, [*self.filters])
         else:
-            dataset = filter_data(dataset, self.filters)
+            dataset = calculations.filter_data(dataset, self.filters)
         return dataset
 
 
@@ -82,7 +78,7 @@ class TotalPopulationPersonTime(StatePersonTime):
         levels_to_stratify = [
             level for level in between_scenario_levels if level in dataset.index.names
         ]
-        return stratify(
+        return calculations.stratify(
             data=dataset,
             stratification_cols=levels_to_stratify,
         )
@@ -124,7 +120,7 @@ class RiskStatePersonTime(SimDataFormatter):
         self.unused_columns = ["measure", "entity_type", "entity"]
 
     def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        dataset = marginalize(dataset, self.unused_columns)
+        dataset = calculations.marginalize(dataset, self.unused_columns)
         if self.sum_all:
             # Get the levels to group by (all except 'sub_entity')
             group_levels = [

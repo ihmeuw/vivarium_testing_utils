@@ -1,36 +1,20 @@
 from __future__ import annotations
 
-from enum import Enum
 from pathlib import Path
 
 import pandas as pd
 import yaml
 from vivarium import Artifact
 
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    clean_artifact_data,
-    marginalize,
+from vivarium_testing_utils.automated_validation.constants import DataSource
+from vivarium_testing_utils.automated_validation.data_transformation import (
+    calculations,
+    utils,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
     SingleNumericColumn,
 )
-from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
-
-
-class DataSource(Enum):
-    SIM = "sim"
-    GBD = "gbd"
-    ARTIFACT = "artifact"
-    CUSTOM = "custom"
-
-    @classmethod
-    def from_str(cls, source: str) -> DataSource:
-        try:
-            return cls(source)
-        except ValueError:
-            raise ValueError(f"Source {source} not recognized. Must be one of {DataSource}")
-
 
 NONSTANDARD_ARTIFACT_KEYS = {"population.age_bins"}
 
@@ -129,7 +113,7 @@ class DataLoader:
             raise ValueError(f"Dataset {dataset_key} already exists in the cache.")
         self._raw_datasets[source].update({dataset_key: data.copy()})
 
-    @check_io(out=SimOutputData)
+    @utils.check_io(out=SimOutputData)
     def _load_from_sim(self, dataset_key: str) -> pd.DataFrame:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
         sim_data = pd.read_parquet(self._results_dir / f"{dataset_key}.parquet")
@@ -168,12 +152,12 @@ class DataLoader:
         self._artifact.clear_cache()
         return data
 
-    @check_io(out=SingleNumericColumn)
+    @utils.check_io(out=SingleNumericColumn)
     def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
         """Load data directly from artifact, assuming correctly formatted data."""
         data: pd.DataFrame = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
-        return clean_artifact_data(dataset_key, data)
+        return calculations.clean_artifact_data(dataset_key, data)
 
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
@@ -186,7 +170,7 @@ class DataLoader:
 
 def _convert_to_total_person_time(data: pd.DataFrame) -> pd.DataFrame:
     old_index_names = data.index.names
-    data = marginalize(data, ["entity_type", "entity", "sub_entity"])
+    data = calculations.marginalize(data, ["entity_type", "entity", "sub_entity"])
     data["entity_type"] = "none"
     data["entity"] = "total"
     data["sub_entity"] = "total"
