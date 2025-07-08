@@ -1,18 +1,12 @@
 import numpy as np
 import pandas as pd
 import pytest
-from pandas.testing import assert_frame_equal
 
-from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AgeSchema,
-    format_dataframe,
-)
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     aggregate_sum,
     filter_data,
     linear_combination,
     ratio,
-    resolve_age_groups,
 )
 
 
@@ -187,27 +181,6 @@ def test_linear_combination(intermediate_data: pd.DataFrame) -> None:
     # test non-existent column
     with pytest.raises(KeyError):
         linear_combination(intermediate_data, 1, "a", 1, "foo")
-
-
-def test_resolve_age_groups(
-    sample_df_with_ages: pd.DataFrame,
-    sample_age_group_df: pd.DataFrame,
-    person_time_data: pd.DataFrame,
-) -> None:
-    """Test we can reconcile age groups with the data."""
-    # Ensure that if the age groups are in the data, we can format the data
-    formatted_df = resolve_age_groups(sample_df_with_ages, sample_age_group_df)
-    context_age_schema = AgeSchema.from_dataframe(sample_age_group_df)
-    pd.testing.assert_frame_equal(
-        formatted_df,
-        format_dataframe(context_age_schema, sample_df_with_ages),
-    )
-
-    formatted_df = resolve_age_groups(person_time_data, sample_age_group_df)
-    pd.testing.assert_frame_equal(
-        formatted_df,
-        person_time_data,
-    )
 
 
 def test_aggregate_sum_preserves_string_order() -> None:

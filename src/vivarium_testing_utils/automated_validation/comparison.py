@@ -5,19 +5,12 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    filter_data,
-    get_singular_indices,
-    marginalize,
-)
+from vivarium_testing_utils.automated_validation.data_transformation import calculations
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
     RatioMeasure,
 )
-from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
-    format_draws_sample,
-    format_metadata,
-)
+from vivarium_testing_utils.automated_validation.visualization import dataframe_utils
 
 
 class Comparison(ABC):
@@ -100,14 +93,14 @@ class FuzzyComparison(Comparison):
         self.test_source = test_source
         self.test_scenarios: dict[str, str] = test_scenarios if test_scenarios else {}
         self.test_datasets = {
-            key: filter_data(dataset, self.test_scenarios, drop_singles=False)
+            key: calculations.filter_data(dataset, self.test_scenarios, drop_singles=False)
             for key, dataset in test_datasets.items()
         }
         self.reference_source = reference_source
         self.reference_scenarios: dict[str, str] = (
             reference_scenarios if reference_scenarios else {}
         )
-        self.reference_data = filter_data(
+        self.reference_data = calculations.filter_data(
             reference_data, self.reference_scenarios, drop_singles=False
         )
 
@@ -131,7 +124,7 @@ class FuzzyComparison(Comparison):
         measure_key = self.measure.measure_key
         test_info = self._get_metadata_from_datasets("test")
         reference_info = self._get_metadata_from_datasets("reference")
-        return format_metadata(measure_key, test_info, reference_info)
+        return dataframe_utils.format_metadata(measure_key, test_info, reference_info)
 
     def get_diff(
         self,
@@ -232,7 +225,7 @@ class FuzzyComparison(Comparison):
             num_draws = dataframe.index.get_level_values(DRAW_INDEX).nunique()
             data_info["num_draws"] = f"{num_draws:,}"
             draw_values = list(dataframe.index.get_level_values(DRAW_INDEX).unique())
-            data_info[DRAW_INDEX + "s"] = format_draws_sample(draw_values)
+            data_info[DRAW_INDEX + "s"] = dataframe_utils.format_draws_sample(draw_values)
 
         # Seeds information
         if SEED_INDEX in dataframe.index.names:
@@ -266,13 +259,17 @@ class FuzzyComparison(Comparison):
         # If the test data has any index levels that are not in the reference data, marginalize
         # over those index levels.
         test_datasets = {
-            key: marginalize(self.test_datasets[key], test_indexes_to_marginalize)
+            key: calculations.marginalize(
+                self.test_datasets[key], test_indexes_to_marginalize
+            )
             for key in self.test_datasets
         }
 
         # Drop any singular index levels from the reference data if they are not in the test data.
         # If any ref-only index level is not singular, raise an error.
-        redundant_ref_indexes = set(get_singular_indices(self.reference_data).keys())
+        redundant_ref_indexes = set(
+            calculations.get_singular_indices(self.reference_data).keys()
+        )
         if not reference_indexes_to_drop.issubset(redundant_ref_indexes):
             # TODO: MIC-6075
             diff = reference_indexes_to_drop - redundant_ref_indexes
