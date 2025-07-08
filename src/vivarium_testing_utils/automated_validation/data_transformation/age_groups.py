@@ -538,10 +538,10 @@ def _get_transform_matrix(source_schema: AgeSchema, target_schema: AgeSchema) ->
 
 
 def format_dataframe_from_age_bin_df(
-    data: pd.DataFrame, age_groups: pd.DataFrame
+    data: pd.DataFrame, age_bin_df: pd.DataFrame
 ) -> pd.DataFrame:
     """Try to merge the age groups with the data. If it fails, just return the data."""
-    context_age_schema = AgeSchema.from_dataframe(age_groups)
+    context_age_schema = AgeSchema.from_dataframe(age_bin_df)
     try:
         return _format_dataframe(context_age_schema, data)
     except ValueError:

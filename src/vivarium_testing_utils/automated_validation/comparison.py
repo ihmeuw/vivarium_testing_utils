@@ -4,10 +4,7 @@ from typing import Any, Collection, Literal
 import numpy as np
 import pandas as pd
 
-from vivarium_testing_utils.automated_validation.constants import (
-    DRAW_INDEX,
-    SEED_INDEX,
-)
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import calculations
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (

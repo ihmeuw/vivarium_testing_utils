@@ -54,7 +54,7 @@ if __name__ == "__main__":
         "loguru",
         "seaborn",
         # Type stubs
-        "pandas-stubs",
+        "pandas-stubs<=2.2.3.250308",
         "networkx-stubs",
         "scipy-stubs",
         "types-docutils",
