@@ -116,7 +116,9 @@ class DataLoader:
 
     def _load_from_source(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
         """Load the data from the given source via the loader mapping."""
-        if source == DataSource.ARTIFACT and dataset_key in NONSTANDARD_ARTIFACT_KEYS:
+        if source == DataSource.ARTIFACT and (
+            dataset_key in NONSTANDARD_ARTIFACT_KEYS or dataset_key.endswith(".categories")
+        ):
             # Load nonstandard artifact keys from the artifact
             return self._load_nonstandard_artifact(dataset_key)
         return self._loader_mapping[source](dataset_key)
