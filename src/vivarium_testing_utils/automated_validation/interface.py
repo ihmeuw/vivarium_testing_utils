@@ -161,7 +161,7 @@ class ValidationContext:
             dataset_name: age_groups.format_dataframe_from_age_bin_df(
                 dataset, self.age_groups
             )
-            for dataset_name, dataset in test_raw_datasets.items()
+            for dataset_name, dataset in test_datasets.items()
         }
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
