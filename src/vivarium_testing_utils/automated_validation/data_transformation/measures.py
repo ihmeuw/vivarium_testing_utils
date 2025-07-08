@@ -124,10 +124,6 @@ class RatioMeasure(Measure, ABC):
             "artifact_data": self.artifact_key,
         }
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
-
     @utils.check_io(
         numerator_data=SingleNumericColumn,
         denominator_data=SingleNumericColumn,
