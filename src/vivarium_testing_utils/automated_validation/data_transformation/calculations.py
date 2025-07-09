@@ -112,21 +112,8 @@ def linear_combination(
     return series_to_dataframe((data[col_a] * coeff_a) + (data[col_b] * coeff_b))
 
 
-@check_io(out=SingleNumericColumn)
-def clean_artifact_data(
-    dataset_key: str,
-    data: pd.DataFrame,
-) -> pd.DataFrame:
-    """Clean the artifact data by dropping unnecessary columns and renaming the value column."""
-    if data.columns.str.startswith(DRAW_PREFIX).all():
-        data = _clean_artifact_draws(data)
-    elif "value" not in data.columns:
-        raise ValueError(f"Artifact {dataset_key} must have draw columns or a value column.")
-    return data
-
-
 @check_io(data=DrawData, out=SingleNumericColumn)
-def _clean_artifact_draws(
+def clean_artifact_draws(
     data: pd.DataFrame,
 ) -> pd.DataFrame:
     """Clean the artifact data by dropping unnecessary columns and renaming the value column."""

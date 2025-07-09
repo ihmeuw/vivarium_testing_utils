@@ -35,7 +35,7 @@ class ValidationContext:
         """Get a list of the artifact keys available to compare against."""
         return self._data_loader.get_artifact_keys()
 
-    def get_raw_dataset(self, dataset_key: str, source: str) -> pd.DataFrame:
+    def get_raw_dataset(self, dataset_key: str, source: str) -> Any:
         """Return a copy of the dataset for manual inspection."""
         return self._data_loader.get_dataset(dataset_key, DataSource.from_str(source))
 
@@ -243,7 +243,7 @@ class ValidationContext:
         from vivarium.framework.artifact.artifact import ArtifactException
 
         try:
-            age_groups = self._data_loader.get_dataset(
+            age_groups: pd.DataFrame = self._data_loader.get_dataset(
                 "population.age_bins", DataSource.ARTIFACT
             )
         # If we can't find the age groups in the artifact, get them directly from vivarium inputs
