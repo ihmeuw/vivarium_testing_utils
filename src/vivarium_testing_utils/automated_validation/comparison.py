@@ -184,8 +184,6 @@ class FuzzyComparison(Comparison):
                 (merged_data["test_rate"] - merged_data["reference_rate"])
                 / merged_data["reference_rate"]
             ) * 100
-            if not sort_by:
-                sort_by = "percent_error"
 
         if sort_by:
             sort_key = abs if sort_by == "percent_error" else None

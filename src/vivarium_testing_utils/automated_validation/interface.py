@@ -214,6 +214,9 @@ class ValidationContext:
         --------
         A DataFrame of the comparison data.
         """
+        if not aggregate_draws and not sort_by:
+            sort_by = "percent_error"
+
         if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
             return self.comparisons[comparison_key].get_frame(
                 stratifications, num_rows, sort_by, ascending, aggregate_draws
