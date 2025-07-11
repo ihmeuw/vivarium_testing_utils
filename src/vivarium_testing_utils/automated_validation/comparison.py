@@ -47,7 +47,7 @@ class Comparison(ABC):
         self,
         stratifications: Collection[str] = (),
         num_rows: int | Literal["all"] = 10,
-        sort_by: str = "percent_error",
+        sort_by: str = "",
         ascending: bool = False,
         aggregate_draws: bool = False,
     ) -> pd.DataFrame:
