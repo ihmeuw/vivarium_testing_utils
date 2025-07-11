@@ -10,6 +10,7 @@ from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import (
     _convert_to_total_person_time,
 )
+from vivarium_testing_utils.automated_validation.data_transformation import utils
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AGE_END_COLUMN,
     AGE_GROUP_COLUMN,
@@ -21,10 +22,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     DrawData,
     SingleNumericColumn,
 )
-from vivarium_testing_utils.automated_validation.data_transformation.utils import check_io
 
 
-@check_io(out=SingleNumericColumn)
+@utils.check_io(out=SingleNumericColumn)
 def _create_transition_count_data() -> pd.DataFrame:
     """Create transition count data for testing."""
     return pd.DataFrame(
@@ -54,7 +54,7 @@ def _create_transition_count_data() -> pd.DataFrame:
     )
 
 
-@check_io(out=SingleNumericColumn)
+@utils.check_io(out=SingleNumericColumn)
 def _create_person_time_data() -> pd.DataFrame:
     """Create person time data for testing."""
     return pd.DataFrame(
@@ -84,7 +84,7 @@ def _create_person_time_data() -> pd.DataFrame:
     )
 
 
-@check_io(out=SingleNumericColumn)
+@utils.check_io(out=SingleNumericColumn)
 def _create_deaths_data() -> pd.DataFrame:
     """Create deaths data for testing."""
     return pd.DataFrame(
@@ -110,7 +110,7 @@ def _create_deaths_data() -> pd.DataFrame:
     )
 
 
-@check_io(out=DrawData)
+@utils.check_io(out=DrawData)
 def _create_raw_artifact_disease_incidence() -> pd.DataFrame:
     """Create raw artifact disease incidence data for testing."""
     return pd.DataFrame(
@@ -145,7 +145,7 @@ def _create_sample_age_group_df() -> pd.DataFrame:
     ).set_index([AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN])
 
 
-@check_io(out=SingleNumericColumn)
+@utils.check_io(out=SingleNumericColumn)
 def _create_risk_state_person_time_data() -> pd.DataFrame:
     """Create risk state person time data for testing."""
     return pd.DataFrame(
@@ -172,7 +172,7 @@ def _create_risk_state_person_time_data() -> pd.DataFrame:
     )
 
 
-@check_io(out=DrawData)
+@utils.check_io(out=DrawData)
 def _create_raw_artifact_risk_exposure() -> pd.DataFrame:
     """Create raw artifact risk exposure data for testing."""
     return pd.DataFrame(
@@ -291,7 +291,7 @@ def raw_artifact_disease_incidence() -> pd.DataFrame:
 
 
 @pytest.fixture
-@check_io(out=SingleNumericColumn)
+@utils.check_io(out=SingleNumericColumn)
 def artifact_disease_incidence() -> pd.DataFrame:
     """Processed artifact disease incidence data."""
     return pd.DataFrame(
@@ -348,7 +348,13 @@ def sample_df_with_ages() -> pd.DataFrame:
                 ("cause", "disease", "5_to_10", 5.0, 10.0),
                 ("cause", "disease", "10_to_15", 10.0, 15.0),
             ],
-            names=["cause", "disease", AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN],
+            names=[
+                "cause",
+                "disease",
+                AGE_GROUP_COLUMN,
+                AGE_START_COLUMN,
+                AGE_END_COLUMN,
+            ],
         ),
     )
 
@@ -366,7 +372,7 @@ def raw_artifact_risk_exposure() -> pd.DataFrame:
 
 
 @pytest.fixture
-@check_io(out=SingleNumericColumn)
+@utils.check_io(out=SingleNumericColumn)
 def artifact_risk_exposure() -> pd.DataFrame:
     """Processed artifact risk exposure data."""
     return pd.DataFrame(

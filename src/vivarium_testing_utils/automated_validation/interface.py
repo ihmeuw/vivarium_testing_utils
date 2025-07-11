@@ -8,14 +8,14 @@ from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
-from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
-    resolve_age_groups,
+from vivarium_testing_utils.automated_validation.data_transformation import (
+    age_groups,
+    measures,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CategoricalRelativeRisk,
     Measure,
     RatioMeasure,
-    get_measure_from_key,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
@@ -63,7 +63,7 @@ class ValidationContext:
                 f"Got measure_key='{measure_key}'"
             )
 
-        measure = get_measure_from_key(measure_key, list(self.scenario_columns))
+        measure = measures.get_measure_from_key(measure_key, list(self.scenario_columns))
         self._add_comparison_with_measure(
             measure, test_source, ref_source, test_scenarios, ref_scenarios, stratifications
         )
@@ -158,13 +158,14 @@ class ValidationContext:
             **test_raw_datasets,
         )
         test_datasets = {
-            dataset_name: resolve_age_groups(dataset, self.age_groups)
+            dataset_name: age_groups.format_dataframe_from_age_bin_df(
+                dataset, self.age_groups
+            )
             for dataset_name, dataset in test_datasets.items()
         }
-
         ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
-        ref_data = resolve_age_groups(ref_data, self.age_groups)
+        ref_data = age_groups.format_dataframe_from_age_bin_df(ref_data, self.age_groups)
 
         comparison = FuzzyComparison(
             measure=measure,

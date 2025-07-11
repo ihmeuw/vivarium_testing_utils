@@ -12,8 +12,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     AgeRange,
     AgeSchema,
     AgeTuple,
+    _format_dataframe,
     _get_transform_matrix,
-    format_dataframe,
+    format_dataframe_from_age_bin_df,
     rebin_count_dataframe,
 )
 
@@ -222,7 +223,7 @@ def test_age_schema_format_cols(
         sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
     ]:
         pd.testing.assert_frame_equal(
-            format_dataframe(sample_age_schema, dataframe),
+            _format_dataframe(sample_age_schema, dataframe),
             sample_df_with_ages.droplevel([AGE_START_COLUMN, AGE_END_COLUMN]),
         )
 
@@ -243,7 +244,7 @@ def test_age_schema_format_dataframe_invalid(sample_age_schema: AgeSchema) -> No
         ),
     )
     with pytest.raises(ValueError, match="Cannot coerce"):
-        format_dataframe(sample_age_schema, df)
+        _format_dataframe(sample_age_schema, df)
 
 
 def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) -> None:
@@ -256,7 +257,7 @@ def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) ->
             ("7_to_15", 7, 15),
         ]
     )
-    formatted_df = format_dataframe(target_age_schema, sample_df_with_ages)
+    formatted_df = _format_dataframe(target_age_schema, sample_df_with_ages)
     pd.testing.assert_frame_equal(
         formatted_df,
         rebin_count_dataframe(
@@ -301,3 +302,24 @@ def test_rebin_dataframe(sample_df_with_ages: pd.DataFrame) -> None:
         ),
     )
     pd.testing.assert_frame_equal(rebinned_df, expected_df)
+
+
+def test_format_dataframe_from_age_bin_df(
+    sample_df_with_ages: pd.DataFrame,
+    sample_age_group_df: pd.DataFrame,
+    person_time_data: pd.DataFrame,
+) -> None:
+    """Test we can reconcile age groups with the data."""
+    # Ensure that if the age groups are in the data, we can format the data
+    formatted_df = format_dataframe_from_age_bin_df(sample_df_with_ages, sample_age_group_df)
+    context_age_schema = AgeSchema.from_dataframe(sample_age_group_df)
+    pd.testing.assert_frame_equal(
+        formatted_df,
+        _format_dataframe(context_age_schema, sample_df_with_ages),
+    )
+
+    formatted_df = format_dataframe_from_age_bin_df(person_time_data, sample_age_group_df)
+    pd.testing.assert_frame_equal(
+        formatted_df,
+        person_time_data,
+    )
