@@ -165,8 +165,8 @@ class FuzzyComparison(Comparison):
 
         test_proportion_data, reference_data = self._align_datasets()
 
-        test_proportion_data.rename(columns={"value": "rate"}, inplace=True)
-        reference_data.rename(columns={"value": "rate"}, inplace=True)
+        test_proportion_data = test_proportion_data.rename(columns={"value": "rate"}).dropna()
+        reference_data = reference_data.rename(columns={"value": "rate"}).dropna()
 
         if aggregate_draws:
             test_proportion_data = self._aggregate_over_draws(test_proportion_data)
