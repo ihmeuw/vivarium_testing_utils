@@ -119,3 +119,4 @@ src/vivarium_testing_utils/_version.py
 # Copilot instructions
 .github/copilot_instructions.md
 .github/prompts/
+.github/chatmodes/
