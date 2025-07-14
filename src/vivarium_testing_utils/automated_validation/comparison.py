@@ -193,10 +193,7 @@ class FuzzyComparison(Comparison):
                 ascending=ascending,
             )
 
-        if num_rows == "all":
-            return merged_data
-        else:
-            return merged_data.head(n=num_rows)
+        return merged_data if num_rows == "all" else merged_data.head(n=num_rows)
 
     def _aggregate_over_draws(self, data: pd.DataFrame) -> pd.DataFrame:
         """Aggregate data over draws and seeds, computing mean and 95% uncertainty intervals."""
