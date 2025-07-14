@@ -27,55 +27,53 @@ def test_get_sim_outputs(sim_result_dir: Path) -> None:
     }
 
 
-def test_get_dataset(sim_result_dir: Path) -> None:
+def test_get_data(sim_result_dir: Path) -> None:
     """Ensure that we load data from disk if needed, and don't if not."""
     data_loader = DataLoader(sim_result_dir)
-    # check that we call load_from_source the first time we call get_dataset
+    # check that we call load_from_source the first time we call get_data
     with patch.object(data_loader, "_load_from_source") as mock_load:
         mock_load.return_value = pd.DataFrame()  # Set appropriate return value
-        result = data_loader.get_dataset("deaths", DataSource.SIM)
+        result = data_loader.get_data("deaths", DataSource.SIM)
         assert isinstance(result, pd.DataFrame)
         mock_load.assert_called_once_with("deaths", DataSource.SIM)
 
     # Second call should use cached data
     with patch.object(data_loader, "_load_from_source") as mock_load:
-        result = data_loader.get_dataset("deaths", DataSource.SIM)
+        result = data_loader.get_data("deaths", DataSource.SIM)
         assert isinstance(result, pd.DataFrame)
         mock_load.assert_not_called()
 
 
-def test_get_dataset_custom(sim_result_dir: Path) -> None:
+def test_get_data_custom(sim_result_dir: Path) -> None:
     """Ensure that we can load custom data"""
     data_loader = DataLoader(sim_result_dir)
     custom_data = pd.DataFrame({"foo": [1, 2, 3]})
 
     with pytest.raises(
         ValueError,
-        match="No custom dataset found for foo."
-        "Please upload a dataset using ValidationContext.upload_custom_data.",
+        match="No custom data found for foo."
+        "Please upload data using ValidationContext.upload_custom_data.",
     ):
-        data_loader.get_dataset("foo", DataSource.CUSTOM)
+        data_loader.get_data("foo", DataSource.CUSTOM)
     data_loader._add_to_cache("foo", DataSource.CUSTOM, custom_data)
 
-    assert data_loader.get_dataset("foo", DataSource.CUSTOM).equals(custom_data)
+    assert data_loader.get_data("foo", DataSource.CUSTOM).equals(custom_data)
 
 
 @pytest.mark.parametrize(
-    "dataset_key, source",
+    "data_key, source",
     [
         ("deaths", DataSource.SIM),
         ("cause.disease.incidence_rate", DataSource.ARTIFACT),
         # Add more sources here later
     ],
 )
-def test__load_from_source(
-    dataset_key: str, source: DataSource, sim_result_dir: Path
-) -> None:
+def test__load_from_source(data_key: str, source: DataSource, sim_result_dir: Path) -> None:
     """Ensure we can sensibly load using key / source combinations"""
     data_loader = DataLoader(sim_result_dir)
-    assert not data_loader._raw_datasets[source].get(dataset_key)
-    dataset = data_loader._load_from_source(dataset_key, source)
-    assert dataset is not None
+    assert not data_loader._raw_data_cache[source].get(data_key)
+    data = data_loader._load_from_source(data_key, source)
+    assert data is not None
 
 
 def test__add_to_cache(sim_result_dir: Path) -> None:
@@ -83,8 +81,8 @@ def test__add_to_cache(sim_result_dir: Path) -> None:
     df = pd.DataFrame({"baz": [1, 2, 3]})
     data_loader = DataLoader(sim_result_dir)
     data_loader._add_to_cache("foo", DataSource.SIM, df)
-    assert data_loader._raw_datasets[DataSource.SIM]["foo"].equals(df)
-    with pytest.raises(ValueError, match="Dataset foo already exists in the cache."):
+    assert data_loader._raw_data_cache[DataSource.SIM]["foo"].equals(df)
+    with pytest.raises(ValueError, match="Data for foo already exists in the cache."):
         data_loader._add_to_cache("foo", DataSource.SIM, df)
 
 
@@ -95,12 +93,12 @@ def test_cache_immutable(sim_result_dir: Path) -> None:
     data_loader._add_to_cache("foo", DataSource.CUSTOM, source_data)
     # Mutate source data
     source_data["foo"] = 0
-    cached_data = data_loader.get_dataset("foo", DataSource.CUSTOM)
+    cached_data = data_loader.get_data("foo", DataSource.CUSTOM)
     assert not cached_data.equals(source_data)
 
     # Mutate returned cache data
     cached_data["foo"] = [4, 5, 6]
-    assert not data_loader.get_dataset("foo", DataSource.CUSTOM).equals(cached_data)
+    assert not data_loader.get_data("foo", DataSource.CUSTOM).equals(cached_data)
 
 
 def test__load_from_sim(sim_result_dir: Path, deaths_data: pd.DataFrame) -> None:
@@ -127,15 +125,15 @@ def test__load_from_artifact(
 ) -> None:
     """Ensure that we can load data from the artifact directory"""
     data_loader = DataLoader(sim_result_dir)
-    art_dataset = data_loader._load_from_artifact("cause.disease.incidence_rate")
-    assert art_dataset.equals(artifact_disease_incidence)
+    art_data = data_loader._load_from_artifact("cause.disease.incidence_rate")
+    assert art_data.equals(artifact_disease_incidence)
     # check that value is column and rest are indices
-    assert set(art_dataset.index.names) == {
+    assert set(art_data.index.names) == {
         "common_stratify_column",
         "other_stratify_column",
         DRAW_INDEX,
     }
-    assert set(art_dataset.columns) == {"value"}
+    assert set(art_data.columns) == {"value"}
 
 
 def test__load_nonstandard_artifact(
@@ -159,7 +157,7 @@ def test__create_person_time_total(
 ) -> None:
     """Test _create_person_time_total_dataset when one person time dataset exists."""
     data_loader = DataLoader(sim_result_dir)
-    person_time_total = data_loader.get_dataset("person_time_total", DataSource.SIM)
+    person_time_total = data_loader.get_data("person_time_total", DataSource.SIM)
     pd.testing.assert_frame_equal(person_time_total, total_person_time_data)
 
 
