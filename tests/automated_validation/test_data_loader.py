@@ -82,7 +82,7 @@ def test__add_to_cache(sim_result_dir: Path) -> None:
     data_loader = DataLoader(sim_result_dir)
     data_loader._add_to_cache("foo", DataSource.SIM, df)
     assert data_loader._raw_data_cache[DataSource.SIM]["foo"].equals(df)
-    with pytest.raises(ValueError, match="Data for foo already exists in the cache."):
+    with pytest.raises(ValueError, match="Data for foo already exist in the cache."):
         data_loader._add_to_cache("foo", DataSource.SIM, df)
 
 
