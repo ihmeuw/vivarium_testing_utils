@@ -118,6 +118,7 @@ def test__load_artifact(sim_result_dir: Path) -> None:
         "cause.disease.incidence_rate",
         "population.age_bins",
         "risk_factor.child_stunting.exposure",
+        "risk_factor.risky_risk.categories",
     }
 
 
@@ -138,15 +139,19 @@ def test__load_from_artifact(
 
 
 def test__load_nonstandard_artifact(
-    sim_result_dir: Path, sample_age_schema: AgeSchema
+    sim_result_dir: Path, sample_age_schema: AgeSchema, risk_categories: dict[str, str]
 ) -> None:
-    """Ensure that we can load age bins from the artifact directory"""
+    """Ensure that we can load non-standard data types from the artifact directory"""
     data_loader = DataLoader(sim_result_dir)
-    age_bins = data_loader._load_nonstandard_artifact("population.age_bins")
+    age_bins = data_loader._load_from_artifact("population.age_bins")
     pd.testing.assert_frame_equal(
         age_bins,
         sample_age_schema.to_dataframe(),
     )
+    loaded_risk_categories = data_loader._load_from_artifact(
+        "risk_factor.risky_risk.categories"
+    )
+    assert loaded_risk_categories == risk_categories
 
 
 def test__create_person_time_total(
