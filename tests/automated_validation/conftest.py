@@ -190,6 +190,16 @@ def _create_raw_artifact_risk_exposure() -> pd.DataFrame:
     )
 
 
+def _create_risk_categories() -> dict[str, str]:
+    """Create sample risk categories mapping."""
+    return {
+        "cat1": "high",
+        "cat2": "medium",
+        "cat3": "low",
+        "cat4": "unexposed",
+    }
+
+
 @pytest.fixture(scope="session")
 def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
     """Create a temporary directory for simulation outputs."""
@@ -209,6 +219,7 @@ def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
     _sample_age_group_df = _create_sample_age_group_df()
     _risk_state_person_time_data = _create_risk_state_person_time_data()
     _raw_artifact_risk_exposure = _create_raw_artifact_risk_exposure()
+    _risk_categories = _create_risk_categories()
 
     # Save Sim DataFrames
     _transition_count_data.reset_index().to_parquet(
@@ -228,6 +239,8 @@ def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
     artifact.write("cause.disease.incidence_rate", _raw_artifact_disease_incidence)
     artifact.write("risk_factor.child_stunting.exposure", _raw_artifact_risk_exposure)
     artifact.write("population.age_bins", _sample_age_group_df)
+    artifact.write("risk_factor.risky_risk.categories", _risk_categories)
+
     # Save model specification
     with open(tmp_path / "model_specification.yaml", "w") as f:
         yaml.dump(get_model_spec(artifact_path), f)
@@ -437,4 +450,4 @@ def artifact_excess_mortality_rate() -> pd.DataFrame:
 @pytest.fixture
 def risk_categories() -> dict[str, str]:
     """Sample risk categories mapping."""
-    return {"cat1": "high", "cat2": "medium", "cat3": "low", "cat4": "unexposed"}
+    return _create_risk_categories()

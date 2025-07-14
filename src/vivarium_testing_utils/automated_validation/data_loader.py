@@ -1,22 +1,23 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import yaml
 from vivarium import Artifact
 
-from vivarium_testing_utils.automated_validation.constants import DataSource
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_PREFIX,
+    DataSource,
+)
 from vivarium_testing_utils.automated_validation.data_transformation import (
     calculations,
     utils,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SimOutputData,
-    SingleNumericColumn,
 )
-
-NONSTANDARD_ARTIFACT_KEYS = {"population.age_bins"}
 
 
 class DataLoader:
@@ -81,7 +82,7 @@ class DataLoader:
     def get_artifact_keys(self) -> list[str]:
         return self._artifact.keys
 
-    def get_dataset(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
+    def get_dataset(self, dataset_key: str, source: DataSource) -> Any:
         """Return the dataset from the cache if it exists, otherwise load it from the source."""
         try:
             return self._raw_datasets[source][dataset_key].copy()
@@ -98,13 +99,8 @@ class DataLoader:
     def upload_custom_data(self, dataset_key: str, data: pd.DataFrame) -> None:
         self._add_to_cache(dataset_key, DataSource.CUSTOM, data)
 
-    def _load_from_source(self, dataset_key: str, source: DataSource) -> pd.DataFrame:
+    def _load_from_source(self, dataset_key: str, source: DataSource) -> Any:
         """Load the data from the given source via the loader mapping."""
-        if source == DataSource.ARTIFACT and (
-            dataset_key in NONSTANDARD_ARTIFACT_KEYS or dataset_key.endswith(".categories")
-        ):
-            # Load nonstandard artifact keys from the artifact
-            return self._load_nonstandard_artifact(dataset_key)
         return self._loader_mapping[source](dataset_key)
 
     def _add_to_cache(self, dataset_key: str, source: DataSource, data: pd.DataFrame) -> None:
@@ -146,18 +142,17 @@ class DataLoader:
         ]["artifact_path"]
         return Artifact(artifact_path)
 
-    def _load_nonstandard_artifact(self, dataset_key: str) -> pd.DataFrame:
-        """Load artifact data for nonstandard (e.g. not draw or single numeric) keys."""
-        data: pd.DataFrame = self._artifact.load(dataset_key)
-        self._artifact.clear_cache()
-        return data
-
-    @utils.check_io(out=SingleNumericColumn)
-    def _load_from_artifact(self, dataset_key: str) -> pd.DataFrame:
+    def _load_from_artifact(self, dataset_key: str) -> Any:
         """Load data directly from artifact, assuming correctly formatted data."""
-        data: pd.DataFrame = self._artifact.load(dataset_key)
+        data = self._artifact.load(dataset_key)
         self._artifact.clear_cache()
-        return calculations.clean_artifact_data(dataset_key, data)
+        if (
+            isinstance(data, pd.DataFrame)
+            and not data.columns.empty
+            and data.columns.str.startswith(DRAW_PREFIX).all()
+        ):
+            data = calculations.clean_artifact_draws(data)
+        return data
 
     def _load_from_gbd(self, dataset_key: str) -> pd.DataFrame:
         raise NotImplementedError
