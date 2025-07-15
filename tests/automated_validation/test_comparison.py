@@ -132,17 +132,17 @@ def test_fuzzy_comparison_metadata(
         assert metadata.loc[property_name]["Reference Data"] == reference_value
 
 
-def test_fuzzy_comparison_get_diff(
+def test_fuzzy_comparison_get_frame(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
 ) -> None:
-    """Test the get_diff method of the FuzzyComparison class."""
+    """Test the get_frame method of the FuzzyComparison class."""
     comparison = FuzzyComparison(
         mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
     )
 
-    diff = comparison.get_diff(stratifications=[], num_rows=1)
+    diff = comparison.get_frame(stratifications=[], num_rows=1)
 
     with check:
         assert len(diff) == 1
@@ -153,29 +153,60 @@ def test_fuzzy_comparison_get_diff(
         assert SEED_INDEX not in diff.index.names
 
     # Test returning all rows
-    all_diff = comparison.get_diff(stratifications=[], num_rows="all")
+    all_diff = comparison.get_frame(stratifications=[], num_rows="all")
     assert len(all_diff) == 3
 
     # Test sorting
     # descending order
-    sorted_desc = comparison.get_diff(sort_by="percent_error", ascending=False)
+    sorted_desc = comparison.get_frame(sort_by="percent_error", ascending=False)
     for i in range(len(sorted_desc) - 1):
         assert abs(sorted_desc.iloc[i]["percent_error"]) >= abs(
             sorted_desc.iloc[i + 1]["percent_error"]
         )
-    sorted_asc = comparison.get_diff(sort_by="percent_error", ascending=True)
+    sorted_asc = comparison.get_frame(sort_by="percent_error", ascending=True)
     for i in range(len(sorted_asc) - 1):
         assert abs(sorted_asc.iloc[i]["percent_error"]) <= abs(
             sorted_asc.iloc[i + 1]["percent_error"]
         )
 
     # Test sorting by reference rate
-    sorted_by_ref = comparison.get_diff(sort_by="reference_rate", ascending=True)
+    sorted_by_ref = comparison.get_frame(sort_by="reference_rate", ascending=True)
     for i in range(len(sorted_by_ref) - 1):
         assert (
             sorted_by_ref.iloc[i]["reference_rate"]
             <= sorted_by_ref.iloc[i + 1]["reference_rate"]
         )
+
+
+def test_fuzzy_comparison_get_frame_aggregated(
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
+) -> None:
+    """Test the get_frame method of the FuzzyComparison class with aggregated draws."""
+    comparison = FuzzyComparison(
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data,
+    )
+    diff = comparison.get_frame(stratifications=[], num_rows="all", aggregate_draws=True)
+    expected_df = pd.DataFrame(
+        {
+            "test_mean": [0.1, 0.2, 0.325],
+            "test_2.5%": [0.1, 0.2, 0.325],
+            "test_97.5%": [0.1, 0.2, 0.325],
+            "reference_mean": [0.12, 0.2, 0.29],
+            "reference_2.5%": [0.12, 0.2, 0.29],
+            "reference_97.5%": [0.12, 0.2, 0.29],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
+            names=["year", "sex", "age"],
+        ),
+    )
+    assert_frame_equal(diff, expected_df)
 
 
 def test_fuzzy_comparison_init_with_stratifications(
@@ -197,12 +228,12 @@ def test_fuzzy_comparison_init_with_stratifications(
         )
 
 
-def test_fuzzy_comparison_get_diff_with_stratifications(
+def test_fuzzy_comparison_get_frame_with_stratifications(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
 ) -> None:
-    """Test that FuzzyComparison.get_diff raises NotImplementedError when called with non-empty stratifications."""
+    """Test that FuzzyComparison.get_frame raises NotImplementedError when called with non-empty stratifications."""
     comparison = FuzzyComparison(
         mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
     )
@@ -210,7 +241,7 @@ def test_fuzzy_comparison_get_diff_with_stratifications(
     with pytest.raises(
         NotImplementedError, match="Non-default stratifications require rate aggregations"
     ):
-        comparison.get_diff(stratifications=["year"])
+        comparison.get_frame(stratifications=["year"])
 
 
 def test_fuzzy_comparison_verify_not_implemented(

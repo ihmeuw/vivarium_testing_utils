@@ -190,8 +190,9 @@ class ValidationContext:
         comparison_key: str,
         stratifications: Collection[str] = (),
         num_rows: int | Literal["all"] = 10,
-        sort_by: str = "percent_error",
+        sort_by: str = "",
         ascending: bool = False,
+        aggregate_draws: bool = False,
     ) -> pd.DataFrame:
         """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
 
@@ -204,16 +205,21 @@ class ValidationContext:
         num_rows
             The number of rows to return. If "all", return all rows.
         sort_by
-            The column to sort by. Default is "percent_error".
+            The column to sort by. Default is "percent_error" for non-aggregated data, and no sorting for aggregated data.
         ascending
             Whether to sort in ascending order. Default is False.
+        aggregate_draws
+            If True, aggregate over draws to show means and 95% uncertainty intervals.
         Returns:
         --------
         A DataFrame of the comparison data.
         """
+        if not aggregate_draws and not sort_by:
+            sort_by = "percent_error"
+
         if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
-            return self.comparisons[comparison_key].get_diff(
-                stratifications, num_rows, sort_by, ascending
+            return self.comparisons[comparison_key].get_frame(
+                stratifications, num_rows, sort_by, ascending, aggregate_draws
             )
         else:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
