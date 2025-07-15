@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Collection, Literal
 
+import numpy as np
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
@@ -42,12 +43,13 @@ class Comparison(ABC):
         pass
 
     @abstractmethod
-    def get_diff(
+    def get_frame(
         self,
         stratifications: Collection[str] = (),
         num_rows: int | Literal["all"] = 10,
-        sort_by: str = "percent_error",
+        sort_by: str = "",
         ascending: bool = False,
+        aggregate_draws: bool = False,
     ) -> pd.DataFrame:
         """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
 
@@ -61,6 +63,8 @@ class Comparison(ABC):
             The column to sort by. Default is "percent_error".
         ascending
             Whether to sort in ascending order. Default is False.
+        aggregate_draws
+            If True, aggregate over draws and seeds to show means and 95% uncertainty intervals.
         Returns:
         --------
         A DataFrame of the comparison data.
@@ -126,12 +130,13 @@ class FuzzyComparison(Comparison):
         reference_info = self._get_metadata_from_datasets("reference")
         return dataframe_utils.format_metadata(measure_key, test_info, reference_info)
 
-    def get_diff(
+    def get_frame(
         self,
         stratifications: Collection[str] = (),
         num_rows: int | Literal["all"] = 10,
-        sort_by: str = "percent_error",
+        sort_by: str = "",
         ascending: bool = False,
+        aggregate_draws: bool = False,
     ) -> pd.DataFrame:
         """Get a DataFrame of the comparison data, with naive comparison of the test and reference.
 
@@ -142,9 +147,12 @@ class FuzzyComparison(Comparison):
         num_rows
             The number of rows to return. If "all", return all rows.
         sort_by
-            The column to sort by. Default is "percent_error".
+            The column to sort by. Default for non-aggregated data is "percent_error", for aggregation default is to not sort.
         ascending
             Whether to sort in ascending order. Default is False.
+        aggregate_draws
+            If True, aggregate over draws to show means and 95% uncertainty intervals.
+            Changes the output columns to show mean, 2.5%, and 97.5 for each dataset.
         Returns:
         --------
         A DataFrame of the comparison data.
@@ -157,28 +165,46 @@ class FuzzyComparison(Comparison):
 
         test_proportion_data, reference_data = self._align_datasets()
 
-        test_proportion_data = test_proportion_data.rename(
-            columns={"value": "test_rate"}
-        ).dropna()
-        reference_data = reference_data.rename(columns={"value": "reference_rate"}).dropna()
+        test_proportion_data = test_proportion_data.rename(columns={"value": "rate"}).dropna()
+        reference_data = reference_data.rename(columns={"value": "rate"}).dropna()
+
+        if aggregate_draws:
+            test_proportion_data = self._aggregate_over_draws(test_proportion_data)
+            reference_data = self._aggregate_over_draws(reference_data)
+
+        test_proportion_data = test_proportion_data.add_prefix("test_")
+        reference_data = reference_data.add_prefix("reference_")
 
         merged_data = pd.merge(
             test_proportion_data, reference_data, left_index=True, right_index=True
         )
-        merged_data["percent_error"] = (
-            (merged_data["test_rate"] - merged_data["reference_rate"])
-            / merged_data["reference_rate"]
-        ) * 100
-        sort_key = abs if sort_by == "percent_error" else None
-        sorted_data = merged_data.sort_values(
-            by=sort_by,
-            key=sort_key,
-            ascending=ascending,
-        )
-        if num_rows == "all":
-            return sorted_data
-        else:
-            return sorted_data.head(n=num_rows)
+
+        if not aggregate_draws:
+            merged_data["percent_error"] = (
+                (merged_data["test_rate"] - merged_data["reference_rate"])
+                / merged_data["reference_rate"]
+            ) * 100
+
+        if sort_by:
+            sort_key = abs if sort_by == "percent_error" else None
+            merged_data = merged_data.sort_values(
+                by=sort_by,
+                key=sort_key,
+                ascending=ascending,
+            )
+
+        return merged_data if num_rows == "all" else merged_data.head(n=num_rows)
+
+    def _aggregate_over_draws(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Aggregate data over draws and seeds, computing mean and 95% uncertainty intervals."""
+        # Get the levels to group by (everything except draws and seeds)
+        group_levels = [level for level in data.index.names if level != DRAW_INDEX]
+        # Group by the remaining levels and aggregate
+        aggregated_data = data.groupby(group_levels, sort=False, observed=True)[
+            "rate"
+        ].describe(percentiles=[0.025, 0.975])
+
+        return aggregated_data[["mean", "2.5%", "97.5%"]]
 
     def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         raise NotImplementedError
