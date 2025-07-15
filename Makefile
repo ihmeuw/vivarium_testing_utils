@@ -7,7 +7,7 @@ else
 	MAKE_INCLUDES := $(shell python -c "from vivarium_build_utils.resources import get_makefiles_path; print(get_makefiles_path())")
 endif
 
-PACKAGE_NAME = vivarium
+PACKAGE_NAME = vivarium_testing_utils
 
 # Include makefiles from vivarium_build_utils
 include $(MAKE_INCLUDES)/base.mk
