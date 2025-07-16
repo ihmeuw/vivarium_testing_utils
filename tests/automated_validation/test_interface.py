@@ -37,21 +37,21 @@ def test_upload_custom_data(sim_result_dir: Path) -> None:
     context = ValidationContext(sim_result_dir)
     df = pd.DataFrame({"baz": [1, 2, 3]})
     context.upload_custom_data("foo", df)
-    assert context.get_raw_dataset("foo", "custom").equals(df)
+    assert context.get_raw_data("foo", "custom").equals(df)
 
 
-def test_show_raw_dataset(
+def test_get_raw_data(
     sim_result_dir: Path, deaths_data: pd.DataFrame, artifact_disease_incidence: pd.DataFrame
 ) -> None:
-    """Ensure that we can show the raw dataset"""
+    """Ensure that we can show the raw data"""
     context = ValidationContext(sim_result_dir)
     df = pd.DataFrame({"baz": [1, 2, 3]})
     context.upload_custom_data("foo", df)
 
     # Ensure loading with a string instead of a DataSource enum works
-    assert context.get_raw_dataset("foo", "custom").equals(df)
-    assert context.get_raw_dataset("deaths", "sim").equals(deaths_data)
-    assert context.get_raw_dataset("cause.disease.incidence_rate", "artifact").equals(
+    assert context.get_raw_data("foo", "custom").equals(df)
+    assert context.get_raw_data("deaths", "sim").equals(deaths_data)
+    assert context.get_raw_data("cause.disease.incidence_rate", "artifact").equals(
         artifact_disease_incidence
     )
 
@@ -93,21 +93,21 @@ def test__get_age_groups_gbd(sim_result_dir: Path, mocker: MockFixture) -> None:
     assert context.age_groups.equals(age_groups)
 
 
-def test___get_raw_datasets_from_source(
+def test___get_raw_data_from_source(
     sim_result_dir: Path,
     transition_count_data: pd.DataFrame,
     person_time_data: pd.DataFrame,
     artifact_disease_incidence: pd.DataFrame,
 ) -> None:
-    """Ensure that we can get raw datasets from a source"""
+    """Ensure that we can get raw data from a source"""
     context = ValidationContext(sim_result_dir)
     measure = Incidence("disease")
-    test_raw_datasets = context._get_raw_datasets_from_source(measure, DataSource.SIM)
-    ref_raw_datasets = context._get_raw_datasets_from_source(measure, DataSource.ARTIFACT)
+    test_raw_data = context._get_raw_data_from_source(measure, DataSource.SIM)
+    ref_raw_data = context._get_raw_data_from_source(measure, DataSource.ARTIFACT)
 
-    assert test_raw_datasets["numerator_data"].equals(transition_count_data)
-    assert test_raw_datasets["denominator_data"].equals(person_time_data)
-    assert ref_raw_datasets["artifact_data"].equals(artifact_disease_incidence)
+    assert test_raw_data["numerator_data"].equals(transition_count_data)
+    assert test_raw_data["denominator_data"].equals(person_time_data)
+    assert ref_raw_data["artifact_data"].equals(artifact_disease_incidence)
 
 
 def test_add_comparison_bad_scenarios(sim_result_dir: Path) -> None:
