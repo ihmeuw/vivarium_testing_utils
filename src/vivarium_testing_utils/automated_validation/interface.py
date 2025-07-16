@@ -35,17 +35,17 @@ class ValidationContext:
         """Get a list of the artifact keys available to compare against."""
         return self._data_loader.get_artifact_keys()
 
-    def get_raw_dataset(self, dataset_key: str, source: str) -> Any:
-        """Return a copy of the dataset for manual inspection."""
-        return self._data_loader.get_dataset(dataset_key, DataSource.from_str(source))
+    def get_raw_data(self, data_key: str, source: str) -> Any:
+        """Return a copy of the data for manual inspection."""
+        return self._data_loader.get_data(data_key, DataSource.from_str(source))
 
     def upload_custom_data(
-        self, dataset_key: str, data: pd.DataFrame | pd.Series[float]
+        self, data_key: str, data: pd.DataFrame | pd.Series[float]
     ) -> None:
-        """Upload a custom DataFrame or Series to the context given by a dataset key."""
+        """Upload a custom DataFrame or Series to the context given by a data key."""
         if isinstance(data, pd.Series):
             data = data.to_frame(name="value")
-        self._data_loader.upload_custom_data(dataset_key, data)
+        self._data_loader.upload_custom_data(data_key, data)
 
     def add_comparison(
         self,
@@ -153,7 +153,7 @@ class ValidationContext:
                     f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."
                 )
 
-        test_raw_datasets = self._get_raw_datasets_from_source(measure, test_source_enum)
+        test_raw_datasets = self._get_raw_data_from_source(measure, test_source_enum)
         test_datasets = measure.get_ratio_datasets_from_sim(
             **test_raw_datasets,
         )
@@ -163,7 +163,7 @@ class ValidationContext:
             )
             for dataset_name, dataset in test_datasets.items()
         }
-        ref_raw_datasets = self._get_raw_datasets_from_source(measure, ref_source_enum)
+        ref_raw_datasets = self._get_raw_data_from_source(measure, ref_source_enum)
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
         ref_data = age_groups.format_dataframe_from_age_bin_df(ref_data, self.age_groups)
 
@@ -250,7 +250,7 @@ class ValidationContext:
         from vivarium.framework.artifact.artifact import ArtifactException
 
         try:
-            age_groups: pd.DataFrame = self._data_loader.get_dataset(
+            age_groups: pd.DataFrame = self._data_loader.get_data(
                 "population.age_bins", DataSource.ARTIFACT
             )
         # If we can't find the age groups in the artifact, get them directly from vivarium inputs
@@ -268,11 +268,11 @@ class ValidationContext:
 
         return age_groups.rename_axis(index={"age_group_name": "age_group"})
 
-    def _get_raw_datasets_from_source(
+    def _get_raw_data_from_source(
         self, measure: Measure, source: DataSource
     ) -> dict[str, pd.DataFrame]:
         """Get the raw datasets from the given source."""
         return {
-            dataset_name: self._data_loader.get_dataset(dataset_key, source)
-            for dataset_name, dataset_key in measure.get_required_datasets(source).items()
+            dataset_name: self._data_loader.get_data(data_key, source)
+            for dataset_name, data_key in measure.get_required_datasets(source).items()
         }
