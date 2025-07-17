@@ -5,7 +5,7 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation import calculations
-from vivarium_testing_utils.automated_validation.data_transformation.measurement_data import (
+from vivarium_testing_utils.automated_validation.data_transformation.data_bundle import (
     MeasureDataBundle,
     RatioMeasureDataBundle,
 )
