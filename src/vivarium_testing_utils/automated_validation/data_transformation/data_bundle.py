@@ -7,6 +7,9 @@ from vivarium_testing_utils.automated_validation.data_transformation import (
     age_groups,
     utils,
 )
+from typing import Any
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
+from vivarium_testing_utils.automated_validation.visualization import dataframe_utils
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SingleNumericColumn,
 )
@@ -75,3 +78,44 @@ class RatioMeasureDataBundle:
             return self.datasets["data"]
         else:
             raise ValueError(f"Unsupported data source: {self.source}")
+
+    def get_metadata(self) -> dict[str, Any]:
+        """Organize the data information into a dictionary for display by a styled pandas DataFrame.
+        Apply formatting to values that need special handling.
+
+        Parameters:
+        -----------
+        dataset
+            The dataset to get the metadata from. Either "test" or "reference".
+        Returns:
+        --------
+        A dictionary containing the formatted data information.
+
+        """
+        dataframe = self.measure_data
+        data_info: dict[str, Any] = {}
+
+        # Source as string
+        data_info["source"] = self.source.value
+
+        # Index columns as comma-separated string
+        index_cols = dataframe.index.names
+        data_info["index_columns"] = ", ".join(str(col) for col in index_cols)
+
+        # Size as formatted string
+        size = dataframe.shape
+        data_info["size"] = f"{size[0]:,} rows × {size[1]:,} columns"
+
+        # Draw information
+        if DRAW_INDEX in dataframe.index.names:
+            num_draws = dataframe.index.get_level_values(DRAW_INDEX).nunique()
+            data_info["num_draws"] = f"{num_draws:,}"
+            draw_values = list(dataframe.index.get_level_values(DRAW_INDEX).unique())
+            data_info[DRAW_INDEX + "s"] = dataframe_utils.format_draws_sample(draw_values)
+
+        # Seeds information
+        if SEED_INDEX in dataframe.index.names:
+            num_seeds = dataframe.index.get_level_values(SEED_INDEX).nunique()
+            data_info["num_seeds"] = f"{num_seeds:,}"
+
+        return data_info

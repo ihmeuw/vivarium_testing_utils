@@ -1,11 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Any, Collection, Literal
+from typing import Collection, Literal
 
-import numpy as np
 import pandas as pd
 
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
-from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import calculations
 from vivarium_testing_utils.automated_validation.data_transformation.measurement_data import (
     MeasureDataBundle,
@@ -110,8 +108,8 @@ class FuzzyComparison(Comparison):
         - a sample of the input draws.
         """
         measure_key = self.measure.measure_key
-        test_info = self._get_metadata_from_datasets(self.test_data)
-        reference_info = self._get_metadata_from_datasets(self.reference_data)
+        test_info = self.test_data.get_metadata()
+        reference_info = self.reference_data.get_metadata()
         return dataframe_utils.format_metadata(measure_key, test_info, reference_info)
 
     def get_frame(
@@ -192,47 +190,6 @@ class FuzzyComparison(Comparison):
 
     def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         raise NotImplementedError
-
-    def _get_metadata_from_datasets(self, dataset: RatioMeasureDataBundle) -> dict[str, Any]:
-        """Organize the data information into a dictionary for display by a styled pandas DataFrame.
-        Apply formatting to values that need special handling.
-
-        Parameters:
-        -----------
-        dataset
-            The dataset to get the metadata from. Either "test" or "reference".
-        Returns:
-        --------
-        A dictionary containing the formatted data information.
-
-        """
-        dataframe = dataset.measure_data
-        data_info: dict[str, Any] = {}
-
-        # Source as string
-        data_info["source"] = dataset.source.value
-
-        # Index columns as comma-separated string
-        index_cols = dataframe.index.names
-        data_info["index_columns"] = ", ".join(str(col) for col in index_cols)
-
-        # Size as formatted string
-        size = dataframe.shape
-        data_info["size"] = f"{size[0]:,} rows × {size[1]:,} columns"
-
-        # Draw information
-        if DRAW_INDEX in dataframe.index.names:
-            num_draws = dataframe.index.get_level_values(DRAW_INDEX).nunique()
-            data_info["num_draws"] = f"{num_draws:,}"
-            draw_values = list(dataframe.index.get_level_values(DRAW_INDEX).unique())
-            data_info[DRAW_INDEX + "s"] = dataframe_utils.format_draws_sample(draw_values)
-
-        # Seeds information
-        if SEED_INDEX in dataframe.index.names:
-            num_seeds = dataframe.index.get_level_values(SEED_INDEX).nunique()
-            data_info["num_seeds"] = f"{num_seeds:,}"
-
-        return data_info
 
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
