@@ -11,7 +11,7 @@ from vivarium_testing_utils.automated_validation.data_loader import DataLoader, 
 from vivarium_testing_utils.automated_validation.data_transformation import (
     measures,
 )
-from vivarium_testing_utils.automated_validation.data_transformation.measurement_data import (
+from vivarium_testing_utils.automated_validation.data_transformation.data_bundle import (
     RatioMeasureDataBundle,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
