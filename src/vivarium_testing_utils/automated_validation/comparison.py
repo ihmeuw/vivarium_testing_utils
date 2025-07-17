@@ -8,7 +8,8 @@ from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SE
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import calculations
 from vivarium_testing_utils.automated_validation.data_transformation.measurement_data import (
-    RatioMeasurementData,
+    MeasureDataBundle,
+    RatioMeasureDataBundle,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
@@ -24,8 +25,8 @@ class Comparison(ABC):
     typically a derived quantity of the test data such as incidence rate or prevalence."""
 
     measure: Measure
-    test_data: RatioMeasurementData
-    reference_data: RatioMeasurementData
+    test_data: MeasureDataBundle
+    reference_data: MeasureDataBundle
     stratifications: Collection[str]
 
     @property
@@ -83,8 +84,8 @@ class FuzzyComparison(Comparison):
     def __init__(
         self,
         measure: RatioMeasure,
-        test_data: RatioMeasurementData,
-        reference_data: RatioMeasurementData,
+        test_data: RatioMeasureDataBundle,
+        reference_data: RatioMeasureDataBundle,
         stratifications: Collection[str] = (),
     ):
         self.measure: RatioMeasure = measure
@@ -192,7 +193,7 @@ class FuzzyComparison(Comparison):
     def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def _get_metadata_from_datasets(self, dataset: RatioMeasurementData) -> dict[str, Any]:
+    def _get_metadata_from_datasets(self, dataset: RatioMeasureDataBundle) -> dict[str, Any]:
         """Organize the data information into a dictionary for display by a styled pandas DataFrame.
         Apply formatting to values that need special handling.
 

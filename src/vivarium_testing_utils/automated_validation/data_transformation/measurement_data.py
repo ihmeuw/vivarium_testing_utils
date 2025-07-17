@@ -1,35 +1,44 @@
 import pandas as pd
-
+from abc import ABC
 from vivarium_testing_utils.automated_validation.constants import DataSource
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import (
-    age_groups,
     calculations,
+    age_groups,
     utils,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    Measure,
     RatioMeasure,
 )
 
 
-class RatioMeasurementData:
+class MeasureDataBundle(ABC):
+    measure: Measure
+    source: DataSource
+    datasets: dict[str, pd.DataFrame]
+    scenarios: dict[str, str] | None
+
+
+class RatioMeasureDataBundle:
+
     def __init__(
         self,
         measure: RatioMeasure,
         source: DataSource,
         data_loader: DataLoader,
-        age_groups: pd.DataFrame,
+        age_group_df: pd.DataFrame,
         scenarios: dict[str, str] | None = None,
     ) -> None:
         self.measure = measure
         self.source = source
         self.scenarios = scenarios or {}
-        datasets = self._get_raw_data_from_source(source, data_loader)
+        datasets = data_loader.get_bulk_data(source, self.dataset_names)
         datasets = self._transform_data(datasets)
-        datasets = self._format_age_groups(datasets, age_groups)
+        datasets = age_groups.format_bulk_from_df(datasets, age_group_df)
         self.datasets = {
             key: calculations.filter_data(dataset, scenarios, drop_singles=False)
             for key, dataset in datasets.items()
