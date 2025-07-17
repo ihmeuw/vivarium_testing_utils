@@ -12,7 +12,7 @@ from vivarium_testing_utils.automated_validation.data_transformation import (
     measures,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measurement_data import (
-    RatioMeasurementData,
+    RatioMeasureDataBundle,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CategoricalRelativeRisk,
@@ -154,14 +154,14 @@ class ValidationContext:
                     f"Each simulation comparison subject must choose a specific scenario. "
                     f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."
                 )
-        test_data = RatioMeasurementData(
+        test_data = RatioMeasureDataBundle(
             measure=measure,
             source=test_source_enum,
             data_loader=self._data_loader,
             age_groups=self.age_groups,
             scenarios=test_scenarios,
         )
-        ref_data = RatioMeasurementData(
+        ref_data = RatioMeasureDataBundle(
             measure=measure,
             source=ref_source_enum,
             data_loader=self._data_loader,
