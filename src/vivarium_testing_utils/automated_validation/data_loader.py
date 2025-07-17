@@ -96,6 +96,12 @@ class DataLoader:
             self._add_to_cache(data_key, source, data)
             return data
 
+    def get_bulk_data(
+        self, source: DataSource, data_keys: dict[str, str]
+    ) -> dict[str, pd.DataFrame]:
+        """Get the raw datasets from the given source."""
+        return utils.dict_apply(lambda data_key: self.get_data(data_key, source), data_keys)
+
     def upload_custom_data(self, data_key: str, data: pd.DataFrame) -> None:
         self._add_to_cache(data_key, DataSource.CUSTOM, data)
 

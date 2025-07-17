@@ -54,15 +54,6 @@ class RatioMeasureDataBundle:
         else:
             raise ValueError(f"Unsupported data source: {self.source}")
 
-    def _get_raw_data_from_source(
-        self, source: DataSource, data_loader: DataLoader
-    ) -> dict[str, pd.DataFrame]:
-        """Get the raw datasets from the given source."""
-        return {
-            dataset_name: data_loader.get_data(data_key, source)
-            for dataset_name, data_key in self.dataset_names.items()
-        }
-
     def _transform_data(
         self, datasets: dict[str, pd.DataFrame]
     ) -> dict[str, pd.DataFrame] | pd.DataFrame:
@@ -84,13 +75,3 @@ class RatioMeasureDataBundle:
             return self.datasets["data"]
         else:
             raise ValueError(f"Unsupported data source: {self.source}")
-
-    @staticmethod
-    def _format_age_groups(
-        datasets: dict[str, pd.DataFrame], age_groups_df: pd.DataFrame
-    ) -> dict[str, pd.DataFrame]:
-        """Format the age groups in the datasets."""
-        return {
-            dataset_name: age_groups.format_dataframe_from_age_bin_df(dataset, age_groups_df)
-            for dataset_name, dataset in datasets.items()
-        }

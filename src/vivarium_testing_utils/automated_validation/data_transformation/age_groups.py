@@ -549,3 +549,13 @@ def format_dataframe_from_age_bin_df(
             "Could not resolve age groups. The DataFrame likely has no age data. Returning dataframe as-is."
         )
         return data
+
+
+def format_bulk_from_df(
+    datasets: dict[str, pd.DataFrame], age_groups_df: pd.DataFrame
+) -> dict[str, pd.DataFrame]:
+    """Format the age groups in the datasets."""
+    return utils.dict_apply(
+        lambda dataset: format_dataframe_from_age_bin_df(dataset, age_groups_df),
+        datasets,
+    )

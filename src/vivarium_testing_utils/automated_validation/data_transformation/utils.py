@@ -40,3 +40,8 @@ def check_io(**model_dict: type) -> Callable[[F], F]:
 def series_to_dataframe(series: pd.Series[float]) -> pd.DataFrame:
     """Convert a Series to a DataFrame with the Series values as a single column."""
     return series.to_frame(name="value")
+
+
+def dict_apply(func: Callable[[Any], Any], data: dict[str, Any]) -> dict[str, Any]:
+    """Apply a function to each value in a dictionary."""
+    return {key: func(value) for key, value in data.items()}
