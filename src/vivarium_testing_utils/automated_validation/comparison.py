@@ -7,6 +7,9 @@ import pandas as pd
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import calculations
+from vivarium_testing_utils.automated_validation.data_transformation.measurement_data import (
+    RatioMeasurementData,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
     RatioMeasure,
@@ -21,12 +24,8 @@ class Comparison(ABC):
     typically a derived quantity of the test data such as incidence rate or prevalence."""
 
     measure: Measure
-    test_source: DataSource
-    test_datasets: dict[str, pd.DataFrame]
-    reference_source: DataSource
-    reference_data: pd.DataFrame
-    test_scenarios: dict[str, str] | None
-    reference_scenarios: dict[str, str] | None
+    test_data: RatioMeasurementData
+    reference_data: RatioMeasurementData
     stratifications: Collection[str]
 
     @property
@@ -84,29 +83,13 @@ class FuzzyComparison(Comparison):
     def __init__(
         self,
         measure: RatioMeasure,
-        test_source: DataSource,
-        test_datasets: dict[str, pd.DataFrame],
-        reference_source: DataSource,
-        reference_data: pd.DataFrame,
-        test_scenarios: dict[str, str] | None = None,
-        reference_scenarios: dict[str, str] | None = None,
+        test_data: RatioMeasurementData,
+        reference_data: RatioMeasurementData,
         stratifications: Collection[str] = (),
     ):
         self.measure: RatioMeasure = measure
-
-        self.test_source = test_source
-        self.test_scenarios: dict[str, str] = test_scenarios if test_scenarios else {}
-        self.test_datasets = {
-            key: calculations.filter_data(dataset, self.test_scenarios, drop_singles=False)
-            for key, dataset in test_datasets.items()
-        }
-        self.reference_source = reference_source
-        self.reference_scenarios: dict[str, str] = (
-            reference_scenarios if reference_scenarios else {}
-        )
-        self.reference_data = calculations.filter_data(
-            reference_data, self.reference_scenarios, drop_singles=False
-        )
+        self.test_data = test_data
+        self.reference_data = reference_data
 
         if stratifications:
             # TODO: MIC-6075
@@ -126,8 +109,8 @@ class FuzzyComparison(Comparison):
         - a sample of the input draws.
         """
         measure_key = self.measure.measure_key
-        test_info = self._get_metadata_from_datasets("test")
-        reference_info = self._get_metadata_from_datasets("reference")
+        test_info = self._get_metadata_from_datasets(self.test_data)
+        reference_info = self._get_metadata_from_datasets(self.reference_data)
         return dataframe_utils.format_metadata(measure_key, test_info, reference_info)
 
     def get_frame(
@@ -209,9 +192,7 @@ class FuzzyComparison(Comparison):
     def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def _get_metadata_from_datasets(
-        self, dataset_key: Literal["test", "reference"]
-    ) -> dict[str, Any]:
+    def _get_metadata_from_datasets(self, dataset: RatioMeasurementData) -> dict[str, Any]:
         """Organize the data information into a dictionary for display by a styled pandas DataFrame.
         Apply formatting to values that need special handling.
 
@@ -224,19 +205,11 @@ class FuzzyComparison(Comparison):
         A dictionary containing the formatted data information.
 
         """
-        if dataset_key == "test":
-            source = self.test_source
-            dataframe = self.measure.get_measure_data_from_ratio(**self.test_datasets)
-        elif dataset_key == "reference":
-            source = self.reference_source
-            dataframe = self.reference_data
-        else:
-            raise ValueError("dataset must be either 'test' or 'reference'")
-
+        dataframe = dataset.measure_data
         data_info: dict[str, Any] = {}
 
         # Source as string
-        data_info["source"] = source.value
+        data_info["source"] = dataset.source.value
 
         # Index columns as comma-separated string
         index_cols = dataframe.index.names
@@ -263,33 +236,34 @@ class FuzzyComparison(Comparison):
     def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
         # Get union of test data index names
+        test_datasets = self.test_data.datasets
+        reference_datasets = self.reference_data.datasets
 
         combined_test_index_names = {
             index_name
-            for key in self.test_datasets
-            for index_name in self.test_datasets[key].index.names
+            for key in test_datasets
+            for index_name in test_datasets[key].index.names
         }
-        reference_index_names = set(self.reference_data.index.names)
-
+        reference_index_names = set(reference_datasets.index.names)
         # Get index levels that are only in the test data.
         test_only_indexes = combined_test_index_names - reference_index_names
         reference_only_indexes = reference_index_names - combined_test_index_names
         # Don't aggregate over the scenarios, yet, because we may need them to join the datasets.
         test_indexes_to_marginalize = test_only_indexes.difference(
-            tuple(self.test_scenarios.keys()), [DRAW_INDEX]
+            tuple(self.test_data.scenarios.keys()), [DRAW_INDEX]
         )
         reference_indexes_to_drop = reference_only_indexes.difference(
-            tuple(self.reference_scenarios.keys()), [DRAW_INDEX]
+            tuple(self.reference_data.scenarios.keys()), [DRAW_INDEX]
         )
 
         # If the test data has any index levels that are not in the reference data, marginalize
         # over those index levels.
         test_datasets = {
-            key: calculations.marginalize(
-                self.test_datasets[key], test_indexes_to_marginalize
-            )
-            for key in self.test_datasets
+            key: calculations.marginalize(test_datasets[key], test_indexes_to_marginalize)
+            for key in test_datasets
         }
+        ## HACK: We would rather handle this in the RatioMeasurementData class.
+        converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
 
         # Drop any singular index levels from the reference data if they are not in the test data.
         # If any ref-only index level is not singular, raise an error.
@@ -304,8 +278,6 @@ class FuzzyComparison(Comparison):
                 "We cannot currently marginalize over these index levels."
             )
         reference_data = self.reference_data.droplevel(list(reference_indexes_to_drop))
-
-        converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
 
         ## At this point, the only non-common index levels should be scenarios and draws.
         return converted_test_data, reference_data

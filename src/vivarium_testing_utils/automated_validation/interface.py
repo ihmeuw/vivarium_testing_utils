@@ -9,8 +9,10 @@ from matplotlib.figure import Figure
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import (
-    age_groups,
     measures,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.measurement_data import (
+    RatioMeasurementData,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CategoricalRelativeRisk,
@@ -152,29 +154,25 @@ class ValidationContext:
                     f"Each simulation comparison subject must choose a specific scenario. "
                     f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."
                 )
-
-        test_raw_datasets = self._get_raw_data_from_source(measure, test_source_enum)
-        test_datasets = measure.get_ratio_datasets_from_sim(
-            **test_raw_datasets,
+        test_data = RatioMeasurementData(
+            measure=measure,
+            source=test_source_enum,
+            data_loader=self._data_loader,
+            age_groups=self.age_groups,
+            scenarios=test_scenarios,
         )
-        test_datasets = {
-            dataset_name: age_groups.format_dataframe_from_age_bin_df(
-                dataset, self.age_groups
-            )
-            for dataset_name, dataset in test_datasets.items()
-        }
-        ref_raw_datasets = self._get_raw_data_from_source(measure, ref_source_enum)
-        ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
-        ref_data = age_groups.format_dataframe_from_age_bin_df(ref_data, self.age_groups)
+        ref_data = RatioMeasurementData(
+            measure=measure,
+            source=ref_source_enum,
+            data_loader=self._data_loader,
+            age_groups=self.age_groups,
+            scenarios=ref_scenarios,
+        )
 
         comparison = FuzzyComparison(
             measure=measure,
-            test_source=test_source_enum,
-            test_datasets=test_datasets,
-            reference_source=ref_source_enum,
+            test_data=test_data,
             reference_data=ref_data,
-            test_scenarios=test_scenarios,
-            reference_scenarios=ref_scenarios,
             stratifications=stratifications,
         )
         self.comparisons[measure.measure_key] = comparison
@@ -267,12 +265,3 @@ class ValidationContext:
             # relabel index level age_group_name to age_group
 
         return age_groups.rename_axis(index={"age_group_name": "age_group"})
-
-    def _get_raw_data_from_source(
-        self, measure: Measure, source: DataSource
-    ) -> dict[str, pd.DataFrame]:
-        """Get the raw datasets from the given source."""
-        return {
-            dataset_name: self._data_loader.get_data(data_key, source)
-            for dataset_name, data_key in measure.get_required_datasets(source).items()
-        }
