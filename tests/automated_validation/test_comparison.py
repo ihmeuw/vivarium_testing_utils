@@ -6,7 +6,6 @@ from pandas.testing import assert_frame_equal
 from pytest_check import check
 
 from vivarium_testing_utils.automated_validation.comparison import (
-    DataSource,
     FuzzyComparison,
 )
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
@@ -17,7 +16,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_bundle
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     RatioMeasure,
 )
-
+from vivarium_testing_utils.automated_validation.constants import DataSource
+from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 
 @pytest.fixture
 def test_data() -> dict[str, pd.DataFrame]:
@@ -49,6 +49,14 @@ def reference_data() -> pd.DataFrame:
 
 
 @pytest.fixture
+def age_group_df() -> pd.DataFrame:
+    """Create a simple age group DataFrame for testing."""
+    return pd.DataFrame(
+        {"age_start": [0], "age_end": [5]}, index=pd.Index(["0_to_5"], name="age_group")
+    ).set_index(["age_start", "age_end"], append=True)
+
+
+@pytest.fixture
 def mock_ratio_measure() -> RatioMeasure:
     """Create generic mock RatioMeasure for testing."""
     # Create mock formatters
@@ -62,48 +70,77 @@ def mock_ratio_measure() -> RatioMeasure:
     measure.measure_key = "mock_measure"
     measure.numerator = mock_numerator
     measure.denominator = mock_denominator
+    measure.sim_datasets = {
+        "numerator_data": "numerator_data",
+        "denominator_data": "denominator_data",
+    }
+    measure.artifact_datasets = {"data": "data"}
     measure.get_measure_data_from_ratio.side_effect = calculations.ratio
+    measure.get_ratio_datasets_from_sim.side_effect = lambda **datasets: datasets
+    measure.get_measure_data_from_artifact.side_effect = lambda data: data
     return measure
 
 
 @pytest.fixture
-def mock_test_data(
-    mock_ratio_measure: RatioMeasure, test_data: dict[str, pd.DataFrame]
-) -> RatioMeasureDataBundle:
-    """Create a mock RatioMeasurementData object for test data."""
-    mock_data = mock.Mock(spec=RatioMeasureDataBundle)
-    mock_data.measure = mock_ratio_measure
-    mock_data.source = DataSource.SIM
-    mock_data.datasets = test_data
-    mock_data.scenarios = {"scenario": "baseline"}
-    mock_data.measure_data = calculations.ratio(**test_data)
-    return mock_data
+def mock_dataloader(
+    test_data: dict[str, pd.DataFrame], reference_data: pd.DataFrame
+) -> DataLoader:
+    """Create a mock DataLoader that returns test data for SIM source."""
+    mock_loader = mock.Mock(spec=DataLoader)
+
+    def mock_get_bulk_data(source, data_keys):
+        if source == DataSource.SIM:
+            return test_data
+        elif source == DataSource.ARTIFACT:
+            return {"data": reference_data}
+        else:
+            return {}
+
+    mock_loader.get_bulk_data.side_effect = mock_get_bulk_data
+    return mock_loader
 
 
 @pytest.fixture
-def mock_reference_data(
-    mock_ratio_measure: RatioMeasure, reference_data: pd.DataFrame
+def test_data_bundle(
+    mock_ratio_measure: RatioMeasure,
+    mock_dataloader: DataLoader,
+    age_group_df: pd.DataFrame,
 ) -> RatioMeasureDataBundle:
-    """Create a mock RatioMeasurementData object for reference data."""
-    mock_data = mock.Mock(spec=RatioMeasureDataBundle)
-    mock_data.measure = mock_ratio_measure
-    mock_data.source = DataSource.GBD
-    mock_data.datasets = {"data": reference_data}
-    mock_data.scenarios = {}
-    mock_data.measure_data = reference_data
-    return mock_data
+    """Create a RatioMeasureDataBundle object for test data."""
+    return RatioMeasureDataBundle(
+        measure=mock_ratio_measure,
+        source=DataSource.SIM,
+        data_loader=mock_dataloader,
+        age_group_df=age_group_df,
+        scenarios={"scenario": "baseline"},
+    )
+
+
+@pytest.fixture
+def reference_data_bundle(
+    mock_ratio_measure: RatioMeasure,
+    mock_dataloader: DataLoader,
+    age_group_df: pd.DataFrame,
+) -> RatioMeasureDataBundle:
+    """Create a RatioMeasureDataBundle object for reference data."""
+    return RatioMeasureDataBundle(
+        measure=mock_ratio_measure,
+        source=DataSource.ARTIFACT,
+        data_loader=mock_dataloader,
+        age_group_df=age_group_df,
+    )
 
 
 def test_fuzzy_comparison_init(
     mock_ratio_measure: RatioMeasure,
-    mock_test_data: RatioMeasureDataBundle,
-    mock_reference_data: RatioMeasureDataBundle,
+    test_data_bundle: RatioMeasureDataBundle,
+    reference_data_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the initialization of the FuzzyComparison class."""
     comparison = FuzzyComparison(
         measure=mock_ratio_measure,
-        test_data=mock_test_data,
-        reference_data=mock_reference_data,
+        test_data=test_data_bundle,
+        reference_data=reference_data_bundle,
         stratifications=[],
     )
 
@@ -111,7 +148,7 @@ def test_fuzzy_comparison_init(
         assert comparison.measure == mock_ratio_measure
         assert comparison.test_data.source == DataSource.SIM
         assert comparison.test_data.datasets.keys() == {"numerator_data", "denominator_data"}
-        assert comparison.reference_data.source == DataSource.GBD
+        assert comparison.reference_data.source == DataSource.ARTIFACT
         assert comparison.test_data.scenarios == {"scenario": "baseline"}
         assert comparison.reference_data.scenarios == {}
         assert list(comparison.stratifications) == []
@@ -119,21 +156,21 @@ def test_fuzzy_comparison_init(
 
 def test_fuzzy_comparison_metadata(
     mock_ratio_measure: RatioMeasure,
-    mock_test_data: RatioMeasureDataBundle,
-    mock_reference_data: RatioMeasureDataBundle,
+    test_data_bundle: RatioMeasureDataBundle,
+    reference_data_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the metadata property of the FuzzyComparison class."""
     comparison = FuzzyComparison(
         measure=mock_ratio_measure,
-        test_data=mock_test_data,
-        reference_data=mock_reference_data,
+        test_data=test_data_bundle,
+        reference_data=reference_data_bundle,
     )
 
     metadata = comparison.metadata
 
     expected_metadata = [
         ("Measure Key", "mock_measure", "mock_measure"),
-        ("Source", "sim", "gbd"),
+        ("Source", "sim", "artifact"),
         (
             "Index Columns",
             "year, sex, age, input_draw, random_seed, scenario",
@@ -154,14 +191,14 @@ def test_fuzzy_comparison_metadata(
 
 def test_fuzzy_comparison_get_frame(
     mock_ratio_measure: RatioMeasure,
-    mock_test_data: RatioMeasureDataBundle,
-    mock_reference_data: RatioMeasureDataBundle,
+    test_data_bundle: RatioMeasureDataBundle,
+    reference_data_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the get_frame method of the FuzzyComparison class."""
     comparison = FuzzyComparison(
         measure=mock_ratio_measure,
-        test_data=mock_test_data,
-        reference_data=mock_reference_data,
+        test_data=test_data_bundle,
+        reference_data=reference_data_bundle,
     )
 
     diff = comparison.get_frame(stratifications=[], num_rows=1)
@@ -202,14 +239,14 @@ def test_fuzzy_comparison_get_frame(
 
 def test_fuzzy_comparison_get_frame_aggregated(
     mock_ratio_measure: RatioMeasure,
-    mock_test_data: RatioMeasureDataBundle,
-    mock_reference_data: RatioMeasureDataBundle,
+    test_data_bundle: RatioMeasureDataBundle,
+    reference_data_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the get_frame method of the FuzzyComparison class with aggregated draws."""
     comparison = FuzzyComparison(
         measure=mock_ratio_measure,
-        test_data=mock_test_data,
-        reference_data=mock_reference_data,
+        test_data=test_data_bundle,
+        reference_data=reference_data_bundle,
     )
     diff = comparison.get_frame(stratifications=[], num_rows="all", aggregate_draws=True)
     expected_df = pd.DataFrame(
@@ -235,8 +272,8 @@ def test_fuzzy_comparison_get_frame_aggregated(
 
 def test_fuzzy_comparison_init_with_stratifications(
     mock_ratio_measure: RatioMeasure,
-    mock_test_data: RatioMeasureDataBundle,
-    mock_reference_data: RatioMeasureDataBundle,
+    test_data_bundle: RatioMeasureDataBundle,
+    reference_data_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test that FuzzyComparison raises NotImplementedError when initialized with non-empty stratifications."""
     with pytest.raises(
@@ -244,22 +281,22 @@ def test_fuzzy_comparison_init_with_stratifications(
     ):
         FuzzyComparison(
             measure=mock_ratio_measure,
-            test_data=mock_test_data,
-            reference_data=mock_reference_data,
+            test_data=test_data_bundle,
+            reference_data=reference_data_bundle,
             stratifications=["year"],
         )
 
 
 def test_fuzzy_comparison_get_frame_with_stratifications(
     mock_ratio_measure: RatioMeasure,
-    mock_test_data: RatioMeasureDataBundle,
-    mock_reference_data: RatioMeasureDataBundle,
+    test_data_bundle: RatioMeasureDataBundle,
+    reference_data_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test that FuzzyComparison.get_frame raises NotImplementedError when called with non-empty stratifications."""
     comparison = FuzzyComparison(
         measure=mock_ratio_measure,
-        test_data=mock_test_data,
-        reference_data=mock_reference_data,
+        test_data=test_data_bundle,
+        reference_data=reference_data_bundle,
     )
 
     with pytest.raises(
@@ -270,64 +307,18 @@ def test_fuzzy_comparison_get_frame_with_stratifications(
 
 def test_fuzzy_comparison_verify_not_implemented(
     mock_ratio_measure: RatioMeasure,
-    mock_test_data: RatioMeasureDataBundle,
-    mock_reference_data: RatioMeasureDataBundle,
+    test_data_bundle: RatioMeasureDataBundle,
+    reference_data_bundle: RatioMeasureDataBundle,
 ) -> None:
     """ "FuzzyComparison.verify() is not implemented."""
     comparison = FuzzyComparison(
         measure=mock_ratio_measure,
-        test_data=mock_test_data,
-        reference_data=mock_reference_data,
+        test_data=test_data_bundle,
+        reference_data=reference_data_bundle,
     )
 
     with pytest.raises(NotImplementedError):
         comparison.verify()
-
-
-def test_get_metadata_from_dataset(
-    mock_ratio_measure: RatioMeasure,
-    mock_test_data: RatioMeasureDataBundle,
-    mock_reference_data: RatioMeasureDataBundle,
-) -> None:
-    """Test we can extract metadata from a dataframe with draws."""
-    comparison = FuzzyComparison(
-        measure=mock_ratio_measure,
-        test_data=mock_test_data,
-        reference_data=mock_reference_data,
-    )
-    result = comparison._get_metadata_from_datasets(mock_test_data)
-    with check:
-        assert result["source"] == DataSource.SIM.value
-        assert result["index_columns"] == "year, sex, age, input_draw, random_seed, scenario"
-        assert (
-            result["size"] == "4 rows × 1 columns"
-        )  # 2 years * 2 sexes * 3 draws * 2 seeds = 24 rows, 1 column
-        assert result["num_draws"] == "3"
-        assert result["input_draws"] == "[1, 2, 5]"
-        assert result["num_seeds"] == "3"
-
-
-def test_get_metadata_from_dataset_no_draws(
-    mock_ratio_measure: RatioMeasure,
-    mock_test_data: RatioMeasureDataBundle,
-    mock_reference_data: RatioMeasureDataBundle,
-) -> None:
-    """Test we can extract metadata from a dataframe with draws."""
-    comparison = FuzzyComparison(
-        measure=mock_ratio_measure,
-        test_data=mock_test_data,
-        reference_data=mock_reference_data,
-    )
-    result = comparison._get_metadata_from_datasets(mock_reference_data)
-    with check:
-        assert result["source"] == DataSource.GBD.value
-        assert result["index_columns"] == "year, sex, age"
-        assert (
-            result["size"] == "3 rows × 1 columns"
-        )  # 2 years * 2 sexes * 3 ages = 12 rows, 1 column
-        assert "num_draws" not in result
-        assert "input_draws" not in result
-        assert "num_seeds" not in result
 
 
 def test_fuzzy_comparison_align_datasets_with_singular_reference_index(

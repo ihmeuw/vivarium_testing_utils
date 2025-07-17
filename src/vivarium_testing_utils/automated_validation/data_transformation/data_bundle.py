@@ -43,7 +43,7 @@ class RatioMeasureDataBundle:
         datasets = self._transform_data(datasets)
         datasets = age_groups.format_bulk_from_df(datasets, age_group_df)
         self.datasets = {
-            key: calculations.filter_data(dataset, scenarios, drop_singles=False)
+            key: calculations.filter_data(dataset, self.scenarios, drop_singles=False)
             for key, dataset in datasets.items()
         }
 
@@ -83,10 +83,6 @@ class RatioMeasureDataBundle:
         """Organize the data information into a dictionary for display by a styled pandas DataFrame.
         Apply formatting to values that need special handling.
 
-        Parameters:
-        -----------
-        dataset
-            The dataset to get the metadata from. Either "test" or "reference".
         Returns:
         --------
         A dictionary containing the formatted data information.
