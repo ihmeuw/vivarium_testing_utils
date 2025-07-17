@@ -237,14 +237,14 @@ class FuzzyComparison(Comparison):
         """Resolve any index mismatches between the test and reference datasets."""
         # Get union of test data index names
         test_datasets = self.test_data.datasets
-        reference_datasets = self.reference_data.datasets
+        reference_data = self.reference_data.measure_data
 
         combined_test_index_names = {
             index_name
             for key in test_datasets
             for index_name in test_datasets[key].index.names
         }
-        reference_index_names = set(reference_datasets.index.names)
+        reference_index_names = set(reference_data.index.names)
         # Get index levels that are only in the test data.
         test_only_indexes = combined_test_index_names - reference_index_names
         reference_only_indexes = reference_index_names - combined_test_index_names
@@ -267,9 +267,7 @@ class FuzzyComparison(Comparison):
 
         # Drop any singular index levels from the reference data if they are not in the test data.
         # If any ref-only index level is not singular, raise an error.
-        redundant_ref_indexes = set(
-            calculations.get_singular_indices(self.reference_data).keys()
-        )
+        redundant_ref_indexes = set(calculations.get_singular_indices(reference_data).keys())
         if not reference_indexes_to_drop.issubset(redundant_ref_indexes):
             # TODO: MIC-6075
             diff = reference_indexes_to_drop - redundant_ref_indexes
@@ -277,7 +275,7 @@ class FuzzyComparison(Comparison):
                 f"Reference data has non-trivial index levels {diff} that are not in the test data. "
                 "We cannot currently marginalize over these index levels."
             )
-        reference_data = self.reference_data.droplevel(list(reference_indexes_to_drop))
+        reference_data = reference_data.droplevel(list(reference_indexes_to_drop))
 
         ## At this point, the only non-common index levels should be scenarios and draws.
         return converted_test_data, reference_data

@@ -83,11 +83,17 @@ def sample_comparison(
         return_value=(sample_test_data, sample_ref_data)
     )
 
-    # Set up sources
-    mock_comparison.test_source = DataSource.SIM
-    mock_comparison.test_scenarios = {"scenario": "baseline"}
-    mock_comparison.reference_source = DataSource.ARTIFACT
-    mock_comparison.reference_scenarios = {}
+    # Create mock test_data and reference_data objects
+    mock_test_data = mocker.Mock()
+    mock_test_data.source = DataSource.SIM
+    mock_test_data.scenarios = {"scenario": "baseline"}
+    
+    mock_reference_data = mocker.Mock()
+    mock_reference_data.source = DataSource.ARTIFACT
+    mock_reference_data.scenarios = {}
+
+    mock_comparison.test_data = mock_test_data
+    mock_comparison.reference_data = mock_reference_data
 
     # Set up measure
     mock_comparison.measure = mocker.Mock()

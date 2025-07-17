@@ -76,6 +76,7 @@ class RatioMeasurementData:
         else:
             raise ValueError(f"Unsupported data source: {self.source}")
 
+    @staticmethod
     def _format_age_groups(
         datasets: dict[str, pd.DataFrame], age_groups_df: pd.DataFrame
     ) -> dict[str, pd.DataFrame]:
