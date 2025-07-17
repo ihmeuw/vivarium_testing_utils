@@ -8,6 +8,7 @@ from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
+from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 
 
 def test_context_initialization(

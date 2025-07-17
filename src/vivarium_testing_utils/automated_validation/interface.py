@@ -158,14 +158,14 @@ class ValidationContext:
             measure=measure,
             source=test_source_enum,
             data_loader=self._data_loader,
-            age_groups=self.age_groups,
+            age_group_df=self.age_groups,
             scenarios=test_scenarios,
         )
         ref_data = RatioMeasureDataBundle(
             measure=measure,
             source=ref_source_enum,
             data_loader=self._data_loader,
-            age_groups=self.age_groups,
+            age_group_df=self.age_groups,
             scenarios=ref_scenarios,
         )
 
