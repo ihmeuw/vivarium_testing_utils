@@ -1,3 +1,7 @@
+**0.2.4 - TBD**
+
+ - Use vivarium_build_utils centralized dependencies
+
 **0.2.3 - 07/16/25**
 
  - Support pinning of vivarium_build_utils; pin vivarium_build_utils>=1.1.0,<2.0.0
