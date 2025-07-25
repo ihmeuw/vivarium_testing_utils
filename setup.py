@@ -53,14 +53,23 @@ if __name__ == "__main__":
         "tables",
         "networkx",
         "loguru",
+        "seaborn",
         # Type stubs
         "pandas-stubs<=2.2.3.250308",
         "networkx-stubs",
+        "scipy-stubs",
         "types-docutils",
         "types-setuptools",
+        "types-PyYAML",
     ]
 
     setup_requires = ["setuptools_scm"]
+
+    validation_requirements = [
+        "vivarium>=3.4.0",
+        "vivarium-inputs",
+        "pandera",
+    ]
 
     interactive_requirements = [
         "IPython",
@@ -68,11 +77,7 @@ if __name__ == "__main__":
         "jupyter",
     ]
 
-    test_requirements = [
-        "pytest",
-        "pytest-mock",
-        "pytest-cov",
-    ]
+    test_requirements = ["pytest", "pytest-mock", "pytest-cov", "pytest-check"]
 
     doc_requirements = [
         "sphinx>=4.0",
@@ -127,10 +132,12 @@ if __name__ == "__main__":
             "docs": doc_requirements,
             "test": test_requirements,
             "interactive": interactive_requirements,
+            "validation": validation_requirements,
             "dev": doc_requirements
             + test_requirements
             + interactive_requirements
-            + lint_requirements,
+            + lint_requirements
+            + validation_requirements,
         },
         # entry_points="""
         #         [console_scripts]
