@@ -44,15 +44,10 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
+        "vivarium_dependencies[pandas,pyyaml,scipy,click,tables,loguru]",
         "vivarium_build_utils>=2.0.1,<3.0.0",
         "numpy",
-        "pandas",
-        "pyyaml>=5.1",
-        "scipy",
-        "click",
-        "tables",
         "networkx",
-        "loguru",
         # Type stubs
         "pandas-stubs<=2.2.3.250308",
         "networkx-stubs",
@@ -63,30 +58,24 @@ if __name__ == "__main__":
     setup_requires = ["setuptools_scm"]
 
     interactive_requirements = [
-        "IPython",
+        "vivarium_dependencies[ipython]",
         "ipywidgets",
         "jupyter",
     ]
 
     test_requirements = [
-        "pytest",
-        "pytest-mock",
-        "pytest-cov",
+        "vivarium_dependencies[testing]",
     ]
 
     doc_requirements = [
+        "vivarium_dependencies[sphinx-rtd-theme,sphinx-click,plotting]",
         "sphinx>=4.0",
-        "sphinx-rtd-theme",
-        "sphinx-click",
-        "IPython",
-        "matplotlib",
         "docutils",
     ]
 
     lint_requirements = [
-        "black==22.3.0",
+        "vivarium_dependencies[black,mypy]",
         "isort",
-        "mypy",
     ]
 
     setup(
