@@ -114,10 +114,6 @@ if __name__ == "__main__":
             + interactive_requirements
             + lint_requirements,
         },
-        # entry_points="""
-        #         [console_scripts]
-        #         simulate=vivarium.interface.cli:simulate
-        #     """,
         zip_safe=False,
         use_scm_version={
             "write_to": "src/vivarium_testing_utils/_version.py",
