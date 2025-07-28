@@ -44,14 +44,10 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
-        "vivarium_dependencies[pandas,pyyaml,scipy,click,tables,loguru]",
+        "vivarium_dependencies[pandas,pyyaml,scipy,click,tables,loguru,networkx]",
         "vivarium_build_utils>=2.0.1,<3.0.0",
         "numpy",
-        "networkx",
         # Type stubs
-        "pandas-stubs<=2.2.3.250308",
-        "networkx-stubs",
-        "types-docutils",
         "types-setuptools",
     ]
 
@@ -68,9 +64,8 @@ if __name__ == "__main__":
     ]
 
     doc_requirements = [
-        "vivarium_dependencies[sphinx-rtd-theme,sphinx-click,plotting]",
+        "vivarium_dependencies[sphinx-rtd-theme,sphinx-click,plotting,docutils]",
         "sphinx>=4.0",
-        "docutils",
     ]
 
     lint_requirements = [
