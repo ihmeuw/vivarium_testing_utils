@@ -77,7 +77,7 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
     return numerator_data / denominator_data
 
 
-def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str]) -> pd.DataFrame:
+def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str] | None = None) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
     if not groupby_cols:
         return data
@@ -131,3 +131,27 @@ def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
         if data.index.get_level_values(index_level).nunique() == 1:
             singular_metadata[index_level] = data.index.get_level_values(index_level)[0]
     return singular_metadata
+
+
+def weighted_average(
+    data: pd.DataFrame, weights: pd.DataFrame, strata: list[str] | None = None
+) -> pd.Series[float | int]:
+    """Calculate a weighted average of the data using the provided weights.
+
+    Parameters
+    ----------
+    data
+        DataFrame with the values to average.
+    weights
+        DataFrame with the weights to apply to the values in data.
+    strata
+        Optional iterable of column names to use for stratification.
+
+    Returns
+    -------
+        DataFrame with the weighted average values.
+    """
+    aggregate_data = aggregate_sum(data, strata)
+    aggregate_weights = aggregate_sum(weights, strata)
+
+    return (aggregate_data * aggregate_weights).sum() / aggregate_weights.sum()

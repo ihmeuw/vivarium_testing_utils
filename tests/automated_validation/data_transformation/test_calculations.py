@@ -7,6 +7,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     filter_data,
     linear_combination,
     ratio,
+    weighted_average,
 )
 
 
@@ -195,3 +196,18 @@ def test_aggregate_sum_preserves_string_order() -> None:
     result = aggregate_sum(df, ["category"])
     expected_order = pd.Index(["c", "a", "d", "b"], name="category")
     assert list(result.index) == list(expected_order)
+
+
+@pytest.mark.parametrize("strata", [None, ["location"], ["location", "sex"]])
+def test_weighted_average(strata: list[str] | None, filter_test_data: pd.DataFrame) -> None:
+    weights = filter_test_data.copy() - 1
+    sum_data = (
+        filter_test_data.groupby(strata, sort=False, observed=True).sum()
+        if strata
+        else filter_test_data.copy()
+    )
+    sum_weights = (
+        weights.groupby(strata, sort=False, observed=True).sum() if strata else weights.copy()
+    )
+    result = weighted_average(filter_test_data, weights, strata)
+    assert (result == (sum_data * sum_weights).sum() / sum_weights.sum()).all()
