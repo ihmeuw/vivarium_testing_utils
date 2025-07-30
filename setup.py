@@ -62,13 +62,11 @@ if __name__ == "__main__":
     ]
 
     doc_requirements = [
-        "vivarium_dependencies[sphinx-rtd-theme,sphinx-click,interactive,docutils]",
-        "sphinx>=4.0",
+        "vivarium_dependencies[sphinx,sphinx-click,ipython,matplotlib,docutils]",
     ]
 
     lint_requirements = [
-        "vivarium_dependencies[black,mypy]",
-        "isort",
+        "vivarium_dependencies[lint]",
     ]
 
     setup(
