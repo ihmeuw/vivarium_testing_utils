@@ -77,7 +77,7 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
     return numerator_data / denominator_data
 
 
-def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str] | None = None) -> pd.DataFrame:
+def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str] = []) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
     if not groupby_cols:
         return data
@@ -134,7 +134,7 @@ def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
 
 
 def weighted_average(
-    data: pd.DataFrame, weights: pd.DataFrame, strata: list[str] | None = None
+    data: pd.DataFrame, weights: pd.DataFrame, stratifications: list[str] = []
 ) -> pd.Series[float | int]:
     """Calculate a weighted average of the data using the provided weights.
 
@@ -144,14 +144,45 @@ def weighted_average(
         DataFrame with the values to average.
     weights
         DataFrame with the weights to apply to the values in data.
-    strata
-        Optional iterable of column names to use for stratification.
+    stratifications
+        List of column names to use for stratification.
 
     Returns
     -------
-        DataFrame with the weighted average values.
+        Pandas series with the weighted average values. If the index of data and weights have
+        different levels, the function will boradcast the weighted average. For example, if
+        the following data and weights are provided:
+        data = pd.DataFrame({"value": [10, 20, 30, 40]}, index=pd.MultiIndex.from_tuples(
+            ("location_1", "sex_1", "age_1"),
+            ("location_1", "sex_1", "age_2"),
+            ("location_1", "sex_2", "age_1"),
+            ("location_1", "sex_2", "age_2"),
+        ))
+        weights = pd.DataFrame({"value": [1, 2, 3, 4]}, index=pd.MultiIndex.from_tuples(
+            ("location_1", "sex_1")
+            ("location_1", "sex_1"),
+            ("location_1", "sex_2"),
+            ("location_1", "sex_2"),
+        ))
+        a pandas series would still be returned where the value column will just be broadcasted
+        across the stratifications.
+
     """
-    aggregate_data = aggregate_sum(data, strata)
-    aggregate_weights = aggregate_sum(weights, strata)
+    # Check that index levels are compatible (at least subsets of each other)
+    data_index_names = set(data.index.names)
+    weights_index_names = set(weights.index.names)
+
+    if not (
+        data_index_names.issubset(weights_index_names)
+        or weights_index_names.issubset(data_index_names)
+    ):
+        raise ValueError(
+            f"Index levels of data and weights must be subsets of each other. "
+            f"Data index levels: {list(data.index.names)}, "
+            f"Weights index levels: {list(weights.index.names)}"
+        )
+
+    aggregate_data = aggregate_sum(data, stratifications)
+    aggregate_weights = aggregate_sum(weights, stratifications)
 
     return (aggregate_data * aggregate_weights).sum() / aggregate_weights.sum()

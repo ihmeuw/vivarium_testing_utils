@@ -198,16 +198,41 @@ def test_aggregate_sum_preserves_string_order() -> None:
     assert list(result.index) == list(expected_order)
 
 
-@pytest.mark.parametrize("strata", [None, ["location"], ["location", "sex"]])
-def test_weighted_average(strata: list[str] | None, filter_test_data: pd.DataFrame) -> None:
+@pytest.mark.parametrize("stratifications", [[], ["location"], ["location", "sex"]])
+def test_weighted_average(
+    stratifications: list[str] | None, filter_test_data: pd.DataFrame
+) -> None:
     weights = filter_test_data.copy() - 1
     sum_data = (
-        filter_test_data.groupby(strata, sort=False, observed=True).sum()
-        if strata
+        filter_test_data.groupby(stratifications, sort=False, observed=True).sum()
+        if stratifications
         else filter_test_data.copy()
     )
     sum_weights = (
-        weights.groupby(strata, sort=False, observed=True).sum() if strata else weights.copy()
+        weights.groupby(stratifications, sort=False, observed=True).sum()
+        if stratifications
+        else weights.copy()
     )
-    result = weighted_average(filter_test_data, weights, strata)
+    result = weighted_average(filter_test_data, weights, stratifications)
+    breakpoint()
     assert (result == (sum_data * sum_weights).sum() / sum_weights.sum()).all()
+
+
+def test_weighted_average_different_index(filter_test_data: pd.DataFrame) -> None:
+    """Test weighted average with different index levels."""
+    weights = filter_test_data.copy() - 1
+    # Create a new DataFrame with a different index level
+    weights.index = weights.index.droplevel("sex")
+
+    # Test the weighted average calculation
+    result = weighted_average(filter_test_data, weights, ["location"])
+
+    # Manually calculate expected result
+    # Data aggregated by location: location_1: 100, location_2: 260
+    # Weights aggregated by location: location_1: 96, location_2: 256
+    # Weighted sum: (100 * 96) + (260 * 256) = 9600 + 66560 = 76160
+    # Total weights: 96 + 256 = 352
+    # Expected result: 76160 / 352 = 216.36363636363637
+    expected = pd.Series([216.36363636363637], index=pd.Index(["value"]))
+
+    pd.testing.assert_series_equal(result, expected)
