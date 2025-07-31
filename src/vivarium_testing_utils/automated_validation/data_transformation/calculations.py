@@ -150,7 +150,7 @@ def weighted_average(
     Returns
     -------
         Pandas series with the weighted average values. If the index of data and weights have
-        different levels, the function will boradcast the weighted average. For example, if
+        different levels, the function will broadcast the weighted average. For example, if
         the following data and weights are provided:
         data = pd.DataFrame({"value": [10, 20, 30, 40]}, index=pd.MultiIndex.from_tuples(
             ("location_1", "sex_1", "age_1"),
@@ -158,14 +158,15 @@ def weighted_average(
             ("location_1", "sex_2", "age_1"),
             ("location_1", "sex_2", "age_2"),
         ))
-        weights = pd.DataFrame({"value": [1, 2, 3, 4]}, index=pd.MultiIndex.from_tuples(
+        weights = pd.DataFrame({"value": [1, 2]}, index=pd.MultiIndex.from_tuples(
             ("location_1", "sex_1")
-            ("location_1", "sex_1"),
-            ("location_1", "sex_2"),
             ("location_1", "sex_2"),
         ))
         a pandas series would still be returned where the value column will just be broadcasted
         across the stratifications.
+        pd.Series(
+        
+        )
 
     """
     # Check that index levels are compatible (at least subsets of each other)

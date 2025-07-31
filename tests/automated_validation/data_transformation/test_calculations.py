@@ -54,6 +54,24 @@ def filter_test_data() -> pd.DataFrame:
     )
 
 
+@pytest.fixture
+def weights():
+    return pd.DataFrame(
+        {
+            "value": [1, 2, 3, 4],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("location_1", "sex_1", "age_1"),
+                ("location_1", "sex_1", "age_2"),
+                ("location_2", "sex_1", "age_1"),
+                ("location_2", "sex_1", "age_2"),
+            ],
+            names=["location", "sex", "age"],
+        ),
+    )
+
+
 @pytest.mark.parametrize(
     "filter_cols,drop_singles,expected_index_names,expected_values",
     [
