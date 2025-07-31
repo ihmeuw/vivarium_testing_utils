@@ -204,28 +204,43 @@ def test_weighted_average(filter_test_data: pd.DataFrame) -> None:
 
     # Test with no stratifications (overall weighted average)
     result_no_strat = weighted_average(filter_test_data, weights, [])
-    # Total data sum: 360, Total weights sum: 352, Weighted average: 360/1 = 360 (single value)
-    expected_no_strat = pd.Series([360.0], index=pd.Index(["value"]))
-    result_no_strat.equals(expected_no_strat)
+    # No aggregation: both data and weights keep original shape
+    # aggregate_data * aggregate_weights = elementwise multiplication of full DataFrames
+    # Then .sum() sums ALL values in the resulting DataFrame
+    # Numerator: (10*9 + 20*19 + 30*29 + 40*39 + 50*49 + 60*59 + 70*69 + 80*79) = 20040
+    # Denominator: (9+19+29+39+49+59+69+79) = 352
+    # Result: 20040 / 352 = 56.931818
+    expected_no_strat = pd.Series([20040 / 352], index=pd.Index(["value"]))
+    assert result_no_strat.equals(expected_no_strat)
 
     # Test with location stratification
     result_location = weighted_average(filter_test_data, weights, ["location"])
-    # Data by location: location_1: 100, location_2: 260
-    # Weights by location: location_1: 96, location_2: 256
-    # Weighted sum: (100 * 96) + (260 * 256) = 76160, Total weights: 352
+    # Data aggregated by location: location_1: 100, location_2: 260
+    # Weights aggregated by location: location_1: 96, location_2: 256
+    # aggregate_data * aggregate_weights = [100*96, 260*256] = [9600, 66560]
+    # Numerator: (9600 + 66560) = 76160
+    # Denominator: (96 + 256) = 352
     # Result: 76160 / 352 = 216.36363636363637
     expected_location = pd.Series([216.36363636363637], index=pd.Index(["value"]))
-    result_location.equals(expected_location)
+    assert result_location.equals(expected_location)
 
     # Test with location and sex stratification
     result_location_sex = weighted_average(filter_test_data, weights, ["location", "sex"])
-    # More granular calculation - each location/sex combination weighted
-    # This should return the same as no stratification since we're not actually stratifying at this level
-    expected_location_sex = pd.Series([360.0], index=pd.Index(["value"]))
-    result_location_sex.equals(expected_location_sex)
+    # Data by location/sex: (location_1,sex_1):30, (location_1,sex_2):70, (location_2,sex_1):110, (location_2,sex_2):150
+    # Weights by location/sex: (location_1,sex_1):28, (location_1,sex_2):68, (location_2,sex_1):108, (location_2,sex_2):148
+    # aggregate_data * aggregate_weights = [30*28, 70*68, 110*108, 150*148] = [840, 4760, 11880, 22200]
+    # Numerator: (840 + 4760 + 11880 + 22200) = 39680
+    # Denominator: (28 + 68 + 108 + 148) = 352
+    # Result: 39680 / 352 = 112.72727272727273
+    expected_location_sex = pd.Series([112.72727272727273], index=pd.Index(["value"]))
+    assert result_location_sex.equals(expected_location_sex)
+    # Denominator: 28 + 68 + 108 + 148 = 352
+    # Result: 39680 / 352 = 112.72727272727273
+    expected_location_sex = pd.Series([112.72727272727273], index=pd.Index(["value"]))
+    assert result_location_sex.equals(expected_location_sex)
 
 
-def test_weighted_average_different_index(filter_test_data: pd.DataFrame) -> None:
+def test_weighted_average_subset_index_levels(filter_test_data: pd.DataFrame) -> None:
     """Test weighted average with different index levels."""
     weights = filter_test_data.copy() - 1
     # Create a new DataFrame with a different index level
@@ -236,10 +251,10 @@ def test_weighted_average_different_index(filter_test_data: pd.DataFrame) -> Non
 
     # Manually calculate expected result
     # Data aggregated by location: location_1: 100, location_2: 260
-    # Weights aggregated by location: location_1: 96, location_2: 256
-    # Weighted sum: (100 * 96) + (260 * 256) = 9600 + 66560 = 76160
-    # Total weights: 96 + 256 = 352
-    # Expected result: 76160 / 352 = 216.36363636363637
+    # Weights aggregated by location: location_1: 96, location_2: 256 (same as before since weights were duplicated when sex level dropped)
+    # Numerator: (100 * 96) + (260 * 256) = 9600 + 66560 = 76160
+    # Denominator: 96 + 256 = 352
+    # Result: 76160 / 352 = 216.36363636363637
     expected = pd.Series([216.36363636363637], index=pd.Index(["value"]))
 
-    pd.testing.assert_series_equal(result, expected)
+    assert result.equals(expected)
