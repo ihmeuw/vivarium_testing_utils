@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -55,7 +57,7 @@ def filter_test_data() -> pd.DataFrame:
 
 
 @pytest.fixture
-def weights():
+def weights() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "value": [1, 2, 3, 4],
@@ -68,6 +70,25 @@ def weights():
                 ("location_2", "sex_1", "age_2"),
             ],
             names=["location", "sex", "age"],
+        ),
+    )
+
+
+@pytest.fixture
+def fish_data() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "weights": [20, 100, 2, 50],
+            "value": [2, 3, 5, 7],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("Male", "Red"),
+                ("Male", "Blue"),
+                ("Female", "Red"),
+                ("Female", "Blue"),
+            ],
+            names=["sex", "color"],
         ),
     )
 
@@ -216,63 +237,81 @@ def test_aggregate_sum_preserves_string_order() -> None:
     assert list(result.index) == list(expected_order)
 
 
-def test_weighted_average(filter_test_data: pd.DataFrame) -> None:
+@pytest.mark.parametrize(
+    "stratifications,expected_values,expected_index",
+    [
+        # Test aggregating by sex
+        (
+            ["sex"],
+            [
+                2.83,
+                6.92,
+            ],  # Male: (20*2 + 100*3)/(20+100) ≈ 2.83, Female: (2*5 + 50*7)/(2+50) ≈ 6.92
+            pd.Index(["Male", "Female"], name="sex"),
+        ),
+        # Test aggregating by color
+        (
+            ["color"],
+            [
+                2.27,
+                4.33,
+            ],  # Red: (20*2 + 2*5)/(20+2) ≈ 2.27, Blue: (100*3 + 50*7)/(100+50) ≈ 4.33
+            pd.Index(["Red", "Blue"], name="color"),
+        ),
+        # Test no aggregation - keeping all index levels
+        (
+            ["sex", "color"],
+            [2.0, 3.0, 5.0, 7.0],  # Original values
+            pd.MultiIndex.from_tuples(
+                [("Male", "Red"), ("Male", "Blue"), ("Female", "Red"), ("Female", "Blue")],
+                names=["sex", "color"],
+            ),
+        ),
+        # Test empty stratification list - should aggregate over all levels
+        (
+            [],
+            4.07,  # Overall weighted average: (20*2 + 100*3 + 2*5 + 50*7)/(20+100+2+50) = (40+300+10+350)/172 ≈ 4.07
+            pd.Index([0]),  # Default integer index when all levels are aggregated
+        ),
+    ],
+)
+def test_weighted_average(
+    fish_data: pd.DataFrame,
+    stratifications: list[str],
+    expected_values: list[float] | float,
+    expected_index: pd.Index[str] | pd.MultiIndex | pd.Index[int],
+) -> None:
     """Test weighted average with different stratification scenarios."""
-    weights = filter_test_data.copy() - 1
+    # Split fish_data into separate data and weights dataframes
+    data = pd.DataFrame({"value": fish_data["value"]}, index=fish_data.index)
+    weights = pd.DataFrame({"value": fish_data["weights"]}, index=fish_data.index)
 
-    # Test with no stratifications (overall weighted average)
-    result_no_strat = weighted_average(filter_test_data, weights, [])
-    # No aggregation: both data and weights keep original shape
-    # aggregate_data * aggregate_weights = elementwise multiplication of full DataFrames
-    # Then .sum() sums ALL values in the resulting DataFrame
-    # Numerator: (10*9 + 20*19 + 30*29 + 40*39 + 50*49 + 60*59 + 70*69 + 80*79) = 20040
-    # Denominator: (9+19+29+39+49+59+69+79) = 352
-    # Result: 20040 / 352 = 56.931818
-    expected_no_strat = pd.Series([20040 / 352], index=pd.Index(["value"]))
-    assert result_no_strat.equals(expected_no_strat)
-
-    # Test with location stratification
-    result_location = weighted_average(filter_test_data, weights, ["location"])
-    # Data aggregated by location: location_1: 100, location_2: 260
-    # Weights aggregated by location: location_1: 96, location_2: 256
-    # aggregate_data * aggregate_weights = [100*96, 260*256] = [9600, 66560]
-    # Numerator: (9600 + 66560) = 76160
-    # Denominator: (96 + 256) = 352
-    # Result: 76160 / 352 = 216.36363636363637
-    expected_location = pd.Series([216.36363636363637], index=pd.Index(["value"]))
-    assert result_location.equals(expected_location)
-
-    # Test with location and sex stratification
-    result_location_sex = weighted_average(filter_test_data, weights, ["location", "sex"])
-    # Data by location/sex: (location_1,sex_1):30, (location_1,sex_2):70, (location_2,sex_1):110, (location_2,sex_2):150
-    # Weights by location/sex: (location_1,sex_1):28, (location_1,sex_2):68, (location_2,sex_1):108, (location_2,sex_2):148
-    # aggregate_data * aggregate_weights = [30*28, 70*68, 110*108, 150*148] = [840, 4760, 11880, 22200]
-    # Numerator: (840 + 4760 + 11880 + 22200) = 39680
-    # Denominator: (28 + 68 + 108 + 148) = 352
-    # Result: 39680 / 352 = 112.72727272727273
-    expected_location_sex = pd.Series([112.72727272727273], index=pd.Index(["value"]))
-    assert result_location_sex.equals(expected_location_sex)
-    # Denominator: 28 + 68 + 108 + 148 = 352
-    # Result: 39680 / 352 = 112.72727272727273
-    expected_location_sex = pd.Series([112.72727272727273], index=pd.Index(["value"]))
-    assert result_location_sex.equals(expected_location_sex)
+    # Test weighted average calculation
+    result = weighted_average(data, weights, stratifications)
+    if isinstance(result, float):
+        assert np.isclose(result, expected_values, rtol=1e-2)
+    else:
+        expected = pd.DataFrame(
+            {"value": expected_values},
+            index=expected_index,
+        )
+        pd.testing.assert_frame_equal(result, expected, rtol=1e-2)
 
 
-def test_weighted_average_subset_index_levels(filter_test_data: pd.DataFrame) -> None:
-    """Test weighted average with different index levels."""
-    weights = filter_test_data.copy() - 1
-    # Create a new DataFrame with a different index level
-    weights.index = weights.index.droplevel("sex")
+def test_weighted_average_subset_index_fails(fish_data: pd.DataFrame) -> None:
+    """Test weighted average when weights DataFrame has fewer index levels than data DataFrame."""
+    # Split fish_data into separate data and weights dataframes
+    data = pd.DataFrame({"value": fish_data["value"]}, index=fish_data.index)
+    weights = pd.DataFrame({"value": fish_data["weights"]}, index=fish_data.index)
 
-    # Test the weighted average calculation
-    result = weighted_average(filter_test_data, weights, ["location"])
+    # Remove the color index level from weights - aggregate weights by sex
+    weights.index = weights.index.droplevel("color")
+    # This should give us:
+    # sex
+    # Male      120  (20 + 100)
+    # Female     52  (2 + 50)
 
-    # Manually calculate expected result
-    # Data aggregated by location: location_1: 100, location_2: 260
-    # Weights aggregated by location: location_1: 96, location_2: 256 (same as before since weights were duplicated when sex level dropped)
-    # Numerator: (100 * 96) + (260 * 256) = 9600 + 66560 = 76160
-    # Denominator: 96 + 256 = 352
-    # Result: 76160 / 352 = 216.36363636363637
-    expected = pd.Series([216.36363636363637], index=pd.Index(["value"]))
-
-    assert result.equals(expected)
+    # Test that weighted_average works with subset index
+    # When grouping by sex, it should broadcast the weights appropriately
+    with pytest.raises(ValueError, match="Data and weights must have the same index levels"):
+        weighted_average(data, weights, ["sex"])
