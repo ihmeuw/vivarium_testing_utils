@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Callable, TypeVar
 
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 F = TypeVar("F", bound=Callable[..., Any])
 
