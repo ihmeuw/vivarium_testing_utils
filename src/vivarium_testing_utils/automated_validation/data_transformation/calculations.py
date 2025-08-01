@@ -133,6 +133,10 @@ def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
     return singular_metadata
 
 
+@utils.check_io(
+    data=SingleNumericColumn,
+    weights=SingleNumericColumn,
+)
 def weighted_average(
     data: pd.DataFrame, weights: pd.DataFrame, stratifications: list[str] = []
 ) -> pd.DataFrame | float:
@@ -149,7 +153,7 @@ def weighted_average(
     Raises
         ------
         ValueError
-            If data and weights do not have the same index.
+            If data and weights do not have the same index
 
     Returns
     -------
@@ -203,8 +207,8 @@ def weighted_average(
 
     if not stratifications:
         # Return a single float value instead of a one row pandas series
-        single_weight: float = ((data.mul(weights).sum()) / weights.sum())[0]
-        return single_weight
+        return float(((data.mul(weights).sum()) / weights.sum()).item())
+
     numerator = (
         data.mul(weights).groupby(level=stratifications, sort=False, observed=True).sum()
     )
