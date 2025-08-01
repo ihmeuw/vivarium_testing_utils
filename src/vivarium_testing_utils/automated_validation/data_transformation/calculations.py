@@ -77,7 +77,7 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
     return numerator_data / denominator_data
 
 
-def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str]) -> pd.DataFrame:
+def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str] = []) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
     if not groupby_cols:
         return data
@@ -131,3 +131,88 @@ def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
         if data.index.get_level_values(index_level).nunique() == 1:
             singular_metadata[index_level] = data.index.get_level_values(index_level)[0]
     return singular_metadata
+
+
+@utils.check_io(
+    data=SingleNumericColumn,
+    weights=SingleNumericColumn,
+)
+def weighted_average(
+    data: pd.DataFrame, weights: pd.DataFrame, stratifications: list[str] = []
+) -> pd.DataFrame | float:
+    """Calculate a weighted average of the data using the provided weights.
+
+    Parameters
+    ----------
+    data
+        DataFrame with the values to average. Must have a 'value' column.
+    weights
+        DataFrame with the weights to apply to the values in data. Must have a 'value' column.
+    stratifications
+        List of index level names to use for stratification/grouping.
+    Raises
+        ------
+        ValueError
+            If data and weights do not have the same index
+
+    Returns
+    -------
+        Pandas DataFrame with the weighted average values for each stratification group.
+
+    Examples
+    --------
+
+    >>> fish_data = pd.DataFrame(
+    ...     {
+    ...         "weights": [20, 100, 2, 50],
+    ...         "value": [2, 3, 5, 7],
+    ...     },
+    ...     index=pd.MultiIndex.from_tuples([
+    ...         ("Male", "Red"),
+    ...         ("Male", "Blue"),
+    ...         ("Female", "Red"),
+    ...         ("Female", "Blue"),
+    ...     ], names=["sex", "color"])
+    ... )
+    >>> data = pd.DataFrame({"value": fish_data["value"]}, index=fish_data.index)
+    >>> weights = pd.DataFrame({"value": fish_data["weights"]}, index=fish_data.index)
+
+    # Weighted average by sex:
+    >>> weighted_average(data, weights, ["sex"])
+    # Returns:
+    #         value
+    # sex
+    # Male     2.83  # (20*2 + 100*3)/(20+100) = 340/120 ≈ 2.83
+    # Female   6.92  # (2*5 + 50*7)/(2+50) = 360/52 ≈ 6.92
+
+    # Weighted average by color:
+    >>> weighted_average(data, weights, ["color"])
+    # Returns:
+    #        value
+    # color
+    # Red     2.27  # (20*2 + 2*5)/(20+2) = 50/22 ≈ 2.27
+    # Blue    4.33  # (100*3 + 50*7)/(100+50) = 650/150 ≈ 4.33
+
+    # Overall weighted average (no stratification):
+    >>> weighted_average(data, weights, [])
+    # Returns: 3.55  # (20*2 + 100*3 + 2*5 + 50*7)/(20+100+2+50) = 700/172 ≈ 4.07
+
+    """
+    # Check that index levels are compatible (at least subsets of each other)
+    if not data.index.equals(weights.index):
+        raise ValueError(
+            "Data and weights must have the same index levels. "
+            f"Data index: {data.index.names}, Weights index: {weights.index.names}"
+        )
+
+    if not stratifications:
+        # Return a single float value instead of a one row pandas series
+        return float(((data.mul(weights).sum()) / weights.sum()).item())
+
+    numerator = (
+        data.mul(weights).groupby(level=stratifications, sort=False, observed=True).sum()
+    )
+    denominator = weights.groupby(level=stratifications, sort=False, observed=True).sum()
+    weighted_avg = numerator / denominator
+
+    return weighted_avg

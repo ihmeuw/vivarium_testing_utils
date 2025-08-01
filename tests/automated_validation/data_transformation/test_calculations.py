@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -7,6 +9,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     filter_data,
     linear_combination,
     ratio,
+    weighted_average,
 )
 
 
@@ -49,6 +52,43 @@ def filter_test_data() -> pd.DataFrame:
                 ("location_2", "sex_2", "age_2"),
             ],
             names=["location", "sex", "age"],
+        ),
+    )
+
+
+@pytest.fixture
+def weights() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "value": [1, 2, 3, 4],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("location_1", "sex_1", "age_1"),
+                ("location_1", "sex_1", "age_2"),
+                ("location_2", "sex_1", "age_1"),
+                ("location_2", "sex_1", "age_2"),
+            ],
+            names=["location", "sex", "age"],
+        ),
+    )
+
+
+@pytest.fixture
+def fish_data() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "weights": [20, 100, 2, 50],
+            "value": [2, 3, 5, 7],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("Male", "Red"),
+                ("Male", "Blue"),
+                ("Female", "Red"),
+                ("Female", "Blue"),
+            ],
+            names=["sex", "color"],
         ),
     )
 
@@ -195,3 +235,83 @@ def test_aggregate_sum_preserves_string_order() -> None:
     result = aggregate_sum(df, ["category"])
     expected_order = pd.Index(["c", "a", "d", "b"], name="category")
     assert list(result.index) == list(expected_order)
+
+
+@pytest.mark.parametrize(
+    "stratifications,expected_values,expected_index",
+    [
+        # Test aggregating by sex
+        (
+            ["sex"],
+            [
+                2.83,
+                6.92,
+            ],  # Male: (20*2 + 100*3)/(20+100) ≈ 2.83, Female: (2*5 + 50*7)/(2+50) ≈ 6.92
+            pd.Index(["Male", "Female"], name="sex"),
+        ),
+        # Test aggregating by color
+        (
+            ["color"],
+            [
+                2.27,
+                4.33,
+            ],  # Red: (20*2 + 2*5)/(20+2) ≈ 2.27, Blue: (100*3 + 50*7)/(100+50) ≈ 4.33
+            pd.Index(["Red", "Blue"], name="color"),
+        ),
+        # Test no aggregation - keeping all index levels
+        (
+            ["sex", "color"],
+            [2.0, 3.0, 5.0, 7.0],  # Original values
+            pd.MultiIndex.from_tuples(
+                [("Male", "Red"), ("Male", "Blue"), ("Female", "Red"), ("Female", "Blue")],
+                names=["sex", "color"],
+            ),
+        ),
+        # Test empty stratification list - should aggregate over all levels
+        (
+            [],
+            4.07,  # Overall weighted average: (20*2 + 100*3 + 2*5 + 50*7)/(20+100+2+50) = (40+300+10+350)/172 ≈ 4.07
+            pd.Index([0]),  # Default integer index when all levels are aggregated
+        ),
+    ],
+)
+def test_weighted_average(
+    fish_data: pd.DataFrame,
+    stratifications: list[str],
+    expected_values: list[float] | float,
+    expected_index: pd.Index[str] | pd.MultiIndex | pd.Index[int],
+) -> None:
+    """Test weighted average with different stratification scenarios."""
+    # Split fish_data into separate data and weights dataframes
+    data = pd.DataFrame({"value": fish_data["value"]}, index=fish_data.index)
+    weights = pd.DataFrame({"value": fish_data["weights"]}, index=fish_data.index)
+
+    # Test weighted average calculation
+    result = weighted_average(data, weights, stratifications)
+    if isinstance(result, float):
+        assert np.isclose(result, expected_values, rtol=1e-2)
+    else:
+        expected = pd.DataFrame(
+            {"value": expected_values},
+            index=expected_index,
+        )
+        pd.testing.assert_frame_equal(result, expected, rtol=1e-2)
+
+
+def test_weighted_average_subset_index_fails(fish_data: pd.DataFrame) -> None:
+    """Test weighted average when weights DataFrame has fewer index levels than data DataFrame."""
+    # Split fish_data into separate data and weights dataframes
+    data = pd.DataFrame({"value": fish_data["value"]}, index=fish_data.index)
+    weights = pd.DataFrame({"value": fish_data["weights"]}, index=fish_data.index)
+
+    # Remove the color index level from weights - aggregate weights by sex
+    weights.index = weights.index.droplevel("color")
+    # This should give us:
+    # sex
+    # Male      120  (20 + 100)
+    # Female     52  (2 + 50)
+
+    # Test that weighted_average works with subset index
+    # When grouping by sex, it should broadcast the weights appropriately
+    with pytest.raises(ValueError, match="Data and weights must have the same index levels"):
+        weighted_average(data, weights, ["sex"])
