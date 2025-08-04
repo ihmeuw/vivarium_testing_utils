@@ -1,3 +1,15 @@
+**0.2.5 - 08/01/25**
+
+ - Use vivarium_dependencies for common setup constraints
+
+**0.2.4 - 07/25/25**
+
+ - Feature: Support new environment creation via 'make build-env'
+
+**0.2.3 - 07/16/25**
+
+ - Support pinning of vivarium_build_utils; pin vivarium_build_utils>=1.1.0,<2.0.0
+
 **0.2.2 - 05/27/25**
 
  - Update pandas stubs package pin
