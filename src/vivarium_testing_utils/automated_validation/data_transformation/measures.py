@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection
+from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
@@ -72,6 +73,12 @@ class Measure(ABC):
     @abstractmethod
     def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process raw simulation data into a format suitable for calculations."""
+        pass
+
+    @property
+    @abstractmethod
+    def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Override in subclasses to specify aggregation behavior."""
         pass
 
     @utils.check_io(out=SingleNumericColumn)
@@ -160,6 +167,18 @@ class RatioMeasure(Measure, ABC):
 
 class Incidence(RatioMeasure):
     """Computes Susceptible Population Incidence Rate."""
+
+    @property
+    def rate_aggregation_weights(self) -> RateAggregationWeights:
+        # Use susceptible person-time for incidence aggregation
+        return RateAggregationWeights(
+            weight_keys={
+                "population": "population.structure",
+                "prevalence": f"cause.{self.cause}.prevalence",
+            },
+            formula=lambda population, prevalence: population * (1 - prevalence),
+            description="Person-time × (1 - prevalence) weighted average",
+        )
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -424,6 +443,17 @@ class CategoricalRelativeRisk(RatioMeasure):
                     f"Risk stratification column '{self.risk_stratification_column}' not found in dataset index names."
                 )
         return ratio_datasets
+
+
+@dataclass
+class RateAggregationWeights:
+    weight_keys: dict[str, str]  # Dataset keys needed
+    formula: Callable[..., pd.DataFrame]  # Combines weights
+    description: str = ""  # Human-readable description of the aggregation
+
+    @utils.check_io(out=SingleNumericColumn)
+    def get_weights(self, *args, **kwargs) -> pd.DataFrame:
+        return self.formula(*args, **kwargs)
 
 
 MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[..., Measure]]] = {
