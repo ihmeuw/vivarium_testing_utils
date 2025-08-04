@@ -577,3 +577,42 @@ def test_format_title() -> None:
         == "Measure Compound Name Example"
     )
     assert _format_title("measure.entity") == "Measure Entity"
+
+
+def test_rate_aggregation_weights() -> None:
+    """Test the rate_aggregation_weights property of Incidence measure."""
+    cause = "disease"
+    measure = Incidence(cause)
+
+    # Get the rate aggregation weights
+    rate_agg_weights = measure.rate_aggregation_weights
+
+    # Verify the configuration
+    expected_keys = {
+        "population": "population.structure",
+        "prevalence": f"cause.{cause}.prevalence",
+    }
+    assert rate_agg_weights.weight_keys == expected_keys
+    assert rate_agg_weights.description == "Person-time × (1 - prevalence) weighted average"
+
+    # Create test data matching expected format
+    test_index = pd.MultiIndex.from_tuples(
+        [("A", "baseline"), ("B", "baseline")], names=["common_stratify_column", "scenario"]
+    )
+
+    # Population structure data (proportions summing to 1)
+    population_data = get_expected_dataframe(0.6, 0.4)
+    # Prevalence data (proportions between 0 and 1)
+    prevalence_data = get_expected_dataframe(0.1, 0.2)
+
+    # Test get_weights with keyword arguments
+    weights = rate_agg_weights.get_weights(
+        population=population_data, prevalence=prevalence_data
+    )
+
+    # Expected calculation: population * (1 - prevalence)
+    expected_weights = pd.DataFrame(
+        {"value": [0.6 * (1 - 0.1), 0.4 * (1 - 0.2)]}, index=test_index  # [0.54, 0.32]
+    )
+
+    pd.testing.assert_frame_equal(weights, expected_weights)

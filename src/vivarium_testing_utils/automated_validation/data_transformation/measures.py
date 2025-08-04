@@ -174,7 +174,7 @@ class Incidence(RatioMeasure):
         return RateAggregationWeights(
             weight_keys={
                 "population": "population.structure",
-                "prevalence": f"cause.{self.cause}.prevalence",
+                "prevalence": f"cause.{self.entity}.prevalence",
             },
             formula=lambda population, prevalence: population * (1 - prevalence),
             description="Person-time × (1 - prevalence) weighted average",
