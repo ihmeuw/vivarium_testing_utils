@@ -24,6 +24,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     TransitionCounts,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.rate_aggregation import (
+    POPULATION_WEIGHTED,
     RateAggregationWeights,
 )
 
@@ -201,8 +202,7 @@ class Prevalence(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        return POPULATION_WEIGHTED
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -224,7 +224,14 @@ class SIRemission(RatioMeasure):
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
         """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        return RateAggregationWeights(
+            weight_keys={
+                "population": "population.structure",
+                "prevalence": f"cause.{self.entity}.prevalence",
+            },
+            formula=lambda population, prevalence: population * prevalence,
+            description="Person-time × prevalence weighted average",
+        )
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -245,8 +252,7 @@ class CauseSpecificMortalityRate(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        return POPULATION_WEIGHTED
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -267,8 +273,14 @@ class ExcessMortalityRate(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        return RateAggregationWeights(
+            weight_keys={
+                "population": "population.structure",
+                "prevalence": f"cause.{self.entity}.prevalence",
+            },
+            formula=lambda population, prevalence: population * prevalence,
+            description="Person-time × prevalence weighted average",
+        )
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -296,7 +308,7 @@ class PopulationStructure(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
+        """This will be implemented when we refactor and implement DataBundle Mic-6241."""
         raise NotImplementedError
 
     def __init__(self, scenario_columns: list[str]):
@@ -347,8 +359,7 @@ class RiskExposure(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        return POPULATION_WEIGHTED
 
     def __init__(self, risk_factor: str) -> None:
         super().__init__(
@@ -427,7 +438,7 @@ class CategoricalRelativeRisk(RatioMeasure):
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
         """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        return self.affected_measure.rate_aggregation_weights
 
     @utils.check_io(
         relative_risks=SingleNumericColumn,
