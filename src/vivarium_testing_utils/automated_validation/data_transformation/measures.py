@@ -197,6 +197,11 @@ class Incidence(RatioMeasure):
 class Prevalence(RatioMeasure):
     """Computes Prevalence of cause in the population."""
 
+    @property
+    def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Will be implemented with MIC-6247."""
+        raise NotImplementedError
+
     def __init__(self, cause: str) -> None:
         super().__init__(
             entity_type="cause",
@@ -213,6 +218,11 @@ class Prevalence(RatioMeasure):
 
 class SIRemission(RatioMeasure):
     """Computes (SI) remission rate among infected population."""
+
+    @property
+    def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Will be implemented with MIC-6247."""
+        raise NotImplementedError
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -231,6 +241,11 @@ class SIRemission(RatioMeasure):
 class CauseSpecificMortalityRate(RatioMeasure):
     """Computes cause-specific mortality rate in the population."""
 
+    @property
+    def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Will be implemented with MIC-6247."""
+        raise NotImplementedError
+
     def __init__(self, cause: str) -> None:
         super().__init__(
             entity_type="cause",
@@ -247,6 +262,11 @@ class CauseSpecificMortalityRate(RatioMeasure):
 
 class ExcessMortalityRate(RatioMeasure):
     """Computes excess mortality rate among those with the disease compared to the general population."""
+
+    @property
+    def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Will be implemented with MIC-6247."""
+        raise NotImplementedError
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -271,6 +291,11 @@ class PopulationStructure(RatioMeasure):
     the population structure format from the artifact. It's useful for validating
     that the simulation maintains realistic demographic distributions.
     """
+
+    @property
+    def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Will be implemented with MIC-6247."""
+        raise NotImplementedError
 
     def __init__(self, scenario_columns: list[str]):
         """Initialize PopulationStructure measure.
@@ -317,6 +342,11 @@ class RiskExposure(RatioMeasure):
     Numerator: Person time in specific risk state
     Denominator: Total person time across all risk states
     """
+
+    @property
+    def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Will be implemented with MIC-6247."""
+        raise NotImplementedError
 
     def __init__(self, risk_factor: str) -> None:
         super().__init__(
@@ -391,6 +421,11 @@ class CategoricalRelativeRisk(RatioMeasure):
             "affected_measure_data": self.affected_measure.artifact_key,
             "categories": f"risk_factor.{self.entity}.categories",
         }
+
+    @property
+    def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Will be implemented with MIC-6247."""
+        raise NotImplementedError
 
     @utils.check_io(
         relative_risks=SingleNumericColumn,
