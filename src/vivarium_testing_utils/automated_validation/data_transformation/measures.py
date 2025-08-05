@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection
-from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
@@ -23,6 +22,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     StatePersonTime,
     TotalPopulationPersonTime,
     TransitionCounts,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.rate_aggregation import (
+    RateAggregationWeights,
 )
 
 
@@ -478,17 +480,6 @@ class CategoricalRelativeRisk(RatioMeasure):
                     f"Risk stratification column '{self.risk_stratification_column}' not found in dataset index names."
                 )
         return ratio_datasets
-
-
-@dataclass
-class RateAggregationWeights:
-    weight_keys: dict[str, str]  # Dataset keys needed
-    formula: Callable[..., pd.DataFrame]  # Combines weights
-    description: str = ""  # Human-readable description of the aggregation
-
-    @utils.check_io(out=SingleNumericColumn)
-    def get_weights(self, *args, **kwargs) -> pd.DataFrame:
-        return self.formula(*args, **kwargs)
 
 
 MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[..., Measure]]] = {
