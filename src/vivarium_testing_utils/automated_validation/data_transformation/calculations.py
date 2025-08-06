@@ -6,10 +6,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from vivarium_testing_utils.automated_validation.constants import (
-    DRAW_INDEX,
-    DRAW_PREFIX,
-)
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, DRAW_PREFIX
 from vivarium_testing_utils.automated_validation.data_transformation import utils
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,

@@ -7,10 +7,7 @@ import pandas as pd
 import yaml
 from vivarium import Artifact
 
-from vivarium_testing_utils.automated_validation.constants import (
-    DRAW_PREFIX,
-    DataSource,
-)
+from vivarium_testing_utils.automated_validation.constants import DRAW_PREFIX, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import (
     calculations,
     utils,
