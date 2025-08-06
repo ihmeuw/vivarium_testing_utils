@@ -172,7 +172,7 @@ class Incidence(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        # Use susceptible person-time for incidence aggregation
+        """Returns rated aggregated weights."""
         return RateAggregationWeights(
             weight_keys={
                 "population": "population.structure",
