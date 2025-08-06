@@ -5,10 +5,7 @@ import pytest
 from pandas.testing import assert_frame_equal
 from pytest_check import check
 
-from vivarium_testing_utils.automated_validation.comparison import (
-    DataSource,
-    FuzzyComparison,
-)
+from vivarium_testing_utils.automated_validation.comparison import DataSource, FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation import calculations
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
