@@ -580,64 +580,52 @@ def test_format_title() -> None:
 
 
 @pytest.mark.parametrize(
-    "measure_class,measure_args,expected_weights_config",
+    "measure_class,measure_args,expected_weights_config,expected_description",
     [
         (
             Incidence,
             ("disease",),
             {
-                "weight_keys": {
-                    "population": "population.structure",
-                    "prevalence": "cause.disease.prevalence",
-                },
-                "description": "Person-time × (1 - prevalence) weighted average",
+                "population": "population.structure",
+                "prevalence": "cause.disease.prevalence",
             },
+            "Person-time × (1 - prevalence) weighted average",
         ),
         (
             Prevalence,
             ("disease",),
-            {
-                "weight_keys": {"population": "population.structure"},
-                "description": "Population-weighted average",
-            },
+            {"population": "population.structure"},
+            "Population-weighted average",
         ),
         (
             SIRemission,
             ("disease",),
             {
-                "weight_keys": {
-                    "population": "population.structure",
-                    "prevalence": "cause.disease.prevalence",
-                },
-                "description": "Person-time × prevalence weighted average",
+                "population": "population.structure",
+                "prevalence": "cause.disease.prevalence",
             },
+            "Person-time × prevalence weighted average",
         ),
         (
             CauseSpecificMortalityRate,
             ("disease",),
-            {
-                "weight_keys": {"population": "population.structure"},
-                "description": "Population-weighted average",
-            },
+            {"population": "population.structure"},
+            "Population-weighted average",
         ),
         (
             ExcessMortalityRate,
             ("disease",),
             {
-                "weight_keys": {
-                    "population": "population.structure",
-                    "prevalence": "cause.disease.prevalence",
-                },
-                "description": "Person-time × prevalence weighted average",
+                "population": "population.structure",
+                "prevalence": "cause.disease.prevalence",
             },
+            "Person-time × prevalence weighted average",
         ),
         (
             RiskExposure,
             ("child_stunting",),
-            {
-                "weight_keys": {"population": "population.structure"},
-                "description": "Population-weighted average",
-            },
+            {"population": "population.structure"},
+            "Population-weighted average",
         ),
         (
             CategoricalRelativeRisk,
@@ -649,24 +637,24 @@ def test_format_title() -> None:
                 None,
             ),
             {
-                "weight_keys": {
-                    "population": "population.structure",
-                    "prevalence": "cause.disease.prevalence",
-                },
-                "description": "Person-time × prevalence weighted average",
+                "population": "population.structure",
+                "prevalence": "cause.disease.prevalence",
             },
+            "Person-time × prevalence weighted average",
         ),
         (
             PopulationStructure,
             (["scenario"],),
+            None,  # Not used since it raises NotImplementedError
             None,  # Not used since it raises NotImplementedError
         ),
     ],
 )
 def test_rate_aggregation_weights(
     measure_class: type[RatioMeasure],
-    measure_args: tuple,
-    expected_weights_config: dict | None,
+    measure_args: tuple[str],
+    expected_weights_config: dict[str, str] | None,
+    expected_description: str | None,
 ) -> None:
     """Test the rate_aggregation_weights property of various RatioMeasure subclasses."""
     # Create the measure instance
@@ -678,11 +666,13 @@ def test_rate_aggregation_weights(
             _ = measure.rate_aggregation_weights
         return
 
+    assert expected_weights_config is not None
+    assert expected_description is not None
     # Get the rate aggregation weights
     rate_agg_weights = measure.rate_aggregation_weights
     # Verify the configuration
-    assert rate_agg_weights.weight_keys == expected_weights_config["weight_keys"]
-    assert rate_agg_weights.description == expected_weights_config["description"]
+    assert rate_agg_weights.weight_keys == expected_weights_config
+    assert rate_agg_weights.description == expected_description
 
     # Create test data matching expected format
     test_index = pd.MultiIndex.from_tuples(
@@ -694,14 +684,13 @@ def test_rate_aggregation_weights(
     key_data = get_expected_dataframe(0.1, 0.2)
 
     if len(rate_agg_weights.weight_keys) > 1:
-        args = (population_data, key_data)
+        weights = rate_agg_weights.get_weights(population_data, key_data)
     else:
-        args = (population_data,)
-    weights = rate_agg_weights.get_weights(*args)
+        weights = rate_agg_weights.get_weights(population_data)
 
     # Expected calculation depends on the measure type
-    if "prevalence" in expected_weights_config["weight_keys"]:
-        if "1 - prevalence" in expected_weights_config["description"]:
+    if "prevalence" in expected_weights_config:
+        if "1 - prevalence" in expected_description:
             # Incidence: population * (1 - prevalence)
             expected_weights = pd.DataFrame(
                 {"value": [0.6 * (1 - 0.1), 0.4 * (1 - 0.2)]},
