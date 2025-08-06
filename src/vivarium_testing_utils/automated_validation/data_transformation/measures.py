@@ -173,7 +173,7 @@ class Incidence(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Returns rated aggregated weights."""
+        """Returns rate aggregated weights."""
         return RateAggregationWeights(
             weight_keys={
                 "population": "population.structure",
@@ -202,6 +202,7 @@ class Prevalence(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Returns rate aggregated weights."""
         return POPULATION_WEIGHTED
 
     def __init__(self, cause: str) -> None:
@@ -223,7 +224,7 @@ class SIRemission(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
+        """Returns rate aggregated weights."""
         return RateAggregationWeights(
             weight_keys={
                 "population": "population.structure",
@@ -252,6 +253,7 @@ class CauseSpecificMortalityRate(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Returns rate aggregated weights."""
         return POPULATION_WEIGHTED
 
     def __init__(self, cause: str) -> None:
@@ -273,6 +275,7 @@ class ExcessMortalityRate(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Returns rate aggregated weights."""
         return RateAggregationWeights(
             weight_keys={
                 "population": "population.structure",
@@ -359,6 +362,7 @@ class RiskExposure(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
+        """Returns rate aggregated weights."""
         return POPULATION_WEIGHTED
 
     def __init__(self, risk_factor: str) -> None:
@@ -437,7 +441,7 @@ class CategoricalRelativeRisk(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
+        """Returns rate aggregated weights."""
         return self.affected_measure.rate_aggregation_weights
 
     @utils.check_io(
