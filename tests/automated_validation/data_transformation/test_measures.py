@@ -658,7 +658,7 @@ def test_rate_aggregation_weights(
 ) -> None:
     """Test the rate_aggregation_weights property of various RatioMeasure subclasses."""
     # Create the measure instance
-    measure = measure_class(*measure_args)
+    measure = measure_class(*measure_args)  # type: ignore[call-arg]
 
     if isinstance(measure, PopulationStructure):
         # Test that PopulationStructure raises NotImplementedError
