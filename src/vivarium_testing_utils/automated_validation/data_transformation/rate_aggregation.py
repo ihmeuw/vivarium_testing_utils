@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 import pandas as pd
 
@@ -19,5 +20,5 @@ class RateAggregationWeights:
     """Human-readable description of the formula used to compute the weights."""
 
     @utils.check_io(out=SingleNumericColumn)
-    def get_weights(self, *args, **kwargs) -> pd.DataFrame:
+    def get_weights(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         return self.formula(*args, **kwargs)
