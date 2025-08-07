@@ -24,8 +24,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     TransitionCounts,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.rate_aggregation import (
-    POPULATION_WEIGHTED,
     RateAggregationWeights,
+    population_weighted,
 )
 
 
@@ -203,7 +203,7 @@ class Prevalence(RatioMeasure):
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
         """Returns rate aggregated weights."""
-        return POPULATION_WEIGHTED
+        return population_weighted()
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -254,7 +254,7 @@ class CauseSpecificMortalityRate(RatioMeasure):
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
         """Returns rate aggregated weights."""
-        return POPULATION_WEIGHTED
+        return population_weighted()
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -363,7 +363,7 @@ class RiskExposure(RatioMeasure):
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
         """Returns rate aggregated weights."""
-        return POPULATION_WEIGHTED
+        return population_weighted()
 
     def __init__(self, risk_factor: str) -> None:
         super().__init__(

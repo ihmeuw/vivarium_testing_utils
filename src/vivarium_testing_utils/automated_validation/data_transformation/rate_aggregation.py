@@ -24,8 +24,9 @@ class RateAggregationWeights:
         return self.formula(*args, **kwargs)
 
 
-POPULATION_WEIGHTED = RateAggregationWeights(
-    weight_keys={"population": "population.structure"},
-    formula=lambda population: population,
-    description="Population-weighted average",
-)
+def population_weighted() -> RateAggregationWeights:
+    return RateAggregationWeights(
+        weight_keys={"population": "population.structure"},
+        formula=lambda population: population,
+        description="Population-weighted average",
+    )
