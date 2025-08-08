@@ -179,6 +179,7 @@ class Incidence(RatioMeasure):
                 "population": "population.structure",
                 "prevalence": f"cause.{self.entity}.prevalence",
             },
+            # TODO: Update formula to account for having more than two states. Only works for SI and SIS models.
             formula=lambda population, prevalence: population * (1 - prevalence),
             description="Person-time × (1 - prevalence) weighted average",
         )
