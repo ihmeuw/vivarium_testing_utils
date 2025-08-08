@@ -22,3 +22,11 @@ class RateAggregationWeights:
     @utils.check_io(out=SingleNumericColumn)
     def get_weights(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         return self.formula(*args, **kwargs)
+
+
+def population_weighted() -> RateAggregationWeights:
+    return RateAggregationWeights(
+        weight_keys={"population": "population.structure"},
+        formula=lambda population: population,
+        description="Population-weighted average",
+    )
