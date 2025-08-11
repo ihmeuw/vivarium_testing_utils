@@ -25,6 +25,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
 )
 from vivarium_testing_utils.automated_validation.data_transformation.rate_aggregation import (
     RateAggregationWeights,
+    population_weighted,
 )
 
 
@@ -172,12 +173,13 @@ class Incidence(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Returns rated aggregated weights."""
+        """Returns rate aggregated weights."""
         return RateAggregationWeights(
             weight_keys={
                 "population": "population.structure",
                 "prevalence": f"cause.{self.entity}.prevalence",
             },
+            # TODO: Update formula to account for having more than two states. Only works for SI and SIS models.
             formula=lambda population, prevalence: population * (1 - prevalence),
             description="Person-time × (1 - prevalence) weighted average",
         )
@@ -201,8 +203,8 @@ class Prevalence(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        """Returns rate aggregated weights."""
+        return population_weighted()
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -223,8 +225,15 @@ class SIRemission(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        """Returns rate aggregated weights."""
+        return RateAggregationWeights(
+            weight_keys={
+                "population": "population.structure",
+                "prevalence": f"cause.{self.entity}.prevalence",
+            },
+            formula=lambda population, prevalence: population * prevalence,
+            description="Person-time × prevalence weighted average",
+        )
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -245,8 +254,8 @@ class CauseSpecificMortalityRate(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        """Returns rate aggregated weights."""
+        return population_weighted()
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -267,8 +276,15 @@ class ExcessMortalityRate(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        """Returns rate aggregated weights."""
+        return RateAggregationWeights(
+            weight_keys={
+                "population": "population.structure",
+                "prevalence": f"cause.{self.entity}.prevalence",
+            },
+            formula=lambda population, prevalence: population * prevalence,
+            description="Person-time × prevalence weighted average",
+        )
 
     def __init__(self, cause: str) -> None:
         super().__init__(
@@ -296,7 +312,7 @@ class PopulationStructure(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
+        """This will be implemented when we refactor and implement DataBundle Mic-6241."""
         raise NotImplementedError
 
     def __init__(self, scenario_columns: list[str]):
@@ -347,8 +363,8 @@ class RiskExposure(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        """Returns rate aggregated weights."""
+        return population_weighted()
 
     def __init__(self, risk_factor: str) -> None:
         super().__init__(
@@ -426,8 +442,8 @@ class CategoricalRelativeRisk(RatioMeasure):
 
     @property
     def rate_aggregation_weights(self) -> RateAggregationWeights:
-        """Will be implemented with MIC-6247."""
-        raise NotImplementedError
+        """Returns rate aggregated weights."""
+        return self.affected_measure.rate_aggregation_weights
 
     @utils.check_io(
         relative_risks=SingleNumericColumn,
