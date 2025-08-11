@@ -318,8 +318,8 @@ class FuzzyComparison(Comparison):
             strata = list(strata)
         for stratum in strata:
             if (
-                stratum not in self.reference_data.index
-                and stratum not in self.reference_weights.index
+                stratum not in self.reference_data.index.names
+                and stratum not in self.reference_weights.index.names
             ):
                 raise ValueError(
                     f"Stratum '{stratum}' not found in reference data or weights."

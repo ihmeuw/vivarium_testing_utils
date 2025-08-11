@@ -458,3 +458,43 @@ def test_fuzzy_comparison_align_datasets_calculation(
             index=expected_index,
         ),
     )
+
+
+def test_aggregate_strata(
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
+) -> None:
+    """Test that aggregate_strata correctly aggregates data."""
+    comparison = FuzzyComparison(
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data,
+        reference_weights,
+    )
+
+    aggregated = comparison.aggregate_strata(["age", "sex"])
+    # (0, Male) = (0.12 * 0.15 + 0.29 * 0.35) / (0.15 + 0.35)
+    expected = pd.DataFrame(
+        {
+            "value": [
+                (0.12 * 0.15 + 0.29 * 0.35) / (0.15 + 0.35),
+                (0.2 * 0.25) / 0.25,
+            ],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                (0, "male"),
+                (0, "female"),
+            ],
+            names=["age", "sex"],
+        ),
+    )
+    assert isinstance(aggregated, pd.DataFrame)
+    pd.testing.assert_frame_equal(aggregated, expected)
+
+    with pytest.raises(ValueError, match="not found in reference data or weights"):
+        comparison.aggregate_strata(["dog", "cat"])
