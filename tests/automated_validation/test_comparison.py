@@ -60,10 +60,23 @@ def mock_ratio_measure() -> RatioMeasure:
     return measure
 
 
+@pytest.fixture
+def reference_weights() -> pd.DataFrame:
+    """A sample weights DataFrame."""
+    return pd.DataFrame(
+        {"value": [0.15, 0.25, 0.35]},
+        index=pd.MultiIndex.from_tuples(
+            [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
+            names=["year", "sex", "age"],
+        ),
+    )
+
+
 def test_fuzzy_comparison_init(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """Test the initialization of the FuzzyComparison class."""
     comparison = FuzzyComparison(
@@ -72,6 +85,7 @@ def test_fuzzy_comparison_init(
         test_data,
         DataSource.GBD,
         reference_data,
+        reference_weights,
         test_scenarios={"scenario": "baseline"},
         stratifications=[],
     )
@@ -95,6 +109,7 @@ def test_fuzzy_comparison_metadata(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """Test the metadata property of the FuzzyComparison class."""
     comparison = FuzzyComparison(
@@ -103,6 +118,7 @@ def test_fuzzy_comparison_metadata(
         test_data,
         DataSource.GBD,
         reference_data,
+        reference_weights,
         test_scenarios={"scenario": "baseline"},
     )
 
@@ -133,10 +149,16 @@ def test_fuzzy_comparison_get_frame(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """Test the get_frame method of the FuzzyComparison class."""
     comparison = FuzzyComparison(
-        mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data,
+        reference_weights,
     )
 
     diff = comparison.get_frame(stratifications=[], num_rows=1)
@@ -179,6 +201,7 @@ def test_fuzzy_comparison_get_frame_aggregated(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """Test the get_frame method of the FuzzyComparison class with aggregated draws."""
     comparison = FuzzyComparison(
@@ -187,6 +210,7 @@ def test_fuzzy_comparison_get_frame_aggregated(
         test_data,
         DataSource.GBD,
         reference_data,
+        reference_weights,
     )
     diff = comparison.get_frame(stratifications=[], num_rows="all", aggregate_draws=True)
     expected_df = pd.DataFrame(
@@ -210,6 +234,7 @@ def test_fuzzy_comparison_init_with_stratifications(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """Test that FuzzyComparison raises NotImplementedError when initialized with non-empty stratifications."""
     with pytest.raises(
@@ -221,6 +246,7 @@ def test_fuzzy_comparison_init_with_stratifications(
             test_data,
             DataSource.GBD,
             reference_data,
+            reference_weights,
             stratifications=["year"],
         )
 
@@ -229,10 +255,16 @@ def test_fuzzy_comparison_get_frame_with_stratifications(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """Test that FuzzyComparison.get_frame raises NotImplementedError when called with non-empty stratifications."""
     comparison = FuzzyComparison(
-        mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data,
+        reference_weights,
     )
 
     with pytest.raises(
@@ -245,10 +277,16 @@ def test_fuzzy_comparison_verify_not_implemented(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """ "FuzzyComparison.verify() is not implemented."""
     comparison = FuzzyComparison(
-        mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data,
+        reference_weights,
     )
 
     with pytest.raises(NotImplementedError):
@@ -259,10 +297,16 @@ def test_get_metadata_from_dataset(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """Test we can extract metadata from a dataframe with draws."""
     comparison = FuzzyComparison(
-        mock_ratio_measure, DataSource.SIM, test_data, DataSource.GBD, reference_data
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data,
+        reference_weights,
     )
     result = comparison._get_metadata_from_datasets("test")
     with check:
@@ -280,6 +324,7 @@ def test_get_metadata_from_dataset_no_draws(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """Test we can extract metadata from a dataframe with draws."""
     comparison = FuzzyComparison(
@@ -288,6 +333,7 @@ def test_get_metadata_from_dataset_no_draws(
         test_data,
         DataSource.GBD,
         reference_data,
+        reference_weights,
     )
     result = comparison._get_metadata_from_datasets("reference")
     with check:
@@ -305,6 +351,7 @@ def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """Test that _align_datasets correctly handles singular reference-only indices."""
     reference_data_with_singular_index = reference_data.copy()
@@ -317,6 +364,7 @@ def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
         test_data,
         DataSource.GBD,
         reference_data_with_singular_index,
+        reference_weights,
     )
 
     # Verify the singular index exists
@@ -340,6 +388,7 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """Test that _align_datasets raises ValueError for non-singular reference-only indices."""
     reference_data_with_non_singular_index = reference_data.copy()
@@ -353,6 +402,7 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
         test_data,
         DataSource.GBD,
         reference_data_with_non_singular_index,
+        reference_weights,
     )
 
     # Verify the non-singular index exists
@@ -374,6 +424,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
 ) -> None:
     """Test _align_datasets with varying denominators to ensure ratios are calculated correctly."""
 
@@ -383,6 +434,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
         test_data,
         DataSource.GBD,
         reference_data,
+        reference_weights,
         test_scenarios={"scenario": "baseline"},
     )
 

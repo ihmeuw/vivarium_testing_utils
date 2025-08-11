@@ -108,16 +108,14 @@ def test__load_from_sim(sim_result_dir: Path, deaths_data: pd.DataFrame) -> None
     assert deaths.equals(deaths_data)
 
 
-def test__load_artifact(sim_result_dir: Path) -> None:
+def test__load_artifact(
+    sim_result_dir: Path, _artifact_keys_mapper: dict[str, pd.DataFrame | str]
+) -> None:
     """Ensure that we can load the artifact itself"""
     artifact = DataLoader._load_artifact(sim_result_dir)
-    assert set(artifact.keys) == {
-        "metadata.keyspace",
-        "cause.disease.incidence_rate",
-        "population.age_bins",
-        "risk_factor.child_stunting.exposure",
-        "risk_factor.risky_risk.categories",
-    }
+    assert set(artifact.keys) == set(
+        list(_artifact_keys_mapper.keys()) + ["metadata.keyspace"]
+    )
 
 
 def test__load_from_artifact(
