@@ -28,7 +28,7 @@ class Comparison(ABC):
     reference_weights: pd.DataFrame
     test_scenarios: dict[str, str] | None
     reference_scenarios: dict[str, str] | None
-    stratifications: Collection[str]
+    allowed_stratifications: Collection[str]
 
     @property
     @abstractmethod
@@ -116,7 +116,7 @@ class FuzzyComparison(Comparison):
             raise NotImplementedError(
                 "Non-default stratifications require rate aggregations, which are not currently supported."
             )
-        self.stratifications = stratifications
+        self.allowed_stratifications = stratifications
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -160,13 +160,8 @@ class FuzzyComparison(Comparison):
         --------
         A DataFrame of the comparison data.
         """
-        if stratifications:
-            # TODO: MIC-6075
-            raise NotImplementedError(
-                "Non-default stratifications require rate aggregations, which are not currently supported."
-            )
 
-        test_proportion_data, reference_data = self._align_datasets()
+        test_proportion_data, reference_data = self._align_datasets(strata=stratifications)
 
         test_proportion_data = test_proportion_data.rename(columns={"value": "rate"}).dropna()
         reference_data = reference_data.rename(columns={"value": "rate"}).dropna()
@@ -263,7 +258,9 @@ class FuzzyComparison(Comparison):
 
         return data_info
 
-    def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def _align_datasets(
+        self, strata: Collection[str] = ()
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
         # Get union of test data index names
 
@@ -287,33 +284,20 @@ class FuzzyComparison(Comparison):
 
         # If the test data has any index levels that are not in the reference data, marginalize
         # over those index levels.
-        test_datasets = {
-            key: calculations.marginalize(
-                self.test_datasets[key], test_indexes_to_marginalize
-            )
-            for key in self.test_datasets
-        }
+        test_datasets = self.aggregate_strata_test(test_indexes_to_marginalize)
 
-        # Drop any singular index levels from the reference data if they are not in the test data.
-        # If any ref-only index level is not singular, raise an error.
-        redundant_ref_indexes = set(
-            calculations.get_singular_indices(self.reference_data).keys()
+        # Aggregate over reference indices
+        reference_data = self.aggregate_strata_reference(
+            source="reference", strata=reference_indexes_to_drop
         )
-        if not reference_indexes_to_drop.issubset(redundant_ref_indexes):
-            # TODO: MIC-6075
-            diff = reference_indexes_to_drop - redundant_ref_indexes
-            raise ValueError(
-                f"Reference data has non-trivial index levels {diff} that are not in the test data. "
-                "We cannot currently marginalize over these index levels."
-            )
-        reference_data = self.reference_data.droplevel(list(reference_indexes_to_drop))
-
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
 
         ## At this point, the only non-common index levels should be scenarios and draws.
         return converted_test_data, reference_data
 
-    def aggregate_strata(self, strata: Collection[str] = ()) -> pd.DataFrame | float:
+    def aggregate_strata_reference(
+        self, strata: Collection[str] = ()
+    ) -> pd.DataFrame | float:
         if not isinstance(strata, list):
             strata = list(strata)
         for stratum in strata:
@@ -327,3 +311,16 @@ class FuzzyComparison(Comparison):
         return calculations.weighted_average(
             self.reference_data, self.reference_weights, strata
         )
+
+    def aggregate_strata_test(self, strata: Collection[str] = ()) -> pd.DataFrame | float:
+        if not isinstance(strata, list):
+            strata = list(strata)
+        for stratum in strata:
+            for key, dataset in self.test_datasets.items():
+                if stratum not in dataset.index.names:
+                    raise ValueError(f"Stratum '{stratum}' not found in test dataset {key}.")
+
+        return {
+            key: calculations.stratify(self.test_datasets[key], strata)
+            for key in self.test_datasets
+        }

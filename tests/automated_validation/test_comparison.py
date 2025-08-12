@@ -102,7 +102,7 @@ def test_fuzzy_comparison_init(
         assert comparison.reference_data.equals(reference_data)
         assert comparison.test_scenarios == {"scenario": "baseline"}
         assert not comparison.reference_scenarios
-        assert list(comparison.stratifications) == []
+        assert list(comparison.allowed_stratifications) == []
 
 
 def test_fuzzy_comparison_metadata(
@@ -476,7 +476,7 @@ def test_aggregate_strata(
         reference_weights,
     )
 
-    aggregated = comparison.aggregate_strata(["age", "sex"])
+    aggregated = comparison.aggregate_strata_reference(["age", "sex"])
     # (0, Male) = (0.12 * 0.15 + 0.29 * 0.35) / (0.15 + 0.35)
     expected = pd.DataFrame(
         {
@@ -497,4 +497,4 @@ def test_aggregate_strata(
     pd.testing.assert_frame_equal(aggregated, expected)
 
     with pytest.raises(ValueError, match="not found in reference data or weights"):
-        comparison.aggregate_strata(["dog", "cat"])
+        comparison.aggregate_strata_reference(["dog", "cat"])

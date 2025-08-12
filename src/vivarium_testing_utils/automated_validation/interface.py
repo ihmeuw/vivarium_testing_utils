@@ -234,10 +234,15 @@ class ValidationContext:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
 
     def plot_comparison(
-        self, comparison_key: str, type: str, condition: dict[str, Any] = {}, **kwargs: Any
+        self,
+        comparison_key: str,
+        type: str,
+        condition: dict[str, Any] = {},
+        stratifications: Collection[str] = (),
+        **kwargs: Any,
     ) -> Figure | list[Figure]:
         return plot_utils.plot_comparison(
-            self.comparisons[comparison_key], type, condition, **kwargs
+            self.comparisons[comparison_key], type, condition, stratifications, **kwargs
         )
 
     def generate_comparisons(self):  # type: ignore[no-untyped-def]

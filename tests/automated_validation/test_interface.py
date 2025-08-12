@@ -135,7 +135,7 @@ def test_add_comparison(
     comparison = context.comparisons[measure_key]
 
     assert comparison.measure.measure_key == measure_key
-    assert comparison.stratifications == []
+    assert comparison.allowed_stratifications == []
 
     # Test that test_data is now a dictionary with numerator and denominator
     assert isinstance(comparison.test_datasets, dict)
