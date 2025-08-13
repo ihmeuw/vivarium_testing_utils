@@ -284,12 +284,19 @@ class FuzzyComparison(Comparison):
 
         # If the test data has any index levels that are not in the reference data, marginalize
         # over those index levels.
-        test_datasets = self.aggregate_strata_test(test_indexes_to_marginalize)
+        test_datasets = {
+            key: calculations.marginalize(
+                self.test_datasets[key], test_indexes_to_marginalize
+            )
+            for key in self.test_datasets
+        }
 
         # Aggregate over indices
         # FIXME: Ref data and ref weights break because of not matching index levels.
         # FIXME: Breaks when we pass no stratifications since weights will be a float and not a DataFrame.
-        reference_data = self.aggregate_strata_reference(strata=reference_indexes_to_drop)
+        reference_data = self.aggregate_strata_reference(
+            strata=[x for x in reference_index_names if x not in reference_indexes_to_drop]
+        )
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
 
         ## At this point, the only non-common index levels should be scenarios and draws.
@@ -311,16 +318,3 @@ class FuzzyComparison(Comparison):
         return calculations.weighted_average(
             self.reference_data, self.reference_weights, strata
         )
-
-    def aggregate_strata_test(self, strata: Collection[str] = ()) -> pd.DataFrame | float:
-        if not isinstance(strata, list):
-            strata = list(strata)
-        for stratum in strata:
-            for key, dataset in self.test_datasets.items():
-                if stratum not in dataset.index.names:
-                    raise ValueError(f"Stratum '{stratum}' not found in test dataset {key}.")
-
-        return {
-            key: calculations.stratify(self.test_datasets[key], strata)
-            for key in self.test_datasets
-        }

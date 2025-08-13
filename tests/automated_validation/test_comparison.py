@@ -358,13 +358,17 @@ def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
     reference_data_with_singular_index["location"] = ["Global", "Global", "Global"]
     reference_data_with_singular_index.set_index("location", append=True, inplace=True)
 
+    reference_weights_with_singular_index = reference_weights.copy()
+    reference_weights_with_singular_index["location"] = ["Global", "Global", "Global"]
+    reference_weights_with_singular_index.set_index("location", append=True, inplace=True)
+
     comparison = FuzzyComparison(
         mock_ratio_measure,
         DataSource.SIM,
         test_data,
         DataSource.GBD,
         reference_data_with_singular_index,
-        reference_weights,
+        reference_weights_with_singular_index,
     )
 
     # Verify the singular index exists
