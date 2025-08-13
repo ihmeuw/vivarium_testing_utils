@@ -153,7 +153,9 @@ class ValidationContext:
                     f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."
                 )
 
-        test_raw_datasets = self._get_raw_data_from_source(measure, test_source_enum)
+        test_raw_datasets = self._get_raw_data_from_source(
+            measure.get_required_datasets(test_source_enum), test_source_enum
+        )
         test_datasets = measure.get_ratio_datasets_from_sim(
             **test_raw_datasets,
         )
@@ -163,9 +165,15 @@ class ValidationContext:
             )
             for dataset_name, dataset in test_datasets.items()
         }
-        ref_raw_datasets = self._get_raw_data_from_source(measure, ref_source_enum)
+        ref_raw_datasets = self._get_raw_data_from_source(
+            measure.get_required_datasets(ref_source_enum), ref_source_enum
+        )
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
         ref_data = age_groups.format_dataframe_from_age_bin_df(ref_data, self.age_groups)
+        ref_weight_raw_data = self._get_raw_data_from_source(
+            measure.rate_aggregation_weights.weight_keys, ref_source_enum
+        )
+        ref_weights = measure.rate_aggregation_weights.get_weights(**ref_weight_raw_data)
 
         comparison = FuzzyComparison(
             measure=measure,
@@ -173,6 +181,7 @@ class ValidationContext:
             test_datasets=test_datasets,
             reference_source=ref_source_enum,
             reference_data=ref_data,
+            reference_weights=ref_weights,
             test_scenarios=test_scenarios,
             reference_scenarios=ref_scenarios,
             stratifications=stratifications,
@@ -269,10 +278,10 @@ class ValidationContext:
         return age_groups.rename_axis(index={"age_group_name": "age_group"})
 
     def _get_raw_data_from_source(
-        self, measure: Measure, source: DataSource
+        self, measure_keys: dict[str, str], source: DataSource
     ) -> dict[str, pd.DataFrame]:
         """Get the raw datasets from the given source."""
         return {
             dataset_name: self._data_loader.get_data(data_key, source)
-            for dataset_name, data_key in measure.get_required_datasets(source).items()
+            for dataset_name, data_key in measure_keys.items()
         }
