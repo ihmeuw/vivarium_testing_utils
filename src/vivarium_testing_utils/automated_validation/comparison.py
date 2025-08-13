@@ -314,8 +314,6 @@ class FuzzyComparison(Comparison):
         return converted_test_data, reference_data
 
     def aggregate_strata(self, strata: Collection[str] = ()) -> pd.DataFrame | float:
-        if not isinstance(strata, list):
-            strata = list(strata)
         for stratum in strata:
             if (
                 stratum not in self.reference_data.index.names
