@@ -501,4 +501,4 @@ def test_aggregate_strata(
     pd.testing.assert_frame_equal(aggregated, expected)
 
     with pytest.raises(ValueError, match="not found in reference data or weights"):
-        comparison.aggregate_strata(["dog", "cat"])
+        comparison.aggregate_strata_reference(["dog", "cat"])

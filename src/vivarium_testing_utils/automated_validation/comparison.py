@@ -302,7 +302,9 @@ class FuzzyComparison(Comparison):
         ## At this point, the only non-common index levels should be scenarios and draws.
         return converted_test_data, reference_data
 
-    def aggregate_strata(self, strata: Collection[str] = ()) -> pd.DataFrame | float:
+    def aggregate_strata_reference(
+        self, strata: Collection[str] = ()
+    ) -> pd.DataFrame | float:
         for stratum in strata:
             if (
                 stratum not in self.reference_data.index.names
