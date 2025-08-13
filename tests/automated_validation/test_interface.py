@@ -102,8 +102,12 @@ def test___get_raw_data_from_source(
     """Ensure that we can get raw data from a source"""
     context = ValidationContext(sim_result_dir)
     measure = Incidence("disease")
-    test_raw_data = context._get_raw_data_from_source(measure, DataSource.SIM)
-    ref_raw_data = context._get_raw_data_from_source(measure, DataSource.ARTIFACT)
+    test_raw_data = context._get_raw_data_from_source(
+        measure.get_required_datasets(DataSource.SIM), DataSource.SIM
+    )
+    ref_raw_data = context._get_raw_data_from_source(
+        measure.get_required_datasets(DataSource.ARTIFACT), DataSource.ARTIFACT
+    )
 
     assert test_raw_data["numerator_data"].equals(transition_count_data)
     assert test_raw_data["denominator_data"].equals(person_time_data)

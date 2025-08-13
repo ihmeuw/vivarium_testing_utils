@@ -25,6 +25,7 @@ class Comparison(ABC):
     test_datasets: dict[str, pd.DataFrame]
     reference_source: DataSource
     reference_data: pd.DataFrame
+    reference_weights: pd.DataFrame
     test_scenarios: dict[str, str] | None
     reference_scenarios: dict[str, str] | None
     stratifications: Collection[str]
@@ -88,6 +89,7 @@ class FuzzyComparison(Comparison):
         test_datasets: dict[str, pd.DataFrame],
         reference_source: DataSource,
         reference_data: pd.DataFrame,
+        reference_weights: pd.DataFrame,
         test_scenarios: dict[str, str] | None = None,
         reference_scenarios: dict[str, str] | None = None,
         stratifications: Collection[str] = (),
@@ -107,6 +109,7 @@ class FuzzyComparison(Comparison):
         self.reference_data = calculations.filter_data(
             reference_data, self.reference_scenarios, drop_singles=False
         )
+        self.reference_weights = reference_weights
 
         if stratifications:
             # TODO: MIC-6075
@@ -309,3 +312,16 @@ class FuzzyComparison(Comparison):
 
         ## At this point, the only non-common index levels should be scenarios and draws.
         return converted_test_data, reference_data
+
+    def aggregate_strata(self, strata: Collection[str] = ()) -> pd.DataFrame | float:
+        for stratum in strata:
+            if (
+                stratum not in self.reference_data.index.names
+                and stratum not in self.reference_weights.index.names
+            ):
+                raise ValueError(
+                    f"Stratum '{stratum}' not found in reference data or weights."
+                )
+        return calculations.weighted_average(
+            self.reference_data, self.reference_weights, strata
+        )
