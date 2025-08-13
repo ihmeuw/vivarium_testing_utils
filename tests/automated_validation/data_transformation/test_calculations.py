@@ -298,7 +298,7 @@ def test_weighted_average(
         pd.testing.assert_frame_equal(result, expected, rtol=1e-2)
 
 
-def test_weighted_average_subset_index_fails(fish_data: pd.DataFrame) -> None:
+def test_weighted_average_extra_data_index_fails(fish_data: pd.DataFrame) -> None:
     """Test weighted average when weights DataFrame has fewer index levels than data DataFrame."""
     # Split fish_data into separate data and weights dataframes
     data = pd.DataFrame({"value": fish_data["value"]}, index=fish_data.index)
@@ -313,5 +313,18 @@ def test_weighted_average_subset_index_fails(fish_data: pd.DataFrame) -> None:
 
     # Test that weighted_average works with subset index
     # When grouping by sex, it should broadcast the weights appropriately
-    with pytest.raises(ValueError, match="Data and weights must have the same index levels"):
+    with pytest.raises(ValueError, match="are not present in weights index levels"):
         weighted_average(data, weights, ["sex"])
+
+
+def test_weighted_average_extra_weights_index(fish_data: pd.DataFrame) -> None:
+    """Test weighted average when weights DataFrame has extra index levels compared to data DataFrame."""
+    # Split fish_data into separate data and weights dataframes
+    data = pd.DataFrame({"value": fish_data["value"]}, index=fish_data.index)
+    weights = pd.DataFrame({"value": fish_data["weights"]}, index=fish_data.index)
+
+    # Remove index layer from data so weights has an extra layer
+    data = data.groupby("sex", sort=False, observed=True).sum()
+    weighted_avg = weighted_average(data, weights, ["sex"])
+    assert isinstance(weighted_avg, pd.DataFrame)
+    assert set(weighted_avg.index.names) == {"sex"}

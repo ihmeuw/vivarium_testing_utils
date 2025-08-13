@@ -267,10 +267,9 @@ def test_fuzzy_comparison_get_frame_with_stratifications(
         reference_weights,
     )
 
-    with pytest.raises(
-        NotImplementedError, match="Non-default stratifications require rate aggregations"
-    ):
-        comparison.get_frame(stratifications=["year"])
+    data = comparison.get_frame(stratifications=["year", "sex"])
+    # TODO: MIC-6239 add index assertion once implementation of feature is complete
+    assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
 
 
 def test_fuzzy_comparison_verify_not_implemented(
@@ -384,44 +383,9 @@ def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
 
     # Verify the singular index was dropped
+    assert isinstance(aligned_reference_data, pd.DataFrame)
     assert "location" not in aligned_reference_data.index.names
     assert aligned_test_data.shape[0] == aligned_reference_data.shape[0]
-
-
-def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
-    mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
-) -> None:
-    """Test that _align_datasets raises ValueError for non-singular reference-only indices."""
-    reference_data_with_non_singular_index = reference_data.copy()
-    reference_data_with_non_singular_index["location"] = ["Global", "USA", "USA"]
-    reference_data_with_non_singular_index.set_index("location", append=True, inplace=True)
-
-    # Setup
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data_with_non_singular_index,
-        reference_weights,
-    )
-
-    # Verify the non-singular index exists
-    assert "location" in comparison.reference_data.index.names
-    assert "location" not in comparison.test_datasets["numerator_data"].index.names
-
-    # Verify it's not detected as a singular index
-    singular_indices = calculations.get_singular_indices(comparison.reference_data)
-    assert "location" not in singular_indices
-
-    # Execute and verify error is raised with correct message
-    with pytest.raises(
-        ValueError, match="Reference data has non-trivial index levels {'location'}"
-    ):
-        comparison._align_datasets()
 
 
 def test_fuzzy_comparison_align_datasets_calculation(
@@ -441,9 +405,9 @@ def test_fuzzy_comparison_align_datasets_calculation(
         reference_weights,
         test_scenarios={"scenario": "baseline"},
     )
-
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
 
+    assert isinstance(aligned_reference_data, pd.DataFrame)
     assert_frame_equal(aligned_reference_data, reference_data)
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]

@@ -164,6 +164,12 @@ class FuzzyComparison(Comparison):
         test_proportion_data, reference_data = self._align_datasets(stratifications)
 
         test_proportion_data = test_proportion_data.rename(columns={"value": "rate"}).dropna()
+        # Reference data can be a float or dataframe
+        if not isinstance(reference_data, pd.DataFrame):
+            reference_data = pd.DataFrame(
+                {"value": reference_data * len(self.reference_data.index)},
+                index=self.reference_data.index,
+            )
         reference_data = reference_data.rename(columns={"value": "rate"}).dropna()
 
         if aggregate_draws:
@@ -260,7 +266,7 @@ class FuzzyComparison(Comparison):
 
     def _align_datasets(
         self, stratifications: Collection[str] = ()
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    ) -> tuple[pd.DataFrame, pd.DataFrame | float]:
         """Resolve any index mismatches between the test and reference datasets."""
         # Get union of test data index names
 
@@ -293,9 +299,12 @@ class FuzzyComparison(Comparison):
 
         # Aggregate over indices
         # FIXME: Ref data and ref weights break because of not matching index levels.
-        # FIXME: Breaks when we pass no stratifications since weights will be a float and not a DataFrame.
         reference_data = self.aggregate_strata_reference(
-            strata=[x for x in reference_index_names if x not in reference_indexes_to_drop]
+            strata=[
+                x
+                for x in self.reference_data.index.names
+                if x not in reference_indexes_to_drop
+            ]
         )
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
 

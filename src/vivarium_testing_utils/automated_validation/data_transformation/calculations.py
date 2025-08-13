@@ -159,18 +159,18 @@ def weighted_average(
     Examples
     --------
 
-    >>> fish_data = pd.DataFrame(
-    ...     {
-    ...         "weights": [20, 100, 2, 50],
-    ...         "value": [2, 3, 5, 7],
-    ...     },
-    ...     index=pd.MultiIndex.from_tuples([
-    ...         ("Male", "Red"),
-    ...         ("Male", "Blue"),
-    ...         ("Female", "Red"),
-    ...         ("Female", "Blue"),
-    ...     ], names=["sex", "color"])
-    ... )
+        >>> fish_data = pd.DataFrame(
+        ...     {
+        ...         "weights": [20, 100, 2, 50],
+        ...         "value": [2, 3, 5, 7],
+        ...     },
+        ...     index=pd.MultiIndex.from_tuples([
+        ...         ("Male", "Red"),
+        ...         ("Male", "Blue"),
+        ...         ("Female", "Red"),
+        ...         ("Female", "Blue"),
+        ...     ], names=["sex", "color"])
+        ... )
     >>> data = pd.DataFrame({"value": fish_data["value"]}, index=fish_data.index)
     >>> weights = pd.DataFrame({"value": fish_data["weights"]}, index=fish_data.index)
 
@@ -195,6 +195,24 @@ def weighted_average(
     # Returns: 3.55  # (20*2 + 100*3 + 2*5 + 50*7)/(20+100+2+50) = 700/172 ≈ 4.07
 
     """
+    # Check if weights has extra index levels compared to data
+    data_index_names = set(data.index.names)
+    weights_index_names = set(weights.index.names)
+
+    if not data_index_names.issubset(weights_index_names):
+        raise ValueError(
+            f"Data index levels {data_index_names - weights_index_names} "
+            f"are not present in weights index levels {weights_index_names}"
+        )
+
+    # If weights has extra index levels, aggregate by summing
+    extra_levels = weights_index_names - data_index_names
+    if extra_levels:
+        # Group by the levels that match data's index and sum over the extra levels
+        weights = weights.groupby(
+            level=list(data_index_names), sort=False, observed=True
+        ).sum()
+
     # Check that index levels are compatible (at least subsets of each other)
     if not data.index.equals(weights.index):
         raise ValueError(
