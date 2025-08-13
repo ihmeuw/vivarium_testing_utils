@@ -201,7 +201,9 @@ def _create_risk_categories() -> dict[str, str]:
 
 
 @pytest.fixture(scope="session")
-def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
+def sim_result_dir(
+    tmp_path_factory: TempPathFactory, _artifact_keys_mapper: dict[str, pd.DataFrame]
+) -> Path:
     """Create a temporary directory for simulation outputs."""
     # Create the temporary directory at session scope
     tmp_path = tmp_path_factory.mktemp("sim_data")
@@ -215,11 +217,7 @@ def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
     _transition_count_data = _create_transition_count_data()
     _person_time_data = _create_person_time_data()
     _deaths_data = _create_deaths_data()
-    _raw_artifact_disease_incidence = _create_raw_artifact_disease_incidence()
-    _sample_age_group_df = _create_sample_age_group_df()
     _risk_state_person_time_data = _create_risk_state_person_time_data()
-    _raw_artifact_risk_exposure = _create_raw_artifact_risk_exposure()
-    _risk_categories = _create_risk_categories()
 
     # Save Sim DataFrames
     _transition_count_data.reset_index().to_parquet(
@@ -236,10 +234,8 @@ def sim_result_dir(tmp_path_factory: TempPathFactory) -> Path:
     artifact_dir.mkdir(exist_ok=True)
     artifact_path = artifact_dir / "artifact.hdf"
     artifact = Artifact(artifact_path)
-    artifact.write("cause.disease.incidence_rate", _raw_artifact_disease_incidence)
-    artifact.write("risk_factor.child_stunting.exposure", _raw_artifact_risk_exposure)
-    artifact.write("population.age_bins", _sample_age_group_df)
-    artifact.write("risk_factor.risky_risk.categories", _risk_categories)
+    for key, data in _artifact_keys_mapper.items():
+        artifact.write(key, data)
 
     # Save model specification
     with open(tmp_path / "model_specification.yaml", "w") as f:
@@ -451,3 +447,57 @@ def artifact_excess_mortality_rate() -> pd.DataFrame:
 def risk_categories() -> dict[str, str]:
     """Sample risk categories mapping."""
     return _create_risk_categories()
+
+
+def _artifact_population_structure() -> pd.DataFrame:
+    """Sample population structure artifact data."""
+    return pd.DataFrame(
+        {
+            "value": [1000, 2000, 1500, 2500],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("A", 0.0, 5.0),
+                ("A", 5.0, 10.0),
+                ("B", 0.0, 5.0),
+                ("B", 5.0, 10.0),
+            ],
+            names=["common_stratify_column", AGE_START_COLUMN, AGE_END_COLUMN],
+        ),
+    )
+
+
+def _make_artifact_prevalence() -> pd.DataFrame:
+    """Sample prevalence artifact data."""
+    return pd.DataFrame(
+        {
+            "value": [0.1, 0.2, 0.15, 0.25],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("A", 0),
+                ("A", 1),
+                ("B", 0),
+                ("B", 1),
+            ],
+            names=["common_stratify_column", DRAW_INDEX],
+        ),
+    )
+
+
+@pytest.fixture(scope="session")
+def _artifact_keys_mapper() -> dict[str, pd.DataFrame | dict[str, str]]:
+    _raw_artifact_disease_incidence = _create_raw_artifact_disease_incidence()
+    _raw_artifact_risk_exposure = _create_raw_artifact_risk_exposure()
+    _sample_age_group_df = _create_sample_age_group_df()
+    _risk_categories = _create_risk_categories()
+    _population_structure = _artifact_population_structure()
+    _artifact_prevalence = _make_artifact_prevalence()
+    return {
+        "cause.disease.incidence_rate": _raw_artifact_disease_incidence,
+        "risk_factor.child_stunting.exposure": _raw_artifact_risk_exposure,
+        "population.age_bins": _sample_age_group_df,
+        "risk_factor.risky_risk.categories": _risk_categories,
+        "population.structure": _population_structure,
+        "cause.disease.prevalence": _artifact_prevalence,
+    }
