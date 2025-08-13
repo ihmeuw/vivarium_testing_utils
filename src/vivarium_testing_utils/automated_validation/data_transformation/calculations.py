@@ -135,7 +135,9 @@ def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
     weights=SingleNumericColumn,
 )
 def weighted_average(
-    data: pd.DataFrame, weights: pd.DataFrame, stratifications: list[str] = []
+    data: pd.DataFrame,
+    weights: pd.DataFrame,
+    stratifications: Collection[str] = (),
 ) -> pd.DataFrame | float:
     """Calculate a weighted average of the data using the provided weights.
 
@@ -195,6 +197,9 @@ def weighted_average(
     # Returns: 3.55  # (20*2 + 100*3 + 2*5 + 50*7)/(20+100+2+50) = 700/172 ≈ 4.07
 
     """
+    if not isinstance(stratifications, list):
+        stratifications = list(stratifications)
+
     # Check if weights has extra index levels compared to data
     data_index_names = set(data.index.names)
     weights_index_names = set(weights.index.names)
