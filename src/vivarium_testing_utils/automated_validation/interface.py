@@ -174,6 +174,7 @@ class ValidationContext:
             measure.rate_aggregation_weights.weight_keys, ref_source_enum
         )
         ref_weights = measure.rate_aggregation_weights.get_weights(**ref_weight_raw_data)
+        breakpoint()
 
         comparison = FuzzyComparison(
             measure=measure,

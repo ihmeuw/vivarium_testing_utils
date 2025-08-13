@@ -69,7 +69,6 @@ def plot_comparison(
             "Please do not provide it as a keyword argument."
         )
     default_kwargs.update(kwargs)
-    breakpoint()
 
     return PLOT_TYPE_MAPPING[type](**default_kwargs)
 

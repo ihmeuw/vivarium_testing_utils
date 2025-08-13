@@ -161,7 +161,7 @@ class FuzzyComparison(Comparison):
         A DataFrame of the comparison data.
         """
 
-        test_proportion_data, reference_data = self._align_datasets(strata=stratifications)
+        test_proportion_data, reference_data = self._align_datasets(stratifications)
 
         test_proportion_data = test_proportion_data.rename(columns={"value": "rate"}).dropna()
         reference_data = reference_data.rename(columns={"value": "rate"}).dropna()
@@ -259,7 +259,7 @@ class FuzzyComparison(Comparison):
         return data_info
 
     def _align_datasets(
-        self, strata: Collection[str] = ()
+        self, stratifications: Collection[str] = ()
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
         # Get union of test data index names
@@ -286,10 +286,10 @@ class FuzzyComparison(Comparison):
         # over those index levels.
         test_datasets = self.aggregate_strata_test(test_indexes_to_marginalize)
 
-        # Aggregate over reference indices
-        reference_data = self.aggregate_strata_reference(
-            source="reference", strata=reference_indexes_to_drop
-        )
+        # Aggregate over indices
+        # FIXME: Ref data and ref weights break because of not matching index levels.
+        # FIXME: Breaks when we pass no stratifications since weights will be a float and not a DataFrame.
+        reference_data = self.aggregate_strata_reference(strata=reference_indexes_to_drop)
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
 
         ## At this point, the only non-common index levels should be scenarios and draws.
