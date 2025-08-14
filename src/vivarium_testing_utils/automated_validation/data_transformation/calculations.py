@@ -152,7 +152,7 @@ def weighted_average(
     Raises
         ------
         ValueError
-            If data index names is not a subset of weights index names.
+            If data index levels is not a subset of weights index levels.
 
     Returns
     -------
