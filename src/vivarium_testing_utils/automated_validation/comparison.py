@@ -299,13 +299,14 @@ class FuzzyComparison(Comparison):
                 if x not in reference_indexes_to_drop
             ]
         )
+
+        converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
         # Reference data can be a float or dataframe
         if not isinstance(reference_data, pd.DataFrame):
             reference_data = pd.DataFrame(
-                {"value": reference_data * len(self.reference_data.index)},
-                index=self.reference_data.index,
+                {"value": reference_data * len(converted_test_data.index)},
+                index=converted_test_data.index,
             )
-        converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
 
         ## At this point, the only non-common index levels should be scenarios and draws.
         return converted_test_data, reference_data
