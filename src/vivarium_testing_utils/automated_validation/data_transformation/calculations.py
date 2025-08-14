@@ -152,7 +152,7 @@ def weighted_average(
     Raises
         ------
         ValueError
-            If data and weights do not have the same index
+            If data index names is not a subset of weights index names.
 
     Returns
     -------
@@ -199,6 +199,24 @@ def weighted_average(
     """
     if not isinstance(stratifications, list):
         stratifications = list(stratifications)
+
+    # Check if weights has extra index levels compared to data
+    data_index_names = set(data.index.names)
+    weights_index_names = set(weights.index.names)
+
+    if not data_index_names.issubset(weights_index_names):
+        raise ValueError(
+            f"Data index levels {data_index_names - weights_index_names} "
+            f"are not present in weights index levels {weights_index_names}"
+        )
+
+    # If weights has extra index levels, aggregate by summing
+    extra_levels = weights_index_names - data_index_names
+    if extra_levels:
+        # Group by the levels that match data's index and sum over the extra levels
+        weights = weights.groupby(
+            level=list(data_index_names), sort=False, observed=True
+        ).sum()
 
     # Check that index levels are compatible (at least subsets of each other)
     if not data.index.equals(weights.index):
