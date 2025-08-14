@@ -292,27 +292,50 @@ class FuzzyComparison(Comparison):
         }
 
         # Aggregate over indices
-        # FIXME: Ref data and ref weights break because of not matching index levels.
-        # FIXME: Breaks when we pass no stratifications since weights will be a float and not a DataFrame.
         reference_data = self.aggregate_strata_reference(
-            strata=[x for x in reference_index_names if x not in reference_indexes_to_drop]
+            self.reference_data,
+            strata=[
+                x
+                for x in self.reference_data.index.names
+                if x not in reference_indexes_to_drop
+            ],
         )
+
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
+        # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
+        if not isinstance(reference_data, pd.DataFrame):
+            reference_data = pd.DataFrame(
+                {"value": [reference_data] * len(converted_test_data.index)},
+                index=converted_test_data.index,
+            )
+
+        # Aggregate over stratifications specified by user for reference data
+        stratified_test_data = calculations.stratify(converted_test_data, stratifications)
+        aggregated_reference_data = self.aggregate_strata_reference(
+            reference_data, stratifications
+        )
+        # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
+        if not isinstance(aggregated_reference_data, pd.DataFrame):
+            aggregated_reference_data = pd.DataFrame(
+                {"value": [aggregated_reference_data] * len(stratified_test_data.index)},
+                index=stratified_test_data.index,
+            )
+            for level in ["input_draw", "scenario"]:
+                if level in aggregated_reference_data.index.names:
+                    aggregated_reference_data = aggregated_reference_data.droplevel(level)
 
         ## At this point, the only non-common index levels should be scenarios and draws.
-        return converted_test_data, reference_data
+        return stratified_test_data, aggregated_reference_data
 
     def aggregate_strata_reference(
-        self, strata: Collection[str] = ()
+        self, data: pd.DataFrame, strata: Collection[str] = ()
     ) -> pd.DataFrame | float:
         for stratum in strata:
             if (
-                stratum not in self.reference_data.index.names
+                stratum not in data.index.names
                 and stratum not in self.reference_weights.index.names
             ):
                 raise ValueError(
                     f"Stratum '{stratum}' not found in reference data or weights."
                 )
-        return calculations.weighted_average(
-            self.reference_data, self.reference_weights, strata
-        )
+        return calculations.weighted_average(data, self.reference_weights, strata)

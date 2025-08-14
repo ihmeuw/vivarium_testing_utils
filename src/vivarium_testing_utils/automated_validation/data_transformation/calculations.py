@@ -74,8 +74,10 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
     return numerator_data / denominator_data
 
 
-def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str] = []) -> pd.DataFrame:
+def aggregate_sum(data: pd.DataFrame, groupby_cols: Collection[str] = []) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
+    if not isinstance(groupby_cols, list):
+        groupby_cols = list(groupby_cols)
     if not groupby_cols:
         return data
     # Use observed=True to avoid sorting categorical levels
@@ -85,7 +87,7 @@ def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str] = []) -> pd.DataFr
     return data.groupby(groupby_cols, sort=False, observed=True).sum()
 
 
-def stratify(data: pd.DataFrame, stratification_cols: list[str]) -> pd.DataFrame:
+def stratify(data: pd.DataFrame, stratification_cols: Collection[str]) -> pd.DataFrame:
     """Stratify the data by the index columns, summing over everything else. Syntactic sugar for aggregate."""
     return aggregate_sum(data, stratification_cols)
 

@@ -213,14 +213,17 @@ def test_fuzzy_comparison_get_frame_aggregated(
         reference_weights,
     )
     diff = comparison.get_frame(stratifications=[], num_rows="all", aggregate_draws=True)
+    expected_reference_value = ((0.12 * 0.15) + (0.20 * 0.25) + (0.29 * 0.35)) / (
+        0.15 + 0.25 + 0.35
+    )
     expected_df = pd.DataFrame(
         {
             "test_mean": [0.1, 0.2, 0.325],
             "test_2.5%": [0.1, 0.2, 0.325],
             "test_97.5%": [0.1, 0.2, 0.325],
-            "reference_mean": [0.12, 0.2, 0.29],
-            "reference_2.5%": [0.12, 0.2, 0.29],
-            "reference_97.5%": [0.12, 0.2, 0.29],
+            "reference_mean": [expected_reference_value] * 3,
+            "reference_2.5%": [expected_reference_value] * 3,
+            "reference_97.5%": [expected_reference_value] * 3,
         },
         index=pd.MultiIndex.from_tuples(
             [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
@@ -267,10 +270,9 @@ def test_fuzzy_comparison_get_frame_with_stratifications(
         reference_weights,
     )
 
-    with pytest.raises(
-        NotImplementedError, match="Non-default stratifications require rate aggregations"
-    ):
-        comparison.get_frame(stratifications=["year"])
+    data = comparison.get_frame(stratifications=["year"])
+    assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
+    assert set(data.index.names) == {"year"}
 
 
 def test_fuzzy_comparison_verify_not_implemented(
@@ -347,47 +349,6 @@ def test_get_metadata_from_dataset_no_draws(
         assert "num_seeds" not in result
 
 
-def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
-    mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
-) -> None:
-    """Test that _align_datasets correctly handles singular reference-only indices."""
-    reference_data_with_singular_index = reference_data.copy()
-    reference_data_with_singular_index["location"] = ["Global", "Global", "Global"]
-    reference_data_with_singular_index.set_index("location", append=True, inplace=True)
-
-    reference_weights_with_singular_index = reference_weights.copy()
-    reference_weights_with_singular_index["location"] = ["Global", "Global", "Global"]
-    reference_weights_with_singular_index.set_index("location", append=True, inplace=True)
-
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data_with_singular_index,
-        reference_weights_with_singular_index,
-    )
-
-    # Verify the singular index exists
-    assert "location" in comparison.reference_data.index.names
-    assert "location" not in comparison.test_datasets["numerator_data"].index.names
-
-    # Verify it's detected as a singular index
-    singular_indices = calculations.get_singular_indices(comparison.reference_data)
-    assert "location" in singular_indices
-    assert singular_indices["location"] == "Global"
-
-    # Execute
-    aligned_test_data, aligned_reference_data = comparison._align_datasets()
-
-    # Verify the singular index was dropped
-    assert "location" not in aligned_reference_data.index.names
-    assert aligned_test_data.shape[0] == aligned_reference_data.shape[0]
-
-
 def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
@@ -417,12 +378,6 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     singular_indices = calculations.get_singular_indices(comparison.reference_data)
     assert "location" not in singular_indices
 
-    # Execute and verify error is raised with correct message
-    with pytest.raises(
-        ValueError, match="Reference data has non-trivial index levels {'location'}"
-    ):
-        comparison._align_datasets()
-
 
 def test_fuzzy_comparison_align_datasets_calculation(
     mock_ratio_measure: RatioMeasure,
@@ -444,7 +399,14 @@ def test_fuzzy_comparison_align_datasets_calculation(
 
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
 
-    assert_frame_equal(aligned_reference_data, reference_data)
+    expected_reference_value = ((0.12 * 0.15) + (0.20 * 0.25) + (0.29 * 0.35)) / (
+        0.15 + 0.25 + 0.35
+    )
+    expected_reference = pd.DataFrame(
+        {"value": [expected_reference_value] * len(reference_data.index)},
+        index=reference_data.index,
+    )
+    pd.testing.assert_frame_equal(aligned_reference_data, expected_reference)
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
     expected_index = pd.MultiIndex.from_tuples(
@@ -480,7 +442,7 @@ def test_aggregate_strata(
         reference_weights,
     )
 
-    aggregated = comparison.aggregate_strata_reference(["age", "sex"])
+    aggregated = comparison.aggregate_strata_reference(reference_data, ["age", "sex"])
     # (0, Male) = (0.12 * 0.15 + 0.29 * 0.35) / (0.15 + 0.35)
     expected = pd.DataFrame(
         {
@@ -501,4 +463,4 @@ def test_aggregate_strata(
     pd.testing.assert_frame_equal(aggregated, expected)
 
     with pytest.raises(ValueError, match="not found in reference data or weights"):
-        comparison.aggregate_strata_reference(["dog", "cat"])
+        comparison.aggregate_strata_reference(reference_data, ["dog", "cat"])
