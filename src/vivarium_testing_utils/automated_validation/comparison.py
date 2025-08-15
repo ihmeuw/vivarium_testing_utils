@@ -28,7 +28,6 @@ class Comparison(ABC):
     reference_weights: pd.DataFrame
     test_scenarios: dict[str, str] | None
     reference_scenarios: dict[str, str] | None
-    allowed_stratifications: Collection[str]
 
     @property
     @abstractmethod
@@ -46,7 +45,7 @@ class Comparison(ABC):
     @abstractmethod
     def get_frame(
         self,
-        stratifications: Collection[str] = (),
+        stratifications: Collection[str] | None = None,
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "",
         ascending: bool = False,
@@ -92,7 +91,6 @@ class FuzzyComparison(Comparison):
         reference_weights: pd.DataFrame,
         test_scenarios: dict[str, str] | None = None,
         reference_scenarios: dict[str, str] | None = None,
-        stratifications: Collection[str] = (),
     ):
         self.measure: RatioMeasure = measure
 
@@ -111,13 +109,6 @@ class FuzzyComparison(Comparison):
         )
         self.reference_weights = reference_weights
 
-        if stratifications:
-            # TODO: MIC-6075
-            raise NotImplementedError(
-                "Non-default stratifications require rate aggregations, which are not currently supported."
-            )
-        self.allowed_stratifications = stratifications
-
     @property
     def metadata(self) -> pd.DataFrame:
         """A summary of the test data and reference data, including:
@@ -135,7 +126,7 @@ class FuzzyComparison(Comparison):
 
     def get_frame(
         self,
-        stratifications: Collection[str] = (),
+        stratifications: Collection[str] | None = None,
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "",
         ascending: bool = False,
@@ -259,7 +250,7 @@ class FuzzyComparison(Comparison):
         return data_info
 
     def _align_datasets(
-        self, stratifications: Collection[str] = ()
+        self, stratifications: Collection[str] | None = None
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
         # Get union of test data index names
@@ -279,7 +270,7 @@ class FuzzyComparison(Comparison):
             tuple(self.test_scenarios.keys()), [DRAW_INDEX]
         )
         reference_indexes_to_drop = reference_only_indexes.difference(
-            tuple(self.reference_scenarios.keys()), [DRAW_INDEX]
+            tuple(self.reference_scenarios.keys())
         )
 
         # If the test data has any index levels that are not in the reference data, marginalize
@@ -300,36 +291,25 @@ class FuzzyComparison(Comparison):
                 if x not in reference_indexes_to_drop
             ],
         )
-
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
-        # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
-        if not isinstance(reference_data, pd.DataFrame):
-            reference_data = pd.DataFrame(
-                {"value": [reference_data] * len(converted_test_data.index)},
-                index=converted_test_data.index,
+
+        if stratifications is not None:
+            # Aggregate over stratifications specified by user for reference data
+            stratified_test_data = calculations.stratify(converted_test_data, stratifications)
+            aggregated_reference_data = self.aggregate_strata_reference(
+                reference_data, stratifications
             )
 
-        # Aggregate over stratifications specified by user for reference data
-        stratified_test_data = calculations.stratify(converted_test_data, stratifications)
-        aggregated_reference_data = self.aggregate_strata_reference(
-            reference_data, stratifications
-        )
-        # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
-        if not isinstance(aggregated_reference_data, pd.DataFrame):
-            aggregated_reference_data = pd.DataFrame(
-                {"value": [aggregated_reference_data] * len(stratified_test_data.index)},
-                index=stratified_test_data.index,
-            )
-            for level in ["input_draw", "scenario"]:
-                if level in aggregated_reference_data.index.names:
-                    aggregated_reference_data = aggregated_reference_data.droplevel(level)
+        else:
+            stratified_test_data = converted_test_data
+            aggregated_reference_data = reference_data
 
         ## At this point, the only non-common index levels should be scenarios and draws.
         return stratified_test_data, aggregated_reference_data
 
     def aggregate_strata_reference(
         self, data: pd.DataFrame, strata: Collection[str] = ()
-    ) -> pd.DataFrame | float:
+    ) -> pd.DataFrame:
         for stratum in strata:
             if (
                 stratum not in data.index.names
@@ -338,4 +318,12 @@ class FuzzyComparison(Comparison):
                 raise ValueError(
                     f"Stratum '{stratum}' not found in reference data or weights."
                 )
-        return calculations.weighted_average(data, self.reference_weights, strata)
+
+        strata = list(strata)
+        if DRAW_INDEX in data.index.names:
+            strata.append(DRAW_INDEX)
+        weighted_avg = calculations.weighted_average(data, self.reference_weights, strata)
+        # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
+        if not isinstance(weighted_avg, pd.DataFrame):
+            weighted_avg = pd.DataFrame({"value": [weighted_avg]})
+        return weighted_avg

@@ -87,7 +87,6 @@ def test_fuzzy_comparison_init(
         reference_data,
         reference_weights,
         test_scenarios={"scenario": "baseline"},
-        stratifications=[],
     )
 
     with check:
@@ -102,7 +101,6 @@ def test_fuzzy_comparison_init(
         assert comparison.reference_data.equals(reference_data)
         assert comparison.test_scenarios == {"scenario": "baseline"}
         assert not comparison.reference_scenarios
-        assert list(comparison.allowed_stratifications) == []
 
 
 def test_fuzzy_comparison_metadata(
@@ -161,7 +159,7 @@ def test_fuzzy_comparison_get_frame(
         reference_weights,
     )
 
-    diff = comparison.get_frame(stratifications=[], num_rows=1)
+    diff = comparison.get_frame(num_rows=1)
 
     with check:
         assert len(diff) == 1
@@ -172,7 +170,7 @@ def test_fuzzy_comparison_get_frame(
         assert SEED_INDEX not in diff.index.names
 
     # Test returning all rows
-    all_diff = comparison.get_frame(stratifications=[], num_rows="all")
+    all_diff = comparison.get_frame(num_rows="all")
     assert len(all_diff) == 3
 
     # Test sorting
@@ -197,7 +195,7 @@ def test_fuzzy_comparison_get_frame(
         )
 
 
-def test_fuzzy_comparison_get_frame_aggregated(
+def test_fuzzy_comparison_get_frame_aggregated_draws(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
@@ -212,7 +210,7 @@ def test_fuzzy_comparison_get_frame_aggregated(
         reference_data,
         reference_weights,
     )
-    diff = comparison.get_frame(stratifications=[], num_rows="all", aggregate_draws=True)
+    diff = comparison.get_frame(num_rows="all", aggregate_draws=True)
     expected_reference_value = ((0.12 * 0.15) + (0.20 * 0.25) + (0.29 * 0.35)) / (
         0.15 + 0.25 + 0.35
     )
@@ -221,9 +219,10 @@ def test_fuzzy_comparison_get_frame_aggregated(
             "test_mean": [0.1, 0.2, 0.325],
             "test_2.5%": [0.1, 0.2, 0.325],
             "test_97.5%": [0.1, 0.2, 0.325],
-            "reference_mean": [expected_reference_value] * 3,
-            "reference_2.5%": [expected_reference_value] * 3,
-            "reference_97.5%": [expected_reference_value] * 3,
+            # No stratification so we retain all of reference data
+            "reference_mean": list(reference_data["value"]),
+            "reference_2.5%": list(reference_data["value"]),
+            "reference_97.5%": list(reference_data["value"]),
         },
         index=pd.MultiIndex.from_tuples(
             [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
@@ -231,27 +230,6 @@ def test_fuzzy_comparison_get_frame_aggregated(
         ),
     )
     assert_frame_equal(diff, expected_df)
-
-
-def test_fuzzy_comparison_init_with_stratifications(
-    mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
-) -> None:
-    """Test that FuzzyComparison raises NotImplementedError when initialized with non-empty stratifications."""
-    with pytest.raises(
-        NotImplementedError, match="Non-default stratifications require rate aggregations"
-    ):
-        FuzzyComparison(
-            mock_ratio_measure,
-            DataSource.SIM,
-            test_data,
-            DataSource.GBD,
-            reference_data,
-            reference_weights,
-            stratifications=["year"],
-        )
 
 
 def test_fuzzy_comparison_get_frame_with_stratifications(
@@ -398,15 +376,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
     )
 
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
-
-    expected_reference_value = ((0.12 * 0.15) + (0.20 * 0.25) + (0.29 * 0.35)) / (
-        0.15 + 0.25 + 0.35
-    )
-    expected_reference = pd.DataFrame(
-        {"value": [expected_reference_value] * len(reference_data.index)},
-        index=reference_data.index,
-    )
-    pd.testing.assert_frame_equal(aligned_reference_data, expected_reference)
+    pd.testing.assert_frame_equal(aligned_reference_data, reference_data)
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
     expected_index = pd.MultiIndex.from_tuples(

@@ -187,7 +187,6 @@ class ValidationContext:
             reference_weights=ref_weights,
             test_scenarios=test_scenarios,
             reference_scenarios=ref_scenarios,
-            stratifications=stratifications,
         )
         self.comparisons[measure.measure_key] = comparison
 
@@ -200,7 +199,7 @@ class ValidationContext:
     def get_frame(
         self,
         comparison_key: str,
-        stratifications: Collection[str] = (),
+        stratifications: Collection[str] | None = None,
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "",
         ascending: bool = False,
@@ -213,7 +212,9 @@ class ValidationContext:
         comparison_key
             The key of the comparison for which to get the data
         stratifications
-            The stratifications to use for the comparison
+            The stratifications to use for the comparison. If None, no aggregatio nwill happen and
+            all existing stratifications will remain. If an empty list is passed, no stratifications
+            will be retained.
         num_rows
             The number of rows to return. If "all", return all rows.
         sort_by
