@@ -165,6 +165,15 @@ def test_add_comparison(
     assert comparison.reference_data.equals(artifact_disease_incidence)
 
 
+def test_get_frame(sim_result_dir: Path) -> None:
+    """Ensure that we can verify a comparison"""
+    measure_key = "cause.disease.incidence_rate"
+    context = ValidationContext(sim_result_dir)
+    context.add_comparison(measure_key, "sim", "artifact")
+    context.get_frame(measure_key)
+    breakpoint()
+
+
 ######################################
 # Tests for NotImplementedError cases#
 ######################################
@@ -184,12 +193,6 @@ def test_not_implemented(sim_result_dir: Path) -> None:
 @pytest.mark.skip("Not implemented")
 def test_metadata() -> None:
     """Ensure that we can summarize a comparison"""
-    pass
-
-
-@pytest.mark.skip("Not implemented")
-def test_get_frame() -> None:
-    """Ensure that we can verify a comparison"""
     pass
 
 
