@@ -174,6 +174,9 @@ class ValidationContext:
             measure.rate_aggregation_weights.weight_keys, ref_source_enum
         )
         ref_weights = measure.rate_aggregation_weights.get_weights(**ref_weight_raw_data)
+        ref_weights = age_groups.format_dataframe_from_age_bin_df(
+            ref_weights, self.age_groups
+        )
 
         comparison = FuzzyComparison(
             measure=measure,

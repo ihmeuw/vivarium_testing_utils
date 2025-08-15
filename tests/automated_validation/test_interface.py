@@ -8,6 +8,7 @@ from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
 
@@ -162,6 +163,10 @@ def test_add_comparison(
 
     assert comparison.test_datasets["numerator_data"].equals(expected_numerator_data)
     assert comparison.test_datasets["denominator_data"].equals(expected_denominator_data)
+    # Update artifact reference data to match simulation format
+    artifact_disease_incidence = age_groups.format_dataframe_from_age_bin_df(
+        artifact_disease_incidence, context.age_groups
+    )
     assert comparison.reference_data.equals(artifact_disease_incidence)
 
 
@@ -170,8 +175,9 @@ def test_get_frame(sim_result_dir: Path) -> None:
     measure_key = "cause.disease.incidence_rate"
     context = ValidationContext(sim_result_dir)
     context.add_comparison(measure_key, "sim", "artifact")
-    context.get_frame(measure_key)
-    breakpoint()
+    data = context.get_frame(measure_key)
+    assert isinstance(data, pd.DataFrame)
+    assert not data.empty
 
 
 ######################################
