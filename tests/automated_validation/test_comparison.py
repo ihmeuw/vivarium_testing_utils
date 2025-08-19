@@ -235,15 +235,42 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
 
 @pytest.mark.parametrize("stratifications", [None, ["year"], []])
 @pytest.mark.parametrize("aggregate", [True, False])
-def test_fuzzy_comparison_get_frame_with_stratifications(
+@pytest.mark.parametrize("schema", ["test", "reference", "both", "neither"])
+def test_fuzzy_comparison_get_frame_parametrized(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
     reference_weights: pd.DataFrame,
     stratifications: Collection[str] | None,
     aggregate: bool,
+    schema: str,
 ) -> None:
     """Test that FuzzyComparison.get_frame raises NotImplementedError when called with non-empty stratifications."""
+    if schema == "test":
+        # This is how the fixtures are set up
+        for key in test_data:
+            assert "input_draw" in test_data[key].index.names
+        assert "input_draw" not in reference_data.index.names
+        assert "input_draw" not in reference_weights.index.names
+    elif schema == "reference":
+        # Remove draws from test data and add draws index level to reference datasets
+        test_data = {
+            dataset_key: test_data[dataset_key]
+            .groupby([level for level in test_data[dataset_key].index.names if level != "input_draw"])
+            .sum()
+            for dataset_key in test_data
+        }
+        draws = [0, 0, 10]
+        reference_data["input_draw"] = draws
+        reference_data.set_index("input_draw", append=True, inplace=True)
+        reference_weights["input_draw"] = draws
+        reference_weights.set_index("input_draw", append=True, inplace=True)
+    elif schema == "both":
+        # TODO: both test and reference data have draws
+        breakpoint()
+    else:
+        breakpoint()
+
     comparison = FuzzyComparison(
         mock_ratio_measure,
         DataSource.SIM,
@@ -275,30 +302,16 @@ def test_fuzzy_comparison_get_frame_with_stratifications(
         expected_index_names = {"index"} if aggregate else {"input_draw"}
         assert set(data.index.names) == expected_index_names
     if aggregate:
-        expected_columns = {"test_mean", "test_2.5%", "test_97.5%", "reference_rate"}
+        schema_mapper = {
+            "test": {"test_mean", "test_2.5%", "test_97.5%", "reference_rate"},
+            "reference": {"test_rate", "reference_mean", "reference_2.5%", "reference_97.5%"},
+            "both": {"test_mean", "test_2.5%", "test_97.5%", "reference_mean", "reference_2.5%", "reference_97.5%"},
+            "neither": {"test_rate", "reference_rate", "percent_error"},
+        }
+        expected_columns = schema_mapper[schema]
     else:
         expected_columns = {"test_rate", "reference_rate", "percent_error"}
     assert set(data.columns) == expected_columns
-
-
-@pytest.mark.parametrize("schema", ["test", "reference", "both"])
-def test_fuzzy_comparison_get_frame_draw_schemas(
-    mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
-    schema: str,
-) -> None:
-    # TODO: update test and reference data based on schema
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data,
-        reference_weights,
-    )
-    data = comparison.get_frame(aggregate_draws=True)
 
 
 def test_fuzzy_comparison_verify_not_implemented(
