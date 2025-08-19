@@ -80,6 +80,11 @@ def aggregate_sum(data: pd.DataFrame, groupby_cols: Collection[str] = []) -> pd.
         groupby_cols = list(groupby_cols)
     if not groupby_cols:
         return data
+    if set(groupby_cols) == set(data.index.names):
+        data = pd.DataFrame(
+            {"value": [data["value"].sum()]},
+        )
+        return data
     # Use observed=True to avoid sorting categorical levels
     # This is a hack, because we're not technically using pd.Categorical here.
     # TODO: MIC-6090  Use the right abstractions for categorical index columns.

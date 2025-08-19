@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from unittest import mock
 
 import pandas as pd
@@ -232,11 +233,15 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
     assert_frame_equal(diff, expected_df)
 
 
+@pytest.mark.parametrize(
+    "stratifications", [None, ["year"], []]
+)
 def test_fuzzy_comparison_get_frame_with_stratifications(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
     reference_weights: pd.DataFrame,
+    stratifications: Collection[str] | None
 ) -> None:
     """Test that FuzzyComparison.get_frame raises NotImplementedError when called with non-empty stratifications."""
     comparison = FuzzyComparison(
@@ -248,10 +253,38 @@ def test_fuzzy_comparison_get_frame_with_stratifications(
         reference_weights,
     )
 
-    data = comparison.get_frame(stratifications=["year"])
+    data = comparison.get_frame(stratifications=stratifications)
+    breakpoint()
+    if stratifications is None:
+        expected_index_names = [col for col in test_data['numerator_data'].index.names if col not in ['random_seed', 'scenario']]
+        assert set(data.index.names) == set(expected_index_names)
+    elif stratifications == ["year"]:
+        assert set(data.index.names) == {"year"}
+    else:
+        # TODO: stratifications is [] and all index levels are aggregated over
+        assert not data.empty
     assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
-    assert set(data.index.names) == {"year"}
+    
 
+
+@pytest.mark.parametrize("schema", ["test", "reference", "both"])
+def test_fuzzy_comparison_get_frame_draw_schemas(
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
+    schema: str,
+) -> None:
+    # TODO: update test and reference data based on schema
+    comparison = FuzzyComparison(
+        mock_ratio_measure,
+        DataSource.SIM,
+        test_data,
+        DataSource.GBD,
+        reference_data,
+        reference_weights,
+    )
+    data = comparison.get_frame(aggregate_draws=True)
 
 def test_fuzzy_comparison_verify_not_implemented(
     mock_ratio_measure: RatioMeasure,

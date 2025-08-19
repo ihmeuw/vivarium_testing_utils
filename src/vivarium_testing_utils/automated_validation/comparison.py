@@ -97,7 +97,7 @@ class FuzzyComparison(Comparison):
         self.test_source = test_source
         self.test_scenarios: dict[str, str] = test_scenarios if test_scenarios else {}
         self.test_datasets = {
-            key: calculations.filter_data(dataset, self.test_scenarios, drop_singles=False)
+            key: calculations.filter_data(dataset, self.test_scenarios, drop_singles=True)
             for key, dataset in test_datasets.items()
         }
         self.reference_source = reference_source
@@ -105,7 +105,7 @@ class FuzzyComparison(Comparison):
             reference_scenarios if reference_scenarios else {}
         )
         self.reference_data = calculations.filter_data(
-            reference_data, self.reference_scenarios, drop_singles=False
+            reference_data, self.reference_scenarios, drop_singles=True
         )
         self.reference_weights = reference_weights
 
@@ -158,6 +158,7 @@ class FuzzyComparison(Comparison):
         reference_data = reference_data.rename(columns={"value": "rate"}).dropna()
 
         if aggregate_draws:
+            # TODO: skip if stratificatiosn is []
             test_proportion_data = self._aggregate_over_draws(test_proportion_data)
             reference_data = self._aggregate_over_draws(reference_data)
 
@@ -166,9 +167,10 @@ class FuzzyComparison(Comparison):
 
         merged_data = pd.merge(
             test_proportion_data, reference_data, left_index=True, right_index=True
-        )
+            )
 
         if not aggregate_draws:
+            # TODO: do this if stratifications is empty list
             merged_data["percent_error"] = (
                 (merged_data["test_rate"] - merged_data["reference_rate"])
                 / merged_data["reference_rate"]
@@ -295,7 +297,11 @@ class FuzzyComparison(Comparison):
 
         if stratifications is not None:
             # Aggregate over stratifications specified by user for reference data
-            stratified_test_data = calculations.stratify(converted_test_data, stratifications)
+            if stratifications == []:
+                stratified_test_data = calculations.stratify(
+                    converted_test_data, [DRAW_INDEX])
+            else:
+                stratified_test_data = calculations.stratify(converted_test_data, stratifications)
             aggregated_reference_data = self.aggregate_strata_reference(
                 reference_data, stratifications
             )
@@ -325,5 +331,5 @@ class FuzzyComparison(Comparison):
         weighted_avg = calculations.weighted_average(data, self.reference_weights, strata)
         # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
         if not isinstance(weighted_avg, pd.DataFrame):
-            weighted_avg = pd.DataFrame({"value": [weighted_avg]})
+            weighted_avg = pd.DataFrame({"value": [weighted_avg]}, index=pd.Index([0], name="index"))
         return weighted_avg

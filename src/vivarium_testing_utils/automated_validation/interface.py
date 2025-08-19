@@ -123,7 +123,6 @@ class ValidationContext:
         ref_source: str,
         test_scenarios: dict[str, str] = {},
         ref_scenarios: dict[str, str] = {},
-        stratifications: list[str] = [],
     ) -> None:
         """Internal method to add a comparison with a pre-constructed measure."""
 
