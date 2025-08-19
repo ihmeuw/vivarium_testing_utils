@@ -233,15 +233,15 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
     assert_frame_equal(diff, expected_df)
 
 
-@pytest.mark.parametrize(
-    "stratifications", [None, ["year"], []]
-)
+@pytest.mark.parametrize("stratifications", [None, ["year"], []])
+@pytest.mark.parametrize("aggregate", [True, False])
 def test_fuzzy_comparison_get_frame_with_stratifications(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
     reference_weights: pd.DataFrame,
-    stratifications: Collection[str] | None
+    stratifications: Collection[str] | None,
+    aggregate: bool,
 ) -> None:
     """Test that FuzzyComparison.get_frame raises NotImplementedError when called with non-empty stratifications."""
     comparison = FuzzyComparison(
@@ -253,18 +253,32 @@ def test_fuzzy_comparison_get_frame_with_stratifications(
         reference_weights,
     )
 
-    data = comparison.get_frame(stratifications=stratifications)
-    breakpoint()
+    data = comparison.get_frame(stratifications=stratifications, aggregate_draws=aggregate)
     if stratifications is None:
-        expected_index_names = [col for col in test_data['numerator_data'].index.names if col not in ['random_seed', 'scenario']]
+        expected_index_names = [
+            col
+            for col in test_data["numerator_data"].index.names
+            if col not in ["random_seed", "scenario"]
+        ]
+        if aggregate:
+            expected_index_names = [
+                level for level in expected_index_names if level != DRAW_INDEX
+            ]
         assert set(data.index.names) == set(expected_index_names)
     elif stratifications == ["year"]:
-        assert set(data.index.names) == {"year"}
+        expected_index_names = {"year"} if aggregate else {"year", "input_draw"}
+        assert set(data.index.names) == expected_index_names
     else:
-        # TODO: stratifications is [] and all index levels are aggregated over
+        # stratifications is [] and all index levels are aggregated over
         assert not data.empty
-    assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
-    
+        # "Index" is the value we set for single row dataframes when aggregating over all levels and
+        expected_index_names = {"index"} if aggregate else {"input_draw"}
+        assert set(data.index.names) == expected_index_names
+    if aggregate:
+        expected_columns = {"test_mean", "test_2.5%", "test_97.5%", "reference_rate"}
+    else:
+        expected_columns = {"test_rate", "reference_rate", "percent_error"}
+    assert set(data.columns) == expected_columns
 
 
 @pytest.mark.parametrize("schema", ["test", "reference", "both"])
@@ -285,6 +299,7 @@ def test_fuzzy_comparison_get_frame_draw_schemas(
         reference_weights,
     )
     data = comparison.get_frame(aggregate_draws=True)
+
 
 def test_fuzzy_comparison_verify_not_implemented(
     mock_ratio_measure: RatioMeasure,

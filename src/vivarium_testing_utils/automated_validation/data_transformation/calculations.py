@@ -156,7 +156,7 @@ def weighted_average(
         DataFrame with the weights to apply to the values in data. Must have a 'value' column.
     stratifications
         List of index level names to use for stratification/grouping.
-        
+
     Raises
     ------
     ValueError

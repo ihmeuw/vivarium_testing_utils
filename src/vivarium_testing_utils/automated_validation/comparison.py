@@ -158,19 +158,27 @@ class FuzzyComparison(Comparison):
         reference_data = reference_data.rename(columns={"value": "rate"}).dropna()
 
         if aggregate_draws:
-            # TODO: skip if stratificatiosn is []
             test_proportion_data = self._aggregate_over_draws(test_proportion_data)
             reference_data = self._aggregate_over_draws(reference_data)
 
         test_proportion_data = test_proportion_data.add_prefix("test_")
         reference_data = reference_data.add_prefix("reference_")
 
-        merged_data = pd.merge(
-            test_proportion_data, reference_data, left_index=True, right_index=True
+        # Align reference data index with test data if stratifications is an empty list
+        if len(reference_data) == 1:
+            reference_data = pd.DataFrame(
+                {
+                    "reference_rate": reference_data["reference_rate"].tolist()
+                    * len(test_proportion_data)
+                },
+                index=test_proportion_data.index,
             )
 
+        merged_data = pd.merge(
+            test_proportion_data, reference_data, left_index=True, right_index=True
+        )
+
         if not aggregate_draws:
-            # TODO: do this if stratifications is empty list
             merged_data["percent_error"] = (
                 (merged_data["test_rate"] - merged_data["reference_rate"])
                 / merged_data["reference_rate"]
@@ -188,12 +196,21 @@ class FuzzyComparison(Comparison):
 
     def _aggregate_over_draws(self, data: pd.DataFrame) -> pd.DataFrame:
         """Aggregate data over draws and seeds, computing mean and 95% uncertainty intervals."""
-        # Get the levels to group by (everything except draws and seeds)
-        group_levels = [level for level in data.index.names if level != DRAW_INDEX]
-        # Group by the remaining levels and aggregate
-        aggregated_data = data.groupby(group_levels, sort=False, observed=True)[
-            "rate"
-        ].describe(percentiles=[0.025, 0.975])
+        # If data doesn't have draws, return data
+        if DRAW_INDEX not in data.index.names:
+            return data
+        # If data only has draws, aggregate and cast single value to a dataframe
+        if DRAW_INDEX in data.index.names and len(data.index.names) == 1:
+            data = data.describe(percentiles=[0.025, 0.975])
+            aggregated_data = data.T
+            aggregated_data.index.names = ["index"]
+        else:
+            # Get the levels to group by (everything except draws and seeds)
+            group_levels = [level for level in data.index.names if level != DRAW_INDEX]
+            # Group by the remaining levels and aggregate
+            aggregated_data = data.groupby(group_levels, sort=False, observed=True)[
+                "rate"
+            ].describe(percentiles=[0.025, 0.975])
 
         return aggregated_data[["mean", "2.5%", "97.5%"]]
 
@@ -299,9 +316,12 @@ class FuzzyComparison(Comparison):
             # Aggregate over stratifications specified by user for reference data
             if stratifications == []:
                 stratified_test_data = calculations.stratify(
-                    converted_test_data, [DRAW_INDEX])
+                    converted_test_data, [DRAW_INDEX]
+                )
             else:
-                stratified_test_data = calculations.stratify(converted_test_data, stratifications)
+                stratified_test_data = calculations.stratify(
+                    converted_test_data, stratifications + [DRAW_INDEX]
+                )
             aggregated_reference_data = self.aggregate_strata_reference(
                 reference_data, stratifications
             )
@@ -331,5 +351,7 @@ class FuzzyComparison(Comparison):
         weighted_avg = calculations.weighted_average(data, self.reference_weights, strata)
         # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
         if not isinstance(weighted_avg, pd.DataFrame):
-            weighted_avg = pd.DataFrame({"value": [weighted_avg]}, index=pd.Index([0], name="index"))
+            weighted_avg = pd.DataFrame(
+                {"value": [weighted_avg]}, index=pd.Index([0], name="index")
+            )
         return weighted_avg
