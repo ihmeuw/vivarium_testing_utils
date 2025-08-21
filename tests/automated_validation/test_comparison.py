@@ -235,7 +235,7 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
 
 @pytest.mark.parametrize("stratifications", [None, ["year"], []])
 @pytest.mark.parametrize("aggregate", [True, False])
-@pytest.mark.parametrize("schema", ["test", "reference", "both", "neither"])
+@pytest.mark.parametrize("draws", ["test", "reference", "both", "neither"])
 def test_fuzzy_comparison_get_frame_parametrized(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
@@ -243,32 +243,39 @@ def test_fuzzy_comparison_get_frame_parametrized(
     reference_weights: pd.DataFrame,
     stratifications: Collection[str] | None,
     aggregate: bool,
-    schema: str,
+    draws: str,
 ) -> None:
     """Test that FuzzyComparison.get_frame raises NotImplementedError when called with non-empty stratifications."""
-    if schema == "test":
+    if draws == "test":
         # This is how the fixtures are set up
         for key in test_data:
             assert "input_draw" in test_data[key].index.names
         assert "input_draw" not in reference_data.index.names
         assert "input_draw" not in reference_weights.index.names
-    elif schema == "reference":
+    elif draws == "reference":
         # Remove draws from test data and add draws index level to reference datasets
         test_data = {
             dataset_key: test_data[dataset_key]
-            .groupby([level for level in test_data[dataset_key].index.names if level != "input_draw"])
+            .groupby(
+                [
+                    level
+                    for level in test_data[dataset_key].index.names
+                    if level != "input_draw"
+                ]
+            )
             .sum()
             for dataset_key in test_data
         }
-        draws = [0, 0, 10]
-        reference_data["input_draw"] = draws
+        draws_values = [0, 0, 10]
+        reference_data["input_draw"] = draws_values
         reference_data.set_index("input_draw", append=True, inplace=True)
-        reference_weights["input_draw"] = draws
+        reference_weights["input_draw"] = draws_values
         reference_weights.set_index("input_draw", append=True, inplace=True)
-    elif schema == "both":
+    elif draws == "both":
         # TODO: both test and reference data have draws
         breakpoint()
     else:
+        # Neither test or reference datasets have draws
         breakpoint()
 
     comparison = FuzzyComparison(
@@ -285,30 +292,42 @@ def test_fuzzy_comparison_get_frame_parametrized(
         expected_index_names = [
             col
             for col in test_data["numerator_data"].index.names
-            if col not in ["random_seed", "scenario"]
+            if col not in ["input_draw", "random_seed", "scenario"]
         ]
-        if aggregate:
-            expected_index_names = [
-                level for level in expected_index_names if level != DRAW_INDEX
-            ]
+        if not aggregate:
+            expected_index_names += ["input_draw"]
         assert set(data.index.names) == set(expected_index_names)
     elif stratifications == ["year"]:
-        expected_index_names = {"year"} if aggregate else {"year", "input_draw"}
-        assert set(data.index.names) == expected_index_names
+        assert set(data.index.names) == {"year"} if aggregate else {"year", "input_draw"}
     else:
         # stratifications is [] and all index levels are aggregated over
         assert not data.empty
         # "Index" is the value we set for single row dataframes when aggregating over all levels and
-        expected_index_names = {"index"} if aggregate else {"input_draw"}
-        assert set(data.index.names) == expected_index_names
+        if draws == "reference":
+            expected_index_names = [
+                level for level in reference_data.index.names if level != "input_draw"
+            ]
+            if not aggregate:
+                expected_index_names.append("input_draw")
+        else:
+            expected_index_names = ["index"] if aggregate else ["input_draw"]
+        assert set(data.index.names) == set(expected_index_names)
     if aggregate:
+        # TODO: add expected index
         schema_mapper = {
             "test": {"test_mean", "test_2.5%", "test_97.5%", "reference_rate"},
             "reference": {"test_rate", "reference_mean", "reference_2.5%", "reference_97.5%"},
-            "both": {"test_mean", "test_2.5%", "test_97.5%", "reference_mean", "reference_2.5%", "reference_97.5%"},
+            "both": {
+                "test_mean",
+                "test_2.5%",
+                "test_97.5%",
+                "reference_mean",
+                "reference_2.5%",
+                "reference_97.5%",
+            },
             "neither": {"test_rate", "reference_rate", "percent_error"},
         }
-        expected_columns = schema_mapper[schema]
+        expected_columns = schema_mapper[draws]
     else:
         expected_columns = {"test_rate", "reference_rate", "percent_error"}
     assert set(data.columns) == expected_columns

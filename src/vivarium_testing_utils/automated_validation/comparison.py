@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Collection, Literal
 
+from loguru import logger
 import numpy as np
 import pandas as pd
 
@@ -168,8 +169,8 @@ class FuzzyComparison(Comparison):
         if len(reference_data) == 1:
             reference_data = pd.DataFrame(
                 {
-                    "reference_rate": reference_data["reference_rate"].tolist()
-                    * len(test_proportion_data)
+                    col: reference_data[col].tolist() * len(test_proportion_data)
+                    for col in reference_data.columns
                 },
                 index=test_proportion_data.index,
             )
@@ -198,6 +199,7 @@ class FuzzyComparison(Comparison):
         """Aggregate data over draws and seeds, computing mean and 95% uncertainty intervals."""
         # If data doesn't have draws, return data
         if DRAW_INDEX not in data.index.names:
+            logger.warning("Data does not have draws. Returning data without aggregating.")
             return data
         # If data only has draws, aggregate and cast single value to a dataframe
         if DRAW_INDEX in data.index.names and len(data.index.names) == 1:
@@ -315,12 +317,24 @@ class FuzzyComparison(Comparison):
         if stratifications is not None:
             # Aggregate over stratifications specified by user for reference data
             if stratifications == []:
-                stratified_test_data = calculations.stratify(
-                    converted_test_data, [DRAW_INDEX]
-                )
+                if DRAW_INDEX not in converted_test_data.index.names:
+                    # Aggregate over all index levels - this is the same as just returning the data
+                    #     stratified_test_data = calculations.marginalize(
+                    #     converted_test_data,
+                    #     converted_test_data.index.names,
+                    # )
+                    stratified_test_data = converted_test_data
+                else:
+                    # Aggregate over all index levels except draws
+                    stratified_test_data = calculations.stratify(
+                        converted_test_data, [DRAW_INDEX]
+                    )
             else:
                 stratified_test_data = calculations.stratify(
-                    converted_test_data, stratifications + [DRAW_INDEX]
+                    converted_test_data,
+                    stratifications + [DRAW_INDEX]
+                    if DRAW_INDEX in converted_test_data.index.names
+                    else stratifications,
                 )
             aggregated_reference_data = self.aggregate_strata_reference(
                 reference_data, stratifications
