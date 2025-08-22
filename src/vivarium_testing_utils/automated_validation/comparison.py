@@ -342,7 +342,7 @@ class FuzzyComparison(Comparison):
             else:
                 stratified_test_data = calculations.stratify(
                     converted_test_data,
-                    stratifications + [DRAW_INDEX]
+                    list(stratifications) + [DRAW_INDEX]
                     if DRAW_INDEX in converted_test_data.index.names
                     else stratifications,
                 )
