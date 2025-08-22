@@ -8,6 +8,7 @@ from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
 
@@ -135,7 +136,6 @@ def test_add_comparison(
     comparison = context.comparisons[measure_key]
 
     assert comparison.measure.measure_key == measure_key
-    assert comparison.stratifications == []
 
     # Test that test_data is now a dictionary with numerator and denominator
     assert isinstance(comparison.test_datasets, dict)
@@ -162,7 +162,31 @@ def test_add_comparison(
 
     assert comparison.test_datasets["numerator_data"].equals(expected_numerator_data)
     assert comparison.test_datasets["denominator_data"].equals(expected_denominator_data)
+    # Update artifact reference data to match simulation format
+    artifact_disease_incidence = age_groups.format_dataframe_from_age_bin_df(
+        artifact_disease_incidence, context.age_groups
+    )
     assert comparison.reference_data.equals(artifact_disease_incidence)
+
+
+def test_get_frame(sim_result_dir: Path) -> None:
+    """Ensure that we can verify a comparison"""
+    measure_key = "cause.disease.incidence_rate"
+    context = ValidationContext(sim_result_dir)
+    context.add_comparison(measure_key, "sim", "artifact")
+    data = context.get_frame(measure_key)
+    assert isinstance(data, pd.DataFrame)
+    assert not data.empty
+    assert set(data.index.names) == {"common_stratify_column", "input_draw"}
+    assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
+
+    # Test stratification works - there are only two columns and we do not remove input draw
+    # so this will return the same dataframe
+    data2 = context.get_frame(measure_key, stratifications=["common_stratify_column"])
+    assert isinstance(data2, pd.DataFrame)
+    assert not data2.empty
+    assert set(data2.index.names) == {"common_stratify_column", "input_draw"}
+    assert set(data2.columns) == {"test_rate", "reference_rate", "percent_error"}
 
 
 ######################################
@@ -180,22 +204,10 @@ def test_not_implemented(sim_result_dir: Path) -> None:
     ):
         context.add_comparison("cause.disease.incidence_rate", "artifact", "gbd")
 
-    with pytest.raises(
-        NotImplementedError, match="Non-default stratifications require rate aggregations"
-    ):
-        context.add_comparison("cause.disease.incidence_rate", "sim", "artifact")
-        context.get_frame("cause.disease.incidence_rate", stratifications=["foo", "bar"])
-
 
 @pytest.mark.skip("Not implemented")
 def test_metadata() -> None:
     """Ensure that we can summarize a comparison"""
-    pass
-
-
-@pytest.mark.skip("Not implemented")
-def test_get_frame() -> None:
-    """Ensure that we can verify a comparison"""
     pass
 
 

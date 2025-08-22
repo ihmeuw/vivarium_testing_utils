@@ -3,6 +3,7 @@ from typing import Any, Collection, Literal
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
@@ -28,7 +29,6 @@ class Comparison(ABC):
     reference_weights: pd.DataFrame
     test_scenarios: dict[str, str] | None
     reference_scenarios: dict[str, str] | None
-    stratifications: Collection[str]
 
     @property
     @abstractmethod
@@ -46,7 +46,7 @@ class Comparison(ABC):
     @abstractmethod
     def get_frame(
         self,
-        stratifications: Collection[str] = (),
+        stratifications: Collection[str] | None = None,
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "",
         ascending: bool = False,
@@ -92,14 +92,13 @@ class FuzzyComparison(Comparison):
         reference_weights: pd.DataFrame,
         test_scenarios: dict[str, str] | None = None,
         reference_scenarios: dict[str, str] | None = None,
-        stratifications: Collection[str] = (),
     ):
         self.measure: RatioMeasure = measure
 
         self.test_source = test_source
         self.test_scenarios: dict[str, str] = test_scenarios if test_scenarios else {}
         self.test_datasets = {
-            key: calculations.filter_data(dataset, self.test_scenarios, drop_singles=False)
+            key: calculations.filter_data(dataset, self.test_scenarios, drop_singles=True)
             for key, dataset in test_datasets.items()
         }
         self.reference_source = reference_source
@@ -107,16 +106,9 @@ class FuzzyComparison(Comparison):
             reference_scenarios if reference_scenarios else {}
         )
         self.reference_data = calculations.filter_data(
-            reference_data, self.reference_scenarios, drop_singles=False
+            reference_data, self.reference_scenarios, drop_singles=True
         )
         self.reference_weights = reference_weights
-
-        if stratifications:
-            # TODO: MIC-6075
-            raise NotImplementedError(
-                "Non-default stratifications require rate aggregations, which are not currently supported."
-            )
-        self.stratifications = stratifications
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -135,7 +127,7 @@ class FuzzyComparison(Comparison):
 
     def get_frame(
         self,
-        stratifications: Collection[str] = (),
+        stratifications: Collection[str] | None = None,
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "",
         ascending: bool = False,
@@ -160,13 +152,8 @@ class FuzzyComparison(Comparison):
         --------
         A DataFrame of the comparison data.
         """
-        if stratifications:
-            # TODO: MIC-6075
-            raise NotImplementedError(
-                "Non-default stratifications require rate aggregations, which are not currently supported."
-            )
 
-        test_proportion_data, reference_data = self._align_datasets()
+        test_proportion_data, reference_data = self._align_datasets(stratifications)
 
         test_proportion_data = test_proportion_data.rename(columns={"value": "rate"}).dropna()
         reference_data = reference_data.rename(columns={"value": "rate"}).dropna()
@@ -177,6 +164,27 @@ class FuzzyComparison(Comparison):
 
         test_proportion_data = test_proportion_data.add_prefix("test_")
         reference_data = reference_data.add_prefix("reference_")
+
+        # Align dataset indexes if stratifications is an empty list
+        # One dataset might have a single row, so we cast that row to match the other's length
+        # If both datasets are one row, they will already have the same index
+        if not (len(test_proportion_data) == 1 and len(reference_data) == 1):
+            if len(test_proportion_data) == 1:
+                test_proportion_data = pd.DataFrame(
+                    {
+                        col: test_proportion_data[col].tolist() * len(reference_data)
+                        for col in test_proportion_data.columns
+                    },
+                    index=reference_data.index,
+                )
+            if len(reference_data) == 1:
+                reference_data = pd.DataFrame(
+                    {
+                        col: reference_data[col].tolist() * len(test_proportion_data)
+                        for col in reference_data.columns
+                    },
+                    index=test_proportion_data.index,
+                )
 
         merged_data = pd.merge(
             test_proportion_data, reference_data, left_index=True, right_index=True
@@ -200,12 +208,22 @@ class FuzzyComparison(Comparison):
 
     def _aggregate_over_draws(self, data: pd.DataFrame) -> pd.DataFrame:
         """Aggregate data over draws and seeds, computing mean and 95% uncertainty intervals."""
-        # Get the levels to group by (everything except draws and seeds)
-        group_levels = [level for level in data.index.names if level != DRAW_INDEX]
-        # Group by the remaining levels and aggregate
-        aggregated_data = data.groupby(group_levels, sort=False, observed=True)[
-            "rate"
-        ].describe(percentiles=[0.025, 0.975])
+        # If data doesn't have draws, return data
+        if DRAW_INDEX not in data.index.names:
+            logger.warning("Data does not have draws. Returning data without aggregating.")
+            return data
+        # If data only has draws, aggregate and cast single value to a dataframe
+        if DRAW_INDEX in data.index.names and len(data.index.names) == 1:
+            data = data.describe(percentiles=[0.025, 0.975])
+            aggregated_data = data.T
+            aggregated_data.index = pd.Index([0], name="index")
+        else:
+            # Get the levels to group by (everything except draws and seeds)
+            group_levels = [level for level in data.index.names if level != DRAW_INDEX]
+            # Group by the remaining levels and aggregate
+            aggregated_data = data.groupby(group_levels, sort=False, observed=True)[
+                "rate"
+            ].describe(percentiles=[0.025, 0.975])
 
         return aggregated_data[["mean", "2.5%", "97.5%"]]
 
@@ -263,7 +281,9 @@ class FuzzyComparison(Comparison):
 
         return data_info
 
-    def _align_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def _align_datasets(
+        self, stratifications: Collection[str] | None = None
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
         # Get union of test data index names
 
@@ -294,34 +314,69 @@ class FuzzyComparison(Comparison):
             for key in self.test_datasets
         }
 
-        # Drop any singular index levels from the reference data if they are not in the test data.
-        # If any ref-only index level is not singular, raise an error.
-        redundant_ref_indexes = set(
-            calculations.get_singular_indices(self.reference_data).keys()
+        # Aggregate over indices
+        reference_data = self.aggregate_strata_reference(
+            self.reference_data,
+            strata=[
+                x
+                for x in self.reference_data.index.names
+                if x not in reference_indexes_to_drop
+            ],
         )
-        if not reference_indexes_to_drop.issubset(redundant_ref_indexes):
-            # TODO: MIC-6075
-            diff = reference_indexes_to_drop - redundant_ref_indexes
-            raise ValueError(
-                f"Reference data has non-trivial index levels {diff} that are not in the test data. "
-                "We cannot currently marginalize over these index levels."
-            )
-        reference_data = self.reference_data.droplevel(list(reference_indexes_to_drop))
-
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
 
-        ## At this point, the only non-common index levels should be scenarios and draws.
-        return converted_test_data, reference_data
+        if stratifications is not None:
+            # Aggregate over stratifications specified by user for reference data
+            if stratifications == []:
+                if DRAW_INDEX not in converted_test_data.index.names:
+                    # Aggregate over all index levels - this is the same as just returning the data
+                    stratified_test_data = calculations.marginalize(
+                        converted_test_data,
+                        converted_test_data.index.names,
+                    )
+                else:
+                    # Aggregate over all index levels except draws
+                    stratified_test_data = calculations.stratify(
+                        converted_test_data, [DRAW_INDEX]
+                    )
+            else:
+                stratified_test_data = calculations.stratify(
+                    converted_test_data,
+                    list(stratifications) + [DRAW_INDEX]
+                    if DRAW_INDEX in converted_test_data.index.names
+                    else stratifications,
+                )
+            aggregated_reference_data = self.aggregate_strata_reference(
+                reference_data, stratifications
+            )
 
-    def aggregate_strata(self, strata: Collection[str] = ()) -> pd.DataFrame | float:
+        else:
+            stratified_test_data = converted_test_data
+            aggregated_reference_data = reference_data
+
+        ## At this point, the only non-common index levels should be scenarios and draws.
+        return stratified_test_data, aggregated_reference_data
+
+    def aggregate_strata_reference(
+        self, data: pd.DataFrame, strata: Collection[str] = ()
+    ) -> pd.DataFrame:
         for stratum in strata:
             if (
-                stratum not in self.reference_data.index.names
+                stratum not in data.index.names
                 and stratum not in self.reference_weights.index.names
             ):
                 raise ValueError(
                     f"Stratum '{stratum}' not found in reference data or weights."
                 )
-        return calculations.weighted_average(
-            self.reference_data, self.reference_weights, strata
-        )
+
+        strata = list(strata)
+        # Retain input_draw, _aggregate_over_draws is the only place we should aggregate over draws.
+        if DRAW_INDEX in data.index.names and DRAW_INDEX not in strata:
+            strata.append(DRAW_INDEX)
+        weighted_avg = calculations.weighted_average(data, self.reference_weights, strata)
+        # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
+        if not isinstance(weighted_avg, pd.DataFrame):
+            weighted_avg = pd.DataFrame(
+                {"value": [weighted_avg]}, index=pd.Index([0], name="index")
+            )
+        return weighted_avg

@@ -129,6 +129,8 @@ def test__load_from_artifact(
     assert set(art_data.index.names) == {
         "common_stratify_column",
         "other_stratify_column",
+        "age_start",
+        "age_end",
         DRAW_INDEX,
     }
     assert set(art_data.columns) == {"value"}
