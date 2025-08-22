@@ -89,6 +89,8 @@ def test_fuzzy_comparison_init(
         reference_weights,
         test_scenarios={"scenario": "baseline"},
     )
+    # Scenario is dropped from test datasets in the FuzzyComparison constructor
+    test_data = {key: dataset.droplevel("scenario") for key, dataset in test_data.items()}
 
     with check:
         assert comparison.measure == mock_ratio_measure
@@ -128,7 +130,7 @@ def test_fuzzy_comparison_metadata(
         ("Source", "sim", "gbd"),
         (
             "Index Columns",
-            "year, sex, age, input_draw, random_seed, scenario",
+            "year, sex, age, input_draw, random_seed",
             "year, sex, age",
         ),
         ("Size", "4 rows × 1 columns", "3 rows × 1 columns"),
@@ -212,18 +214,13 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
         reference_weights,
     )
     diff = comparison.get_frame(num_rows="all", aggregate_draws=True)
-    expected_reference_value = ((0.12 * 0.15) + (0.20 * 0.25) + (0.29 * 0.35)) / (
-        0.15 + 0.25 + 0.35
-    )
     expected_df = pd.DataFrame(
         {
             "test_mean": [0.1, 0.2, 0.325],
             "test_2.5%": [0.1, 0.2, 0.325],
             "test_97.5%": [0.1, 0.2, 0.325],
-            # No stratification so we retain all of reference data
-            "reference_mean": list(reference_data["value"]),
-            "reference_2.5%": list(reference_data["value"]),
-            "reference_97.5%": list(reference_data["value"]),
+            # Reference data has no draws and we have no stratifications so we just return the reference data
+            "reference_rate": list(reference_data["value"]),
         },
         index=pd.MultiIndex.from_tuples(
             [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
@@ -448,11 +445,11 @@ def test_fuzzy_comparison_align_datasets_calculation(
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
     expected_index = pd.MultiIndex.from_tuples(
         [
-            ("2020", "male", 0, 1, "baseline"),
-            ("2020", "female", 0, 5, "baseline"),
-            ("2025", "male", 0, 2, "baseline"),
+            ("2020", "male", 0, 1),
+            ("2020", "female", 0, 5),
+            ("2025", "male", 0, 2),
         ],
-        names=["year", "sex", "age", DRAW_INDEX, "scenario"],
+        names=["year", "sex", "age", DRAW_INDEX],
     )
     assert_frame_equal(
         aligned_test_data,
