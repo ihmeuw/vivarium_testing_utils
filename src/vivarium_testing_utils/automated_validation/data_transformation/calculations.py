@@ -74,15 +74,17 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
     return numerator_data / denominator_data
 
 
-def aggregate_sum(data: pd.DataFrame, groupby_cols: Collection[str] = []) -> pd.DataFrame:
+def aggregate_sum(
+    data: pd.DataFrame, groupby_cols: Collection[str] | None = None
+) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
+    if groupby_cols is None:
+        return data
     if not isinstance(groupby_cols, list):
         groupby_cols = list(groupby_cols)
-    if not groupby_cols:
-        return data
-    if set(groupby_cols) == set(data.index.names):
+    if groupby_cols == []:
         data = pd.DataFrame(
-            {"value": [data["value"].sum()]},
+            {"value": [data["value"].sum()]}, index=pd.Index([0], name="index")
         )
         return data
     # Use observed=True to avoid sorting categorical levels

@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any, Collection, Literal
 
-from loguru import logger
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
@@ -165,15 +165,26 @@ class FuzzyComparison(Comparison):
         test_proportion_data = test_proportion_data.add_prefix("test_")
         reference_data = reference_data.add_prefix("reference_")
 
-        # Align reference data index with test data if stratifications is an empty list
-        if len(reference_data) == 1:
-            reference_data = pd.DataFrame(
-                {
-                    col: reference_data[col].tolist() * len(test_proportion_data)
-                    for col in reference_data.columns
-                },
-                index=test_proportion_data.index,
-            )
+        # Align dataset indexes if stratifications is an empty list
+        # One dataset might have a single row, so we cast that row to match the other's length
+        # If both datasets are one row, they will already have the same index
+        if not (len(test_proportion_data) == 1 and len(reference_data) == 1):
+            if len(test_proportion_data) == 1:
+                test_proportion_data = pd.DataFrame(
+                    {
+                        col: test_proportion_data[col].tolist() * len(reference_data)
+                        for col in test_proportion_data.columns
+                    },
+                    index=reference_data.index,
+                )
+            if len(reference_data) == 1:
+                reference_data = pd.DataFrame(
+                    {
+                        col: reference_data[col].tolist() * len(test_proportion_data)
+                        for col in reference_data.columns
+                    },
+                    index=test_proportion_data.index,
+                )
 
         merged_data = pd.merge(
             test_proportion_data, reference_data, left_index=True, right_index=True
@@ -205,7 +216,7 @@ class FuzzyComparison(Comparison):
         if DRAW_INDEX in data.index.names and len(data.index.names) == 1:
             data = data.describe(percentiles=[0.025, 0.975])
             aggregated_data = data.T
-            aggregated_data.index.names = ["index"]
+            aggregated_data.index = pd.Index([0], name="index")
         else:
             # Get the levels to group by (everything except draws and seeds)
             group_levels = [level for level in data.index.names if level != DRAW_INDEX]
@@ -291,7 +302,7 @@ class FuzzyComparison(Comparison):
             tuple(self.test_scenarios.keys()), [DRAW_INDEX]
         )
         reference_indexes_to_drop = reference_only_indexes.difference(
-            tuple(self.reference_scenarios.keys())
+            tuple(self.reference_scenarios.keys()), [DRAW_INDEX]
         )
 
         # If the test data has any index levels that are not in the reference data, marginalize
@@ -319,11 +330,10 @@ class FuzzyComparison(Comparison):
             if stratifications == []:
                 if DRAW_INDEX not in converted_test_data.index.names:
                     # Aggregate over all index levels - this is the same as just returning the data
-                    #     stratified_test_data = calculations.marginalize(
-                    #     converted_test_data,
-                    #     converted_test_data.index.names,
-                    # )
-                    stratified_test_data = converted_test_data
+                    stratified_test_data = calculations.marginalize(
+                        converted_test_data,
+                        converted_test_data.index.names,
+                    )
                 else:
                     # Aggregate over all index levels except draws
                     stratified_test_data = calculations.stratify(
@@ -360,7 +370,8 @@ class FuzzyComparison(Comparison):
                 )
 
         strata = list(strata)
-        if DRAW_INDEX in data.index.names:
+        # Retain input_draw, _aggregate_over_draws is the only place we should aggregate over draws.
+        if DRAW_INDEX in data.index.names and DRAW_INDEX not in strata:
             strata.append(DRAW_INDEX)
         weighted_avg = calculations.weighted_average(data, self.reference_weights, strata)
         # Reference data can be a float or dataframe. Convert floats so dataframes are aligned

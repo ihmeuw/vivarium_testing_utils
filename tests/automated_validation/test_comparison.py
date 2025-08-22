@@ -246,14 +246,21 @@ def test_fuzzy_comparison_get_frame_parametrized(
     draws: str,
 ) -> None:
     """Test that FuzzyComparison.get_frame raises NotImplementedError when called with non-empty stratifications."""
+    draw_values = list(
+        test_data["numerator_data"].index.get_level_values(DRAW_INDEX).unique()
+    )
     if draws == "test":
         # This is how the fixtures are set up
         for key in test_data:
             assert "input_draw" in test_data[key].index.names
         assert "input_draw" not in reference_data.index.names
         assert "input_draw" not in reference_weights.index.names
-    elif draws == "reference":
+    if draws in ["reference", "both"]:
         # Remove draws from test data and add draws index level to reference datasets
+        reference_data = _add_draws_to_dataframe(reference_data, draw_values)
+        reference_weights = _add_draws_to_dataframe(reference_weights, draw_values)
+    if draws in ["reference", "neither"]:
+        # Remove draws from test dataset
         test_data = {
             dataset_key: test_data[dataset_key]
             .groupby(
@@ -266,17 +273,6 @@ def test_fuzzy_comparison_get_frame_parametrized(
             .sum()
             for dataset_key in test_data
         }
-        draws_values = [0, 0, 10]
-        reference_data["input_draw"] = draws_values
-        reference_data.set_index("input_draw", append=True, inplace=True)
-        reference_weights["input_draw"] = draws_values
-        reference_weights.set_index("input_draw", append=True, inplace=True)
-    elif draws == "both":
-        # TODO: both test and reference data have draws
-        breakpoint()
-    else:
-        # Neither test or reference datasets have draws
-        breakpoint()
 
     comparison = FuzzyComparison(
         mock_ratio_measure,
@@ -294,7 +290,7 @@ def test_fuzzy_comparison_get_frame_parametrized(
             for col in test_data["numerator_data"].index.names
             if col not in ["input_draw", "random_seed", "scenario"]
         ]
-        if not aggregate:
+        if not aggregate and draws != "neither":
             expected_index_names += ["input_draw"]
         assert set(data.index.names) == set(expected_index_names)
     elif stratifications == ["year"]:
@@ -302,16 +298,7 @@ def test_fuzzy_comparison_get_frame_parametrized(
     else:
         # stratifications is [] and all index levels are aggregated over
         assert not data.empty
-        # "Index" is the value we set for single row dataframes when aggregating over all levels and
-        if draws == "reference":
-            expected_index_names = [
-                level for level in reference_data.index.names if level != "input_draw"
-            ]
-            if not aggregate:
-                expected_index_names.append("input_draw")
-        else:
-            expected_index_names = ["index"] if aggregate else ["input_draw"]
-        assert set(data.index.names) == set(expected_index_names)
+        assert set(data.index.names) == {"index"} if aggregate else {"input_draw"}
     if aggregate:
         # TODO: add expected index
         schema_mapper = {
@@ -325,7 +312,7 @@ def test_fuzzy_comparison_get_frame_parametrized(
                 "reference_2.5%",
                 "reference_97.5%",
             },
-            "neither": {"test_rate", "reference_rate", "percent_error"},
+            "neither": {"test_rate", "reference_rate"},
         }
         expected_columns = schema_mapper[draws]
     else:
@@ -514,3 +501,9 @@ def test_aggregate_strata(
 
     with pytest.raises(ValueError, match="not found in reference data or weights"):
         comparison.aggregate_strata_reference(reference_data, ["dog", "cat"])
+
+
+def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.DataFrame:
+    """Add a 'input_draw' index level to the DataFrame."""
+    df["input_draw"] = draw_values
+    return df.set_index("input_draw", append=True).sort_index()

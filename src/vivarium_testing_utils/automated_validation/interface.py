@@ -65,7 +65,11 @@ class ValidationContext:
 
         measure = measures.get_measure_from_key(measure_key, list(self.scenario_columns))
         self._add_comparison_with_measure(
-            measure, test_source, ref_source, test_scenarios, ref_scenarios, stratifications
+            measure,
+            test_source,
+            ref_source,
+            test_scenarios,
+            ref_scenarios,
         )
 
     def add_relative_risk_comparison(
