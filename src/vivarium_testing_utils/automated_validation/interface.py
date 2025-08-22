@@ -117,7 +117,7 @@ class ValidationContext:
             risk_state_mapping,
         )
         self._add_comparison_with_measure(
-            measure, test_source, ref_source, test_scenarios, ref_scenarios
+            measure, test_source, ref_source, test_scenarios, ref_scenarios 
         )
 
     def _add_comparison_with_measure(
@@ -215,7 +215,7 @@ class ValidationContext:
         comparison_key
             The key of the comparison for which to get the data
         stratifications
-            The stratifications to use for the comparison. If None, no aggregatio nwill happen and
+            The stratifications to use for the comparison. If None, no aggregatio will happen and
             all existing stratifications will remain. If an empty list is passed, no stratifications
             will be retained.
         num_rows
