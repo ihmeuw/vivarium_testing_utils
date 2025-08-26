@@ -168,23 +168,14 @@ class FuzzyComparison(Comparison):
         # Align dataset indexes if stratifications is an empty list
         # One dataset might have a single row, so we cast that row to match the other's length
         # If both datasets are one row, they will already have the same index
-        if not (len(test_proportion_data) == 1 and len(reference_data) == 1):
-            if len(test_proportion_data) == 1:
-                test_proportion_data = pd.DataFrame(
-                    {
-                        col: test_proportion_data[col].tolist() * len(reference_data)
-                        for col in test_proportion_data.columns
-                    },
-                    index=reference_data.index,
-                )
-            if len(reference_data) == 1:
-                reference_data = pd.DataFrame(
-                    {
-                        col: reference_data[col].tolist() * len(test_proportion_data)
-                        for col in reference_data.columns
-                    },
-                    index=test_proportion_data.index,
-                )
+        if len(test_proportion_data) == 1 and len(reference_data) != 1:
+            test_proportion_data = pd.concat(
+                [test_proportion_data] * len(reference_data), ignore_index=True
+            ).set_index(reference_data.index)
+        elif len(reference_data) == 1 and len(test_proportion_data) != 1:
+            reference_data = pd.concat(
+                [reference_data] * len(test_proportion_data), ignore_index=True
+            ).set_index(test_proportion_data.index)
 
         merged_data = pd.merge(
             test_proportion_data, reference_data, left_index=True, right_index=True
@@ -326,30 +317,15 @@ class FuzzyComparison(Comparison):
         converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
 
         if stratifications is not None:
-            # Aggregate over stratifications specified by user for reference data
-            if stratifications == []:
-                if DRAW_INDEX not in converted_test_data.index.names:
-                    # Aggregate over all index levels - this is the same as just returning the data
-                    stratified_test_data = calculations.marginalize(
-                        converted_test_data,
-                        converted_test_data.index.names,
-                    )
-                else:
-                    # Aggregate over all index levels except draws
-                    stratified_test_data = calculations.stratify(
-                        converted_test_data, [DRAW_INDEX]
-                    )
-            else:
-                stratified_test_data = calculations.stratify(
-                    converted_test_data,
-                    list(stratifications) + [DRAW_INDEX]
-                    if DRAW_INDEX in converted_test_data.index.names
-                    else stratifications,
-                )
+            idxs_to_marginalize = (
+                set(converted_test_data.index.names) - set(stratifications) - {DRAW_INDEX}
+            )
+            stratified_test_data = calculations.marginalize(
+                converted_test_data, idxs_to_marginalize
+            )
             aggregated_reference_data = self.aggregate_strata_reference(
                 reference_data, stratifications
             )
-
         else:
             stratified_test_data = converted_test_data
             aggregated_reference_data = reference_data

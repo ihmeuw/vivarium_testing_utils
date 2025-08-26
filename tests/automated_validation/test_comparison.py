@@ -297,7 +297,6 @@ def test_fuzzy_comparison_get_frame_parametrized(
         assert not data.empty
         assert set(data.index.names) == {"index"} if aggregate else {"input_draw"}
     if aggregate:
-        # TODO: add expected index
         schema_mapper = {
             "test": {"test_mean", "test_2.5%", "test_97.5%", "reference_rate"},
             "reference": {"test_rate", "reference_mean", "reference_2.5%", "reference_97.5%"},
