@@ -75,13 +75,10 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
 
 
 def aggregate_sum(
-    data: pd.DataFrame, groupby_cols: Collection[str] | None = None
+    data: pd.DataFrame,
+    groupby_cols: Collection[str],
 ) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
-    if groupby_cols is None:
-        return data
-    if not isinstance(groupby_cols, list):
-        groupby_cols = list(groupby_cols)
     if groupby_cols == []:
         data = pd.DataFrame(
             {"value": [data["value"].sum()]}, index=pd.Index([0], name="index")
@@ -91,7 +88,7 @@ def aggregate_sum(
     # This is a hack, because we're not technically using pd.Categorical here.
     # TODO: MIC-6090  Use the right abstractions for categorical index columns.
     # You might need to keep this observed=True even after doing that.
-    return data.groupby(groupby_cols, sort=False, observed=True).sum()
+    return data.groupby(list(groupby_cols), sort=False, observed=True).sum()
 
 
 def stratify(data: pd.DataFrame, stratification_cols: Collection[str]) -> pd.DataFrame:
@@ -224,25 +221,7 @@ def weighted_average(
         # Group by the levels that match data's index and sum over the extra levels
         weights = weights.groupby(level=data.index.names, sort=False, observed=True).sum()
 
-    # Check if weights has extra index levels compared to data
-    data_index_names = set(data.index.names)
-    weights_index_names = set(weights.index.names)
-
-    if not data_index_names.issubset(weights_index_names):
-        raise ValueError(
-            f"Data index levels {data_index_names - weights_index_names} "
-            f"are not present in weights index levels {weights_index_names}"
-        )
-
-    # If weights has extra index levels, aggregate by summing
-    extra_levels = weights_index_names - data_index_names
-    if extra_levels:
-        # Group by the levels that match data's index and sum over the extra levels
-        weights = weights.groupby(
-            level=list(data_index_names), sort=False, observed=True
-        ).sum()
-
-    # Check that index levels are compatible (at least subsets of each other)
+    # Indexes should be equal at this point
     if not data.index.equals(weights.index):
         raise ValueError(
             "Data and weights must have the same index levels. "

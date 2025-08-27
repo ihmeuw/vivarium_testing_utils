@@ -202,7 +202,7 @@ class ValidationContext:
     def get_frame(
         self,
         comparison_key: str,
-        stratifications: Collection[str] | None = None,
+        stratifications: Collection[str] | Literal["all"] = "all",
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "",
         ascending: bool = False,
@@ -215,7 +215,7 @@ class ValidationContext:
         comparison_key
             The key of the comparison for which to get the data
         stratifications
-            The stratifications to use for the comparison. If None, no aggregatio will happen and
+            The stratifications to use for the comparison. If "all", no aggregation will happen and
             all existing stratifications will remain. If an empty list is passed, no stratifications
             will be retained.
         num_rows

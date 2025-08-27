@@ -46,7 +46,7 @@ class Comparison(ABC):
     @abstractmethod
     def get_frame(
         self,
-        stratifications: Collection[str] | None = None,
+        stratifications: Collection[str] | Literal["all"] = "all",
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "",
         ascending: bool = False,
@@ -127,7 +127,7 @@ class FuzzyComparison(Comparison):
 
     def get_frame(
         self,
-        stratifications: Collection[str] | None = None,
+        stratifications: Collection[str] | Literal["all"] = "all",
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "",
         ascending: bool = False,
@@ -153,30 +153,9 @@ class FuzzyComparison(Comparison):
         A DataFrame of the comparison data.
         """
 
-        test_proportion_data, reference_data = self._align_datasets(stratifications)
-
-        test_proportion_data = test_proportion_data.rename(columns={"value": "rate"}).dropna()
-        reference_data = reference_data.rename(columns={"value": "rate"}).dropna()
-
-        if aggregate_draws:
-            test_proportion_data = self._aggregate_over_draws(test_proportion_data)
-            reference_data = self._aggregate_over_draws(reference_data)
-
-        test_proportion_data = test_proportion_data.add_prefix("test_")
-        reference_data = reference_data.add_prefix("reference_")
-
-        # Align dataset indexes if stratifications is an empty list
-        # One dataset might have a single row, so we cast that row to match the other's length
-        # If both datasets are one row, they will already have the same index
-        if len(test_proportion_data) == 1 and len(reference_data) != 1:
-            test_proportion_data = pd.concat(
-                [test_proportion_data] * len(reference_data), ignore_index=True
-            ).set_index(reference_data.index)
-        elif len(reference_data) == 1 and len(test_proportion_data) != 1:
-            reference_data = pd.concat(
-                [reference_data] * len(test_proportion_data), ignore_index=True
-            ).set_index(test_proportion_data.index)
-
+        test_proportion_data, reference_data = self._align_datasets(
+            stratifications, aggregate_draws
+        )
         merged_data = pd.merge(
             test_proportion_data, reference_data, left_index=True, right_index=True
         )
@@ -273,11 +252,13 @@ class FuzzyComparison(Comparison):
         return data_info
 
     def _align_datasets(
-        self, stratifications: Collection[str] | None = None
+        self,
+        stratifications: Collection[str] | Literal["all"] = "all",
+        aggregate_draws: bool = False,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
-        # Get union of test data index names
 
+        # Get union of test data index names
         combined_test_index_names = {
             index_name
             for key in self.test_datasets
@@ -296,39 +277,48 @@ class FuzzyComparison(Comparison):
             tuple(self.reference_scenarios.keys()), [DRAW_INDEX]
         )
 
+        # Aggregate over indices for reference data
+        ref_idx_to_aggregate = [
+            x for x in self.reference_data.index.names if x not in reference_indexes_to_drop
+        ]
+        aggregated_reference_data = self.aggregate_strata_reference(
+            self.reference_data,
+            strata=ref_idx_to_aggregate if stratifications == "all" else stratifications,
+        )
+
         # If the test data has any index levels that are not in the reference data, marginalize
         # over those index levels.
-        test_datasets = {
-            key: calculations.marginalize(
-                self.test_datasets[key], test_indexes_to_marginalize
-            )
-            for key in self.test_datasets
-        }
-
-        # Aggregate over indices
-        reference_data = self.aggregate_strata_reference(
-            self.reference_data,
-            strata=[
-                x
-                for x in self.reference_data.index.names
-                if x not in reference_indexes_to_drop
-            ],
-        )
-        converted_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
-
-        if stratifications is not None:
-            idxs_to_marginalize = (
-                set(converted_test_data.index.names) - set(stratifications) - {DRAW_INDEX}
-            )
-            stratified_test_data = calculations.marginalize(
-                converted_test_data, idxs_to_marginalize
-            )
-            aggregated_reference_data = self.aggregate_strata_reference(
-                reference_data, stratifications
+        if stratifications != "all":
+            test_idx_to_marginalize = set(test_indexes_to_marginalize).union(
+                set(
+                    [
+                        idx
+                        for idx in combined_test_index_names
+                        if idx not in stratifications and idx != DRAW_INDEX
+                    ]
+                )
             )
         else:
-            stratified_test_data = converted_test_data
-            aggregated_reference_data = reference_data
+            test_idx_to_marginalize = test_indexes_to_marginalize
+        test_datasets = {
+            key: calculations.marginalize(self.test_datasets[key], test_idx_to_marginalize)
+            for key in self.test_datasets
+        }
+        stratified_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
+
+        stratified_test_data = stratified_test_data.rename(columns={"value": "rate"})
+        aggregated_reference_data = aggregated_reference_data.rename(
+            columns={"value": "rate"}
+        )
+        if aggregate_draws:
+            stratified_test_data = self._aggregate_over_draws(stratified_test_data)
+            aggregated_reference_data = self._aggregate_over_draws(aggregated_reference_data)
+        stratified_test_data = stratified_test_data.add_prefix("test_")
+        aggregated_reference_data = aggregated_reference_data.add_prefix("reference_")
+
+        stratified_test_data, aggregated_reference_data = self._cast_across_indexes(
+            stratified_test_data, aggregated_reference_data
+        )
 
         ## At this point, the only non-common index levels should be scenarios and draws.
         return stratified_test_data, aggregated_reference_data
@@ -356,3 +346,20 @@ class FuzzyComparison(Comparison):
                 {"value": [weighted_avg]}, index=pd.Index([0], name="index")
             )
         return weighted_avg
+
+    def _cast_across_indexes(
+        self, test_data: pd.DataFrame, reference_data: pd.DataFrame
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Align dataset indexes if stratifications is an empty list
+        One dataset might have a single row, so we cast that row to match the other's length
+        If both datasets are one row, they will already have the same index."""
+        if len(test_data) == 1 and len(reference_data) != 1:
+            test_data = pd.concat(
+                [test_data] * len(reference_data), ignore_index=True
+            ).set_index(reference_data.index)
+        elif len(reference_data) == 1 and len(test_data) != 1:
+            reference_data = pd.concat(
+                [reference_data] * len(test_data), ignore_index=True
+            ).set_index(test_data.index)
+
+        return test_data, reference_data

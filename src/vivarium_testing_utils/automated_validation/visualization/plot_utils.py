@@ -31,7 +31,7 @@ def plot_comparison(
     condition
         Conditions to filter the data by, by default {}
     stratifications
-        Stratifications to apply to the plot, by default ()
+        Stratifications to retain in the plotted dataset, by default ()
     **kwargs
         Additional keyword arguments for specific plot types.
 

@@ -110,6 +110,28 @@ def _create_deaths_data() -> pd.DataFrame:
     )
 
 
+def _get_artifact_index() -> pd.MultiIndex:
+    """Create an expected dataframe for testing."""
+    return pd.MultiIndex.from_tuples(
+        [
+            ("A", "C", 0.0, 5.0),
+            ("A", "C", 5.0, 10.0),
+            ("A", "D", 0.0, 5.0),
+            ("A", "D", 5.0, 10.0),
+            ("B", "C", 0.0, 5.0),
+            ("B", "C", 5.0, 10.0),
+            ("B", "D", 0.0, 5.0),
+            ("B", "D", 5.0, 10.0),
+        ],
+        names=[
+            "common_stratify_column",
+            "other_stratify_column",
+            AGE_START_COLUMN,
+            AGE_END_COLUMN,
+        ],
+    )
+
+
 @utils.check_io(out=DrawData)
 def _create_raw_artifact_disease_incidence() -> pd.DataFrame:
     """Create raw artifact disease incidence data for testing."""
@@ -515,25 +537,3 @@ def _artifact_keys_mapper() -> dict[str, pd.DataFrame | dict[str, str]]:
         "population.structure": _population_structure,
         "cause.disease.prevalence": _artifact_prevalence,
     }
-
-
-def _get_artifact_index() -> pd.MultiIndex:
-    """Create an expected dataframe for testing."""
-    return pd.MultiIndex.from_tuples(
-        [
-            ("A", "C", 0.0, 5.0),
-            ("A", "C", 5.0, 10.0),
-            ("A", "D", 0.0, 5.0),
-            ("A", "D", 5.0, 10.0),
-            ("B", "C", 0.0, 5.0),
-            ("B", "C", 5.0, 10.0),
-            ("B", "D", 0.0, 5.0),
-            ("B", "D", 5.0, 10.0),
-        ],
-        names=[
-            "common_stratify_column",
-            "other_stratify_column",
-            AGE_START_COLUMN,
-            AGE_END_COLUMN,
-        ],
-    )

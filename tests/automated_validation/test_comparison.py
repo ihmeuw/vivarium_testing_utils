@@ -1,4 +1,5 @@
 from collections.abc import Collection
+from typing import Literal
 from unittest import mock
 
 import pandas as pd
@@ -230,7 +231,7 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
     assert_frame_equal(diff, expected_df)
 
 
-@pytest.mark.parametrize("stratifications", [None, ["year"], []])
+@pytest.mark.parametrize("stratifications", ["all", ["year"], []])
 @pytest.mark.parametrize("aggregate", [True, False])
 @pytest.mark.parametrize("draws", ["test", "reference", "both", "neither"])
 def test_fuzzy_comparison_get_frame_parametrized(
@@ -238,7 +239,7 @@ def test_fuzzy_comparison_get_frame_parametrized(
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
     reference_weights: pd.DataFrame,
-    stratifications: Collection[str] | None,
+    stratifications: Collection[str] | Literal["all"],
     aggregate: bool,
     draws: str,
 ) -> None:
@@ -246,12 +247,6 @@ def test_fuzzy_comparison_get_frame_parametrized(
     draw_values = list(
         test_data["numerator_data"].index.get_level_values(DRAW_INDEX).unique()
     )
-    if draws == "test":
-        # This is how the fixtures are set up
-        for key in test_data:
-            assert "input_draw" in test_data[key].index.names
-        assert "input_draw" not in reference_data.index.names
-        assert "input_draw" not in reference_weights.index.names
     if draws in ["reference", "both"]:
         # Remove draws from test data and add draws index level to reference datasets
         reference_data = _add_draws_to_dataframe(reference_data, draw_values)
@@ -281,7 +276,7 @@ def test_fuzzy_comparison_get_frame_parametrized(
     )
 
     data = comparison.get_frame(stratifications=stratifications, aggregate_draws=aggregate)
-    if stratifications is None:
+    if stratifications == "all":
         expected_index_names = [
             col
             for col in test_data["numerator_data"].index.names
@@ -439,7 +434,9 @@ def test_fuzzy_comparison_align_datasets_calculation(
     )
 
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
-    pd.testing.assert_frame_equal(aligned_reference_data, reference_data)
+    pd.testing.assert_frame_equal(
+        aligned_reference_data, reference_data.rename(columns={"value": "reference_rate"})
+    )
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
     expected_index = pd.MultiIndex.from_tuples(
@@ -453,7 +450,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
     assert_frame_equal(
         aligned_test_data,
         pd.DataFrame(
-            {"value": expected_values},
+            {"test_rate": expected_values},
             index=expected_index,
         ),
     )
