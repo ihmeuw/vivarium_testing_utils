@@ -74,10 +74,7 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
     return numerator_data / denominator_data
 
 
-def aggregate_sum(
-    data: pd.DataFrame,
-    groupby_cols: Collection[str],
-) -> pd.DataFrame:
+def aggregate_sum(data: pd.DataFrame, groupby_cols: Collection[str]) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
     if groupby_cols == []:
         data = pd.DataFrame(

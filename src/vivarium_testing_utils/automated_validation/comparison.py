@@ -278,28 +278,28 @@ class FuzzyComparison(Comparison):
         )
 
         # Aggregate over indices for reference data
-        ref_idx_to_aggregate = [
-            x for x in self.reference_data.index.names if x not in reference_indexes_to_drop
-        ]
-        aggregated_reference_data = self.aggregate_strata_reference(
+        if stratifications == "all":
+            stratifications = [
+                x
+                for x in self.reference_data.index.names
+                if x not in reference_indexes_to_drop
+            ]
+        aggregated_reference_data = self._aggregate_strata_reference(
             self.reference_data,
-            strata=ref_idx_to_aggregate if stratifications == "all" else stratifications,
+            strata=stratifications,
         )
 
         # If the test data has any index levels that are not in the reference data, marginalize
         # over those index levels.
-        if stratifications != "all":
-            test_idx_to_marginalize = set(test_indexes_to_marginalize).union(
-                set(
-                    [
-                        idx
-                        for idx in combined_test_index_names
-                        if idx not in stratifications and idx != DRAW_INDEX
-                    ]
-                )
+        test_idx_to_marginalize = set(test_indexes_to_marginalize).union(
+            set(
+                [
+                    idx
+                    for idx in combined_test_index_names
+                    if idx not in stratifications and idx != DRAW_INDEX
+                ]
             )
-        else:
-            test_idx_to_marginalize = test_indexes_to_marginalize
+        )
         test_datasets = {
             key: calculations.marginalize(self.test_datasets[key], test_idx_to_marginalize)
             for key in self.test_datasets
@@ -323,7 +323,7 @@ class FuzzyComparison(Comparison):
         ## At this point, the only non-common index levels should be scenarios and draws.
         return stratified_test_data, aggregated_reference_data
 
-    def aggregate_strata_reference(
+    def _aggregate_strata_reference(
         self, data: pd.DataFrame, strata: Collection[str] = ()
     ) -> pd.DataFrame:
         for stratum in strata:
