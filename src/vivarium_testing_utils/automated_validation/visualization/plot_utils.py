@@ -1,4 +1,5 @@
 # mypy: ignore-errors
+from collections.abc import Collection
 from typing import Any
 
 import numpy as np
@@ -13,7 +14,11 @@ from vivarium_testing_utils.automated_validation.data_transformation import calc
 
 
 def plot_comparison(
-    comparison: Comparison, type: str, condition: dict[str, Any] = {}, **kwargs: Any
+    comparison: Comparison,
+    type: str,
+    condition: dict[str, Any] = {},
+    stratifications: Collection[str] = (),
+    **kwargs: Any,
 ) -> Figure | list[Figure]:
     """Create a plot for the given comparison.
 
@@ -25,6 +30,8 @@ def plot_comparison(
         Type of plot to create.
     condition
         Conditions to filter the data by, by default {}
+    stratifications
+        Stratifications to retain in the plotted dataset, by default ()
     **kwargs
         Additional keyword arguments for specific plot types.
 
@@ -48,7 +55,7 @@ def plot_comparison(
     for modifiers in (comparison.test_scenarios, comparison.reference_scenarios, condition):
         title = _append_condition_to_title(modifiers, title)
 
-    combined_data = _get_combined_data(comparison)
+    combined_data = _get_combined_data(comparison, stratifications)
     combined_data = calculations.filter_data(combined_data, filter_cols=condition)
 
     default_kwargs = {
@@ -259,9 +266,11 @@ def _get_unconditioned_index_names(
     return unconditioned
 
 
-def _get_combined_data(comparison: Comparison) -> pd.DataFrame:
+def _get_combined_data(
+    comparison: Comparison, stratifications: Collection[str] = ()
+) -> pd.DataFrame:
     """Get the combined data from the test and reference datasets."""
-    test_data, reference_data = comparison._align_datasets()
+    test_data, reference_data = comparison._align_datasets(stratifications)
 
     # Drop the scenario columns, which should already be filtered.
     test_data = calculations.filter_data(test_data, filter_cols=comparison.test_scenarios)
