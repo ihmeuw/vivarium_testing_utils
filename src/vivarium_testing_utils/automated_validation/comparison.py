@@ -284,9 +284,9 @@ class FuzzyComparison(Comparison):
                 for x in self.reference_data.index.names
                 if x not in reference_indexes_to_drop
             ]
-        aggregated_reference_data = self._aggregate_strata_reference(
+        aggregated_reference_data = self._aggregate_reference_stratifications(
             self.reference_data,
-            strata=stratifications,
+            stratifications=stratifications,
         )
 
         # If the test data has any index levels that are not in the reference data, marginalize
@@ -323,23 +323,25 @@ class FuzzyComparison(Comparison):
         ## At this point, the only non-common index levels should be scenarios and draws.
         return stratified_test_data, aggregated_reference_data
 
-    def _aggregate_strata_reference(
-        self, data: pd.DataFrame, strata: Collection[str] = ()
+    def _aggregate_reference_stratifications(
+        self, data: pd.DataFrame, stratifications: Collection[str] = ()
     ) -> pd.DataFrame:
-        for stratum in strata:
+        for stratification in stratifications:
             if (
-                stratum not in data.index.names
-                and stratum not in self.reference_weights.index.names
+                stratification not in data.index.names
+                and stratification not in self.reference_weights.index.names
             ):
                 raise ValueError(
-                    f"Stratum '{stratum}' not found in reference data or weights."
+                    f"Stratum '{stratification}' not found in reference data or weights."
                 )
 
-        strata = list(strata)
+        stratifications = list(stratifications)
         # Retain input_draw, _aggregate_over_draws is the only place we should aggregate over draws.
-        if DRAW_INDEX in data.index.names and DRAW_INDEX not in strata:
-            strata.append(DRAW_INDEX)
-        weighted_avg = calculations.weighted_average(data, self.reference_weights, strata)
+        if DRAW_INDEX in data.index.names and DRAW_INDEX not in stratifications:
+            stratifications.append(DRAW_INDEX)
+        weighted_avg = calculations.weighted_average(
+            data, self.reference_weights, stratifications
+        )
         # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
         if not isinstance(weighted_avg, pd.DataFrame):
             weighted_avg = pd.DataFrame(
