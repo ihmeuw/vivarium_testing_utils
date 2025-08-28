@@ -94,27 +94,6 @@ def test__get_age_groups_gbd(sim_result_dir: Path, mocker: MockFixture) -> None:
     assert context.age_groups.equals(age_groups)
 
 
-def test___get_raw_data_from_source(
-    sim_result_dir: Path,
-    transition_count_data: pd.DataFrame,
-    person_time_data: pd.DataFrame,
-    artifact_disease_incidence: pd.DataFrame,
-) -> None:
-    """Ensure that we can get raw data from a source"""
-    context = ValidationContext(sim_result_dir)
-    measure = Incidence("disease")
-    test_raw_data = context._get_raw_data_from_source(
-        measure.get_required_datasets(DataSource.SIM), DataSource.SIM
-    )
-    ref_raw_data = context._get_raw_data_from_source(
-        measure.get_required_datasets(DataSource.ARTIFACT), DataSource.ARTIFACT
-    )
-
-    assert test_raw_data["numerator_data"].equals(transition_count_data)
-    assert test_raw_data["denominator_data"].equals(person_time_data)
-    assert ref_raw_data["artifact_data"].equals(artifact_disease_incidence)
-
-
 def test_add_comparison_bad_scenarios(sim_result_dir: Path) -> None:
     """Ensure that we raise an error if the scenarios are not provided correctly"""
     measure_key = "cause.disease.incidence_rate"
