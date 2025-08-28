@@ -456,13 +456,13 @@ def test_fuzzy_comparison_align_datasets_calculation(
     )
 
 
-def test_aggregate_strata(
+def test_aggregate_stratifications(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
     reference_weights: pd.DataFrame,
 ) -> None:
-    """Test that aggregate_strata correctly aggregates data."""
+    """Test that aggregate_stratifications correctly aggregates data."""
     comparison = FuzzyComparison(
         mock_ratio_measure,
         DataSource.SIM,
@@ -472,7 +472,9 @@ def test_aggregate_strata(
         reference_weights,
     )
 
-    aggregated = comparison._aggregate_strata_reference(reference_data, ["age", "sex"])
+    aggregated = comparison._aggregate_reference_stratifications(
+        reference_data, ["age", "sex"]
+    )
     # (0, Male) = (0.12 * 0.15 + 0.29 * 0.35) / (0.15 + 0.35)
     expected = pd.DataFrame(
         {
@@ -493,7 +495,7 @@ def test_aggregate_strata(
     pd.testing.assert_frame_equal(aggregated, expected)
 
     with pytest.raises(ValueError, match="not found in reference data or weights"):
-        comparison._aggregate_strata_reference(reference_data, ["dog", "cat"])
+        comparison._aggregate_reference_stratifications(reference_data, ["dog", "cat"])
 
 
 def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.DataFrame:
