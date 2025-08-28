@@ -1,3 +1,5 @@
+from collections.abc import Collection
+from typing import Literal
 from unittest import mock
 
 import pandas as pd
@@ -87,8 +89,9 @@ def test_fuzzy_comparison_init(
         reference_data,
         reference_weights,
         test_scenarios={"scenario": "baseline"},
-        stratifications=[],
     )
+    # Scenario is dropped from test datasets in the FuzzyComparison constructor
+    test_data = {key: dataset.droplevel("scenario") for key, dataset in test_data.items()}
 
     with check:
         assert comparison.measure == mock_ratio_measure
@@ -102,7 +105,6 @@ def test_fuzzy_comparison_init(
         assert comparison.reference_data.equals(reference_data)
         assert comparison.test_scenarios == {"scenario": "baseline"}
         assert not comparison.reference_scenarios
-        assert list(comparison.stratifications) == []
 
 
 def test_fuzzy_comparison_metadata(
@@ -129,7 +131,7 @@ def test_fuzzy_comparison_metadata(
         ("Source", "sim", "gbd"),
         (
             "Index Columns",
-            "year, sex, age, input_draw, random_seed, scenario",
+            "year, sex, age, input_draw, random_seed",
             "year, sex, age",
         ),
         ("Size", "4 rows × 1 columns", "3 rows × 1 columns"),
@@ -161,7 +163,7 @@ def test_fuzzy_comparison_get_frame(
         reference_weights,
     )
 
-    diff = comparison.get_frame(stratifications=[], num_rows=1)
+    diff = comparison.get_frame(num_rows=1)
 
     with check:
         assert len(diff) == 1
@@ -172,7 +174,7 @@ def test_fuzzy_comparison_get_frame(
         assert SEED_INDEX not in diff.index.names
 
     # Test returning all rows
-    all_diff = comparison.get_frame(stratifications=[], num_rows="all")
+    all_diff = comparison.get_frame(num_rows="all")
     assert len(all_diff) == 3
 
     # Test sorting
@@ -197,7 +199,7 @@ def test_fuzzy_comparison_get_frame(
         )
 
 
-def test_fuzzy_comparison_get_frame_aggregated(
+def test_fuzzy_comparison_get_frame_aggregated_draws(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
@@ -212,15 +214,14 @@ def test_fuzzy_comparison_get_frame_aggregated(
         reference_data,
         reference_weights,
     )
-    diff = comparison.get_frame(stratifications=[], num_rows="all", aggregate_draws=True)
+    diff = comparison.get_frame(num_rows="all", aggregate_draws=True)
     expected_df = pd.DataFrame(
         {
             "test_mean": [0.1, 0.2, 0.325],
             "test_2.5%": [0.1, 0.2, 0.325],
             "test_97.5%": [0.1, 0.2, 0.325],
-            "reference_mean": [0.12, 0.2, 0.29],
-            "reference_2.5%": [0.12, 0.2, 0.29],
-            "reference_97.5%": [0.12, 0.2, 0.29],
+            # Reference data has no draws and we have no stratifications so we just return the reference data
+            "reference_rate": list(reference_data["value"]),
         },
         index=pd.MultiIndex.from_tuples(
             [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
@@ -230,34 +231,41 @@ def test_fuzzy_comparison_get_frame_aggregated(
     assert_frame_equal(diff, expected_df)
 
 
-def test_fuzzy_comparison_init_with_stratifications(
+@pytest.mark.parametrize("stratifications", ["all", ["year"], []])
+@pytest.mark.parametrize("aggregate", [True, False])
+@pytest.mark.parametrize("draws", ["test", "reference", "both", "neither"])
+def test_fuzzy_comparison_get_frame_parametrized(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
     reference_data: pd.DataFrame,
     reference_weights: pd.DataFrame,
-) -> None:
-    """Test that FuzzyComparison raises NotImplementedError when initialized with non-empty stratifications."""
-    with pytest.raises(
-        NotImplementedError, match="Non-default stratifications require rate aggregations"
-    ):
-        FuzzyComparison(
-            mock_ratio_measure,
-            DataSource.SIM,
-            test_data,
-            DataSource.GBD,
-            reference_data,
-            reference_weights,
-            stratifications=["year"],
-        )
-
-
-def test_fuzzy_comparison_get_frame_with_stratifications(
-    mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    stratifications: Collection[str] | Literal["all"],
+    aggregate: bool,
+    draws: str,
 ) -> None:
     """Test that FuzzyComparison.get_frame raises NotImplementedError when called with non-empty stratifications."""
+    draw_values = list(
+        test_data["numerator_data"].index.get_level_values(DRAW_INDEX).unique()
+    )
+    if draws in ["reference", "both"]:
+        # Remove draws from test data and add draws index level to reference datasets
+        reference_data = _add_draws_to_dataframe(reference_data, draw_values)
+        reference_weights = _add_draws_to_dataframe(reference_weights, draw_values)
+    if draws in ["reference", "neither"]:
+        # Remove draws from test dataset
+        test_data = {
+            dataset_key: test_data[dataset_key]
+            .groupby(
+                [
+                    level
+                    for level in test_data[dataset_key].index.names
+                    if level != "input_draw"
+                ]
+            )
+            .sum()
+            for dataset_key in test_data
+        }
+
     comparison = FuzzyComparison(
         mock_ratio_measure,
         DataSource.SIM,
@@ -267,10 +275,40 @@ def test_fuzzy_comparison_get_frame_with_stratifications(
         reference_weights,
     )
 
-    with pytest.raises(
-        NotImplementedError, match="Non-default stratifications require rate aggregations"
-    ):
-        comparison.get_frame(stratifications=["year"])
+    data = comparison.get_frame(stratifications=stratifications, aggregate_draws=aggregate)
+    if stratifications == "all":
+        expected_index_names = [
+            col
+            for col in test_data["numerator_data"].index.names
+            if col not in ["input_draw", "random_seed", "scenario"]
+        ]
+        if not aggregate and draws != "neither":
+            expected_index_names += ["input_draw"]
+        assert set(data.index.names) == set(expected_index_names)
+    elif stratifications == ["year"]:
+        assert set(data.index.names) == {"year"} if aggregate else {"year", "input_draw"}
+    else:
+        # stratifications is [] and all index levels are aggregated over
+        assert not data.empty
+        assert set(data.index.names) == {"index"} if aggregate else {"input_draw"}
+    if aggregate:
+        schema_mapper = {
+            "test": {"test_mean", "test_2.5%", "test_97.5%", "reference_rate"},
+            "reference": {"test_rate", "reference_mean", "reference_2.5%", "reference_97.5%"},
+            "both": {
+                "test_mean",
+                "test_2.5%",
+                "test_97.5%",
+                "reference_mean",
+                "reference_2.5%",
+                "reference_97.5%",
+            },
+            "neither": {"test_rate", "reference_rate"},
+        }
+        expected_columns = schema_mapper[draws]
+    else:
+        expected_columns = {"test_rate", "reference_rate", "percent_error"}
+    assert set(data.columns) == expected_columns
 
 
 def test_fuzzy_comparison_verify_not_implemented(
@@ -347,43 +385,6 @@ def test_get_metadata_from_dataset_no_draws(
         assert "num_seeds" not in result
 
 
-def test_fuzzy_comparison_align_datasets_with_singular_reference_index(
-    mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
-) -> None:
-    """Test that _align_datasets correctly handles singular reference-only indices."""
-    reference_data_with_singular_index = reference_data.copy()
-    reference_data_with_singular_index["location"] = ["Global", "Global", "Global"]
-    reference_data_with_singular_index.set_index("location", append=True, inplace=True)
-
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data_with_singular_index,
-        reference_weights,
-    )
-
-    # Verify the singular index exists
-    assert "location" in comparison.reference_data.index.names
-    assert "location" not in comparison.test_datasets["numerator_data"].index.names
-
-    # Verify it's detected as a singular index
-    singular_indices = calculations.get_singular_indices(comparison.reference_data)
-    assert "location" in singular_indices
-    assert singular_indices["location"] == "Global"
-
-    # Execute
-    aligned_test_data, aligned_reference_data = comparison._align_datasets()
-
-    # Verify the singular index was dropped
-    assert "location" not in aligned_reference_data.index.names
-    assert aligned_test_data.shape[0] == aligned_reference_data.shape[0]
-
-
 def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     mock_ratio_measure: RatioMeasure,
     test_data: dict[str, pd.DataFrame],
@@ -413,12 +414,6 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     singular_indices = calculations.get_singular_indices(comparison.reference_data)
     assert "location" not in singular_indices
 
-    # Execute and verify error is raised with correct message
-    with pytest.raises(
-        ValueError, match="Reference data has non-trivial index levels {'location'}"
-    ):
-        comparison._align_datasets()
-
 
 def test_fuzzy_comparison_align_datasets_calculation(
     mock_ratio_measure: RatioMeasure,
@@ -439,22 +434,23 @@ def test_fuzzy_comparison_align_datasets_calculation(
     )
 
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
-
-    assert_frame_equal(aligned_reference_data, reference_data)
+    pd.testing.assert_frame_equal(
+        aligned_reference_data, reference_data.rename(columns={"value": "reference_rate"})
+    )
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
     expected_index = pd.MultiIndex.from_tuples(
         [
-            ("2020", "male", 0, 1, "baseline"),
-            ("2020", "female", 0, 5, "baseline"),
-            ("2025", "male", 0, 2, "baseline"),
+            ("2020", "male", 0, 1),
+            ("2020", "female", 0, 5),
+            ("2025", "male", 0, 2),
         ],
-        names=["year", "sex", "age", DRAW_INDEX, "scenario"],
+        names=["year", "sex", "age", DRAW_INDEX],
     )
     assert_frame_equal(
         aligned_test_data,
         pd.DataFrame(
-            {"value": expected_values},
+            {"test_rate": expected_values},
             index=expected_index,
         ),
     )
@@ -476,7 +472,7 @@ def test_aggregate_strata(
         reference_weights,
     )
 
-    aggregated = comparison.aggregate_strata(["age", "sex"])
+    aggregated = comparison._aggregate_strata_reference(reference_data, ["age", "sex"])
     # (0, Male) = (0.12 * 0.15 + 0.29 * 0.35) / (0.15 + 0.35)
     expected = pd.DataFrame(
         {
@@ -497,4 +493,10 @@ def test_aggregate_strata(
     pd.testing.assert_frame_equal(aggregated, expected)
 
     with pytest.raises(ValueError, match="not found in reference data or weights"):
-        comparison.aggregate_strata(["dog", "cat"])
+        comparison._aggregate_strata_reference(reference_data, ["dog", "cat"])
+
+
+def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.DataFrame:
+    """Add a 'input_draw' index level to the DataFrame."""
+    df["input_draw"] = draw_values
+    return df.set_index("input_draw", append=True).sort_index()

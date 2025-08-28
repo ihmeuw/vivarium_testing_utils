@@ -65,7 +65,11 @@ class ValidationContext:
 
         measure = measures.get_measure_from_key(measure_key, list(self.scenario_columns))
         self._add_comparison_with_measure(
-            measure, test_source, ref_source, test_scenarios, ref_scenarios, stratifications
+            measure,
+            test_source,
+            ref_source,
+            test_scenarios,
+            ref_scenarios,
         )
 
     def add_relative_risk_comparison(
@@ -113,7 +117,7 @@ class ValidationContext:
             risk_state_mapping,
         )
         self._add_comparison_with_measure(
-            measure, test_source, ref_source, test_scenarios, ref_scenarios, stratifications
+            measure, test_source, ref_source, test_scenarios, ref_scenarios
         )
 
     def _add_comparison_with_measure(
@@ -123,7 +127,6 @@ class ValidationContext:
         ref_source: str,
         test_scenarios: dict[str, str] = {},
         ref_scenarios: dict[str, str] = {},
-        stratifications: list[str] = [],
     ) -> None:
         """Internal method to add a comparison with a pre-constructed measure."""
 
@@ -174,6 +177,9 @@ class ValidationContext:
             measure.rate_aggregation_weights.weight_keys, ref_source_enum
         )
         ref_weights = measure.rate_aggregation_weights.get_weights(**ref_weight_raw_data)
+        ref_weights = age_groups.format_dataframe_from_age_bin_df(
+            ref_weights, self.age_groups
+        )
 
         comparison = FuzzyComparison(
             measure=measure,
@@ -184,7 +190,6 @@ class ValidationContext:
             reference_weights=ref_weights,
             test_scenarios=test_scenarios,
             reference_scenarios=ref_scenarios,
-            stratifications=stratifications,
         )
         self.comparisons[measure.measure_key] = comparison
 
@@ -197,7 +202,7 @@ class ValidationContext:
     def get_frame(
         self,
         comparison_key: str,
-        stratifications: Collection[str] = (),
+        stratifications: Collection[str] | Literal["all"] = "all",
         num_rows: int | Literal["all"] = 10,
         sort_by: str = "",
         ascending: bool = False,
@@ -210,7 +215,9 @@ class ValidationContext:
         comparison_key
             The key of the comparison for which to get the data
         stratifications
-            The stratifications to use for the comparison
+            The stratifications to use for the comparison. If "all", no aggregation will happen and
+            all existing stratifications will remain. If an empty list is passed, no stratifications
+            will be retained.
         num_rows
             The number of rows to return. If "all", return all rows.
         sort_by
@@ -234,10 +241,15 @@ class ValidationContext:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
 
     def plot_comparison(
-        self, comparison_key: str, type: str, condition: dict[str, Any] = {}, **kwargs: Any
+        self,
+        comparison_key: str,
+        type: str,
+        condition: dict[str, Any] = {},
+        stratifications: Collection[str] = (),
+        **kwargs: Any,
     ) -> Figure | list[Figure]:
         return plot_utils.plot_comparison(
-            self.comparisons[comparison_key], type, condition, **kwargs
+            self.comparisons[comparison_key], type, condition, stratifications, **kwargs
         )
 
     def generate_comparisons(self):  # type: ignore[no-untyped-def]

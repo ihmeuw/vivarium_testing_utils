@@ -74,18 +74,21 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
     return numerator_data / denominator_data
 
 
-def aggregate_sum(data: pd.DataFrame, groupby_cols: list[str] = []) -> pd.DataFrame:
+def aggregate_sum(data: pd.DataFrame, groupby_cols: Collection[str]) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
-    if not groupby_cols:
+    if groupby_cols == []:
+        data = pd.DataFrame(
+            {"value": [data["value"].sum()]}, index=pd.Index([0], name="index")
+        )
         return data
     # Use observed=True to avoid sorting categorical levels
     # This is a hack, because we're not technically using pd.Categorical here.
     # TODO: MIC-6090  Use the right abstractions for categorical index columns.
     # You might need to keep this observed=True even after doing that.
-    return data.groupby(groupby_cols, sort=False, observed=True).sum()
+    return data.groupby(list(groupby_cols), sort=False, observed=True).sum()
 
 
-def stratify(data: pd.DataFrame, stratification_cols: list[str]) -> pd.DataFrame:
+def stratify(data: pd.DataFrame, stratification_cols: Collection[str]) -> pd.DataFrame:
     """Stratify the data by the index columns, summing over everything else. Syntactic sugar for aggregate."""
     return aggregate_sum(data, stratification_cols)
 
@@ -137,7 +140,7 @@ def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
 def weighted_average(
     data: pd.DataFrame,
     weights: pd.DataFrame,
-    stratifications: Collection[str] = (),
+    stratifications: list[str] = [],
 ) -> pd.DataFrame | float:
     """Calculate a weighted average of the data using the provided weights.
 
@@ -148,7 +151,7 @@ def weighted_average(
     weights
         DataFrame with the weights to apply to the values in data. Must have a 'value' column.
     stratifications
-        Tuple of index level names to use for stratification/grouping.
+        List of index level names to use for stratification/grouping.
 
     Raises
     ------
@@ -198,8 +201,6 @@ def weighted_average(
     # Returns: 3.55  # (20*2 + 100*3 + 2*5 + 50*7)/(20+100+2+50) = 700/172 ≈ 4.07
 
     """
-    if not isinstance(stratifications, list):
-        stratifications = list(stratifications)
 
     # Check if weights has extra index levels compared to data
     data_index_names = set(data.index.names)
@@ -215,11 +216,9 @@ def weighted_average(
     extra_levels = weights_index_names - data_index_names
     if extra_levels:
         # Group by the levels that match data's index and sum over the extra levels
-        weights = weights.groupby(
-            level=list(data_index_names), sort=False, observed=True
-        ).sum()
+        weights = weights.groupby(level=data.index.names, sort=False, observed=True).sum()
 
-    # Check that index levels are compatible (at least subsets of each other)
+    # Indexes should be equal at this point
     if not data.index.equals(weights.index):
         raise ValueError(
             "Data and weights must have the same index levels. "
