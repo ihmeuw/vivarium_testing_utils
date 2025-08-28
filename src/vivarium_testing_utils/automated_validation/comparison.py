@@ -326,13 +326,13 @@ class FuzzyComparison(Comparison):
     def _aggregate_reference_stratifications(
         self, data: pd.DataFrame, stratifications: Collection[str] = ()
     ) -> pd.DataFrame:
-        for stratum in stratifications:
+        for stratification in stratifications:
             if (
-                stratum not in data.index.names
-                and stratum not in self.reference_weights.index.names
+                stratification not in data.index.names
+                and stratification not in self.reference_weights.index.names
             ):
                 raise ValueError(
-                    f"Stratum '{stratum}' not found in reference data or weights."
+                    f"Stratum '{stratification}' not found in reference data or weights."
                 )
 
         stratifications = list(stratifications)
