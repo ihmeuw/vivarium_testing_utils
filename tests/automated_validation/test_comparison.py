@@ -19,7 +19,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     RatioMeasure,
 )
 
-from .conftest import _create_sample_age_group_df
+from conftest import _create_sample_age_group_df
 
 
 @pytest.fixture
@@ -124,52 +124,44 @@ def reference_bundle(
 
 def test_fuzzy_comparison_init(
     mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the initialization of the FuzzyComparison class."""
     comparison = FuzzyComparison(
         mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data,
-        reference_weights,
-        test_scenarios={"scenario": "baseline"},
+        test_bundle,
+        reference_bundle,
     )
     # Scenario is dropped from test datasets in the FuzzyComparison constructor
-    test_data = {key: dataset.droplevel("scenario") for key, dataset in test_data.items()}
+    test_data = {
+        key: dataset.droplevel("scenario") for key, dataset in test_bundle.datasets.items()
+    }
 
     with check:
-        assert comparison.measure == mock_ratio_measure
-        assert comparison.test_source == DataSource.SIM
+        assert comparison.measure == test_bundle.measure
+        assert comparison.test_bundle == test_bundle
         assert comparison.test_datasets.keys() == {"numerator_data", "denominator_data"}
         assert comparison.test_datasets["numerator_data"].equals(test_data["numerator_data"])
         assert comparison.test_datasets["denominator_data"].equals(
             test_data["denominator_data"]
         )
-        assert comparison.reference_source == DataSource.GBD
-        assert comparison.reference_data.equals(reference_data)
+        assert comparison.reference_bundle == reference_bundle
+        assert comparison.reference_data.equals(reference_bundle.datasets["data"])
         assert comparison.test_scenarios == {"scenario": "baseline"}
         assert not comparison.reference_scenarios
 
 
 def test_fuzzy_comparison_metadata(
     mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the metadata property of the FuzzyComparison class."""
     comparison = FuzzyComparison(
         mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data,
-        reference_weights,
-        test_scenarios={"scenario": "baseline"},
+        test_bundle,
+        reference_bundle,
     )
 
     metadata = comparison.metadata
@@ -197,18 +189,14 @@ def test_fuzzy_comparison_metadata(
 
 def test_fuzzy_comparison_get_frame(
     mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the get_frame method of the FuzzyComparison class."""
     comparison = FuzzyComparison(
         mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data,
-        reference_weights,
+        test_bundle,
+        reference_bundle,
     )
 
     diff = comparison.get_frame(num_rows=1)
@@ -249,18 +237,14 @@ def test_fuzzy_comparison_get_frame(
 
 def test_fuzzy_comparison_get_frame_aggregated_draws(
     mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the get_frame method of the FuzzyComparison class with aggregated draws."""
     comparison = FuzzyComparison(
         mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data,
-        reference_weights,
+        test_bundle,
+        reference_bundle,
     )
     diff = comparison.get_frame(num_rows="all", aggregate_draws=True)
     expected_df = pd.DataFrame(
@@ -269,7 +253,7 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
             "test_2.5%": [0.1, 0.2, 0.325],
             "test_97.5%": [0.1, 0.2, 0.325],
             # Reference data has no draws and we have no stratifications so we just return the reference data
-            "reference_rate": list(reference_data["value"]),
+            "reference_rate": list(reference_bundle.datasets["data"]["value"]),
         },
         index=pd.MultiIndex.from_tuples(
             [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
@@ -284,50 +268,56 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
 @pytest.mark.parametrize("draws", ["test", "reference", "both", "neither"])
 def test_fuzzy_comparison_get_frame_parametrized(
     mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
     stratifications: Collection[str] | Literal["all"],
     aggregate: bool,
     draws: str,
 ) -> None:
     """Test that FuzzyComparison.get_frame raises NotImplementedError when called with non-empty stratifications."""
     draw_values = list(
-        test_data["numerator_data"].index.get_level_values(DRAW_INDEX).unique()
+        test_bundle.datasets["numerator_data"].index.get_level_values(DRAW_INDEX).unique()
     )
     if draws in ["reference", "both"]:
         # Remove draws from test data and add draws index level to reference datasets
-        reference_data = _add_draws_to_dataframe(reference_data, draw_values)
-        reference_weights = _add_draws_to_dataframe(reference_weights, draw_values)
+        reference_data = _add_draws_to_dataframe(
+            reference_bundle.datasets["data"], draw_values
+        )
+        reference_weights = _add_draws_to_dataframe(
+            reference_bundle.datasets["weights"], draw_values
+        )
+        # Update the reference bundle with the modified data
+        reference_bundle.datasets["data"] = reference_data
+        reference_bundle.datasets["weights"] = reference_weights
     if draws in ["reference", "neither"]:
         # Remove draws from test dataset
         test_data = {
-            dataset_key: test_data[dataset_key]
+            dataset_key: test_bundle.datasets[dataset_key]
             .groupby(
                 [
                     level
-                    for level in test_data[dataset_key].index.names
+                    for level in test_bundle.datasets[dataset_key].index.names
                     if level != "input_draw"
                 ]
             )
             .sum()
-            for dataset_key in test_data
+            for dataset_key in test_bundle.datasets
         }
+        # Update the test bundle with the modified data
+        for key, data in test_data.items():
+            test_bundle.datasets[key] = data
 
     comparison = FuzzyComparison(
         mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data,
-        reference_weights,
+        test_bundle,
+        reference_bundle,
     )
 
     data = comparison.get_frame(stratifications=stratifications, aggregate_draws=aggregate)
     if stratifications == "all":
         expected_index_names = [
             col
-            for col in test_data["numerator_data"].index.names
+            for col in test_bundle.datasets["numerator_data"].index.names
             if col not in ["input_draw", "random_seed", "scenario"]
         ]
         if not aggregate and draws != "neither":
@@ -361,18 +351,14 @@ def test_fuzzy_comparison_get_frame_parametrized(
 
 def test_fuzzy_comparison_verify_not_implemented(
     mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """ "FuzzyComparison.verify() is not implemented."""
     comparison = FuzzyComparison(
         mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data,
-        reference_weights,
+        test_bundle,
+        reference_bundle,
     )
 
     with pytest.raises(NotImplementedError):
@@ -381,18 +367,14 @@ def test_fuzzy_comparison_verify_not_implemented(
 
 def test_get_metadata_from_dataset(
     mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test we can extract metadata from a dataframe with draws."""
     comparison = FuzzyComparison(
         mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data,
-        reference_weights,
+        test_bundle,
+        reference_bundle,
     )
     result = comparison._get_metadata_from_datasets("test")
     with check:
@@ -408,18 +390,14 @@ def test_get_metadata_from_dataset(
 
 def test_get_metadata_from_dataset_no_draws(
     mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test we can extract metadata from a dataframe with draws."""
     comparison = FuzzyComparison(
         mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data,
-        reference_weights,
+        test_bundle,
+        reference_bundle,
     )
     result = comparison._get_metadata_from_datasets("reference")
     with check:
@@ -435,9 +413,8 @@ def test_get_metadata_from_dataset_no_draws(
 
 def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test that _align_datasets raises ValueError for non-singular reference-only indices."""
     reference_data_with_non_singular_index = reference_data.copy()
@@ -445,14 +422,7 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     reference_data_with_non_singular_index.set_index("location", append=True, inplace=True)
 
     # Setup
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data_with_non_singular_index,
-        reference_weights,
-    )
+    comparison = FuzzyComparison(mock_ratio_measure, test_bundle, reference_bundle)
 
     # Verify the non-singular index exists
     assert "location" in comparison.reference_data.index.names
@@ -465,25 +435,21 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
 
 def test_fuzzy_comparison_align_datasets_calculation(
     mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test _align_datasets with varying denominators to ensure ratios are calculated correctly."""
 
     comparison = FuzzyComparison(
         mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data,
-        reference_weights,
-        test_scenarios={"scenario": "baseline"},
+        test_bundle,
+        reference_bundle,
     )
 
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
     pd.testing.assert_frame_equal(
-        aligned_reference_data, reference_data.rename(columns={"value": "reference_rate"})
+        aligned_reference_data,
+        reference_bundle.data.rename(columns={"value": "reference_rate"}),
     )
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
@@ -506,22 +472,18 @@ def test_fuzzy_comparison_align_datasets_calculation(
 
 def test_aggregate_stratifications(
     mock_ratio_measure: RatioMeasure,
-    test_data: dict[str, pd.DataFrame],
-    reference_data: pd.DataFrame,
-    reference_weights: pd.DataFrame,
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test that aggregate_stratifications correctly aggregates data."""
     comparison = FuzzyComparison(
         mock_ratio_measure,
-        DataSource.SIM,
-        test_data,
-        DataSource.GBD,
-        reference_data,
-        reference_weights,
+        test_bundle,
+        reference_bundle,
     )
 
     aggregated = comparison._aggregate_reference_stratifications(
-        reference_data, ["age", "sex"]
+        reference_bundle.datasets["data"], ["age", "sex"]
     )
     # (0, Male) = (0.12 * 0.15 + 0.29 * 0.35) / (0.15 + 0.35)
     expected = pd.DataFrame(
