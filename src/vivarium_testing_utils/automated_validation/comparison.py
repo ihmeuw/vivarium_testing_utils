@@ -91,19 +91,19 @@ class FuzzyComparison(Comparison):
         self.measure: RatioMeasure = measure
 
         self.test_source = test_source
-        self.test_scenarios: dict[str, str] = test_scenarios if test_scenarios else {}
+        self.test_bundle = test_bundle
+        self.test_scenarios: dict[str, str] = test_bundle.scenarios
         self.test_datasets = {
             key: calculations.filter_data(dataset, self.test_scenarios, drop_singles=True)
-            for key, dataset in test_datasets.items()
+            for key, dataset in test_bundle.datasets.items()
         }
         self.reference_source = reference_source
-        self.reference_scenarios: dict[str, str] = (
-            reference_scenarios if reference_scenarios else {}
-        )
+        self.reference_bundle = reference_bundle
+        self.reference_scenarios: dict[str, str] = reference_bundle.scenarios
         self.reference_data = calculations.filter_data(
-            reference_data, self.reference_scenarios, drop_singles=True
+            reference_bundle.datasets["data"], self.reference_scenarios, drop_singles=True
         )
-        self.reference_weights = reference_weights
+        self.reference_weights = reference_bundle.datasets["weights"]
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -116,8 +116,8 @@ class FuzzyComparison(Comparison):
         - a sample of the input draws.
         """
         measure_key = self.measure.measure_key
-        test_info = self._get_metadata_from_datasets("test")
-        reference_info = self._get_metadata_from_datasets("reference")
+        test_info = self.test_bundle.get_metadata()
+        reference_info = self.reference_bundle.get_metadata()
         return dataframe_utils.format_metadata(measure_key, test_info, reference_info)
 
     def get_frame(
