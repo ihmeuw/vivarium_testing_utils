@@ -6,8 +6,7 @@ import pandas as pd
 from loguru import logger
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
-from vivarium_testing_utils.automated_validation.data_loader import DataSource
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation import calculations
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
@@ -23,9 +22,7 @@ class Comparison(ABC):
     typically a derived quantity of the test data such as incidence rate or prevalence."""
 
     measure: Measure
-    test_source: DataSource
     test_bundle: RatioMeasureDataBundle
-    reference_source: DataSource
     reference_bundle: pd.DataFrame
 
     @property
@@ -83,21 +80,17 @@ class FuzzyComparison(Comparison):
     def __init__(
         self,
         measure: RatioMeasure,
-        test_source: DataSource,
         test_bundle: RatioMeasureDataBundle,
-        reference_source: DataSource,
         reference_bundle: RatioMeasureDataBundle,
     ):
         self.measure: RatioMeasure = measure
 
-        self.test_source = test_source
         self.test_bundle = test_bundle
         self.test_scenarios: dict[str, str] = test_bundle.scenarios
         self.test_datasets = {
             key: calculations.filter_data(dataset, self.test_scenarios, drop_singles=True)
             for key, dataset in test_bundle.datasets.items()
         }
-        self.reference_source = reference_source
         self.reference_bundle = reference_bundle
         self.reference_scenarios: dict[str, str] = reference_bundle.scenarios
         self.reference_data = calculations.filter_data(

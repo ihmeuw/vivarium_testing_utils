@@ -7,12 +7,19 @@ import pytest
 from pandas.testing import assert_frame_equal
 from pytest_check import check
 
-from vivarium_testing_utils.automated_validation.comparison import DataSource, FuzzyComparison
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
+from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
+from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_INDEX,
+    SEED_INDEX,
+    DataSource,
+)
 from vivarium_testing_utils.automated_validation.data_transformation import calculations
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     RatioMeasure,
 )
+
+from .conftest import _create_sample_age_group_df
 
 
 @pytest.fixture
@@ -71,6 +78,48 @@ def reference_weights() -> pd.DataFrame:
             [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
             names=["year", "sex", "age"],
         ),
+    )
+
+
+@pytest.fixture
+def test_bundle(
+    mock_ratio_measure: RatioMeasure, test_data: dict[str, pd.DataFrame]
+) -> RatioMeasureDataBundle:
+    """A test RatioMeasureDataBundle instance."""
+    age_group_df = _create_sample_age_group_df()
+
+    # Mock data loader to return the test data when requested
+    mock_data_loader = mock.Mock()
+    mock_data_loader._get_raw_data_from_source.return_value = test_data
+
+    return RatioMeasureDataBundle(
+        measure=mock_ratio_measure,
+        source=DataSource.SIM,
+        data_loader=mock_data_loader,
+        age_group_df=age_group_df,
+        scenarios={"scenario": "baseline"},
+    )
+
+
+@pytest.fixture
+def reference_bundle(
+    mock_ratio_measure: RatioMeasure,
+    reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
+) -> RatioMeasureDataBundle:
+    """A reference RatioMeasureDataBundle instance."""
+    age_group_df = _create_sample_age_group_df()
+
+    # Mock data loader to return the reference data when requested
+    mock_data_loader = mock.Mock()
+    mock_data_loader._get_raw_data_from_source.return_value = reference_weights
+
+    return RatioMeasureDataBundle(
+        measure=mock_ratio_measure,
+        source=DataSource.ARTIFACT,
+        data_loader=mock_data_loader,
+        age_group_df=age_group_df,
+        scenarios={},
     )
 
 
