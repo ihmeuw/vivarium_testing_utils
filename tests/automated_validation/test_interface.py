@@ -19,7 +19,7 @@ def test_context_initialization(
     """Ensure that we can initialize a ValidationContext with a simulation result directory"""
     context = ValidationContext(sim_result_dir, scenario_columns=["foo"])
     assert isinstance(context, ValidationContext)
-    assert isinstance(context._data_loader, DataLoader)
+    assert isinstance(context.data_loader, DataLoader)
     assert_frame_equal(context.age_groups, sample_age_group_df)
     assert context.comparisons == {}
     assert context.scenario_columns == ["foo"]
