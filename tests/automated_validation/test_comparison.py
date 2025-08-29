@@ -104,7 +104,6 @@ def test_bundle(
 @pytest.fixture
 def reference_bundle(
     mock_ratio_measure: RatioMeasure,
-    reference_data: pd.DataFrame,
     reference_weights: pd.DataFrame,
 ) -> RatioMeasureDataBundle:
     """A reference RatioMeasureDataBundle instance."""
