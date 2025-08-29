@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
+from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import calculations
@@ -23,12 +24,9 @@ class Comparison(ABC):
 
     measure: Measure
     test_source: DataSource
-    test_datasets: dict[str, pd.DataFrame]
+    test_bundle: RatioMeasureDataBundle
     reference_source: DataSource
-    reference_data: pd.DataFrame
-    reference_weights: pd.DataFrame
-    test_scenarios: dict[str, str] | None
-    reference_scenarios: dict[str, str] | None
+    reference_bundle: pd.DataFrame
 
     @property
     @abstractmethod
@@ -86,12 +84,9 @@ class FuzzyComparison(Comparison):
         self,
         measure: RatioMeasure,
         test_source: DataSource,
-        test_datasets: dict[str, pd.DataFrame],
+        test_bundle: RatioMeasureDataBundle,
         reference_source: DataSource,
-        reference_data: pd.DataFrame,
-        reference_weights: pd.DataFrame,
-        test_scenarios: dict[str, str] | None = None,
-        reference_scenarios: dict[str, str] | None = None,
+        reference_bundle: RatioMeasureDataBundle,
     ):
         self.measure: RatioMeasure = measure
 
