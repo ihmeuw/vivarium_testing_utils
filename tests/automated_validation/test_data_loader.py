@@ -13,6 +13,7 @@ from vivarium_testing_utils.automated_validation.data_loader import (
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeSchema,
 )
+from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
 
 
 def test_get_sim_outputs(sim_result_dir: Path) -> None:
@@ -191,3 +192,24 @@ def test__convert_to_total_pt(person_time_data: pd.DataFrame) -> None:
     expected_total_value = person_time_data["value"].sum()
     actual_total_value = result["value"].sum()
     assert actual_total_value == expected_total_value
+
+
+def test___get_raw_data_from_source(
+    sim_result_dir: Path,
+    transition_count_data: pd.DataFrame,
+    person_time_data: pd.DataFrame,
+    artifact_disease_incidence: pd.DataFrame,
+) -> None:
+    """Ensure that we can get raw data from a source"""
+    data_loader = DataLoader(sim_result_dir)
+    measure = Incidence("disease")
+    test_raw_data = data_loader._get_raw_data_from_source(
+        measure.get_required_datasets(DataSource.SIM), DataSource.SIM
+    )
+    ref_raw_data = data_loader._get_raw_data_from_source(
+        measure.get_required_datasets(DataSource.ARTIFACT), DataSource.ARTIFACT
+    )
+
+    assert test_raw_data["numerator_data"].equals(transition_count_data)
+    assert test_raw_data["denominator_data"].equals(person_time_data)
+    assert ref_raw_data["artifact_data"].equals(artifact_disease_incidence)

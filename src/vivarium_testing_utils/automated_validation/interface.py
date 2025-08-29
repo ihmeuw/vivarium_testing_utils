@@ -156,7 +156,7 @@ class ValidationContext:
                     f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."
                 )
 
-        test_raw_datasets = self._get_raw_data_from_source(
+        test_raw_datasets = self._data_loader._get_raw_data_from_source(
             measure.get_required_datasets(test_source_enum), test_source_enum
         )
         test_datasets = measure.get_ratio_datasets_from_sim(
@@ -168,12 +168,12 @@ class ValidationContext:
             )
             for dataset_name, dataset in test_datasets.items()
         }
-        ref_raw_datasets = self._get_raw_data_from_source(
+        ref_raw_datasets = self._data_loader._get_raw_data_from_source(
             measure.get_required_datasets(ref_source_enum), ref_source_enum
         )
         ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
         ref_data = age_groups.format_dataframe_from_age_bin_df(ref_data, self.age_groups)
-        ref_weight_raw_data = self._get_raw_data_from_source(
+        ref_weight_raw_data = self._data_loader._get_raw_data_from_source(
             measure.rate_aggregation_weights.weight_keys, ref_source_enum
         )
         ref_weights = measure.rate_aggregation_weights.get_weights(**ref_weight_raw_data)
@@ -288,12 +288,3 @@ class ValidationContext:
             # relabel index level age_group_name to age_group
 
         return age_groups.rename_axis(index={"age_group_name": "age_group"})
-
-    def _get_raw_data_from_source(
-        self, measure_keys: dict[str, str], source: DataSource
-    ) -> dict[str, pd.DataFrame]:
-        """Get the raw datasets from the given source."""
-        return {
-            dataset_name: self._data_loader.get_data(data_key, source)
-            for dataset_name, data_key in measure_keys.items()
-        }
