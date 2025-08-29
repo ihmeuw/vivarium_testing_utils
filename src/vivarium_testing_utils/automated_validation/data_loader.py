@@ -154,6 +154,15 @@ class DataLoader:
     def _load_from_gbd(self, data_key: str) -> pd.DataFrame:
         raise NotImplementedError
 
+    def _get_raw_data_from_source(
+        self, measure_keys: dict[str, str], source: DataSource
+    ) -> dict[str, pd.DataFrame]:
+        """Get the raw datasets from the given source."""
+        return {
+            dataset_name: self.get_data(data_key, source)
+            for dataset_name, data_key in measure_keys.items()
+        }
+
 
 #################
 # Helper Methods#
