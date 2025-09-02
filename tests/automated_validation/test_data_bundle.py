@@ -41,11 +41,17 @@ def test_init_with_sim_source(
     mock_data_loader._get_raw_data_from_source.return_value = raw_datasets
 
     # Mock the measure methods
-    mock_ratio_measure.get_ratio_datasets_from_sim.return_value = processed_datasets
-    mock_ratio_measure.get_required_datasets.return_value = {
-        "numerator_data": "test_num",
-        "denominator_data": "test_den",
-    }
+    mocker.patch.object(
+        mock_ratio_measure, "get_ratio_datasets_from_sim", return_value=processed_datasets
+    )
+    mocker.patch.object(
+        mock_ratio_measure,
+        "get_required_datasets",
+        return_value={
+            "numerator_data": "test_num",
+            "denominator_data": "test_den",
+        },
+    )
 
     bundle = RatioMeasureDataBundle(
         measure=mock_ratio_measure,
@@ -96,12 +102,20 @@ def test_init_with_artifact_source(
     ]
 
     # Mock the measure methods
-    mock_ratio_measure.get_measure_data.return_value = processed_measure_data
+    mocker.patch.object(
+        mock_ratio_measure, "get_measure_data", return_value=processed_measure_data
+    )
     mock_ratio_measure.rate_aggregation_weights.weight_keys = {"weights": "test_weights"}
-    mock_ratio_measure.rate_aggregation_weights.get_weights.return_value = processed_weights
-    mock_ratio_measure.get_required_datasets.return_value = {
-        "artifact_data": "test.artifact.key"
-    }
+    mocker.patch.object(
+        mock_ratio_measure.rate_aggregation_weights,
+        "get_weights",
+        return_value=processed_weights,
+    )
+    mocker.patch.object(
+        mock_ratio_measure,
+        "get_required_datasets",
+        return_value={"artifact_data": "test.artifact.key"},
+    )
 
     bundle = RatioMeasureDataBundle(
         measure=mock_ratio_measure,
@@ -153,7 +167,7 @@ def test_dataset_names_property_sim_source(
         "numerator_data": "test_numerator",
         "denominator_data": "test_denominator",
     }
-    mock_ratio_measure.sim_datasets = expected_datasets
+    mocker.patch.object(mock_ratio_measure, "sim_datasets", expected_datasets)
 
     mocker.patch.object(RatioMeasureDataBundle, "_get_formatted_datasets")
 
@@ -174,7 +188,7 @@ def test_dataset_names_property_artifact_source(
 ) -> None:
     """Test dataset_names property for ARTIFACT source."""
     expected_datasets = {"artifact_data": "test.artifact.key"}
-    mock_ratio_measure.artifact_datasets = expected_datasets
+    mocker.patch.object(mock_ratio_measure, "artifact_datasets", expected_datasets)
 
     mocker.patch.object(RatioMeasureDataBundle, "_get_formatted_datasets")
 
