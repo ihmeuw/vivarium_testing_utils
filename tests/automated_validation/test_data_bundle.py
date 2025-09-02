@@ -24,18 +24,28 @@ def test_init_with_sim_source(
     sample_age_group_df: pd.DataFrame,
 ) -> None:
     """Test instantiation with SIM data source."""
-    # Mock the data loading process
-    mock_datasets = {
+    # Mock the raw datasets that will be returned by data loader
+    raw_datasets = {
         "numerator_data": pd.DataFrame({"value": [1, 2, 3]}),
         "denominator_data": pd.DataFrame({"value": [10, 20, 30]}),
     }
-    mocker.patch.object(
-        DataLoader,
-        "_get_raw_data_from_source",
-        return_value=mock_datasets,
-    )
 
+    # Mock the processed datasets that will be returned by the measure
+    processed_datasets = {
+        "numerator_data": pd.DataFrame({"processed_value": [0.1, 0.2, 0.3]}),
+        "denominator_data": pd.DataFrame({"processed_value": [1.0, 2.0, 3.0]}),
+    }
+
+    # Create a mock data loader
     mock_data_loader = mocker.MagicMock(spec=DataLoader)
+    mock_data_loader._get_raw_data_from_source.return_value = raw_datasets
+
+    # Mock the measure methods
+    mock_ratio_measure.get_ratio_datasets_from_sim.return_value = processed_datasets
+    mock_ratio_measure.get_required_datasets.return_value = {
+        "numerator_data": "test_num",
+        "denominator_data": "test_den",
+    }
 
     bundle = RatioMeasureDataBundle(
         measure=mock_ratio_measure,
@@ -49,7 +59,10 @@ def test_init_with_sim_source(
     assert bundle.source == DataSource.SIM
     assert bundle.data_loader == mock_data_loader
     assert bundle.scenarios == {"scenario": "baseline"}
-    assert bundle.datasets == mock_datasets
+    # The datasets should be the processed ones after age group formatting
+    assert len(bundle.datasets) == 2
+    assert "numerator_data" in bundle.datasets
+    assert "denominator_data" in bundle.datasets
 
 
 def test_init_with_artifact_source(
@@ -58,17 +71,37 @@ def test_init_with_artifact_source(
     sample_age_group_df: pd.DataFrame,
 ) -> None:
     """Test instantiation with ARTIFACT data source."""
-    mock_datasets = {
-        "data": pd.DataFrame({"value": [0.1, 0.2, 0.3]}),
+    # Mock the raw artifact data
+    raw_artifact_data = {
+        "artifact_data": pd.DataFrame({"value": [0.1, 0.2, 0.3]}),
+    }
+
+    # Mock the raw weights data
+    raw_weights_data = {
         "weights": pd.DataFrame({"value": [1.0, 1.0, 1.0]}),
     }
-    mocker.patch.object(
-        DataLoader,
-        "_get_raw_data_from_source",
-        return_value=mock_datasets,
-    )
 
+    # Mock the processed measure data
+    processed_measure_data = pd.DataFrame({"processed_value": [0.05, 0.1, 0.15]})
+
+    # Mock the processed weights
+    processed_weights = pd.DataFrame({"weight": [1.0, 1.0, 1.0]})
+
+    # Create a mock data loader
     mock_data_loader = mocker.MagicMock(spec=DataLoader)
+    # Set up side_effect to return different data for different calls
+    mock_data_loader._get_raw_data_from_source.side_effect = [
+        raw_artifact_data,
+        raw_weights_data,
+    ]
+
+    # Mock the measure methods
+    mock_ratio_measure.get_measure_data.return_value = processed_measure_data
+    mock_ratio_measure.rate_aggregation_weights.weight_keys = {"weights": "test_weights"}
+    mock_ratio_measure.rate_aggregation_weights.get_weights.return_value = processed_weights
+    mock_ratio_measure.get_required_datasets.return_value = {
+        "artifact_data": "test.artifact.key"
+    }
 
     bundle = RatioMeasureDataBundle(
         measure=mock_ratio_measure,
@@ -81,7 +114,10 @@ def test_init_with_artifact_source(
     assert bundle.source == DataSource.ARTIFACT
     assert bundle.data_loader == mock_data_loader
     assert bundle.scenarios == {}
-    assert bundle.datasets == mock_datasets
+    # The datasets should contain both data and weights
+    assert len(bundle.datasets) == 2
+    assert "data" in bundle.datasets
+    assert "weights" in bundle.datasets
 
 
 def test_init_with_default_scenarios(
