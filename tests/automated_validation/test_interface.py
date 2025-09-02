@@ -117,9 +117,9 @@ def test_add_comparison(
     assert comparison.measure.measure_key == measure_key
 
     # Test that test_data is now a dictionary with numerator and denominator
-    assert isinstance(comparison.test_datasets, dict)
-    assert "numerator_data" in comparison.test_datasets
-    assert "denominator_data" in comparison.test_datasets
+    assert isinstance(comparison.test_bundle.datasets, dict)
+    assert "numerator_data" in comparison.test_bundle.datasets
+    assert "denominator_data" in comparison.test_bundle.datasets
 
     expected_index = pd.MultiIndex.from_tuples(
         [("A", "baseline"), ("B", "baseline")],
@@ -139,13 +139,15 @@ def test_add_comparison(
         index=expected_index,
     )
 
-    assert comparison.test_datasets["numerator_data"].equals(expected_numerator_data)
-    assert comparison.test_datasets["denominator_data"].equals(expected_denominator_data)
+    assert comparison.test_bundle.datasets["numerator_data"].equals(expected_numerator_data)
+    assert comparison.test_bundle.datasets["denominator_data"].equals(
+        expected_denominator_data
+    )
     # Update artifact reference data to match simulation format
     artifact_disease_incidence = age_groups.format_dataframe_from_age_bin_df(
         artifact_disease_incidence, context.age_groups
     )
-    assert comparison.reference_data.equals(artifact_disease_incidence)
+    assert comparison.reference_bundle.datasets["data"].equals(artifact_disease_incidence)
 
 
 def test_get_frame(sim_result_dir: Path) -> None:

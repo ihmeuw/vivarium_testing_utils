@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 from pytest_check import check
+from pytest_mock import MockFixture
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
@@ -14,12 +15,11 @@ from vivarium_testing_utils.automated_validation.constants import (
     SEED_INDEX,
     DataSource,
 )
+from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import calculations
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     RatioMeasure,
 )
-
-from conftest import _create_sample_age_group_df
 
 
 @pytest.fixture
@@ -83,40 +83,52 @@ def reference_weights() -> pd.DataFrame:
 
 @pytest.fixture
 def test_bundle(
-    mock_ratio_measure: RatioMeasure, test_data: dict[str, pd.DataFrame]
+    mocker: MockFixture,
+    mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
+    sample_age_group_df: pd.DataFrame,
 ) -> RatioMeasureDataBundle:
     """A test RatioMeasureDataBundle instance."""
-    age_group_df = _create_sample_age_group_df()
 
-    # Mock data loader to return the test data when requested
-    mock_data_loader = mock.Mock()
-    mock_data_loader._get_raw_data_from_source.return_value = test_data
+    # mock loading of datasets
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.bundle.RatioMeasureDataBundle._get_formatted_datasets",
+        return_value=test_data,
+    )
 
     return RatioMeasureDataBundle(
         measure=mock_ratio_measure,
         source=DataSource.SIM,
-        data_loader=mock_data_loader,
-        age_group_df=age_group_df,
+        data_loader=mocker.MagicMock(spec=DataLoader),
+        age_group_df=sample_age_group_df,
         scenarios={"scenario": "baseline"},
     )
 
 
 @pytest.fixture
 def reference_bundle(
+    mocker: MockFixture,
     mock_ratio_measure: RatioMeasure,
+    reference_data: pd.DataFrame,
     reference_weights: pd.DataFrame,
+    sample_age_group_df: pd.DataFrame,
 ) -> RatioMeasureDataBundle:
     """A reference RatioMeasureDataBundle instance."""
-    age_group_df = _create_sample_age_group_df()
+    age_group_df = sample_age_group_df
 
-    # Mock data loader to return the reference data when requested
-    mock_data_loader = mock.Mock()
-    mock_data_loader._get_raw_data_from_source.return_value = reference_weights
+    # mock loading of datasets
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.bundle.RatioMeasureDataBundle._get_formatted_datasets",
+        return_value={
+            "data": reference_data,
+            "weights": reference_weights,
+        },
+    )
 
     return RatioMeasureDataBundle(
         measure=mock_ratio_measure,
         source=DataSource.ARTIFACT,
-        data_loader=mock_data_loader,
+        data_loader=mocker.MagicMock(spec=DataLoader),
         age_group_df=age_group_df,
         scenarios={},
     )
@@ -168,10 +180,10 @@ def test_fuzzy_comparison_metadata(
 
     expected_metadata = [
         ("Measure Key", "mock_measure", "mock_measure"),
-        ("Source", "sim", "gbd"),
+        ("Source", "sim", "artifact"),
         (
             "Index Columns",
-            "year, sex, age, input_draw, random_seed",
+            "year, sex, age, input_draw, random_seed, scenario",
             "year, sex, age",
         ),
         ("Size", "4 rows × 1 columns", "3 rows × 1 columns"),
@@ -365,7 +377,7 @@ def test_fuzzy_comparison_verify_not_implemented(
         comparison.verify()
 
 
-def test_get_metadata_from_dataset(
+def test_get_metadata_from_data_bundle(
     mock_ratio_measure: RatioMeasure,
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
@@ -376,7 +388,7 @@ def test_get_metadata_from_dataset(
         test_bundle,
         reference_bundle,
     )
-    result = comparison._get_metadata_from_datasets("test")
+    result = comparison.test_bundle.get_metadata()
     with check:
         assert result["source"] == DataSource.SIM.value
         assert result["index_columns"] == "year, sex, age, input_draw, random_seed, scenario"
@@ -399,9 +411,9 @@ def test_get_metadata_from_dataset_no_draws(
         test_bundle,
         reference_bundle,
     )
-    result = comparison._get_metadata_from_datasets("reference")
+    result = comparison.reference_bundle.get_metadata()
     with check:
-        assert result["source"] == DataSource.GBD.value
+        assert result["source"] == DataSource.ARTIFACT.value
         assert result["index_columns"] == "year, sex, age"
         assert (
             result["size"] == "3 rows × 1 columns"
@@ -417,9 +429,10 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test that _align_datasets raises ValueError for non-singular reference-only indices."""
-    reference_data_with_non_singular_index = reference_data.copy()
+    reference_data_with_non_singular_index = reference_bundle.datasets["data"].copy()
     reference_data_with_non_singular_index["location"] = ["Global", "USA", "USA"]
     reference_data_with_non_singular_index.set_index("location", append=True, inplace=True)
+    reference_bundle.datasets["data"] = reference_data_with_non_singular_index
 
     # Setup
     comparison = FuzzyComparison(mock_ratio_measure, test_bundle, reference_bundle)
@@ -449,7 +462,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
     pd.testing.assert_frame_equal(
         aligned_reference_data,
-        reference_bundle.data.rename(columns={"value": "reference_rate"}),
+        reference_bundle.datasets["data"].rename(columns={"value": "reference_rate"}),
     )
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
@@ -505,7 +518,9 @@ def test_aggregate_stratifications(
     pd.testing.assert_frame_equal(aggregated, expected)
 
     with pytest.raises(ValueError, match="not found in reference data or weights"):
-        comparison._aggregate_reference_stratifications(reference_data, ["dog", "cat"])
+        comparison._aggregate_reference_stratifications(
+            reference_bundle.datasets["data"], ["dog", "cat"]
+        )
 
 
 def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.DataFrame:

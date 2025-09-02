@@ -23,7 +23,7 @@ class Comparison(ABC):
 
     measure: Measure
     test_bundle: RatioMeasureDataBundle
-    reference_bundle: pd.DataFrame
+    reference_bundle: RatioMeasureDataBundle
 
     @property
     @abstractmethod
