@@ -1,5 +1,6 @@
 """Tests for the RatioMeasureDataBundle class."""
 
+from typing import cast
 from unittest import mock
 
 import pandas as pd
@@ -233,7 +234,7 @@ def test_transform_data_sim_source(
     }
     expected_output = {"processed_num": pd.DataFrame(), "processed_den": pd.DataFrame()}
 
-    mocker.patch.object(
+    mock_get_ratio_datasets = mocker.patch.object(
         mock_ratio_measure, "get_ratio_datasets_from_sim", return_value=expected_output
     )
     mocker.patch.object(RatioMeasureDataBundle, "_get_formatted_datasets")
@@ -248,7 +249,7 @@ def test_transform_data_sim_source(
     result = bundle._transform_data(input_datasets)
 
     assert result == expected_output
-    mock_ratio_measure.get_ratio_datasets_from_sim.assert_called_once_with(**input_datasets)
+    cast(mock.Mock, mock_get_ratio_datasets).assert_called_once_with(**input_datasets)
 
 
 def test_transform_data_artifact_source(
@@ -260,7 +261,7 @@ def test_transform_data_artifact_source(
     input_datasets = {"artifact_data": pd.DataFrame({"value": [0.1, 0.2]})}
     expected_data = pd.DataFrame({"value": [0.05, 0.1]})
 
-    mocker.patch.object(
+    mock_get_measure_data = mocker.patch.object(
         mock_ratio_measure, "get_measure_data_from_artifact", return_value=expected_data
     )
     mocker.patch.object(RatioMeasureDataBundle, "_get_formatted_datasets")
@@ -275,10 +276,10 @@ def test_transform_data_artifact_source(
     result = bundle._transform_data(input_datasets)
 
     assert "data" in result
-    pd.testing.assert_frame_equal(result["data"], expected_data)
-    mock_ratio_measure.get_measure_data_from_artifact.assert_called_once_with(
-        **input_datasets
-    )
+    result_data = result["data"]
+    assert isinstance(result_data, pd.DataFrame)
+    pd.testing.assert_frame_equal(result_data, expected_data)
+    cast(mock.Mock, mock_get_measure_data).assert_called_once_with(**input_datasets)
 
 
 def test_transform_data_unsupported_source(
@@ -312,7 +313,7 @@ def test_measure_data_property_sim_source(
     }
     expected_result = pd.DataFrame({"value": [0.1, 0.1]})
 
-    mocker.patch.object(
+    mock_get_measure_data = mocker.patch.object(
         mock_ratio_measure, "get_measure_data_from_ratio", return_value=expected_result
     )
     mocker.patch.object(
@@ -331,7 +332,7 @@ def test_measure_data_property_sim_source(
     result = bundle.measure_data
 
     pd.testing.assert_frame_equal(result, expected_result)
-    mock_ratio_measure.get_measure_data_from_ratio.assert_called_once_with(**mock_datasets)
+    cast(mock.Mock, mock_get_measure_data).assert_called_once_with(**mock_datasets)
 
 
 def test_measure_data_property_artifact_source(
@@ -504,10 +505,10 @@ def test_get_formatted_datasets_sim_source_integration(
         "numerator_data": pd.DataFrame({"value": [0.1, 0.2]}),
         "denominator_data": pd.DataFrame({"value": [1.0, 2.0]}),
     }
-    mocker.patch.object(
+    mock_get_ratio_datasets = mocker.patch.object(
         mock_ratio_measure, "get_ratio_datasets_from_sim", return_value=processed_datasets
     )
-    mocker.patch.object(
+    mock_get_required_datasets = mocker.patch.object(
         mock_ratio_measure,
         "get_required_datasets",
         return_value={
@@ -530,11 +531,11 @@ def test_get_formatted_datasets_sim_source_integration(
     )
 
     # Verify the methods were called correctly
-    mock_ratio_measure.get_required_datasets.assert_called_with(DataSource.SIM)
-    mock_data_loader._get_raw_data_from_source.assert_called_with(
-        mock_ratio_measure.get_required_datasets.return_value, DataSource.SIM
+    cast(mock.Mock, mock_get_required_datasets).assert_called_with(DataSource.SIM)
+    cast(mock.Mock, mock_data_loader._get_raw_data_from_source).assert_called_with(
+        mock_get_required_datasets.return_value, DataSource.SIM
     )
-    mock_ratio_measure.get_ratio_datasets_from_sim.assert_called_with(**raw_datasets)
+    cast(mock.Mock, mock_get_ratio_datasets).assert_called_with(**raw_datasets)
 
     # Verify datasets are formatted correctly
     assert len(bundle.datasets) == 2
@@ -554,8 +555,10 @@ def test_get_formatted_datasets_artifact_source_integration(
     mock_data_loader._get_raw_data_from_source.return_value = raw_datasets
 
     processed_data = pd.DataFrame({"value": [0.05, 0.1]})
-    mocker.patch.object(mock_ratio_measure, "get_measure_data", return_value=processed_data)
-    mocker.patch.object(
+    mock_get_measure_data = mocker.patch.object(
+        mock_ratio_measure, "get_measure_data", return_value=processed_data
+    )
+    mock_get_required_datasets = mocker.patch.object(
         mock_ratio_measure,
         "get_required_datasets",
         return_value={"artifact_data": "test.key"},
@@ -564,10 +567,12 @@ def test_get_formatted_datasets_artifact_source_integration(
     # Mock rate aggregation weights
     mock_weights = mock.Mock()
     mock_weights.weight_keys = {"population": "population.structure"}
-    mocker.patch.object(
+    mock_get_weights = mocker.patch.object(
         mock_weights, "get_weights", return_value=pd.DataFrame({"value": [1.0, 1.0]})
     )
-    mock_ratio_measure.rate_aggregation_weights = mock_weights
+    mocker.patch.object(
+        mock_ratio_measure, "rate_aggregation_weights", new_callable=lambda: mock_weights
+    )
 
     raw_weights = {"population": pd.DataFrame({"value": [100, 200]})}
     mock_data_loader._get_raw_data_from_source.side_effect = [raw_datasets, raw_weights]
@@ -586,12 +591,12 @@ def test_get_formatted_datasets_artifact_source_integration(
     )
 
     # Verify the methods were called correctly
-    mock_ratio_measure.get_required_datasets.assert_called_with(DataSource.ARTIFACT)
+    cast(mock.Mock, mock_get_required_datasets).assert_called_with(DataSource.ARTIFACT)
     assert mock_data_loader._get_raw_data_from_source.call_count == 2
-    mock_ratio_measure.get_measure_data.assert_called_with(
+    cast(mock.Mock, mock_get_measure_data).assert_called_with(
         DataSource.ARTIFACT, **raw_datasets
     )
-    mock_weights.get_weights.assert_called_with(**raw_weights)
+    cast(mock.Mock, mock_get_weights).assert_called_with(**raw_weights)
 
     # Verify datasets contain both data and weights
     assert len(bundle.datasets) == 2
