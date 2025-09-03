@@ -233,7 +233,9 @@ def test_transform_data_sim_source(
     }
     expected_output = {"processed_num": pd.DataFrame(), "processed_den": pd.DataFrame()}
 
-    mock_ratio_measure.get_ratio_datasets_from_sim.return_value = expected_output
+    mocker.patch.object(
+        mock_ratio_measure, "get_ratio_datasets_from_sim", return_value=expected_output
+    )
     mocker.patch.object(RatioMeasureDataBundle, "_get_formatted_datasets")
 
     bundle = RatioMeasureDataBundle(
@@ -258,7 +260,9 @@ def test_transform_data_artifact_source(
     input_datasets = {"artifact_data": pd.DataFrame({"value": [0.1, 0.2]})}
     expected_data = pd.DataFrame({"value": [0.05, 0.1]})
 
-    mock_ratio_measure.get_measure_data_from_artifact.return_value = expected_data
+    mocker.patch.object(
+        mock_ratio_measure, "get_measure_data_from_artifact", return_value=expected_data
+    )
     mocker.patch.object(RatioMeasureDataBundle, "_get_formatted_datasets")
 
     bundle = RatioMeasureDataBundle(
@@ -308,7 +312,9 @@ def test_measure_data_property_sim_source(
     }
     expected_result = pd.DataFrame({"value": [0.1, 0.1]})
 
-    mock_ratio_measure.get_measure_data_from_ratio.return_value = expected_result
+    mocker.patch.object(
+        mock_ratio_measure, "get_measure_data_from_ratio", return_value=expected_result
+    )
     mocker.patch.object(
         RatioMeasureDataBundle,
         "_get_formatted_datasets",
@@ -498,11 +504,17 @@ def test_get_formatted_datasets_sim_source_integration(
         "numerator_data": pd.DataFrame({"value": [0.1, 0.2]}),
         "denominator_data": pd.DataFrame({"value": [1.0, 2.0]}),
     }
-    mock_ratio_measure.get_ratio_datasets_from_sim.return_value = processed_datasets
-    mock_ratio_measure.get_required_datasets.return_value = {
-        "numerator_data": "test_num",
-        "denominator_data": "test_den",
-    }
+    mocker.patch.object(
+        mock_ratio_measure, "get_ratio_datasets_from_sim", return_value=processed_datasets
+    )
+    mocker.patch.object(
+        mock_ratio_measure,
+        "get_required_datasets",
+        return_value={
+            "numerator_data": "test_num",
+            "denominator_data": "test_den",
+        },
+    )
 
     # Mock the age_groups formatting function
     mock_format_func = mocker.patch(
@@ -542,13 +554,19 @@ def test_get_formatted_datasets_artifact_source_integration(
     mock_data_loader._get_raw_data_from_source.return_value = raw_datasets
 
     processed_data = pd.DataFrame({"value": [0.05, 0.1]})
-    mock_ratio_measure.get_measure_data.return_value = processed_data
-    mock_ratio_measure.get_required_datasets.return_value = {"artifact_data": "test.key"}
+    mocker.patch.object(mock_ratio_measure, "get_measure_data", return_value=processed_data)
+    mocker.patch.object(
+        mock_ratio_measure,
+        "get_required_datasets",
+        return_value={"artifact_data": "test.key"},
+    )
 
     # Mock rate aggregation weights
     mock_weights = mock.Mock()
     mock_weights.weight_keys = {"population": "population.structure"}
-    mock_weights.get_weights.return_value = pd.DataFrame({"value": [1.0, 1.0]})
+    mocker.patch.object(
+        mock_weights, "get_weights", return_value=pd.DataFrame({"value": [1.0, 1.0]})
+    )
     mock_ratio_measure.rate_aggregation_weights = mock_weights
 
     raw_weights = {"population": pd.DataFrame({"value": [100, 200]})}
