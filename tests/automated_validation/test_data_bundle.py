@@ -222,66 +222,6 @@ def test_dataset_names_property_unsupported_source(
         _ = bundle.dataset_names
 
 
-def test_transform_data_sim_source(
-    mocker: MockFixture,
-    mock_ratio_measure: RatioMeasure,
-    sample_age_group_df: pd.DataFrame,
-) -> None:
-    """Test _transform_data method for SIM source."""
-    input_datasets = {
-        "numerator_data": pd.DataFrame({"value": [1, 2]}),
-        "denominator_data": pd.DataFrame({"value": [10, 20]}),
-    }
-    expected_output = {"processed_num": pd.DataFrame(), "processed_den": pd.DataFrame()}
-
-    mock_get_ratio_datasets = mocker.patch.object(
-        mock_ratio_measure, "get_ratio_datasets_from_sim", return_value=expected_output
-    )
-    mocker.patch.object(RatioMeasureDataBundle, "_get_formatted_datasets")
-
-    bundle = RatioMeasureDataBundle(
-        measure=mock_ratio_measure,
-        source=DataSource.SIM,
-        data_loader=mocker.MagicMock(spec=DataLoader),
-        age_group_df=sample_age_group_df,
-    )
-
-    result = bundle._transform_data(input_datasets)
-
-    assert result == expected_output
-    cast(mock.Mock, mock_get_ratio_datasets).assert_called_once_with(**input_datasets)
-
-
-def test_transform_data_artifact_source(
-    mocker: MockFixture,
-    mock_ratio_measure: RatioMeasure,
-    sample_age_group_df: pd.DataFrame,
-) -> None:
-    """Test _transform_data method for ARTIFACT source."""
-    input_datasets = {"artifact_data": pd.DataFrame({"value": [0.1, 0.2]})}
-    expected_data = pd.DataFrame({"value": [0.05, 0.1]})
-
-    mock_get_measure_data = mocker.patch.object(
-        mock_ratio_measure, "get_measure_data_from_artifact", return_value=expected_data
-    )
-    mocker.patch.object(RatioMeasureDataBundle, "_get_formatted_datasets")
-
-    bundle = RatioMeasureDataBundle(
-        measure=mock_ratio_measure,
-        source=DataSource.ARTIFACT,
-        data_loader=mocker.MagicMock(spec=DataLoader),
-        age_group_df=sample_age_group_df,
-    )
-
-    result = bundle._transform_data(input_datasets)
-
-    assert "data" in result
-    result_data = result["data"]
-    assert isinstance(result_data, pd.DataFrame)
-    pd.testing.assert_frame_equal(result_data, expected_data)
-    cast(mock.Mock, mock_get_measure_data).assert_called_once_with(**input_datasets)
-
-
 def test_transform_data_unsupported_source(
     mocker: MockFixture,
     mock_ratio_measure: RatioMeasure,
@@ -329,7 +269,7 @@ def test_measure_data_property_sim_source(
         age_group_df=sample_age_group_df,
     )
 
-    result = bundle.measure_data
+    result = bundle.get_measure_data
 
     pd.testing.assert_frame_equal(result, expected_result)
     cast(mock.Mock, mock_get_measure_data).assert_called_once_with(**mock_datasets)
@@ -357,7 +297,7 @@ def test_measure_data_property_artifact_source(
         age_group_df=sample_age_group_df,
     )
 
-    result = bundle.measure_data
+    result = bundle.get_measure_data
 
     pd.testing.assert_frame_equal(result, expected_data)
 
@@ -378,7 +318,7 @@ def test_measure_data_property_unsupported_source(
     )
 
     with pytest.raises(ValueError, match="Unsupported data source: DataSource.GBD"):
-        _ = bundle.measure_data
+        _ = bundle.get_measure_data
 
 
 def test_get_metadata_basic_structure(

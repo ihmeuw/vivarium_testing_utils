@@ -84,16 +84,6 @@ class Measure(ABC):
         """Override in subclasses to specify aggregation behavior."""
         pass
 
-    @utils.check_io(out=SingleNumericColumn)
-    def get_measure_data(self, source: DataSource, *args: Any, **kwargs: Any) -> pd.DataFrame:
-        """Process data from the specified source into a format suitable for calculations."""
-        if source == DataSource.SIM:
-            return self.get_measure_data_from_sim(*args, **kwargs)
-        elif source == DataSource.ARTIFACT:
-            return self.get_measure_data_from_artifact(*args, **kwargs)
-        else:
-            raise ValueError(f"Unsupported data source: {source}")
-
     def get_required_datasets(self, source: DataSource) -> dict[str, str]:
         """Return a dictionary of required datasets for the specified source."""
         if source == DataSource.SIM:

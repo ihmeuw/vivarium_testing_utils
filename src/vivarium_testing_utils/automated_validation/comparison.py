@@ -84,19 +84,8 @@ class FuzzyComparison(Comparison):
         reference_bundle: RatioMeasureDataBundle,
     ):
         self.measure: RatioMeasure = measure
-
         self.test_bundle = test_bundle
-        self.test_scenarios: dict[str, str] = test_bundle.scenarios
-        self.test_datasets = {
-            key: calculations.filter_data(dataset, self.test_scenarios, drop_singles=True)
-            for key, dataset in test_bundle.datasets.items()
-        }
         self.reference_bundle = reference_bundle
-        self.reference_scenarios: dict[str, str] = reference_bundle.scenarios
-        self.reference_data = calculations.filter_data(
-            reference_bundle.datasets["data"], self.reference_scenarios, drop_singles=True
-        )
-        self.reference_weights = reference_bundle.datasets["weights"]
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -195,34 +184,27 @@ class FuzzyComparison(Comparison):
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
 
-        # Get union of test data index names
-        combined_test_index_names = {
-            index_name
-            for key in self.test_datasets
-            for index_name in self.test_datasets[key].index.names
-        }
-        reference_index_names = set(self.reference_data.index.names)
-
         # Get index levels that are only in the test data.
-        test_only_indexes = combined_test_index_names - reference_index_names
-        reference_only_indexes = reference_index_names - combined_test_index_names
+        test_only_indexes = self.test_bundle.index_names - self.reference_bundle.index_names
+        reference_only_indexes = (
+            self.reference_bundle.index_names - self.test_bundle.index_names
+        )
         # Don't aggregate over the scenarios, yet, because we may need them to join the datasets.
         test_indexes_to_marginalize = test_only_indexes.difference(
-            tuple(self.test_scenarios.keys()), [DRAW_INDEX]
+            tuple(self.test_bundle.scenarios.keys()), [DRAW_INDEX]
         )
         reference_indexes_to_drop = reference_only_indexes.difference(
-            tuple(self.reference_scenarios.keys()), [DRAW_INDEX]
+            tuple(self.reference_bundle.scenarios.keys()), [DRAW_INDEX]
         )
 
         # Aggregate over indices for reference data
         if stratifications == "all":
             stratifications = [
                 x
-                for x in self.reference_data.index.names
+                for x in self.reference_bundle.index_names
                 if x not in reference_indexes_to_drop
             ]
-        aggregated_reference_data = self._aggregate_reference_stratifications(
-            self.reference_data,
+        aggregated_reference_data = self.reference_bundle.get_measure_data(
             stratifications=stratifications,
         )
 
@@ -232,16 +214,14 @@ class FuzzyComparison(Comparison):
             set(
                 [
                     idx
-                    for idx in combined_test_index_names
+                    for idx in self.test_bundle.index_names
                     if idx not in stratifications and idx != DRAW_INDEX
                 ]
             )
         )
-        test_datasets = {
-            key: calculations.marginalize(self.test_datasets[key], test_idx_to_marginalize)
-            for key in self.test_datasets
-        }
-        stratified_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
+        stratified_test_data = self.test_bundle.get_measure_data(
+            stratifications=test_idx_to_marginalize
+        )
 
         stratified_test_data = stratified_test_data.rename(columns={"value": "rate"})
         aggregated_reference_data = aggregated_reference_data.rename(
@@ -259,32 +239,6 @@ class FuzzyComparison(Comparison):
 
         ## At this point, the only non-common index levels should be scenarios and draws.
         return stratified_test_data, aggregated_reference_data
-
-    def _aggregate_reference_stratifications(
-        self, data: pd.DataFrame, stratifications: Collection[str] = ()
-    ) -> pd.DataFrame:
-        for stratification in stratifications:
-            if (
-                stratification not in data.index.names
-                and stratification not in self.reference_weights.index.names
-            ):
-                raise ValueError(
-                    f"Stratum '{stratification}' not found in reference data or weights."
-                )
-
-        stratifications = list(stratifications)
-        # Retain input_draw, _aggregate_over_draws is the only place we should aggregate over draws.
-        if DRAW_INDEX in data.index.names and DRAW_INDEX not in stratifications:
-            stratifications.append(DRAW_INDEX)
-        weighted_avg = calculations.weighted_average(
-            data, self.reference_weights, stratifications
-        )
-        # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
-        if not isinstance(weighted_avg, pd.DataFrame):
-            weighted_avg = pd.DataFrame(
-                {"value": [weighted_avg]}, index=pd.Index([0], name="index")
-            )
-        return weighted_avg
 
     def _cast_across_indexes(
         self, test_data: pd.DataFrame, reference_data: pd.DataFrame

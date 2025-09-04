@@ -1,4 +1,5 @@
 from abc import ABC
+from collections.abc import Collection
 from typing import Any
 
 import pandas as pd
@@ -45,6 +46,7 @@ class RatioMeasureDataBundle:
         self.data_loader = data_loader
         self.scenarios = scenarios if scenarios is not None else {}
         self.datasets = self._get_formatted_datasets(age_group_df)
+        self.weights = self._get_aggregated_weights()
 
     @property
     def dataset_names(self) -> dict[str, str]:
@@ -56,27 +58,13 @@ class RatioMeasureDataBundle:
         else:
             raise ValueError(f"Unsupported data source: {self.source}")
 
-    def _transform_data(
-        self, datasets: dict[str, pd.DataFrame]
-    ) -> dict[str, pd.DataFrame] | pd.DataFrame:
-        """Apply a transformation function to the data."""
-        if self.source == DataSource.SIM:
-            return self.measure.get_ratio_datasets_from_sim(**datasets)
-        elif self.source == DataSource.ARTIFACT:
-            return {"data": self.measure.get_measure_data_from_artifact(**datasets)}
-        else:
-            raise ValueError(f"Unsupported data source: {self.source}")
-
     @property
-    @utils.check_io(out=SingleNumericColumn)
-    def measure_data(self) -> pd.DataFrame:
-        """Process data from the specified source into a format suitable for calculations."""
-        if self.source == DataSource.SIM:
-            return self.measure.get_measure_data_from_ratio(**self.datasets)
-        elif self.source == DataSource.ARTIFACT:
-            return self.datasets["data"]
-        else:
-            raise ValueError(f"Unsupported data source: {self.source}")
+    def index_names(self) -> set[str]:
+        return {
+            index_name
+            for key in self.datasets
+            for index_name in self.datasets[key].index.names
+        }
 
     def get_metadata(self) -> dict[str, Any]:
         """Organize the data information into a dictionary for display by a styled pandas DataFrame.
@@ -87,7 +75,7 @@ class RatioMeasureDataBundle:
         A dictionary containing the formatted data information.
 
         """
-        dataframe = self.measure_data
+        dataframe = self.get_measure_data()
         data_info: dict[str, Any] = {}
 
         # Source as string
@@ -119,20 +107,15 @@ class RatioMeasureDataBundle:
         self, age_group_data: pd.DataFrame
     ) -> dict[str, pd.DataFrame]:
         """Formats measure datasets depending on the source."""
-        raw_datasets = self.data_loader._get_raw_data_from_source(
-            self.measure.get_required_datasets(self.source), self.source
-        )
+        raw_datasets = self._get_raw_datasets()
         if self.source == DataSource.SIM:
             datasets = self.measure.get_ratio_datasets_from_sim(
                 **raw_datasets,
             )
         elif self.source == DataSource.ARTIFACT:
             data = self.measure.get_measure_data(self.source, **raw_datasets)
-            raw_weights = self.data_loader._get_raw_data_from_source(
-                self.measure.rate_aggregation_weights.weight_keys, self.source
-            )
-            weights = self.measure.rate_aggregation_weights.get_weights(**raw_weights)
-            datasets = {"data": data, "weights": weights}
+            # TODO: should we handle this similar to above where measure returns a dict?
+            datasets = {"data": data}
         elif self.source == DataSource.GBD:
             raise NotImplementedError
         elif self.source == DataSource.CUSTOM:
@@ -144,5 +127,70 @@ class RatioMeasureDataBundle:
             dataset_name: age_groups.format_dataframe_from_age_bin_df(dataset, age_group_data)
             for dataset_name, dataset in datasets.items()
         }
+        datasets = {
+            key: calculations.filter_data(dataset, self.scenarios, drop_singles=True)
+            for key, dataset in datasets.items()
+        }
 
         return datasets
+
+    def _get_raw_datasets(self) -> dict[str, pd.DataFrame]:
+        """Fetches raw datasets required for the measure from the specified data source."""
+        return self.data_loader._get_raw_data_from_source(
+            self.measure.get_required_datasets(self.source), self.source
+        )
+
+    def _get_aggregated_weights(self) -> pd.DataFrame | None:
+        """Fetches and aggregates weights if required by the measure."""
+        if self.source != DataSource.ARTIFACT:
+            return None
+
+        raw_weights = self.data_loader._get_raw_data_from_source(
+            self.measure.rate_aggregation_weights.weight_keys, self.source
+        )
+        return self.measure.rate_aggregation_weights.get_weights(**raw_weights)
+
+    def get_measure_data(self, stratifications: Collection[str] = ()) -> pd.DataFrame:
+        if self.source == DataSource.SIM:
+            return self._aggregate_scenario_stratifications(self.datasets, stratifications)
+        elif self.source == DataSource.ARTIFACT:
+            return self._aggregate_artifact_stratifications(stratifications)
+        elif self.source == DataSource.GBD:
+            raise NotImplementedError
+        elif self.source == DataSource.CUSTOM:
+            raise NotImplementedError
+        else:
+            raise ValueError(f"Unsupported data source: {self.source}")
+
+    def _aggregate_scenario_stratifications(
+        self, datasets: dict[str, pd.DataFrame], stratifications: Collection[str] = ()
+    ) -> pd.DataFrame:
+        datasets = {
+            key: calculations.marginalize(datasets[key], stratifications) for key in datasets
+        }
+        return self.measure.get_measure_data_from_ratio(**datasets)
+
+    def _aggregate_artifact_stratifications(
+        self, stratifications: Collection[str] = ()
+    ) -> pd.DataFrame:
+        data = self.datasets["data"].copy()
+        for stratification in stratifications:
+            if (
+                stratification not in data.index.names
+                and stratification not in self.weights.index.names
+            ):
+                raise ValueError(
+                    f"Stratum '{stratification}' not found in reference data or weights."
+                )
+
+        stratifications = list(stratifications)
+        # Retain input_draw, _aggregate_over_draws is the only place we should aggregate over draws.
+        if DRAW_INDEX in data.index.names and DRAW_INDEX not in stratifications:
+            stratifications.append(DRAW_INDEX)
+        weighted_avg = calculations.weighted_average(data, self.weights, stratifications)
+        # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
+        if not isinstance(weighted_avg, pd.DataFrame):
+            weighted_avg = pd.DataFrame(
+                {"value": [weighted_avg]}, index=pd.Index([0], name="index")
+            )
+        return weighted_avg
