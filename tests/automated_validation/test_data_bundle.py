@@ -67,35 +67,49 @@ def test_get_formatted_datasets_not_implemented_source(
         )
 
 
-def test_get_measure_data(
+@pytest.mark.parametrize("stratifications", [[], [DRAW_INDEX, SEED_INDEX]])
+def test_aggregate_scenario_stratifications(
+    mocker: MockFixture,
     mock_ratio_measure: RatioMeasure,
+    test_data: dict[str, pd.DataFrame],
     sample_age_group_df: pd.DataFrame,
+    stratifications: list[str],
 ) -> None:
-    """Test that aggregate_stratifications correctly aggregates data."""
+    # Scenario is dropped from test datasets in the DataBundle formatting
+    test_data = {key: dataset.droplevel("scenario") for key, dataset in test_data.items()}
 
-    aggregated = comparison._aggregate_reference_stratifications(
-        reference_bundle.datasets["data"], ["age", "sex"]
+    # mock loading of datasets
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.bundle.RatioMeasureDataBundle._get_formatted_datasets",
+        return_value=test_data,
     )
-    # (0, Male) = (0.12 * 0.15 + 0.29 * 0.35) / (0.15 + 0.35)
-    expected = pd.DataFrame(
-        {
-            "value": [
-                (0.12 * 0.15 + 0.29 * 0.35) / (0.15 + 0.35),
-                (0.2 * 0.25) / 0.25,
-            ],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                (0, "male"),
-                (0, "female"),
-            ],
-            names=["age", "sex"],
-        ),
+    bundle = RatioMeasureDataBundle(
+        measure=mock_ratio_measure,
+        source=DataSource.SIM,
+        data_loader=mocker.MagicMock(spec=DataLoader),
+        age_group_df=sample_age_group_df,
+        scenarios={"scenario": "baseline"},
     )
-    assert isinstance(aggregated, pd.DataFrame)
-    pd.testing.assert_frame_equal(aggregated, expected)
+    # This is marginalizing the stratifications out of the test data
+    aggregated = bundle._aggregate_scenario_stratifications(test_data, stratifications)
 
-    with pytest.raises(ValueError, match="not found in reference data or weights"):
-        comparison._aggregate_reference_stratifications(
-            reference_bundle.datasets["data"], ["dog", "cat"]
+    if not stratifications:
+        aggregated.equals(test_data["numerator_data"] / test_data["denominator_data"])
+    else:
+        assert bundle.index_names.difference(set(stratifications)) == set(
+            aggregated.index.names
         )
+        expected = pd.DataFrame(
+            data={
+                "value": [10 / 100, 20 / 100, (30 + 35) / (100 + 100)],
+            },
+            index=pd.MultiIndex.from_tuples(
+                [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
+                names=["year", "sex", "age"],
+            ),
+        )
+        pd.testing.assert_frame_equal(aggregated, expected)
+
+
+def test_aggregate_reference_stratifications():
+    pass

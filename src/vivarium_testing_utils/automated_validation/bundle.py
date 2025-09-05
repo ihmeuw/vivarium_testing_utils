@@ -112,7 +112,6 @@ class RatioMeasureDataBundle:
             )
         elif self.source == DataSource.ARTIFACT:
             data = self.measure.get_measure_data_from_artifact(**raw_datasets)
-            # TODO: should we handle this similar to above where measure returns a dict?
             datasets = {"data": data}
         elif self.source == DataSource.GBD:
             raise NotImplementedError
@@ -165,6 +164,7 @@ class RatioMeasureDataBundle:
     def _aggregate_scenario_stratifications(
         self, datasets: dict[str, pd.DataFrame], stratifications: Collection[str] = ()
     ) -> pd.DataFrame:
+        """This will remove index levels corresponding to the specified stratifications"""
         datasets = {
             key: calculations.marginalize(datasets[key], stratifications) for key in datasets
         }
@@ -173,6 +173,8 @@ class RatioMeasureDataBundle:
     def _aggregate_artifact_stratifications(
         self, stratifications: Collection[str] = ()
     ) -> pd.DataFrame:
+        """Aggregate the artifact data over specified stratifications. Stratifactions will be retained
+        in the returned data."""
         data = self.datasets["data"].copy()
         for stratification in stratifications:
             if (
