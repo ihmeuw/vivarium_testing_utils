@@ -13,10 +13,6 @@ from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import (
     age_groups,
     calculations,
-    utils,
-)
-from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
-    SingleNumericColumn,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
@@ -46,7 +42,7 @@ class RatioMeasureDataBundle:
         self.data_loader = data_loader
         self.scenarios = scenarios if scenarios is not None else {}
         self.datasets = self._get_formatted_datasets(age_group_df)
-        self.weights = self._get_aggregated_weights()
+        self.weights = self._get_aggregated_weights(age_group_df)
 
     @property
     def dataset_names(self) -> dict[str, str]:
@@ -75,7 +71,9 @@ class RatioMeasureDataBundle:
         A dictionary containing the formatted data information.
 
         """
-        dataframe = self.get_measure_data()
+        dataframe = self.get_measure_data(
+            [] if self.source == DataSource.SIM else self.index_names
+        )
         data_info: dict[str, Any] = {}
 
         # Source as string
@@ -113,7 +111,7 @@ class RatioMeasureDataBundle:
                 **raw_datasets,
             )
         elif self.source == DataSource.ARTIFACT:
-            data = self.measure.get_measure_data(self.source, **raw_datasets)
+            data = self.measure.get_measure_data_from_artifact(**raw_datasets)
             # TODO: should we handle this similar to above where measure returns a dict?
             datasets = {"data": data}
         elif self.source == DataSource.GBD:
@@ -140,7 +138,7 @@ class RatioMeasureDataBundle:
             self.measure.get_required_datasets(self.source), self.source
         )
 
-    def _get_aggregated_weights(self) -> pd.DataFrame | None:
+    def _get_aggregated_weights(self, age_group_data) -> pd.DataFrame | None:
         """Fetches and aggregates weights if required by the measure."""
         if self.source != DataSource.ARTIFACT:
             return None
@@ -148,9 +146,11 @@ class RatioMeasureDataBundle:
         raw_weights = self.data_loader._get_raw_data_from_source(
             self.measure.rate_aggregation_weights.weight_keys, self.source
         )
-        return self.measure.rate_aggregation_weights.get_weights(**raw_weights)
+        weights = self.measure.rate_aggregation_weights.get_weights(**raw_weights)
+        return age_groups.format_dataframe_from_age_bin_df(weights, age_group_data)
 
     def get_measure_data(self, stratifications: Collection[str] = ()) -> pd.DataFrame:
+        """Get the measure data, optionally aggregated over specified stratifications."""
         if self.source == DataSource.SIM:
             return self._aggregate_scenario_stratifications(self.datasets, stratifications)
         elif self.source == DataSource.ARTIFACT:

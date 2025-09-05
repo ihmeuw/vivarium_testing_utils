@@ -23,34 +23,28 @@ def test_get_metadata(
     mocker: MockFixture,
     mock_ratio_measure: RatioMeasure,
     sample_age_group_df: pd.DataFrame,
+    test_data: dict[str, pd.DataFrame],
 ) -> None:
     """Test get_metadata method returns correct basic structure."""
-    test_data = pd.DataFrame(
-        {"value": [1.0, 2.0, 3.0]},
-        index=pd.MultiIndex.from_tuples(
-            [("A", "male"), ("A", "female"), ("B", "male")],
-            names=["location", "sex"],
-        ),
-    )
 
     mocker.patch.object(
         RatioMeasureDataBundle,
         "_get_formatted_datasets",
-        return_value={"data": test_data},
+        return_value=test_data,
     )
 
     bundle = RatioMeasureDataBundle(
         measure=mock_ratio_measure,
-        source=DataSource.ARTIFACT,
+        source=DataSource.SIM,
         data_loader=mocker.MagicMock(spec=DataLoader),
         age_group_df=sample_age_group_df,
     )
 
     metadata = bundle.get_metadata()
 
-    assert metadata["source"] == "artifact"
-    assert metadata["index_columns"] == "location, sex"
-    assert metadata["size"] == "3 rows × 1 columns"
+    assert metadata["source"] == "sim"
+    assert metadata["index_columns"] == "year, sex, age, input_draw, random_seed, scenario"
+    assert metadata["size"] == "4 rows × 1 columns"
 
 
 @pytest.mark.parametrize("source", [DataSource.GBD, DataSource.CUSTOM])
@@ -70,4 +64,38 @@ def test_get_formatted_datasets_not_implemented_source(
             source=source,
             data_loader=mock_data_loader,
             age_group_df=sample_age_group_df,
+        )
+
+
+def test_get_measure_data(
+    mock_ratio_measure: RatioMeasure,
+    sample_age_group_df: pd.DataFrame,
+) -> None:
+    """Test that aggregate_stratifications correctly aggregates data."""
+
+    aggregated = comparison._aggregate_reference_stratifications(
+        reference_bundle.datasets["data"], ["age", "sex"]
+    )
+    # (0, Male) = (0.12 * 0.15 + 0.29 * 0.35) / (0.15 + 0.35)
+    expected = pd.DataFrame(
+        {
+            "value": [
+                (0.12 * 0.15 + 0.29 * 0.35) / (0.15 + 0.35),
+                (0.2 * 0.25) / 0.25,
+            ],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                (0, "male"),
+                (0, "female"),
+            ],
+            names=["age", "sex"],
+        ),
+    )
+    assert isinstance(aggregated, pd.DataFrame)
+    pd.testing.assert_frame_equal(aggregated, expected)
+
+    with pytest.raises(ValueError, match="not found in reference data or weights"):
+        comparison._aggregate_reference_stratifications(
+            reference_bundle.datasets["data"], ["dog", "cat"]
         )
