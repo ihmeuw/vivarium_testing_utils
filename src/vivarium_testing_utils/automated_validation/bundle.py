@@ -148,7 +148,7 @@ class RatioMeasureDataBundle:
         weights = self.measure.rate_aggregation_weights.get_weights(**raw_weights)
         return age_groups.format_dataframe_from_age_bin_df(weights, age_group_data)
 
-    def get_measure_data(self, stratifications: Collection[str] = ()) -> pd.DataFrame:
+    def get_measure_data(self, stratifications: Collection[str]) -> pd.DataFrame:
         """Get the measure data, optionally aggregated over specified stratifications."""
         if self.source == DataSource.SIM:
             return self._aggregate_scenario_stratifications(self.datasets, stratifications)
@@ -162,7 +162,7 @@ class RatioMeasureDataBundle:
             raise ValueError(f"Unsupported data source: {self.source}")
 
     def _aggregate_scenario_stratifications(
-        self, datasets: dict[str, pd.DataFrame], stratifications: Collection[str] = ()
+        self, datasets: dict[str, pd.DataFrame], stratifications: Collection[str]
     ) -> pd.DataFrame:
         """This will remove index levels corresponding to the specified stratifications"""
         datasets = {
@@ -170,9 +170,7 @@ class RatioMeasureDataBundle:
         }
         return self.measure.get_measure_data_from_ratio(**datasets)
 
-    def _aggregate_artifact_stratifications(
-        self, stratifications: Collection[str] = ()
-    ) -> pd.DataFrame:
+    def _aggregate_artifact_stratifications(self, stratifications: Collection[str]) -> pd.DataFrame:
         """Aggregate the artifact data over specified stratifications. Stratifactions will be retained
         in the returned data."""
         data = self.datasets["data"].copy()

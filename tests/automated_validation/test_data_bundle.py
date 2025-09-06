@@ -1,6 +1,6 @@
 """Tests for the RatioMeasureDataBundle class."""
 
-from typing import cast
+from typing import Literal, cast
 from unittest import mock
 
 import pandas as pd
@@ -111,5 +111,44 @@ def test_aggregate_scenario_stratifications(
         pd.testing.assert_frame_equal(aggregated, expected)
 
 
-def test_aggregate_reference_stratifications():
-    pass
+@pytest.mark.parametrize("stratifications", ["all", ["age", "sex"]])
+def test_aggregate_reference_stratifications(
+    mocker: MockFixture,
+    mock_ratio_measure: RatioMeasure,
+    reference_data: pd.DataFrame,
+    reference_weights: pd.DataFrame,
+    sample_age_group_df: pd.DataFrame,
+    stratifications: list[str] | Literal["all"],
+):
+    # mock loading of datasets
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.bundle.RatioMeasureDataBundle._get_formatted_datasets",
+        return_value={"data": reference_data},
+    )
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.bundle.RatioMeasureDataBundle._get_aggregated_weights",
+        return_value=reference_weights,
+    )
+    bundle = RatioMeasureDataBundle(
+        measure=mock_ratio_measure,
+        source=DataSource.ARTIFACT,
+        data_loader=mocker.MagicMock(spec=DataLoader),
+        age_group_df=sample_age_group_df,
+    )
+    if stratifications == "all":
+        # This is equivalent to passing "all" to get frame and should retain all index levels
+        aggregated = bundle._aggregate_artifact_stratifications(reference_data.index.names)
+    else:
+        aggregated = bundle._aggregate_artifact_stratifications(stratifications)
+
+    if stratifications == "all":
+        aggregated.equals(reference_data)
+    else:
+        assert set(stratifications) == set(aggregated.index.names)
+        sum_weights = reference_weights["value"].sum()
+        expected = pd.DataFrame(
+            data={
+                "value": [(0.12 * 0.15) / sum_weights]
+            }
+        )
+        pd.testing.assert_frame_equal(aggregated, expected)
