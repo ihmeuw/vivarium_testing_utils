@@ -219,8 +219,11 @@ class FuzzyComparison(Comparison):
                 ]
             )
         )
+        test_idx_to_stratify = self.test_bundle.index_names.difference(
+            test_idx_to_marginalize
+        )
         stratified_test_data = self.test_bundle.get_measure_data(
-            stratifications=test_idx_to_marginalize
+            stratifications=test_idx_to_stratify
         )
 
         stratified_test_data = stratified_test_data.rename(columns={"value": "rate"})

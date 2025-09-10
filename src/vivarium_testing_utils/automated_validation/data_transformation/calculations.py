@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Collection, Iterable, Mapping
+from typing import Any, Collection, Iterable, Literal, Mapping
 
 import numpy as np
 import pandas as pd
@@ -74,13 +74,17 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
     return numerator_data / denominator_data
 
 
-def aggregate_sum(data: pd.DataFrame, groupby_cols: Collection[str]) -> pd.DataFrame:
+def aggregate_sum(
+    data: pd.DataFrame, groupby_cols: Collection[str] | Literal["all"]
+) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
-    if groupby_cols == []:
+    if not groupby_cols:
         data = pd.DataFrame(
             {"value": [data["value"].sum()]}, index=pd.Index([0], name="index")
         )
         return data
+    if groupby_cols == "all":
+        groupby_cols = data.index.names
     # Use observed=True to avoid sorting categorical levels
     # This is a hack, because we're not technically using pd.Categorical here.
     # TODO: MIC-6090  Use the right abstractions for categorical index columns.
@@ -88,13 +92,19 @@ def aggregate_sum(data: pd.DataFrame, groupby_cols: Collection[str]) -> pd.DataF
     return data.groupby(list(groupby_cols), sort=False, observed=True).sum()
 
 
-def stratify(data: pd.DataFrame, stratification_cols: Collection[str]) -> pd.DataFrame:
+def stratify(
+    data: pd.DataFrame, stratification_cols: Collection[str] | Literal["all"]
+) -> pd.DataFrame:
     """Stratify the data by the index columns, summing over everything else. Syntactic sugar for aggregate."""
     return aggregate_sum(data, stratification_cols)
 
 
-def marginalize(data: pd.DataFrame, marginalize_cols: Collection[str]) -> pd.DataFrame:
+def marginalize(
+    data: pd.DataFrame, marginalize_cols: Collection[str] | Literal["all"]
+) -> pd.DataFrame:
     """Sum over marginalize columns, keeping the rest. Syntactic sugar for aggregate."""
+    if marginalize_cols == "all":
+        marginalize_cols = []
     return aggregate_sum(data, [x for x in data.index.names if x not in marginalize_cols])
 
 
@@ -140,7 +150,7 @@ def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
 def weighted_average(
     data: pd.DataFrame,
     weights: pd.DataFrame,
-    stratifications: list[str] = [],
+    stratifications: list[str] | Literal["all"] = [],
 ) -> pd.DataFrame | float:
     """Calculate a weighted average of the data using the provided weights.
 
@@ -229,10 +239,9 @@ def weighted_average(
         # Return a single float value instead of a one row pandas series
         return float(((data.mul(weights).sum()) / weights.sum()).item())
 
-    numerator = (
-        data.mul(weights).groupby(level=stratifications, sort=False, observed=True).sum()
-    )
-    denominator = weights.groupby(level=stratifications, sort=False, observed=True).sum()
+    # TODO: use aggregate sum
+    numerator = aggregate_sum(data.mul(weights), stratifications)
+    denominator = aggregate_sum(weights, stratifications)
     weighted_avg = numerator / denominator
 
     return weighted_avg

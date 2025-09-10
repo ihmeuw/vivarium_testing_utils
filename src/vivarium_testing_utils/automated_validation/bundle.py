@@ -1,6 +1,6 @@
 from abc import ABC
 from collections.abc import Collection
-from typing import Any
+from typing import Any, Literal
 
 import pandas as pd
 
@@ -71,9 +71,7 @@ class RatioMeasureDataBundle:
         A dictionary containing the formatted data information.
 
         """
-        dataframe = self.get_measure_data(
-            [] if self.source == DataSource.SIM else self.index_names
-        )
+        dataframe = self.get_measure_data("all")
         data_info: dict[str, Any] = {}
 
         # Source as string
@@ -148,7 +146,9 @@ class RatioMeasureDataBundle:
         weights = self.measure.rate_aggregation_weights.get_weights(**raw_weights)
         return age_groups.format_dataframe_from_age_bin_df(weights, age_group_data)
 
-    def get_measure_data(self, stratifications: Collection[str]) -> pd.DataFrame:
+    def get_measure_data(
+        self, stratifications: Collection[str] | Literal["all"]
+    ) -> pd.DataFrame:
         """Get the measure data, optionally aggregated over specified stratifications."""
         if self.source == DataSource.SIM:
             return self._aggregate_scenario_stratifications(self.datasets, stratifications)
@@ -162,31 +162,27 @@ class RatioMeasureDataBundle:
             raise ValueError(f"Unsupported data source: {self.source}")
 
     def _aggregate_scenario_stratifications(
-        self, datasets: dict[str, pd.DataFrame], stratifications: Collection[str]
+        self,
+        datasets: dict[str, pd.DataFrame],
+        stratifications: Collection[str] | Literal["all"],
     ) -> pd.DataFrame:
         """This will remove index levels corresponding to the specified stratifications"""
         datasets = {
-            key: calculations.marginalize(datasets[key], stratifications) for key in datasets
+            key: calculations.stratify(datasets[key], stratifications) for key in datasets
         }
         return self.measure.get_measure_data_from_ratio(**datasets)
 
-    def _aggregate_artifact_stratifications(self, stratifications: Collection[str]) -> pd.DataFrame:
+    def _aggregate_artifact_stratifications(
+        self, stratifications: Collection[str] | Literal["all"]
+    ) -> pd.DataFrame:
         """Aggregate the artifact data over specified stratifications. Stratifactions will be retained
         in the returned data."""
         data = self.datasets["data"].copy()
-        for stratification in stratifications:
-            if (
-                stratification not in data.index.names
-                and stratification not in self.weights.index.names
-            ):
-                raise ValueError(
-                    f"Stratum '{stratification}' not found in reference data or weights."
-                )
-
-        stratifications = list(stratifications)
-        # Retain input_draw, _aggregate_over_draws is the only place we should aggregate over draws.
-        if DRAW_INDEX in data.index.names and DRAW_INDEX not in stratifications:
-            stratifications.append(DRAW_INDEX)
+        if stratifications != "all":
+            stratifications = list(stratifications)
+            # Retain input_draw, comparison._aggregate_over_draws is the only place we should aggregate over draws.
+            if DRAW_INDEX in data.index.names and DRAW_INDEX not in stratifications:
+                stratifications.append(DRAW_INDEX)
         weighted_avg = calculations.weighted_average(data, self.weights, stratifications)
         # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
         if not isinstance(weighted_avg, pd.DataFrame):

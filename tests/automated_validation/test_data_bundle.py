@@ -67,7 +67,7 @@ def test_get_formatted_datasets_not_implemented_source(
         )
 
 
-@pytest.mark.parametrize("stratifications", [[], [DRAW_INDEX, SEED_INDEX]])
+@pytest.mark.parametrize("stratifications", [[], ["year", "sex", "age"]])
 def test_aggregate_scenario_stratifications(
     mocker: MockFixture,
     mock_ratio_measure: RatioMeasure,
@@ -96,9 +96,7 @@ def test_aggregate_scenario_stratifications(
     if not stratifications:
         aggregated.equals(test_data["numerator_data"] / test_data["denominator_data"])
     else:
-        assert bundle.index_names.difference(set(stratifications)) == set(
-            aggregated.index.names
-        )
+        assert list(stratifications) == list(aggregated.index.names)
         expected = pd.DataFrame(
             data={
                 "value": [10 / 100, 20 / 100, (30 + 35) / (100 + 100)],
@@ -135,20 +133,25 @@ def test_aggregate_reference_stratifications(
         data_loader=mocker.MagicMock(spec=DataLoader),
         age_group_df=sample_age_group_df,
     )
-    if stratifications == "all":
-        # This is equivalent to passing "all" to get frame and should retain all index levels
-        aggregated = bundle._aggregate_artifact_stratifications(reference_data.index.names)
-    else:
-        aggregated = bundle._aggregate_artifact_stratifications(stratifications)
+    aggregated = bundle._aggregate_artifact_stratifications(stratifications)
 
     if stratifications == "all":
         aggregated.equals(reference_data)
     else:
         assert set(stratifications) == set(aggregated.index.names)
-        sum_weights = reference_weights["value"].sum()
         expected = pd.DataFrame(
             data={
-                "value": [(0.12 * 0.15) / sum_weights]
-            }
+                "value": [
+                    ((0.15 * 0.12) + (0.35 * 0.29)) / (0.15 + 0.35),
+                    (0.20 * 0.25) / 0.25,
+                ]
+            },
+            index=pd.MultiIndex.from_tuples(
+                [
+                    ("male", 0),
+                    ("female", 0),
+                ],
+                names=["sex", "age"],
+            ),
         )
         pd.testing.assert_frame_equal(aggregated, expected)
