@@ -117,7 +117,7 @@ def test_aggregate_reference_stratifications(
     reference_weights: pd.DataFrame,
     sample_age_group_df: pd.DataFrame,
     stratifications: list[str] | Literal["all"],
-):
+) -> None:
     # mock loading of datasets
     mocker.patch(
         "vivarium_testing_utils.automated_validation.bundle.RatioMeasureDataBundle._get_formatted_datasets",

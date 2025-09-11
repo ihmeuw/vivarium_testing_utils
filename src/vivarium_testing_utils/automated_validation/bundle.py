@@ -135,7 +135,7 @@ class RatioMeasureDataBundle:
             self.measure.get_required_datasets(self.source), self.source
         )
 
-    def _get_aggregated_weights(self, age_group_data) -> pd.DataFrame | None:
+    def _get_aggregated_weights(self, age_group_data: pd.DataFrame) -> pd.DataFrame | None:
         """Fetches and aggregates weights if required by the measure."""
         if self.source != DataSource.ARTIFACT:
             return None
@@ -183,6 +183,8 @@ class RatioMeasureDataBundle:
             # Retain input_draw, comparison._aggregate_over_draws is the only place we should aggregate over draws.
             if DRAW_INDEX in data.index.names and DRAW_INDEX not in stratifications:
                 stratifications.append(DRAW_INDEX)
+        if self.weights is None:
+            raise ValueError("Weights are required for aggregating artifact data.")
         weighted_avg = calculations.weighted_average(data, self.weights, stratifications)
         # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
         if not isinstance(weighted_avg, pd.DataFrame):

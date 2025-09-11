@@ -243,6 +243,8 @@ def test_fuzzy_comparison_get_frame_parametrized(
         reference_data = _add_draws_to_dataframe(
             reference_bundle.datasets["data"], draw_values
         )
+        # Assertion for mypy
+        assert reference_bundle.weights is not None
         reference_weights = _add_draws_to_dataframe(reference_bundle.weights, draw_values)
         # Update the reference bundle with the modified data
         reference_bundle.datasets["data"] = reference_data
