@@ -226,7 +226,7 @@ def weighted_average(
     extra_levels = weights_index_names - data_index_names
     if extra_levels:
         # Group by the levels that match data's index and sum over the extra levels
-        weights = weights.groupby(level=data.index.names, sort=False, observed=True).sum()
+        weights = aggregate_sum(weights, data.index.names)
 
     # Indexes should be equal at this point
     if not data.index.equals(weights.index):
@@ -239,7 +239,6 @@ def weighted_average(
         # Return a single float value instead of a one row pandas series
         return float(((data.mul(weights).sum()) / weights.sum()).item())
 
-    # TODO: use aggregate sum
     numerator = aggregate_sum(data.mul(weights), stratifications)
     denominator = aggregate_sum(weights, stratifications)
     weighted_avg = numerator / denominator
