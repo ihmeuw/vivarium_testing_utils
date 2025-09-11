@@ -93,10 +93,11 @@ def aggregate_sum(
     result = data.groupby(list(groupby_cols), sort=False, observed=True).sum()
 
     # Only reorder levels if the result has a MultiIndex (hierarchical index)
-    if isinstance(result.index, pd.MultiIndex) and len(ordered_cols) > 1:
-        return result.reorder_levels(ordered_cols)
-    else:
-        return result
+    return (
+        result.reorder_levels(ordered_cols)
+        if isinstance(result.index, pd.MultiIndex) and len(ordered_cols) > 1
+        else result
+    )
 
 
 def stratify(
