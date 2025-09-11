@@ -241,6 +241,4 @@ def weighted_average(
 
     numerator = aggregate_sum(data.mul(weights), stratifications)
     denominator = aggregate_sum(weights, stratifications)
-    weighted_avg = numerator / denominator
-
-    return weighted_avg
+    return ratio(numerator, denominator)
