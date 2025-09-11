@@ -85,11 +85,18 @@ def aggregate_sum(
         return data
     if groupby_cols == "all":
         groupby_cols = data.index.names
+    ordered_cols = [col for col in data.index.names if col in groupby_cols]
     # Use observed=True to avoid sorting categorical levels
     # This is a hack, because we're not technically using pd.Categorical here.
     # TODO: MIC-6090  Use the right abstractions for categorical index columns.
     # You might need to keep this observed=True even after doing that.
-    return data.groupby(list(groupby_cols), sort=False, observed=True).sum()
+    result = data.groupby(list(groupby_cols), sort=False, observed=True).sum()
+
+    # Only reorder levels if the result has a MultiIndex (hierarchical index)
+    if isinstance(result.index, pd.MultiIndex) and len(ordered_cols) > 1:
+        return result.reorder_levels(ordered_cols)
+    else:
+        return result
 
 
 def stratify(
