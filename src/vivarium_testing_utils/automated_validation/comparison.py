@@ -184,46 +184,24 @@ class FuzzyComparison(Comparison):
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
 
-        # Get index levels that are only in the test data.
-        test_only_indexes = self.test_bundle.index_names - self.reference_bundle.index_names
-        reference_only_indexes = (
-            self.reference_bundle.index_names - self.test_bundle.index_names
+        intersection = self.test_bundle.index_names.intersection(
+            self.reference_bundle.index_names
         )
-        # Don't aggregate over the scenarios, yet, because we may need them to join the datasets.
-        test_indexes_to_marginalize = test_only_indexes.difference(
-            tuple(self.test_bundle.scenarios.keys()), [DRAW_INDEX]
-        )
-        reference_indexes_to_drop = reference_only_indexes.difference(
-            tuple(self.reference_bundle.scenarios.keys()), [DRAW_INDEX]
-        )
-
-        # Aggregate over indices for reference data
         if stratifications == "all":
-            stratifications = [
-                x
-                for x in self.reference_bundle.index_names
-                if x not in reference_indexes_to_drop
-            ]
-        aggregated_reference_data = self.reference_bundle.get_measure_data(
-            stratifications=stratifications,
-        )
+            stratifications = intersection
+        else:
+            if not set(stratifications).issubset(intersection):
+                raise ValueError("Stratifications must be a subset of the intersection")
 
-        # If the test data has any index levels that are not in the reference data, marginalize
-        # over those index levels.
-        test_idx_to_marginalize = set(test_indexes_to_marginalize).union(
-            set(
-                [
-                    idx
-                    for idx in self.test_bundle.index_names
-                    if idx not in stratifications and idx != DRAW_INDEX
-                ]
-            )
-        )
-        test_idx_to_stratify = self.test_bundle.index_names.difference(
-            test_idx_to_marginalize
+        aggregated_reference_data = self.reference_bundle.get_measure_data(
+            stratifications=set(stratifications) | {DRAW_INDEX}
+            if DRAW_INDEX in self.reference_bundle.index_names
+            else stratifications,
         )
         stratified_test_data = self.test_bundle.get_measure_data(
-            stratifications=test_idx_to_stratify
+            stratifications=set(stratifications) | {DRAW_INDEX}
+            if DRAW_INDEX in self.test_bundle.index_names
+            else stratifications,
         )
 
         stratified_test_data = stratified_test_data.rename(columns={"value": "rate"})

@@ -1,18 +1,13 @@
 """Tests for the RatioMeasureDataBundle class."""
 
 from typing import Literal, cast
-from unittest import mock
 
 import pandas as pd
 import pytest
 from pytest_mock import MockFixture
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
-from vivarium_testing_utils.automated_validation.constants import (
-    DRAW_INDEX,
-    SEED_INDEX,
-    DataSource,
-)
+from vivarium_testing_utils.automated_validation.constants import DataSource
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     RatioMeasure,
@@ -45,6 +40,26 @@ def test_get_metadata(
     assert metadata["source"] == "sim"
     assert metadata["index_columns"] == "year, sex, age, input_draw, random_seed, scenario"
     assert metadata["size"] == "4 rows × 1 columns"
+
+
+@pytest.mark.parametrize("source", [DataSource.GBD, DataSource.CUSTOM])
+def test_dataset_names_value_error(
+    mocker: MockFixture,
+    mock_ratio_measure: RatioMeasure,
+    sample_age_group_df: pd.DataFrame,
+    source: DataSource,
+) -> None:
+    """Test _get_formatted_datasets raises NotImplementedError for GBD source."""
+    mock_data_loader = mocker.MagicMock(spec=DataLoader)
+    mock_data_loader._get_raw_data_from_source.return_value = {}
+
+    with pytest.raises(ValueError):
+        RatioMeasureDataBundle(
+            measure=mock_ratio_measure,
+            source=source,
+            data_loader=mock_data_loader,
+            age_group_df=sample_age_group_df,
+        )
 
 
 @pytest.mark.parametrize("stratifications", [[], ["year", "sex", "age"]])

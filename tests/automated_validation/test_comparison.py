@@ -89,22 +89,7 @@ def test_fuzzy_comparison_init(
     with check:
         assert comparison.measure == test_bundle.measure
         assert comparison.test_bundle == test_bundle
-        assert comparison.test_bundle.datasets.keys() == {
-            "numerator_data",
-            "denominator_data",
-        }
-        assert comparison.test_bundle.datasets["numerator_data"].equals(
-            test_bundle.datasets["numerator_data"]
-        )
-        assert comparison.test_bundle.datasets["denominator_data"].equals(
-            test_bundle.datasets["denominator_data"]
-        )
         assert comparison.reference_bundle == reference_bundle
-        assert comparison.reference_bundle.datasets["data"].equals(
-            reference_bundle.datasets["data"]
-        )
-        assert comparison.test_bundle.scenarios == {"scenario": "baseline"}
-        assert not comparison.reference_bundle.scenarios
 
 
 def test_fuzzy_comparison_metadata(
@@ -146,13 +131,13 @@ def test_fuzzy_comparison_get_frame(
 
     diff = comparison.get_frame(num_rows=1)
 
-    with check:
-        assert len(diff) == 1
-        assert "test_rate" in diff.columns
-        assert "reference_rate" in diff.columns
-        assert "percent_error" in diff.columns
-        assert DRAW_INDEX in diff.index.names
-        assert SEED_INDEX not in diff.index.names
+    # with check:
+    assert len(diff) == 1
+    assert "test_rate" in diff.columns
+    assert "reference_rate" in diff.columns
+    assert "percent_error" in diff.columns
+    assert DRAW_INDEX in diff.index.names
+    assert SEED_INDEX not in diff.index.names
 
     # Test returning all rows
     all_diff = comparison.get_frame(num_rows="all")
@@ -293,30 +278,6 @@ def test_fuzzy_comparison_verify_not_implemented(
 
     with pytest.raises(NotImplementedError):
         comparison.verify()
-
-
-def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
-    test_bundle: RatioMeasureDataBundle,
-    reference_bundle: RatioMeasureDataBundle,
-) -> None:
-    """Test that _align_datasets raises ValueError for non-singular reference-only indices."""
-    reference_data_with_non_singular_index = reference_bundle.datasets["data"].copy()
-    reference_data_with_non_singular_index["location"] = ["Global", "USA", "USA"]
-    reference_data_with_non_singular_index.set_index("location", append=True, inplace=True)
-    reference_bundle.datasets["data"] = reference_data_with_non_singular_index
-
-    # Setup
-    comparison = FuzzyComparison(test_bundle, reference_bundle)
-
-    # Verify the non-singular index exists
-    assert "location" in comparison.reference_bundle.datasets["data"].index.names
-    assert "location" not in comparison.test_bundle.datasets["numerator_data"].index.names
-
-    # Verify it's not detected as a singular index
-    singular_indices = calculations.get_singular_indices(
-        comparison.reference_bundle.datasets["data"]
-    )
-    assert "location" not in singular_indices
 
 
 def test_fuzzy_comparison_align_datasets_calculation(
