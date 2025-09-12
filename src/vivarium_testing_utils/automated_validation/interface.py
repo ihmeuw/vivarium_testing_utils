@@ -169,9 +169,7 @@ class ValidationContext:
         )
 
         comparison = FuzzyComparison(
-            measure=measure,
-            test_bundle=test_data_bundle,
-            reference_bundle=ref_data_bundle,
+            test_bundle=test_data_bundle, reference_bundle=ref_data_bundle
         )
         self.comparisons[measure.measure_key] = comparison
 

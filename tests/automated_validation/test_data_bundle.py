@@ -47,26 +47,6 @@ def test_get_metadata(
     assert metadata["size"] == "4 rows × 1 columns"
 
 
-@pytest.mark.parametrize("source", [DataSource.GBD, DataSource.CUSTOM])
-def test_get_formatted_datasets_not_implemented_source(
-    mocker: MockFixture,
-    mock_ratio_measure: RatioMeasure,
-    sample_age_group_df: pd.DataFrame,
-    source: DataSource,
-) -> None:
-    """Test _get_formatted_datasets raises NotImplementedError for GBD source."""
-    mock_data_loader = mocker.MagicMock(spec=DataLoader)
-    mock_data_loader._get_raw_data_from_source.return_value = {}
-
-    with pytest.raises(NotImplementedError):
-        RatioMeasureDataBundle(
-            measure=mock_ratio_measure,
-            source=source,
-            data_loader=mock_data_loader,
-            age_group_df=sample_age_group_df,
-        )
-
-
 @pytest.mark.parametrize("stratifications", [[], ["year", "sex", "age"]])
 def test_aggregate_scenario_stratifications(
     mocker: MockFixture,

@@ -114,7 +114,7 @@ def test_add_comparison(
     assert measure_key in context.comparisons
     comparison = context.comparisons[measure_key]
 
-    assert comparison.measure.measure_key == measure_key
+    assert comparison.measure.measure_key == measure_key  # type: ignore [attr-defined]
 
     # Test that test_data is now a dictionary with numerator and denominator
     assert isinstance(comparison.test_bundle.datasets, dict)

@@ -39,10 +39,9 @@ class RatioMeasureDataBundle:
     ) -> None:
         self.measure = measure
         self.source = source
-        self.data_loader = data_loader
         self.scenarios = scenarios if scenarios is not None else {}
-        self.datasets = self._get_formatted_datasets(age_group_df)
-        self.weights = self._get_aggregated_weights(age_group_df)
+        self.datasets = self._get_formatted_datasets(data_loader, age_group_df)
+        self.weights = self._get_aggregated_weights(data_loader, age_group_df)
 
     @property
     def dataset_names(self) -> dict[str, str]:
@@ -100,10 +99,10 @@ class RatioMeasureDataBundle:
         return data_info
 
     def _get_formatted_datasets(
-        self, age_group_data: pd.DataFrame
+        self, data_loader: DataLoader, age_group_data: pd.DataFrame
     ) -> dict[str, pd.DataFrame]:
         """Formats measure datasets depending on the source."""
-        raw_datasets = self._get_raw_datasets()
+        raw_datasets = data_loader._get_raw_data_from_source(self.dataset_names, self.source)
         if self.source == DataSource.SIM:
             datasets = self.measure.get_ratio_datasets_from_sim(
                 **raw_datasets,
@@ -129,18 +128,14 @@ class RatioMeasureDataBundle:
 
         return datasets
 
-    def _get_raw_datasets(self) -> dict[str, pd.DataFrame]:
-        """Fetches raw datasets required for the measure from the specified data source."""
-        return self.data_loader._get_raw_data_from_source(
-            self.measure.get_required_datasets(self.source), self.source
-        )
-
-    def _get_aggregated_weights(self, age_group_data: pd.DataFrame) -> pd.DataFrame | None:
+    def _get_aggregated_weights(
+        self, data_loader: DataLoader, age_group_data: pd.DataFrame
+    ) -> pd.DataFrame | None:
         """Fetches and aggregates weights if required by the measure."""
         if self.source != DataSource.ARTIFACT:
             return None
 
-        raw_weights = self.data_loader._get_raw_data_from_source(
+        raw_weights = data_loader._get_raw_data_from_source(
             self.measure.rate_aggregation_weights.weight_keys, self.source
         )
         weights = self.measure.rate_aggregation_weights.get_weights(**raw_weights)

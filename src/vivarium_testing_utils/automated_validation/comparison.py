@@ -21,7 +21,6 @@ class Comparison(ABC):
     dataset is the one that is used as a benchmark. The comparison operates on a *measure* of the two datasets,
     typically a derived quantity of the test data such as incidence rate or prevalence."""
 
-    measure: Measure
     test_bundle: RatioMeasureDataBundle
     reference_bundle: RatioMeasureDataBundle
 
@@ -79,13 +78,14 @@ class FuzzyComparison(Comparison):
 
     def __init__(
         self,
-        measure: RatioMeasure,
         test_bundle: RatioMeasureDataBundle,
         reference_bundle: RatioMeasureDataBundle,
     ):
-        self.measure: RatioMeasure = measure
         self.test_bundle = test_bundle
         self.reference_bundle = reference_bundle
+        if self.test_bundle.measure != self.reference_bundle.measure:
+            raise ValueError("Test and reference measures must be the same.")
+        self.measure: Measure = self.test_bundle.measure
 
     @property
     def metadata(self) -> pd.DataFrame:

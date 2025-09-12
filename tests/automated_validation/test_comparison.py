@@ -80,16 +80,11 @@ def reference_bundle(
 
 
 def test_fuzzy_comparison_init(
-    mock_ratio_measure: RatioMeasure,
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the initialization of the FuzzyComparison class."""
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        test_bundle,
-        reference_bundle,
-    )
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
 
     with check:
         assert comparison.measure == test_bundle.measure
@@ -113,16 +108,11 @@ def test_fuzzy_comparison_init(
 
 
 def test_fuzzy_comparison_metadata(
-    mock_ratio_measure: RatioMeasure,
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the metadata property of the FuzzyComparison class."""
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        test_bundle,
-        reference_bundle,
-    )
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
 
     metadata = comparison.metadata
 
@@ -148,16 +138,11 @@ def test_fuzzy_comparison_metadata(
 
 
 def test_fuzzy_comparison_get_frame(
-    mock_ratio_measure: RatioMeasure,
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the get_frame method of the FuzzyComparison class."""
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        test_bundle,
-        reference_bundle,
-    )
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
 
     diff = comparison.get_frame(num_rows=1)
 
@@ -196,16 +181,11 @@ def test_fuzzy_comparison_get_frame(
 
 
 def test_fuzzy_comparison_get_frame_aggregated_draws(
-    mock_ratio_measure: RatioMeasure,
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the get_frame method of the FuzzyComparison class with aggregated draws."""
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        test_bundle,
-        reference_bundle,
-    )
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
     diff = comparison.get_frame(num_rows="all", aggregate_draws=True)
     expected_df = pd.DataFrame(
         {
@@ -227,7 +207,6 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
 @pytest.mark.parametrize("aggregate", [True, False])
 @pytest.mark.parametrize("draws", ["test", "reference", "both", "neither"])
 def test_fuzzy_comparison_get_frame_parametrized(
-    mock_ratio_measure: RatioMeasure,
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
     stratifications: Collection[str] | Literal["all"],
@@ -267,11 +246,7 @@ def test_fuzzy_comparison_get_frame_parametrized(
         for key, data in test_data.items():
             test_bundle.datasets[key] = data
 
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        test_bundle,
-        reference_bundle,
-    )
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
 
     data = comparison.get_frame(stratifications=stratifications, aggregate_draws=aggregate)
     if stratifications == "all":
@@ -310,23 +285,17 @@ def test_fuzzy_comparison_get_frame_parametrized(
 
 
 def test_fuzzy_comparison_verify_not_implemented(
-    mock_ratio_measure: RatioMeasure,
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """ "FuzzyComparison.verify() is not implemented."""
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        test_bundle,
-        reference_bundle,
-    )
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
 
     with pytest.raises(NotImplementedError):
         comparison.verify()
 
 
 def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
-    mock_ratio_measure: RatioMeasure,
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
 ) -> None:
@@ -337,7 +306,7 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
     reference_bundle.datasets["data"] = reference_data_with_non_singular_index
 
     # Setup
-    comparison = FuzzyComparison(mock_ratio_measure, test_bundle, reference_bundle)
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
 
     # Verify the non-singular index exists
     assert "location" in comparison.reference_bundle.datasets["data"].index.names
@@ -351,17 +320,12 @@ def test_fuzzy_comparison_align_datasets_with_non_singular_reference_index(
 
 
 def test_fuzzy_comparison_align_datasets_calculation(
-    mock_ratio_measure: RatioMeasure,
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test _align_datasets with varying denominators to ensure ratios are calculated correctly."""
 
-    comparison = FuzzyComparison(
-        mock_ratio_measure,
-        test_bundle,
-        reference_bundle,
-    )
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
 
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
     pd.testing.assert_frame_equal(

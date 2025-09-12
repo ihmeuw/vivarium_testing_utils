@@ -84,15 +84,6 @@ class Measure(ABC):
         """Override in subclasses to specify aggregation behavior."""
         pass
 
-    def get_required_datasets(self, source: DataSource) -> dict[str, str]:
-        """Return a dictionary of required datasets for the specified source."""
-        if source == DataSource.SIM:
-            return self.sim_datasets
-        elif source == DataSource.ARTIFACT:
-            return self.artifact_datasets
-        else:
-            raise ValueError(f"Unsupported data source: {source}")
-
 
 class RatioMeasure(Measure, ABC):
     """A Measure that calculates ratio data from simulation data."""
