@@ -1,6 +1,7 @@
 """Tests for the RatioMeasureDataBundle class."""
 
-from typing import Literal, cast
+from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 import pytest
@@ -9,9 +10,66 @@ from pytest_mock import MockFixture
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.constants import DataSource
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
+from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    Incidence,
     RatioMeasure,
 )
+
+
+@pytest.mark.parametrize("data_source", [DataSource.SIM, DataSource.ARTIFACT])
+def test_data_bundle_init(
+    data_source: DataSource,
+    sample_age_group_df: pd.DataFrame,
+    sim_result_dir: Path,
+    artifact_disease_incidence: pd.DataFrame,
+) -> None:
+    data_loader = DataLoader(sim_result_dir)
+    measure = Incidence("disease")
+    bundle = RatioMeasureDataBundle(
+        measure=measure,
+        source=data_source,
+        data_loader=data_loader,
+        age_group_df=sample_age_group_df,
+        scenarios={},
+    )
+
+    if data_source == DataSource.SIM:
+        expected_keys = set(measure.sim_datasets.keys())
+    else:
+        expected_keys = set(measure.artifact_datasets.keys())
+    assert set(bundle.dataset_names) == expected_keys
+
+    if data_source == DataSource.SIM:
+        expected_index = pd.MultiIndex.from_tuples(
+            [("A", "baseline"), ("B", "baseline")],
+            names=["stratify_column", "scenario"],
+        )
+
+        expected_numerator_data = pd.DataFrame(
+            {
+                "value": [3.0, 5.0],
+            },
+            index=expected_index,
+        )
+        expected_denominator_data = pd.DataFrame(
+            {
+                "value": [17.0, 29.0],
+            },
+            index=expected_index,
+        )
+        assert bundle.datasets["numerator_data"].equals(expected_numerator_data)
+        assert bundle.datasets["denominator_data"].equals(expected_denominator_data)
+        assert bundle.weights is None
+    else:
+        formatted_data = age_groups.format_dataframe_from_age_bin_df(
+            artifact_disease_incidence, sample_age_group_df
+        )
+        assert bundle.datasets["data"].equals(formatted_data)
+        assert isinstance(bundle.weights, pd.DataFrame)
+        assert set(bundle.datasets["data"].index.names).issubset(
+            set(bundle.weights.index.names)
+        )
 
 
 def test_get_metadata(
