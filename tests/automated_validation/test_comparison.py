@@ -131,13 +131,13 @@ def test_fuzzy_comparison_get_frame(
 
     diff = comparison.get_frame(num_rows=1)
 
-    # with check:
-    assert len(diff) == 1
-    assert "test_rate" in diff.columns
-    assert "reference_rate" in diff.columns
-    assert "percent_error" in diff.columns
-    assert DRAW_INDEX in diff.index.names
-    assert SEED_INDEX not in diff.index.names
+    with check:
+        assert len(diff) == 1
+        assert "test_rate" in diff.columns
+        assert "reference_rate" in diff.columns
+        assert "percent_error" in diff.columns
+        assert DRAW_INDEX in diff.index.names
+        assert SEED_INDEX not in diff.index.names
 
     # Test returning all rows
     all_diff = comparison.get_frame(num_rows="all")
