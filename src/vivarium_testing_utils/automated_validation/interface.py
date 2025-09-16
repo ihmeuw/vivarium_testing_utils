@@ -78,7 +78,6 @@ class ValidationContext:
         ref_source: str,
         test_scenarios: dict[str, str] = {},
         ref_scenarios: dict[str, str] = {},
-        stratifications: list[str] = [],
         risk_stratification_column: str | None = None,
         risk_state_mapping: dict[str, str] | None = None,
     ) -> None:
@@ -102,8 +101,6 @@ class ValidationContext:
             Dictionary of scenario filters for test data
         ref_scenarios
             Dictionary of scenario filters for reference data
-        stratifications
-            List of stratification columns
         """
 
         measure = CategoricalRelativeRisk(

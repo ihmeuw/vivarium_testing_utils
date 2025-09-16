@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Collection, Iterable, Literal, Mapping
+from typing import Any, Collection, Literal, Mapping
 
 import numpy as np
 import pandas as pd
