@@ -42,6 +42,7 @@ class RatioMeasureDataBundle:
         self.scenarios = scenarios if scenarios is not None else {}
         self.datasets = self._get_formatted_datasets(data_loader, age_group_df)
         self.weights = self._get_aggregated_weights(data_loader, age_group_df)
+        self.metadata = self.get_metadata(data_loader)
 
     @property
     def dataset_names(self) -> dict[str, str]:
@@ -61,7 +62,7 @@ class RatioMeasureDataBundle:
             for index_name in self.datasets[key].index.names
         }
 
-    def get_metadata(self) -> dict[str, Any]:
+    def get_metadata(self, data_loader: DataLoader) -> dict[str, Any]:
         """Organize the data information into a dictionary for display by a styled pandas DataFrame.
         Apply formatting to values that need special handling.
 
@@ -75,6 +76,7 @@ class RatioMeasureDataBundle:
 
         # Source as string
         data_info["source"] = self.source.value
+        data_info = self.add_model_run_metadata(data_info, data_loader)
 
         # Index columns as comma-separated string
         index_cols = dataframe.index.names
@@ -187,3 +189,10 @@ class RatioMeasureDataBundle:
                 {"value": [weighted_avg]}, index=pd.Index([0], name="index")
             )
         return weighted_avg
+
+    def add_model_run_metadata(
+        self, metadata: dict[str, Any], data_loader: DataLoader
+    ) -> dict[str, Any]:
+        """Add model run metadata to the dictionary."""
+        sim_output_dir = data_loader._sim_output_dir
+        breakpoint()
