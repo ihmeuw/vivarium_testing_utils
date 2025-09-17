@@ -1,8 +1,10 @@
 from abc import ABC
 from collections.abc import Collection
+from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
+import yaml
 
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
@@ -195,4 +197,15 @@ class RatioMeasureDataBundle:
     ) -> dict[str, Any]:
         """Add model run metadata to the dictionary."""
         sim_output_dir = data_loader._sim_output_dir
-        breakpoint()
+        if self.source == DataSource.SIM:
+            metadata["model_run_time"] = sim_output_dir.name
+        elif self.source == DataSource.ARTIFACT:
+            artifact_path = Path(
+                yaml.safe_load((sim_output_dir / "model_specifications.yaml").open("r"))[
+                    "configuration"
+                ]["input_data"]["artifact_path"]
+            )
+            artifact_dir = artifact_path.parent
+            # TODO: get time from ls -la
+        else:
+            raise ValueError(f"Unsupported data source: {self.source}")
