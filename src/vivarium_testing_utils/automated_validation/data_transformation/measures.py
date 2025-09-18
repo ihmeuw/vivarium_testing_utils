@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Collection
+from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
@@ -83,25 +83,6 @@ class Measure(ABC):
     def rate_aggregation_weights(self) -> RateAggregationWeights:
         """Override in subclasses to specify aggregation behavior."""
         pass
-
-    @utils.check_io(out=SingleNumericColumn)
-    def get_measure_data(self, source: DataSource, *args: Any, **kwargs: Any) -> pd.DataFrame:
-        """Process data from the specified source into a format suitable for calculations."""
-        if source == DataSource.SIM:
-            return self.get_measure_data_from_sim(*args, **kwargs)
-        elif source == DataSource.ARTIFACT:
-            return self.get_measure_data_from_artifact(*args, **kwargs)
-        else:
-            raise ValueError(f"Unsupported data source: {source}")
-
-    def get_required_datasets(self, source: DataSource) -> dict[str, str]:
-        """Return a dictionary of required datasets for the specified source."""
-        if source == DataSource.SIM:
-            return self.sim_datasets
-        elif source == DataSource.ARTIFACT:
-            return self.artifact_datasets
-        else:
-            raise ValueError(f"Unsupported data source: {source}")
 
 
 class RatioMeasure(Measure, ABC):

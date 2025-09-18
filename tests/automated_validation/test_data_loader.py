@@ -204,10 +204,10 @@ def test___get_raw_data_from_source(
     data_loader = DataLoader(sim_result_dir)
     measure = Incidence("disease")
     test_raw_data = data_loader._get_raw_data_from_source(
-        measure.get_required_datasets(DataSource.SIM), DataSource.SIM
+        measure.sim_datasets, DataSource.SIM
     )
     ref_raw_data = data_loader._get_raw_data_from_source(
-        measure.get_required_datasets(DataSource.ARTIFACT), DataSource.ARTIFACT
+        measure.artifact_datasets, DataSource.ARTIFACT
     )
 
     assert test_raw_data["numerator_data"].equals(transition_count_data)
