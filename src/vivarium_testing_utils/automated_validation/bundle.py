@@ -61,7 +61,7 @@ class RatioMeasureDataBundle:
             for index_name in self.datasets[key].index.names
         }
 
-    def get_metadata(self, data_loader: DataLoader) -> dict[str, Any]:
+    def get_metadata(self) -> dict[str, Any]:
         """Organize the data information into a dictionary for display by a styled pandas DataFrame.
         Apply formatting to values that need special handling.
 
