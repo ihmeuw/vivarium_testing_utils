@@ -1,10 +1,8 @@
 from abc import ABC
 from collections.abc import Collection
-from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
-import yaml
 
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
@@ -44,7 +42,6 @@ class RatioMeasureDataBundle:
         self.scenarios = scenarios if scenarios is not None else {}
         self.datasets = self._get_formatted_datasets(data_loader, age_group_df)
         self.weights = self._get_aggregated_weights(data_loader, age_group_df)
-        self.metadata = self.get_metadata(data_loader)
 
     @property
     def dataset_names(self) -> dict[str, str]:
@@ -78,7 +75,6 @@ class RatioMeasureDataBundle:
 
         # Source as string
         data_info["source"] = self.source.value
-        data_info = self.add_model_run_metadata(data_info, data_loader)
 
         # Index columns as comma-separated string
         index_cols = dataframe.index.names
@@ -191,21 +187,3 @@ class RatioMeasureDataBundle:
                 {"value": [weighted_avg]}, index=pd.Index([0], name="index")
             )
         return weighted_avg
-
-    def add_model_run_metadata(
-        self, metadata: dict[str, Any], data_loader: DataLoader
-    ) -> dict[str, Any]:
-        """Add model run metadata to the dictionary."""
-        sim_output_dir = data_loader._sim_output_dir
-        if self.source == DataSource.SIM:
-            metadata["model_run_time"] = sim_output_dir.name
-        elif self.source == DataSource.ARTIFACT:
-            artifact_path = Path(
-                yaml.safe_load((sim_output_dir / "model_specifications.yaml").open("r"))[
-                    "configuration"
-                ]["input_data"]["artifact_path"]
-            )
-            artifact_dir = artifact_path.parent
-            # TODO: get time from ls -la
-        else:
-            raise ValueError(f"Unsupported data source: {self.source}")

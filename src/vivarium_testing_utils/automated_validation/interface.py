@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from typing import Any, Collection, Literal
 
 import pandas as pd
+import yaml
 from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
@@ -20,6 +22,7 @@ from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
 class ValidationContext:
     def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
+        self.resuts_dir = results_dir
         self.data_loader = DataLoader(Path(results_dir))
         self.comparisons: dict[str, Comparison] = {}
         self.age_groups = self._get_age_groups()
@@ -174,7 +177,46 @@ class ValidationContext:
         self.comparisons[comparison_key].verify(stratifications)
 
     def metadata(self, comparison_key: str) -> pd.DataFrame:
-        return self.comparisons[comparison_key].metadata
+        comparison_metadata = self.comparisons[comparison_key].metadata
+        directory_metadata = self._get_directory_metadata()
+
+    def _get_directory_metadata(self) -> dict[str, Any]:
+        """Add model run metadata to the dictionary."""
+        directory_metadata = {}
+        sim_output_dir = self.resuts_dir
+        directory_metadata["model_run_time"] = sim_output_dir.name
+        directory_metadata["artifact_creation_time"] = self._get_artifact_creation_time()
+
+        return directory_metadata
+
+    def _get_artifact_creation_time(self) -> str:
+        """Get the artifact creation time from the artifact file."""
+        artifact_path = Path(
+            yaml.safe_load((self.results_dir / "model_specifications.yaml").open("r"))[
+                "configuration"
+            ]["input_data"]["artifact_path"]
+        )
+        artifact_dir = artifact_path.parent
+        # Get file creation time using ls -la
+        try:
+            result = subprocess.run(
+                ["ls", "-la", str(artifact_path)],
+                cwd=str(artifact_dir),
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            # Parse the ls -la output to extract the timestamp
+            # ls -la output format: permissions links owner group size date time filename
+            ls_output = result.stdout.strip()
+            parts = ls_output.split()
+            if len(parts) >= 8:
+                # Extract date and time (columns 5-7 in ls -la output)
+                date_time = " ".join(parts[5:8])
+                return date_time
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+            # Fallback if ls command fails
+            raise ValueError("Could not determine artifact creation time.")
 
     def get_frame(
         self,
