@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
-from vivarium_testing_utils.automated_validation.data_loader import DataSource
+from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation import calculations
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Measure,
@@ -21,14 +21,8 @@ class Comparison(ABC):
     dataset is the one that is used as a benchmark. The comparison operates on a *measure* of the two datasets,
     typically a derived quantity of the test data such as incidence rate or prevalence."""
 
-    measure: Measure
-    test_source: DataSource
-    test_datasets: dict[str, pd.DataFrame]
-    reference_source: DataSource
-    reference_data: pd.DataFrame
-    reference_weights: pd.DataFrame
-    test_scenarios: dict[str, str] | None
-    reference_scenarios: dict[str, str] | None
+    test_bundle: RatioMeasureDataBundle
+    reference_bundle: RatioMeasureDataBundle
 
     @property
     @abstractmethod
@@ -84,31 +78,14 @@ class FuzzyComparison(Comparison):
 
     def __init__(
         self,
-        measure: RatioMeasure,
-        test_source: DataSource,
-        test_datasets: dict[str, pd.DataFrame],
-        reference_source: DataSource,
-        reference_data: pd.DataFrame,
-        reference_weights: pd.DataFrame,
-        test_scenarios: dict[str, str] | None = None,
-        reference_scenarios: dict[str, str] | None = None,
+        test_bundle: RatioMeasureDataBundle,
+        reference_bundle: RatioMeasureDataBundle,
     ):
-        self.measure: RatioMeasure = measure
-
-        self.test_source = test_source
-        self.test_scenarios: dict[str, str] = test_scenarios if test_scenarios else {}
-        self.test_datasets = {
-            key: calculations.filter_data(dataset, self.test_scenarios, drop_singles=True)
-            for key, dataset in test_datasets.items()
-        }
-        self.reference_source = reference_source
-        self.reference_scenarios: dict[str, str] = (
-            reference_scenarios if reference_scenarios else {}
-        )
-        self.reference_data = calculations.filter_data(
-            reference_data, self.reference_scenarios, drop_singles=True
-        )
-        self.reference_weights = reference_weights
+        self.test_bundle = test_bundle
+        self.reference_bundle = reference_bundle
+        if self.test_bundle.measure != self.reference_bundle.measure:
+            raise ValueError("Test and reference measures must be the same.")
+        self.measure: Measure = self.test_bundle.measure
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -121,8 +98,8 @@ class FuzzyComparison(Comparison):
         - a sample of the input draws.
         """
         measure_key = self.measure.measure_key
-        test_info = self._get_metadata_from_datasets("test")
-        reference_info = self._get_metadata_from_datasets("reference")
+        test_info = self.test_bundle.get_metadata()
+        reference_info = self.reference_bundle.get_metadata()
         return dataframe_utils.format_metadata(measure_key, test_info, reference_info)
 
     def get_frame(
@@ -200,57 +177,6 @@ class FuzzyComparison(Comparison):
     def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def _get_metadata_from_datasets(
-        self, dataset_key: Literal["test", "reference"]
-    ) -> dict[str, Any]:
-        """Organize the data information into a dictionary for display by a styled pandas DataFrame.
-        Apply formatting to values that need special handling.
-
-        Parameters:
-        -----------
-        dataset
-            The dataset to get the metadata from. Either "test" or "reference".
-        Returns:
-        --------
-        A dictionary containing the formatted data information.
-
-        """
-        if dataset_key == "test":
-            source = self.test_source
-            dataframe = self.measure.get_measure_data_from_ratio(**self.test_datasets)
-        elif dataset_key == "reference":
-            source = self.reference_source
-            dataframe = self.reference_data
-        else:
-            raise ValueError("dataset must be either 'test' or 'reference'")
-
-        data_info: dict[str, Any] = {}
-
-        # Source as string
-        data_info["source"] = source.value
-
-        # Index columns as comma-separated string
-        index_cols = dataframe.index.names
-        data_info["index_columns"] = ", ".join(str(col) for col in index_cols)
-
-        # Size as formatted string
-        size = dataframe.shape
-        data_info["size"] = f"{size[0]:,} rows × {size[1]:,} columns"
-
-        # Draw information
-        if DRAW_INDEX in dataframe.index.names:
-            num_draws = dataframe.index.get_level_values(DRAW_INDEX).nunique()
-            data_info["num_draws"] = f"{num_draws:,}"
-            draw_values = list(dataframe.index.get_level_values(DRAW_INDEX).unique())
-            data_info[DRAW_INDEX + "s"] = dataframe_utils.format_draws_sample(draw_values)
-
-        # Seeds information
-        if SEED_INDEX in dataframe.index.names:
-            num_seeds = dataframe.index.get_level_values(SEED_INDEX).nunique()
-            data_info["num_seeds"] = f"{num_seeds:,}"
-
-        return data_info
-
     def _align_datasets(
         self,
         stratifications: Collection[str] | Literal["all"] = "all",
@@ -258,53 +184,25 @@ class FuzzyComparison(Comparison):
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
 
-        # Get union of test data index names
-        combined_test_index_names = {
-            index_name
-            for key in self.test_datasets
-            for index_name in self.test_datasets[key].index.names
-        }
-        reference_index_names = set(self.reference_data.index.names)
-
-        # Get index levels that are only in the test data.
-        test_only_indexes = combined_test_index_names - reference_index_names
-        reference_only_indexes = reference_index_names - combined_test_index_names
-        # Don't aggregate over the scenarios, yet, because we may need them to join the datasets.
-        test_indexes_to_marginalize = test_only_indexes.difference(
-            tuple(self.test_scenarios.keys()), [DRAW_INDEX]
+        intersection = self.test_bundle.index_names.intersection(
+            self.reference_bundle.index_names
         )
-        reference_indexes_to_drop = reference_only_indexes.difference(
-            tuple(self.reference_scenarios.keys()), [DRAW_INDEX]
-        )
-
-        # Aggregate over indices for reference data
         if stratifications == "all":
-            stratifications = [
-                x
-                for x in self.reference_data.index.names
-                if x not in reference_indexes_to_drop
-            ]
-        aggregated_reference_data = self._aggregate_reference_stratifications(
-            self.reference_data,
-            stratifications=stratifications,
-        )
+            stratifications = intersection
+        else:
+            if not set(stratifications).issubset(intersection):
+                raise ValueError("Stratifications must be a subset of the intersection")
 
-        # If the test data has any index levels that are not in the reference data, marginalize
-        # over those index levels.
-        test_idx_to_marginalize = set(test_indexes_to_marginalize).union(
-            set(
-                [
-                    idx
-                    for idx in combined_test_index_names
-                    if idx not in stratifications and idx != DRAW_INDEX
-                ]
-            )
+        aggregated_reference_data = self.reference_bundle.get_measure_data(
+            stratifications=set(stratifications) | {DRAW_INDEX}
+            if DRAW_INDEX in self.reference_bundle.index_names
+            else stratifications,
         )
-        test_datasets = {
-            key: calculations.marginalize(self.test_datasets[key], test_idx_to_marginalize)
-            for key in self.test_datasets
-        }
-        stratified_test_data = self.measure.get_measure_data_from_ratio(**test_datasets)
+        stratified_test_data = self.test_bundle.get_measure_data(
+            stratifications=set(stratifications) | {DRAW_INDEX}
+            if DRAW_INDEX in self.test_bundle.index_names
+            else stratifications,
+        )
 
         stratified_test_data = stratified_test_data.rename(columns={"value": "rate"})
         aggregated_reference_data = aggregated_reference_data.rename(
@@ -322,32 +220,6 @@ class FuzzyComparison(Comparison):
 
         ## At this point, the only non-common index levels should be scenarios and draws.
         return stratified_test_data, aggregated_reference_data
-
-    def _aggregate_reference_stratifications(
-        self, data: pd.DataFrame, stratifications: Collection[str] = ()
-    ) -> pd.DataFrame:
-        for stratification in stratifications:
-            if (
-                stratification not in data.index.names
-                and stratification not in self.reference_weights.index.names
-            ):
-                raise ValueError(
-                    f"Stratum '{stratification}' not found in reference data or weights."
-                )
-
-        stratifications = list(stratifications)
-        # Retain input_draw, _aggregate_over_draws is the only place we should aggregate over draws.
-        if DRAW_INDEX in data.index.names and DRAW_INDEX not in stratifications:
-            stratifications.append(DRAW_INDEX)
-        weighted_avg = calculations.weighted_average(
-            data, self.reference_weights, stratifications
-        )
-        # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
-        if not isinstance(weighted_avg, pd.DataFrame):
-            weighted_avg = pd.DataFrame(
-                {"value": [weighted_avg]}, index=pd.Index([0], name="index")
-            )
-        return weighted_avg
 
     def _cast_across_indexes(
         self, test_data: pd.DataFrame, reference_data: pd.DataFrame

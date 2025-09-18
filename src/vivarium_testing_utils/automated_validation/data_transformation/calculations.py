@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Collection, Iterable, Mapping
+from typing import Any, Collection, Literal, Mapping
 
 import numpy as np
 import pandas as pd
@@ -74,27 +74,45 @@ def ratio(numerator_data: pd.DataFrame, denominator_data: pd.DataFrame) -> pd.Da
     return numerator_data / denominator_data
 
 
-def aggregate_sum(data: pd.DataFrame, groupby_cols: Collection[str]) -> pd.DataFrame:
+def aggregate_sum(
+    data: pd.DataFrame, groupby_cols: Collection[str] | Literal["all"]
+) -> pd.DataFrame:
     """Aggregate the dataframe over the specified index columns by summing."""
-    if groupby_cols == []:
+    if not groupby_cols:
         data = pd.DataFrame(
             {"value": [data["value"].sum()]}, index=pd.Index([0], name="index")
         )
         return data
+    if groupby_cols == "all":
+        groupby_cols = data.index.names
+    ordered_cols = [col for col in data.index.names if col in groupby_cols]
     # Use observed=True to avoid sorting categorical levels
     # This is a hack, because we're not technically using pd.Categorical here.
     # TODO: MIC-6090  Use the right abstractions for categorical index columns.
     # You might need to keep this observed=True even after doing that.
-    return data.groupby(list(groupby_cols), sort=False, observed=True).sum()
+    result = data.groupby(list(groupby_cols), sort=False, observed=True).sum()
+
+    # Only reorder levels if the result has a MultiIndex (hierarchical index)
+    return (
+        result.reorder_levels(ordered_cols)
+        if isinstance(result.index, pd.MultiIndex) and len(ordered_cols) > 1
+        else result
+    )
 
 
-def stratify(data: pd.DataFrame, stratification_cols: Collection[str]) -> pd.DataFrame:
+def stratify(
+    data: pd.DataFrame, stratification_cols: Collection[str] | Literal["all"]
+) -> pd.DataFrame:
     """Stratify the data by the index columns, summing over everything else. Syntactic sugar for aggregate."""
     return aggregate_sum(data, stratification_cols)
 
 
-def marginalize(data: pd.DataFrame, marginalize_cols: Collection[str]) -> pd.DataFrame:
+def marginalize(
+    data: pd.DataFrame, marginalize_cols: Collection[str] | Literal["all"]
+) -> pd.DataFrame:
     """Sum over marginalize columns, keeping the rest. Syntactic sugar for aggregate."""
+    if marginalize_cols == "all":
+        marginalize_cols = []
     return aggregate_sum(data, [x for x in data.index.names if x not in marginalize_cols])
 
 
@@ -140,7 +158,7 @@ def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
 def weighted_average(
     data: pd.DataFrame,
     weights: pd.DataFrame,
-    stratifications: list[str] = [],
+    stratifications: list[str] | Literal["all"] = [],
 ) -> pd.DataFrame | float:
     """Calculate a weighted average of the data using the provided weights.
 
@@ -216,7 +234,7 @@ def weighted_average(
     extra_levels = weights_index_names - data_index_names
     if extra_levels:
         # Group by the levels that match data's index and sum over the extra levels
-        weights = weights.groupby(level=data.index.names, sort=False, observed=True).sum()
+        weights = aggregate_sum(weights, data.index.names)
 
     # Indexes should be equal at this point
     if not data.index.equals(weights.index):
@@ -229,10 +247,6 @@ def weighted_average(
         # Return a single float value instead of a one row pandas series
         return float(((data.mul(weights).sum()) / weights.sum()).item())
 
-    numerator = (
-        data.mul(weights).groupby(level=stratifications, sort=False, observed=True).sum()
-    )
-    denominator = weights.groupby(level=stratifications, sort=False, observed=True).sum()
-    weighted_avg = numerator / denominator
-
-    return weighted_avg
+    numerator = aggregate_sum(data.mul(weights), stratifications)
+    denominator = aggregate_sum(weights, stratifications)
+    return ratio(numerator, denominator)

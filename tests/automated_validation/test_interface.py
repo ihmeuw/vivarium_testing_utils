@@ -7,9 +7,8 @@ from pandas.testing import assert_frame_equal
 from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
-from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import age_groups
-from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
 
 
@@ -19,7 +18,7 @@ def test_context_initialization(
     """Ensure that we can initialize a ValidationContext with a simulation result directory"""
     context = ValidationContext(sim_result_dir, scenario_columns=["foo"])
     assert isinstance(context, ValidationContext)
-    assert isinstance(context._data_loader, DataLoader)
+    assert isinstance(context.data_loader, DataLoader)
     assert_frame_equal(context.age_groups, sample_age_group_df)
     assert context.comparisons == {}
     assert context.scenario_columns == ["foo"]
@@ -114,12 +113,12 @@ def test_add_comparison(
     assert measure_key in context.comparisons
     comparison = context.comparisons[measure_key]
 
-    assert comparison.measure.measure_key == measure_key
+    assert comparison.measure.measure_key == measure_key  # type: ignore [attr-defined]
 
     # Test that test_data is now a dictionary with numerator and denominator
-    assert isinstance(comparison.test_datasets, dict)
-    assert "numerator_data" in comparison.test_datasets
-    assert "denominator_data" in comparison.test_datasets
+    assert isinstance(comparison.test_bundle.datasets, dict)
+    assert "numerator_data" in comparison.test_bundle.datasets
+    assert "denominator_data" in comparison.test_bundle.datasets
 
     expected_index = pd.MultiIndex.from_tuples(
         [("A", "baseline"), ("B", "baseline")],
@@ -139,13 +138,15 @@ def test_add_comparison(
         index=expected_index,
     )
 
-    assert comparison.test_datasets["numerator_data"].equals(expected_numerator_data)
-    assert comparison.test_datasets["denominator_data"].equals(expected_denominator_data)
+    assert comparison.test_bundle.datasets["numerator_data"].equals(expected_numerator_data)
+    assert comparison.test_bundle.datasets["denominator_data"].equals(
+        expected_denominator_data
+    )
     # Update artifact reference data to match simulation format
     artifact_disease_incidence = age_groups.format_dataframe_from_age_bin_df(
         artifact_disease_incidence, context.age_groups
     )
-    assert comparison.reference_data.equals(artifact_disease_incidence)
+    assert comparison.reference_bundle.datasets["data"].equals(artifact_disease_incidence)
 
 
 def test_get_frame(sim_result_dir: Path) -> None:

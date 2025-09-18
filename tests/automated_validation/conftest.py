@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest import mock
 
 import pandas as pd
 import pytest
@@ -6,11 +7,14 @@ import yaml
 from pytest import TempPathFactory
 from vivarium.framework.artifact import Artifact
 
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import (
     _convert_to_total_person_time,
 )
-from vivarium_testing_utils.automated_validation.data_transformation import utils
+from vivarium_testing_utils.automated_validation.data_transformation import (
+    calculations,
+    utils,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AGE_END_COLUMN,
     AGE_GROUP_COLUMN,
@@ -21,6 +25,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
     SingleNumericColumn,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    RatioMeasure,
 )
 
 
@@ -537,3 +544,62 @@ def _artifact_keys_mapper() -> dict[str, pd.DataFrame | dict[str, str]]:
         "population.structure": _population_structure,
         "cause.disease.prevalence": _artifact_prevalence,
     }
+
+
+@pytest.fixture
+def test_data() -> dict[str, pd.DataFrame]:
+    """A sample test data dictionary with separate numerator and denominator DataFrames."""
+    index = pd.MultiIndex.from_tuples(
+        [
+            ("2020", "male", 0, 1, 1337, "baseline"),
+            ("2020", "female", 0, 5, 1337, "baseline"),
+            ("2025", "male", 0, 2, 42, "baseline"),
+            ("2025", "male", 0, 2, 50, "baseline"),  # Add a seed to get marginalized over
+        ],
+        names=["year", "sex", "age", DRAW_INDEX, SEED_INDEX, "scenario"],
+    )
+    numerator_df = pd.DataFrame({"value": [10, 20, 30, 35]}, index=index)
+    denominator_df = pd.DataFrame({"value": [100, 100, 100, 100]}, index=index)
+    return {"numerator_data": numerator_df, "denominator_data": denominator_df}
+
+
+@pytest.fixture
+def reference_data() -> pd.DataFrame:
+    """A sample test data DataFrame without draws."""
+    return pd.DataFrame(
+        {"value": [0.12, 0.2, 0.29]},
+        index=pd.MultiIndex.from_tuples(
+            [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
+            names=["year", "sex", "age"],
+        ),
+    )
+
+
+@pytest.fixture
+def mock_ratio_measure() -> RatioMeasure:
+    """Create generic mock RatioMeasure for testing."""
+    # Create mock formatters
+    mock_numerator = mock.Mock()
+    mock_numerator.name = "numerator"
+
+    mock_denominator = mock.Mock()
+    mock_denominator.name = "denominator"
+
+    measure = mock.Mock(spec=RatioMeasure)
+    measure.measure_key = "mock_measure"
+    measure.numerator = mock_numerator
+    measure.denominator = mock_denominator
+    measure.get_measure_data_from_ratio.side_effect = calculations.ratio
+    return measure
+
+
+@pytest.fixture
+def reference_weights() -> pd.DataFrame:
+    """A sample weights DataFrame."""
+    return pd.DataFrame(
+        {"value": [0.15, 0.25, 0.35]},
+        index=pd.MultiIndex.from_tuples(
+            [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
+            names=["year", "sex", "age"],
+        ),
+    )

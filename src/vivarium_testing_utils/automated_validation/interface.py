@@ -6,12 +6,10 @@ from typing import Any, Collection, Literal
 import pandas as pd
 from matplotlib.figure import Figure
 
+from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
-from vivarium_testing_utils.automated_validation.data_transformation import (
-    age_groups,
-    measures,
-)
+from vivarium_testing_utils.automated_validation.data_transformation import measures
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CategoricalRelativeRisk,
     Measure,
@@ -22,22 +20,22 @@ from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
 class ValidationContext:
     def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
-        self._data_loader = DataLoader(Path(results_dir))
+        self.data_loader = DataLoader(Path(results_dir))
         self.comparisons: dict[str, Comparison] = {}
         self.age_groups = self._get_age_groups()
         self.scenario_columns = scenario_columns
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
-        return self._data_loader.get_sim_outputs()
+        return self.data_loader.get_sim_outputs()
 
     def get_artifact_keys(self) -> list[str]:
         """Get a list of the artifact keys available to compare against."""
-        return self._data_loader.get_artifact_keys()
+        return self.data_loader.get_artifact_keys()
 
     def get_raw_data(self, data_key: str, source: str) -> Any:
         """Return a copy of the data for manual inspection."""
-        return self._data_loader.get_data(data_key, DataSource.from_str(source))
+        return self.data_loader.get_data(data_key, DataSource.from_str(source))
 
     def upload_custom_data(
         self, data_key: str, data: pd.DataFrame | pd.Series[float]
@@ -45,7 +43,7 @@ class ValidationContext:
         """Upload a custom DataFrame or Series to the context given by a data key."""
         if isinstance(data, pd.Series):
             data = data.to_frame(name="value")
-        self._data_loader.upload_custom_data(data_key, data)
+        self.data_loader.upload_custom_data(data_key, data)
 
     def add_comparison(
         self,
@@ -54,7 +52,6 @@ class ValidationContext:
         ref_source: str,
         test_scenarios: dict[str, str] = {},
         ref_scenarios: dict[str, str] = {},
-        stratifications: list[str] = [],
     ) -> None:
         """Add a comparison to the context given a measure key and data sources."""
         if measure_key.endswith(".relative_risk"):
@@ -81,7 +78,6 @@ class ValidationContext:
         ref_source: str,
         test_scenarios: dict[str, str] = {},
         ref_scenarios: dict[str, str] = {},
-        stratifications: list[str] = [],
         risk_stratification_column: str | None = None,
         risk_state_mapping: dict[str, str] | None = None,
     ) -> None:
@@ -105,8 +101,6 @@ class ValidationContext:
             Dictionary of scenario filters for test data
         ref_scenarios
             Dictionary of scenario filters for reference data
-        stratifications
-            List of stratification columns
         """
 
         measure = CategoricalRelativeRisk(
@@ -156,40 +150,23 @@ class ValidationContext:
                     f"You are missing scenarios for: {set(self.scenario_columns) - set(scenarios.keys())}."
                 )
 
-        test_raw_datasets = self._data_loader._get_raw_data_from_source(
-            measure.get_required_datasets(test_source_enum), test_source_enum
+        test_data_bundle = RatioMeasureDataBundle(
+            measure=measure,
+            source=test_source_enum,
+            data_loader=self.data_loader,
+            age_group_df=self.age_groups,
+            scenarios=test_scenarios,
         )
-        test_datasets = measure.get_ratio_datasets_from_sim(
-            **test_raw_datasets,
-        )
-        test_datasets = {
-            dataset_name: age_groups.format_dataframe_from_age_bin_df(
-                dataset, self.age_groups
-            )
-            for dataset_name, dataset in test_datasets.items()
-        }
-        ref_raw_datasets = self._data_loader._get_raw_data_from_source(
-            measure.get_required_datasets(ref_source_enum), ref_source_enum
-        )
-        ref_data = measure.get_measure_data(ref_source_enum, **ref_raw_datasets)
-        ref_data = age_groups.format_dataframe_from_age_bin_df(ref_data, self.age_groups)
-        ref_weight_raw_data = self._data_loader._get_raw_data_from_source(
-            measure.rate_aggregation_weights.weight_keys, ref_source_enum
-        )
-        ref_weights = measure.rate_aggregation_weights.get_weights(**ref_weight_raw_data)
-        ref_weights = age_groups.format_dataframe_from_age_bin_df(
-            ref_weights, self.age_groups
+        ref_data_bundle = RatioMeasureDataBundle(
+            measure=measure,
+            source=ref_source_enum,
+            data_loader=self.data_loader,
+            age_group_df=self.age_groups,
+            scenarios=ref_scenarios,
         )
 
         comparison = FuzzyComparison(
-            measure=measure,
-            test_source=test_source_enum,
-            test_datasets=test_datasets,
-            reference_source=ref_source_enum,
-            reference_data=ref_data,
-            reference_weights=ref_weights,
-            test_scenarios=test_scenarios,
-            reference_scenarios=ref_scenarios,
+            test_bundle=test_data_bundle, reference_bundle=ref_data_bundle
         )
         self.comparisons[measure.measure_key] = comparison
 
@@ -271,7 +248,7 @@ class ValidationContext:
         from vivarium.framework.artifact.artifact import ArtifactException
 
         try:
-            age_groups: pd.DataFrame = self._data_loader.get_data(
+            age_groups: pd.DataFrame = self.data_loader.get_data(
                 "population.age_bins", DataSource.ARTIFACT
             )
         # If we can't find the age groups in the artifact, get them directly from vivarium inputs

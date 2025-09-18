@@ -327,3 +327,10 @@ def test_weighted_average_extra_weights_index(fish_data: pd.DataFrame) -> None:
     data = data.groupby("sex", sort=False, observed=True).sum()
     weighted_avg = weighted_average(data, weights)
     assert weighted_avg == ((5 * (20 + 100)) + (12 * (2 + 50))) / (20 + 100 + 2 + 50)
+
+
+def test_aggregate_sum_all(fish_data: pd.DataFrame) -> None:
+    """Test aggregate_sum when aggregating over all index levels."""
+    data = pd.DataFrame({"value": fish_data["value"]}, index=fish_data.index)
+    aggregate = aggregate_sum(data, "all")
+    assert aggregate.equals(data)
