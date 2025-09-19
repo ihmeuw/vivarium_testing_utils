@@ -12,5 +12,4 @@ from vivarium_testing_utils.__about__ import (
     __uri__,
 )
 from vivarium_testing_utils._version import __version__
-from vivarium_testing_utils.automated_validation import ValidationContext
 from vivarium_testing_utils.fuzzy_checker import FuzzyChecker
