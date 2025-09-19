@@ -169,6 +169,36 @@ def test_get_frame(sim_result_dir: Path) -> None:
     assert set(data2.columns) == {"test_rate", "reference_rate", "percent_error"}
 
 
+def test_metadata(sim_result_dir: Path, mocker: MockFixture) -> None:
+    """Ensure that we can summarize a comparison"""
+    measure_key = "cause.disease.incidence_rate"
+    context = ValidationContext(sim_result_dir)
+    context.add_comparison(measure_key, "sim", "artifact")
+
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.interface.Path.name",
+        "2025_01_01_00_00_00",
+    )
+    mocker.patch(
+        "vivarium_testing_utils.automated_validation.interface.os.path.getmtime",
+        return_value=1735718340,  # Represents Dec 31 23:59
+    )
+    metadata = context.metadata(measure_key)
+
+    assert set(metadata.index) == {
+        "Measure Key",
+        "Source",
+        "Index Columns",
+        "Size",
+        "Num Draws",
+        "Input Draws",
+        "Run Time",
+    }
+    # Metadata is already tesed with comparison and bundle. Run time is the only metadata from interface
+    assert metadata["Test Data"].loc["Run Time"] == "Jan 01 00:00"
+    assert metadata["Reference Data"]["Run Time"] == "Dec 31 23:59"
+
+
 ######################################
 # Tests for NotImplementedError cases#
 ######################################
@@ -183,12 +213,6 @@ def test_not_implemented(sim_result_dir: Path) -> None:
         match="Comparison for artifact source not implemented. Must be SIM.",
     ):
         context.add_comparison("cause.disease.incidence_rate", "artifact", "gbd")
-
-
-@pytest.mark.skip("Not implemented")
-def test_metadata() -> None:
-    """Ensure that we can summarize a comparison"""
-    pass
 
 
 def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:

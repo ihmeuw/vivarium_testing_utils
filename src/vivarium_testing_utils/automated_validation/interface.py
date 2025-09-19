@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import subprocess
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Collection, Literal
@@ -191,7 +191,7 @@ class ValidationContext:
         artifact_run_time = self._get_artifact_creation_time()
         directory_metadata = pd.DataFrame(
             {
-                "Property": ["Run time"],
+                "Property": ["Run Time"],
                 "Test Data": [sim_dt],
                 "Reference Data": [artifact_run_time],
             }
@@ -206,26 +206,10 @@ class ValidationContext:
                 "configuration"
             ]["input_data"]["artifact_path"]
         )
-        artifact_dir = artifact_path.parent
+        os_time = os.path.getmtime(artifact_path)
+        artifact_time = datetime.fromtimestamp(os_time).strftime("%b %d %H:%M")
 
-        try:
-            result = subprocess.run(
-                ["ls", "-la", str(artifact_path)],
-                cwd=str(artifact_dir),
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            # Parse the ls -la output to extract the timestamp
-            # ls -la output format: permissions links owner group size date time filename
-            ls_output = result.stdout.strip()
-            parts = ls_output.split()
-            # Extract date and time (columns 5-7 in ls -la output)
-            # Returns month and day time
-            date_time = " ".join(parts[5:8])
-            return date_time
-        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
-            raise ValueError("Could not determine artifact creation time.")
+        return artifact_time
 
     def get_frame(
         self,
