@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import os
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Collection, Literal
 
 import pandas as pd
+import yaml
 from matplotlib.figure import Figure
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
@@ -20,7 +23,8 @@ from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
 class ValidationContext:
     def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
-        self.data_loader = DataLoader(Path(results_dir))
+        self.results_dir = Path(results_dir)
+        self.data_loader = DataLoader(self.results_dir)
         self.comparisons: dict[str, Comparison] = {}
         self.age_groups = self._get_age_groups()
         self.scenario_columns = scenario_columns
@@ -174,7 +178,39 @@ class ValidationContext:
         self.comparisons[comparison_key].verify(stratifications)
 
     def metadata(self, comparison_key: str) -> pd.DataFrame:
-        return self.comparisons[comparison_key].metadata
+        comparison_metadata = self.comparisons[comparison_key].metadata
+        directory_metadata = self._get_directory_metadata()
+
+        return pd.concat([comparison_metadata, directory_metadata])
+
+    def _get_directory_metadata(self) -> pd.DataFrame:
+        """Add model run metadata to the dictionary."""
+        sim_run_time = self.results_dir.name
+        sim_dt = datetime.strptime(sim_run_time, "%Y_%m_%d_%H_%M_%S").strftime(
+            "%b %d %H:%M %Y"
+        )
+        artifact_run_time = self._get_artifact_creation_time()
+        directory_metadata = pd.DataFrame(
+            {
+                "Property": ["Run Time"],
+                "Test Data": [sim_dt],
+                "Reference Data": [artifact_run_time],
+            }
+        )
+
+        return directory_metadata.set_index("Property")
+
+    def _get_artifact_creation_time(self) -> str:
+        """Get the artifact creation time from the artifact file."""
+        artifact_path = Path(
+            yaml.safe_load((self.results_dir / "model_specification.yaml").open("r"))[
+                "configuration"
+            ]["input_data"]["artifact_path"]
+        )
+        os_time = os.path.getmtime(artifact_path)
+        artifact_time = datetime.fromtimestamp(os_time).strftime("%b %d %H:%M %Y")
+
+        return artifact_time
 
     def get_frame(
         self,
