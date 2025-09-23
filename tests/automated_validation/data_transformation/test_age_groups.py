@@ -323,3 +323,47 @@ def test_format_dataframe_from_age_bin_df(
         formatted_df,
         person_time_data,
     )
+
+
+def test_resolve_special_age_groups() -> None:
+    """Test we can resolve special age groups."""
+
+    data = pd.DataFrame(
+        {
+            "value": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cause", "disease", "early_neonatal"),
+                ("cause", "disease", "late_neonatal"),
+                ("cause", "disease", "1-5_months"),
+                ("cause", "disease", "6-11_months"),
+                ("cause", "disease", "12-23_months"),
+                ("cause", "disease", "2_to_4"),
+                ("cause", "disease", "5_to_9"),
+            ],
+            names=["measure", "entity", AGE_GROUP_COLUMN],
+        ),
+    )
+
+    # Make sample age group to match GBD format
+    age_bins = pd.DataFrame(
+        {
+            AGE_GROUP_COLUMN: [
+                "Early Neonatal",
+                "Late Neonatal",
+                "1-5 months",
+                "6-11 months",
+                "12-23 months",
+                "2 to 4",
+                "5 to 9",
+            ],
+            AGE_START_COLUMN: [0.0, 7 / 365.0, 28 / 365.0, 0.5, 1.0, 2.0, 5.0],
+            AGE_END_COLUMN: [7 / 365.0, 28 / 365.0, 0.5, 1.0, 2.0, 5.0, 10.0],
+        }
+    )
+    age_bins = age_bins.set_index([AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN])
+
+    formatted_df = format_dataframe_from_age_bin_df(data, age_bins)
+    context_age_schema = AgeSchema.from_dataframe(age_bins)
+    pd.testing.assert_frame_equal(formatted_df, _format_dataframe(context_age_schema, data))

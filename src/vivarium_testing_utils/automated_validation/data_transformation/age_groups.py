@@ -104,6 +104,15 @@ class AgeGroup:
             ValueError
                 If the name does not match the expected format.
         """
+        # Special case for "early_neonatal", "late_neonatal", and "95_plus"
+        special_age_groups = {
+            "early_neonatal": ("Early Neonatal", 0.0, 7 / 365.0),
+            "late_neonatal": ("Late Neonatal", 7 / 365.0, 28 / 365.0),
+            "95_plus": ("95 Plus", 95.0, 125.0),
+        }
+        if name in special_age_groups:
+            special_name, start, end = special_age_groups[name]
+            return cls(special_name, start, end)
         # Extract numbers and unit from the group name
         pattern = r"(\d+(?:\.\d+)?)_to_(\d+(?:\.\d+)?)(?:_(\w+))?"
         match = re.match(pattern, name.lower())
