@@ -186,8 +186,9 @@ class ValidationContext:
     def _get_directory_metadata(self) -> pd.DataFrame:
         """Add model run metadata to the dictionary."""
         sim_run_time = self.results_dir.name
-        # Format sim directory time to be same as artifact time: Month Day Hour:Minute
-        sim_dt = datetime.strptime(sim_run_time, "%Y_%m_%d_%H_%M_%S").strftime("%b %d %H:%M")
+        sim_dt = datetime.strptime(sim_run_time, "%Y_%m_%d_%H_%M_%S").strftime(
+            "%b %d %H:%M %Y"
+        )
         artifact_run_time = self._get_artifact_creation_time()
         directory_metadata = pd.DataFrame(
             {
@@ -207,7 +208,7 @@ class ValidationContext:
             ]["input_data"]["artifact_path"]
         )
         os_time = os.path.getmtime(artifact_path)
-        artifact_time = datetime.fromtimestamp(os_time).strftime("%b %d %H:%M")
+        artifact_time = datetime.fromtimestamp(os_time).strftime("%b %d %H:%M %Y")
 
         return artifact_time
 

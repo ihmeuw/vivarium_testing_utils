@@ -195,8 +195,8 @@ def test_metadata(sim_result_dir: Path, mocker: MockFixture) -> None:
         "Run Time",
     }
     # Metadata is already tesed with comparison and bundle. Run time is the only metadata from interface
-    assert metadata["Test Data"].loc["Run Time"] == "Jan 01 00:00"
-    assert metadata["Reference Data"]["Run Time"] == "Dec 31 23:59"
+    assert metadata["Test Data"].loc["Run Time"] == "Jan 01 00:00 2025"
+    assert metadata["Reference Data"]["Run Time"] == "Dec 31 23:59 2024"
 
 
 ######################################
