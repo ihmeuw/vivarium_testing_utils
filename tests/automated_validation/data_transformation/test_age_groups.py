@@ -54,10 +54,10 @@ def test_age_group_eq() -> None:
 @pytest.mark.parametrize(
     "string, ages",
     [
-        ("0_to_5_years", (0, 5)),
-        ("0_to_6_months", (0, 0.5)),
-        ("0_to_8_days", (0, 0.02191780821917808)),
-        ("14_to_17", (14, 17)),
+        ("0_to_4_years", (0, 5)),
+        ("0_to_5_months", (0, 0.5)),
+        ("0_to_7_days", (0, 0.02191780821917808)),
+        ("14_to_16", (14, 17)),
     ],
 )
 def test_age_group_from_string(string: str, ages: AgeRange) -> None:
@@ -200,15 +200,15 @@ def test_age_schema_can_coerce_to() -> None:
 
 def test_age_schema_get_transform_matrix(sample_age_schema: AgeSchema) -> None:
     """Test we can get a transform matrix between two schemas."""
-    new_schema = AgeSchema.from_tuples([("0_to_7.5", 0, 7.5), ("7.5_to_15", 7.5, 15)])
+    new_schema = AgeSchema.from_tuples([("0_to_7.4", 0, 7.5), ("7.5_to_14", 7.5, 15)])
     transform_matrix = _get_transform_matrix(sample_age_schema, new_schema)
     expected_matrix = pd.DataFrame(
         {
-            "0_to_5": [1.0, 0.0],
-            "5_to_10": [0.5, 0.5],
-            "10_to_15": [0.0, 1.0],
+            "0_to_4": [1.0, 0.0],
+            "5_to_9": [0.5, 0.5],
+            "10_to_14": [0.0, 1.0],
         },
-        index=["0_to_7.5", "7.5_to_15"],
+        index=["0_to_7.4", "7.5_to_14"],
     )
 
     pd.testing.assert_frame_equal(transform_matrix, expected_matrix)
@@ -237,8 +237,8 @@ def test_age_schema_format_dataframe_invalid(sample_age_schema: AgeSchema) -> No
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("cause", "disease", "25_to_30"),
-                ("cause", "disease", "30_to_40"),
+                ("cause", "disease", "25_to_29"),
+                ("cause", "disease", "30_to_39"),
             ],
             names=["cause", "disease", AGE_GROUP_COLUMN],
         ),
