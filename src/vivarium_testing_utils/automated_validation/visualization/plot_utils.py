@@ -292,7 +292,10 @@ def _get_combined_data(
     elif DRAW_INDEX not in test_data.index.names and DRAW_INDEX in reference_data.index.names:
         test_data = test_data.assign(input_draw=np.nan).set_index([DRAW_INDEX], append=True)
 
-    test_data = test_data.reorder_levels(reference_data.index.names)
+    # Reorder levels if there is more than one level
+    if len(reference_data.index.names) > 1:
+        test_data = test_data.reorder_levels(reference_data.index.names)
+
     combined_data = pd.concat(
         [test_data, reference_data],
         keys=[
