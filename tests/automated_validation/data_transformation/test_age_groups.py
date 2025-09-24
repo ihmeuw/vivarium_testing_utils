@@ -368,3 +368,37 @@ def test_resolve_special_age_groups() -> None:
     formatted_df = format_dataframe_from_age_bin_df(data, age_bins)
     context_age_schema = AgeSchema.from_dataframe(age_bins)
     pd.testing.assert_frame_equal(formatted_df, _format_dataframe(context_age_schema, data))
+
+    # Test older age groups for 95 plus special case
+    old_but_gold = pd.DataFrame(
+        {
+            "value": [1.0, 2.0, 3.0, 4.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cause", "disease", "80_to_84"),
+                ("cause", "disease", "85_to_89"),
+                ("cause", "disease", "90_to_94"),
+                ("cause", "disease", "95_plus"),
+            ],
+            names=["measure", "entity", AGE_GROUP_COLUMN],
+        ),
+    )
+    oldies = pd.DataFrame(
+        {
+            AGE_GROUP_COLUMN: [
+                "80 to 84",
+                "85 to 89",
+                "90 to 94",
+                "95 plus",
+            ],
+            AGE_START_COLUMN: [80.0, 85.0, 90.0, 95.0],
+            AGE_END_COLUMN: [85.0, 90.0, 95.0, 125.0],
+        }
+    )
+    oldies = oldies.set_index([AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN])
+    formatted_oldies = format_dataframe_from_age_bin_df(old_but_gold, oldies)
+    context_oldies_schema = AgeSchema.from_dataframe(oldies)
+    pd.testing.assert_frame_equal(
+        formatted_oldies, _format_dataframe(context_oldies_schema, old_but_gold)
+    )
