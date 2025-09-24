@@ -108,20 +108,22 @@ class AgeGroup:
         special_age_groups = {
             "early_neonatal": ("Early Neonatal", 0.0, 7 / 365.0),
             "late_neonatal": ("Late Neonatal", 7 / 365.0, 28 / 365.0),
+            # 1-5 months is not exactly 1 month so it is special cased
+            "1-5_months": ("1-5 Months", 28.0 / 365.0, 0.5),
             "95_plus": ("95 Plus", 95.0, 125.0),
         }
         if name in special_age_groups:
             special_name, start, end = special_age_groups[name]
             return cls(special_name, start, end)
         # Extract numbers and unit from the group name
-        pattern = r"(\d+(?:\.\d+)?)_to_(\d+(?:\.\d+)?)(?:_(\w+))?"
+        pattern = r"(\d+(?:\.\d+)?)(?:_to_|-)(\d+(?:\.\d+)?)(?:_(\w+))?"
         match = re.match(pattern, name.lower())
 
         if not match:
             raise ValueError(f"Invalid age group name format: {name}")
 
-        start, end, unit = match.groups()
-        start, end = float(start), float(end)
+        start_str, end_str, unit = match.groups()
+        start, end = float(start_str), float(end_str) + 1
 
         # Default to years if unit is not specified
         if unit is None:

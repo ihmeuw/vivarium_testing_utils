@@ -328,6 +328,7 @@ def test_format_dataframe_from_age_bin_df(
 def test_resolve_special_age_groups() -> None:
     """Test we can resolve special age groups."""
 
+    # Format of VPH observer outputs
     data = pd.DataFrame(
         {
             "value": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
