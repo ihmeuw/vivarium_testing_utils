@@ -52,7 +52,11 @@ def plot_comparison(
     title = comparison.measure.title
 
     # Add the scenario columns to the list of values to append to the title.
-    for modifiers in (comparison.test_scenarios, comparison.reference_scenarios, condition):
+    for modifiers in (
+        comparison.test_bundle.scenarios,
+        comparison.reference_bundle.scenarios,
+        condition,
+    ):
         title = _append_condition_to_title(modifiers, title)
 
     combined_data = _get_combined_data(comparison, stratifications)
@@ -273,9 +277,11 @@ def _get_combined_data(
     test_data, reference_data = comparison._align_datasets(stratifications)
 
     # Drop the scenario columns, which should already be filtered.
-    test_data = calculations.filter_data(test_data, filter_cols=comparison.test_scenarios)
+    test_data = calculations.filter_data(
+        test_data, filter_cols=comparison.test_bundle.scenarios
+    )
     reference_data = calculations.filter_data(
-        reference_data, filter_cols=comparison.reference_scenarios
+        reference_data, filter_cols=comparison.reference_bundle.scenarios
     )
 
     # Add input draw with placeholder if necessary
@@ -290,8 +296,8 @@ def _get_combined_data(
     combined_data = pd.concat(
         [test_data, reference_data],
         keys=[
-            comparison.test_source.name.lower().capitalize(),
-            comparison.reference_source.name.lower().capitalize(),
+            comparison.test_bundle.source.name.lower().capitalize(),
+            comparison.reference_bundle.source.name.lower().capitalize(),
         ],
         names=["source"],
     )
