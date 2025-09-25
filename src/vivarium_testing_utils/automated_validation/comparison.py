@@ -130,8 +130,21 @@ class FuzzyComparison(Comparison):
         A DataFrame of the comparison data.
         """
 
-        test_proportion_data, reference_data = self._align_datasets(
-            stratifications, aggregate_draws
+        test_proportion_data, reference_data = self._align_datasets(stratifications)
+        # Renaming and aggregating draws happens here instead of _align datasets because 
+        # we do not want this to happen when we plot the data
+        test_proportion_data = test_proportion_data.rename(columns={"value": "rate"})
+        reference_data = reference_data.rename(
+            columns={"value": "rate"}
+        )
+        if aggregate_draws:
+            test_proportion_data = self._aggregate_over_draws(test_proportion_data)
+            reference_data = self._aggregate_over_draws(reference_data)
+        test_proportion_data = test_proportion_data.add_prefix("test_")
+        reference_data = reference_data.add_prefix("reference_")
+
+        test_proportion_data, reference_data = self._cast_across_indexes(
+            test_proportion_data, reference_data
         )
         merged_data = pd.merge(
             test_proportion_data, reference_data, left_index=True, right_index=True
@@ -180,7 +193,6 @@ class FuzzyComparison(Comparison):
     def _align_datasets(
         self,
         stratifications: Collection[str] | Literal["all"] = "all",
-        aggregate_draws: bool = False,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Resolve any index mismatches between the test and reference datasets."""
 
@@ -202,20 +214,6 @@ class FuzzyComparison(Comparison):
             stratifications=set(stratifications) | {DRAW_INDEX}
             if DRAW_INDEX in self.test_bundle.index_names
             else stratifications,
-        )
-
-        stratified_test_data = stratified_test_data.rename(columns={"value": "rate"})
-        aggregated_reference_data = aggregated_reference_data.rename(
-            columns={"value": "rate"}
-        )
-        if aggregate_draws:
-            stratified_test_data = self._aggregate_over_draws(stratified_test_data)
-            aggregated_reference_data = self._aggregate_over_draws(aggregated_reference_data)
-        stratified_test_data = stratified_test_data.add_prefix("test_")
-        aggregated_reference_data = aggregated_reference_data.add_prefix("reference_")
-
-        stratified_test_data, aggregated_reference_data = self._cast_across_indexes(
-            stratified_test_data, aggregated_reference_data
         )
 
         ## At this point, the only non-common index levels should be scenarios and draws.

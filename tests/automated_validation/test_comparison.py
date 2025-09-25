@@ -291,7 +291,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
     aligned_test_data, aligned_reference_data = comparison._align_datasets()
     pd.testing.assert_frame_equal(
         aligned_reference_data,
-        reference_bundle.datasets["data"].rename(columns={"value": "reference_rate"}),
+        reference_bundle.datasets["data"],
     )
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]
@@ -306,7 +306,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
     assert_frame_equal(
         aligned_test_data,
         pd.DataFrame(
-            {"test_rate": expected_values},
+            {"value": expected_values},
             index=expected_index,
         ),
     )
