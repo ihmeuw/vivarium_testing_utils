@@ -258,7 +258,7 @@ class ValidationContext:
         comparison_key: str,
         type: str,
         condition: dict[str, Any] = {},
-        stratifications: Collection[str] = (),
+        stratifications: Collection[str] | Literal["all"] = "all",
         **kwargs: Any,
     ) -> Figure | list[Figure]:
         return plot_utils.plot_comparison(

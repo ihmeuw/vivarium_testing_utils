@@ -1,6 +1,6 @@
 # mypy: ignore-errors
 from collections.abc import Collection
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -17,7 +17,7 @@ def plot_comparison(
     comparison: Comparison,
     type: str,
     condition: dict[str, Any] = {},
-    stratifications: Collection[str] = (),
+    stratifications: Collection[str] | Literal["all"] = "all",
     **kwargs: Any,
 ) -> Figure | list[Figure]:
     """Create a plot for the given comparison.
@@ -271,7 +271,7 @@ def _get_unconditioned_index_names(
 
 
 def _get_combined_data(
-    comparison: Comparison, stratifications: Collection[str] = ()
+    comparison: Comparison, stratifications: Collection[str] | Literal["all"] = "all"
 ) -> pd.DataFrame:
     """Get the combined data from the test and reference datasets."""
     test_data, reference_data = comparison._align_datasets(stratifications)
@@ -293,8 +293,8 @@ def _get_combined_data(
         test_data = test_data.assign(input_draw=np.nan).set_index([DRAW_INDEX], append=True)
 
     # Reorder levels if there is more than one level
-    if len(reference_data.index.names) > 1:
-        test_data = test_data.reorder_levels(reference_data.index.names)
+    # if len(reference_data.index.names) > 1:
+    #     test_data = test_data.reorder_levels(reference_data.index.names)
 
     combined_data = pd.concat(
         [test_data, reference_data],
