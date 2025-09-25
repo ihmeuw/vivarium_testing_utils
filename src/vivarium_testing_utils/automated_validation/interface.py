@@ -265,7 +265,7 @@ class ValidationContext:
 
         Parameters
         ----------
-        comparison
+        comparison_key
             The comparison object to plot.
         type
             Type of plot to create.
