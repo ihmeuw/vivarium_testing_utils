@@ -132,7 +132,7 @@ class FuzzyComparison(Comparison):
 
         test_proportion_data, reference_data = self._align_datasets(stratifications)
         # Renaming and aggregating draws happens here instead of _align datasets because
-        # we do not want this to happen when we plot the data
+        # "value" and "input_draw" are needed for comparison plots
         test_proportion_data = test_proportion_data.rename(columns={"value": "rate"})
         reference_data = reference_data.rename(columns={"value": "rate"})
         if aggregate_draws:
