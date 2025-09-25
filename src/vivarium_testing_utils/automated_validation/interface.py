@@ -261,6 +261,25 @@ class ValidationContext:
         stratifications: Collection[str] | Literal["all"] = "all",
         **kwargs: Any,
     ) -> Figure | list[Figure]:
+        """Create a plot for the given comparison.
+
+        Parameters
+        ----------
+        comparison
+            The comparison object to plot.
+        type
+            Type of plot to create.
+        condition
+            Conditions to filter the data by, by default {}
+        stratifications
+            Stratifications to retain in the plotted dataset, by default "all"
+        **kwargs
+            Additional keyword arguments for specific plot types.
+
+        Returns
+        -------
+            The generated figure or list of figures.
+        """
         return plot_utils.plot_comparison(
             self.comparisons[comparison_key], type, condition, stratifications, **kwargs
         )
