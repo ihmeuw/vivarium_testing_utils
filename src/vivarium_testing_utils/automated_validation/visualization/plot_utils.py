@@ -274,7 +274,7 @@ def _get_combined_data(
     comparison: Comparison, stratifications: Collection[str] | Literal["all"] = "all"
 ) -> pd.DataFrame:
     """Get the combined data from the test and reference datasets."""
-    test_data, reference_data = comparison._align_datasets(stratifications)
+    test_data, reference_data = comparison.align_datasets(stratifications)
 
     # Drop the scenario columns, which should already be filtered.
     test_data = calculations.filter_data(

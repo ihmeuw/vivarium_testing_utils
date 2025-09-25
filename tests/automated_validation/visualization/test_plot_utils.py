@@ -77,10 +77,10 @@ def sample_comparison(
     mocker: MockerFixture,
     test_title: str,
 ) -> Mock:
-    # Mock Comparison object with the _align_datasets method
+    # Mock Comparison object with the align_datasets method
     # Note: Removing spec=Comparison to allow setting attributes that may not exist on the real class
     mock_comparison = mocker.Mock()
-    mock_comparison._align_datasets = mocker.Mock(
+    mock_comparison.align_datasets = mocker.Mock(
         return_value=(sample_test_data, sample_ref_data)
     )
 
