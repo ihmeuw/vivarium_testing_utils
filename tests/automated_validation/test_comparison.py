@@ -288,7 +288,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
 
     comparison = FuzzyComparison(test_bundle, reference_bundle)
 
-    aligned_test_data, aligned_reference_data = comparison._align_datasets()
+    aligned_test_data, aligned_reference_data = comparison.align_datasets()
     pd.testing.assert_frame_equal(
         aligned_reference_data,
         reference_bundle.datasets["data"],
