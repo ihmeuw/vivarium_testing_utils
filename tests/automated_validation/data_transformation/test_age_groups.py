@@ -54,10 +54,10 @@ def test_age_group_eq() -> None:
 @pytest.mark.parametrize(
     "string, ages",
     [
-        ("0_to_5_years", (0, 5)),
-        ("0_to_6_months", (0, 0.5)),
-        ("0_to_8_days", (0, 0.02191780821917808)),
-        ("14_to_17", (14, 17)),
+        ("0_to_4_years", (0, 5)),
+        ("0_to_5_months", (0, 0.5)),
+        ("0_to_7_days", (0, 0.02191780821917808)),
+        ("14_to_16", (14, 17)),
     ],
 )
 def test_age_group_from_string(string: str, ages: AgeRange) -> None:
@@ -200,15 +200,15 @@ def test_age_schema_can_coerce_to() -> None:
 
 def test_age_schema_get_transform_matrix(sample_age_schema: AgeSchema) -> None:
     """Test we can get a transform matrix between two schemas."""
-    new_schema = AgeSchema.from_tuples([("0_to_7.5", 0, 7.5), ("7.5_to_15", 7.5, 15)])
+    new_schema = AgeSchema.from_tuples([("0_to_7.4", 0, 7.5), ("7.5_to_14", 7.5, 15)])
     transform_matrix = _get_transform_matrix(sample_age_schema, new_schema)
     expected_matrix = pd.DataFrame(
         {
-            "0_to_5": [1.0, 0.0],
-            "5_to_10": [0.5, 0.5],
-            "10_to_15": [0.0, 1.0],
+            "0_to_4": [1.0, 0.0],
+            "5_to_9": [0.5, 0.5],
+            "10_to_14": [0.0, 1.0],
         },
-        index=["0_to_7.5", "7.5_to_15"],
+        index=["0_to_7.4", "7.5_to_14"],
     )
 
     pd.testing.assert_frame_equal(transform_matrix, expected_matrix)
@@ -237,8 +237,8 @@ def test_age_schema_format_dataframe_invalid(sample_age_schema: AgeSchema) -> No
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("cause", "disease", "25_to_30"),
-                ("cause", "disease", "30_to_40"),
+                ("cause", "disease", "25_to_29"),
+                ("cause", "disease", "30_to_39"),
             ],
             names=["cause", "disease", AGE_GROUP_COLUMN],
         ),
@@ -322,4 +322,83 @@ def test_format_dataframe_from_age_bin_df(
     pd.testing.assert_frame_equal(
         formatted_df,
         person_time_data,
+    )
+
+
+def test_resolve_special_age_groups() -> None:
+    """Test we can resolve special age groups."""
+
+    # Format of VPH observer outputs
+    data = pd.DataFrame(
+        {
+            "value": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cause", "disease", "early_neonatal"),
+                ("cause", "disease", "late_neonatal"),
+                ("cause", "disease", "1-5_months"),
+                ("cause", "disease", "6-11_months"),
+                ("cause", "disease", "12-23_months"),
+                ("cause", "disease", "2_to_4"),
+                ("cause", "disease", "5_to_9"),
+            ],
+            names=["measure", "entity", AGE_GROUP_COLUMN],
+        ),
+    )
+
+    # Make sample age group to match GBD format
+    age_bins = pd.DataFrame(
+        {
+            AGE_GROUP_COLUMN: [
+                "Early Neonatal",
+                "Late Neonatal",
+                "1-5 months",
+                "6-11 months",
+                "12-23 months",
+                "2 to 4",
+                "5 to 9",
+            ],
+            AGE_START_COLUMN: [0.0, 7 / 365.0, 28 / 365.0, 0.5, 1.0, 2.0, 5.0],
+            AGE_END_COLUMN: [7 / 365.0, 28 / 365.0, 0.5, 1.0, 2.0, 5.0, 10.0],
+        }
+    )
+    age_bins = age_bins.set_index([AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN])
+
+    formatted_df = format_dataframe_from_age_bin_df(data, age_bins)
+    context_age_schema = AgeSchema.from_dataframe(age_bins)
+    pd.testing.assert_frame_equal(formatted_df, _format_dataframe(context_age_schema, data))
+
+    # Test older age groups for 95 plus special case
+    old_but_gold = pd.DataFrame(
+        {
+            "value": [1.0, 2.0, 3.0, 4.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cause", "disease", "80_to_84"),
+                ("cause", "disease", "85_to_89"),
+                ("cause", "disease", "90_to_94"),
+                ("cause", "disease", "95_plus"),
+            ],
+            names=["measure", "entity", AGE_GROUP_COLUMN],
+        ),
+    )
+    oldies = pd.DataFrame(
+        {
+            AGE_GROUP_COLUMN: [
+                "80 to 84",
+                "85 to 89",
+                "90 to 94",
+                "95 plus",
+            ],
+            AGE_START_COLUMN: [80.0, 85.0, 90.0, 95.0],
+            AGE_END_COLUMN: [85.0, 90.0, 95.0, 125.0],
+        }
+    )
+    oldies = oldies.set_index([AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN])
+    formatted_oldies = format_dataframe_from_age_bin_df(old_but_gold, oldies)
+    context_oldies_schema = AgeSchema.from_dataframe(oldies)
+    pd.testing.assert_frame_equal(
+        formatted_oldies, _format_dataframe(context_oldies_schema, old_but_gold)
     )

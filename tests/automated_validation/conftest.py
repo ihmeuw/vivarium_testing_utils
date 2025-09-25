@@ -155,7 +155,7 @@ def _create_sample_age_group_df() -> pd.DataFrame:
     """Create sample age group data for testing."""
     return pd.DataFrame(
         {
-            AGE_GROUP_COLUMN: ["0_to_5", "5_to_10", "10_to_15"],
+            AGE_GROUP_COLUMN: ["0_to_4", "5_to_9", "10_to_14"],
             AGE_START_COLUMN: [0.0, 5.0, 10.0],
             AGE_END_COLUMN: [5.0, 10.0, 15.0],
         }
@@ -360,9 +360,9 @@ def artifact_disease_incidence() -> pd.DataFrame:
 @pytest.fixture
 def sample_age_tuples() -> list[AgeTuple]:
     return [
-        ("0_to_5", 0, 5),
-        ("5_to_10", 5, 10),
-        ("10_to_15", 10, 15),
+        ("0_to_4", 0, 5),
+        ("5_to_9", 5, 10),
+        ("10_to_14", 10, 15),
     ]
 
 
@@ -386,9 +386,9 @@ def sample_df_with_ages() -> pd.DataFrame:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                ("cause", "disease", "0_to_5", 0.0, 5.0),
-                ("cause", "disease", "5_to_10", 5.0, 10.0),
-                ("cause", "disease", "10_to_15", 10.0, 15.0),
+                ("cause", "disease", "0_to_4", 0.0, 5.0),
+                ("cause", "disease", "5_to_9", 5.0, 10.0),
+                ("cause", "disease", "10_to_14", 10.0, 15.0),
             ],
             names=[
                 "cause",
