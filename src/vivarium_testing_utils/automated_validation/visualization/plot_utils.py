@@ -1,6 +1,6 @@
 # mypy: ignore-errors
 from collections.abc import Collection
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -17,7 +17,7 @@ def plot_comparison(
     comparison: Comparison,
     type: str,
     condition: dict[str, Any] = {},
-    stratifications: Collection[str] = (),
+    stratifications: Collection[str] | Literal["all"] = "all",
     **kwargs: Any,
 ) -> Figure | list[Figure]:
     """Create a plot for the given comparison.
@@ -31,7 +31,7 @@ def plot_comparison(
     condition
         Conditions to filter the data by, by default {}
     stratifications
-        Stratifications to retain in the plotted dataset, by default ()
+        Stratifications to retain in the plotted dataset, by default "all"
     **kwargs
         Additional keyword arguments for specific plot types.
 
@@ -52,7 +52,11 @@ def plot_comparison(
     title = comparison.measure.title
 
     # Add the scenario columns to the list of values to append to the title.
-    for modifiers in (comparison.test_scenarios, comparison.reference_scenarios, condition):
+    for modifiers in (
+        comparison.test_bundle.scenarios,
+        comparison.reference_bundle.scenarios,
+        condition,
+    ):
         title = _append_condition_to_title(modifiers, title)
 
     combined_data = _get_combined_data(comparison, stratifications)
@@ -267,15 +271,17 @@ def _get_unconditioned_index_names(
 
 
 def _get_combined_data(
-    comparison: Comparison, stratifications: Collection[str] = ()
+    comparison: Comparison, stratifications: Collection[str] | Literal["all"] = "all"
 ) -> pd.DataFrame:
     """Get the combined data from the test and reference datasets."""
-    test_data, reference_data = comparison._align_datasets(stratifications)
+    test_data, reference_data = comparison.align_datasets(stratifications)
 
     # Drop the scenario columns, which should already be filtered.
-    test_data = calculations.filter_data(test_data, filter_cols=comparison.test_scenarios)
+    test_data = calculations.filter_data(
+        test_data, filter_cols=comparison.test_bundle.scenarios
+    )
     reference_data = calculations.filter_data(
-        reference_data, filter_cols=comparison.reference_scenarios
+        reference_data, filter_cols=comparison.reference_bundle.scenarios
     )
 
     # Add input draw with placeholder if necessary
@@ -285,13 +291,13 @@ def _get_combined_data(
         )
     elif DRAW_INDEX not in test_data.index.names and DRAW_INDEX in reference_data.index.names:
         test_data = test_data.assign(input_draw=np.nan).set_index([DRAW_INDEX], append=True)
-
     test_data = test_data.reorder_levels(reference_data.index.names)
+
     combined_data = pd.concat(
         [test_data, reference_data],
         keys=[
-            comparison.test_source.name.lower().capitalize(),
-            comparison.reference_source.name.lower().capitalize(),
+            comparison.test_bundle.source.name.lower().capitalize(),
+            comparison.reference_bundle.source.name.lower().capitalize(),
         ],
         names=["source"],
     )

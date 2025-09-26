@@ -77,17 +77,22 @@ def sample_comparison(
     mocker: MockerFixture,
     test_title: str,
 ) -> Mock:
-    # Mock Comparison object with the _align_datasets method
-    mock_comparison = mocker.Mock(spec=Comparison)
-    mock_comparison._align_datasets = mocker.Mock(
+    # Mock Comparison object with the align_datasets method
+    # Note: Removing spec=Comparison to allow setting attributes that may not exist on the real class
+    mock_comparison = mocker.Mock()
+    mock_comparison.align_datasets = mocker.Mock(
         return_value=(sample_test_data, sample_ref_data)
     )
 
-    # Set up sources
-    mock_comparison.test_source = DataSource.SIM
-    mock_comparison.test_scenarios = {"scenario": "baseline"}
-    mock_comparison.reference_source = DataSource.ARTIFACT
-    mock_comparison.reference_scenarios = {}
+    # Set up test bundle with source and scenarios
+    mock_comparison.test_bundle = mocker.Mock()
+    mock_comparison.test_bundle.source = DataSource.SIM
+    mock_comparison.test_bundle.scenarios = {"scenario": "baseline"}
+
+    # Set up reference bundle with source and scenarios
+    mock_comparison.reference_bundle = mocker.Mock()
+    mock_comparison.reference_bundle.source = DataSource.ARTIFACT
+    mock_comparison.reference_bundle.scenarios = {}
 
     # Set up measure
     mock_comparison.measure = mocker.Mock()
