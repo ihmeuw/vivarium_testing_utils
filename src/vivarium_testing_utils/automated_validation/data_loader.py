@@ -6,8 +6,13 @@ from typing import Any
 import pandas as pd
 import yaml
 from vivarium import Artifact
+from vivarium_inputs.interface import load_standard_data
 
-from vivarium_testing_utils.automated_validation.constants import DRAW_PREFIX, DataSource
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_PREFIX,
+    LOCATION_ARTIFACT_KEY,
+    DataSource,
+)
 from vivarium_testing_utils.automated_validation.data_transformation import (
     calculations,
     utils,
@@ -39,6 +44,7 @@ class DataLoader:
             self._add_to_cache(
                 data_key="person_time_total", data=person_time_total, source=DataSource.SIM
             )
+        self.location = self.get_data(LOCATION_ARTIFACT_KEY, DataSource.ARTIFACT)
 
     def _create_person_time_total_dataset(self) -> pd.DataFrame | None:
         """
@@ -152,7 +158,7 @@ class DataLoader:
         return data
 
     def _load_from_gbd(self, data_key: str) -> pd.DataFrame:
-        raise NotImplementedError
+        return load_standard_data(data_key, self.locations)
 
     def _get_raw_data_from_source(
         self, measure_keys: dict[str, str], source: DataSource
