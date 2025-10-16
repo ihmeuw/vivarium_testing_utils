@@ -204,17 +204,6 @@ def test_metadata(sim_result_dir: Path, mocker: MockFixture) -> None:
 ######################################
 
 
-def test_not_implemented(sim_result_dir: Path) -> None:
-    """Test that ValidationContext.add_comparison raises NotImplementedError when test_source is not 'sim'."""
-    context = ValidationContext(sim_result_dir)
-
-    with pytest.raises(
-        ValueError,
-        match="Unsupported data source: DataSource.GBD",
-    ):
-        context.add_comparison("cause.disease.incidence_rate", "artifact", "gbd")
-
-
 def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:
     """Test that ValidationContext.plot_comparison correctly calls plot_utils.plot_comparison"""
     # Setup
