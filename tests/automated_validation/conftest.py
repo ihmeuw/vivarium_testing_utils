@@ -7,7 +7,7 @@ import yaml
 from pytest import TempPathFactory
 from vivarium.framework.artifact import Artifact
 
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
+from vivarium_testing_utils.automated_validation.constants import  DRAW_INDEX, LOCATION_ARTIFACT_KEY, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import (
     _convert_to_total_person_time,
 )
@@ -543,6 +543,7 @@ def _artifact_keys_mapper() -> dict[str, pd.DataFrame | dict[str, str]]:
         "risk_factor.risky_risk.categories": _risk_categories,
         "population.structure": _population_structure,
         "cause.disease.prevalence": _artifact_prevalence,
+        LOCATION_ARTIFACT_KEY: "Ethiopia",
     }
 
 
@@ -603,3 +604,16 @@ def reference_weights() -> pd.DataFrame:
             names=["year", "sex", "age"],
         ),
     )
+
+
+def _no_gbd_access():
+    try:
+        from vivarium_inputs.globals import GBDDummy
+
+        return True
+    except ImportError:
+        pass
+    return False
+
+
+NO_GBD_ACCESS = _no_gbd_access()

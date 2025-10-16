@@ -14,6 +14,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     AgeSchema,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
+from tests.automated_validation.conftest import NO_GBD_ACCESS
 
 
 def test_get_sim_outputs(sim_result_dir: Path) -> None:
@@ -213,3 +214,17 @@ def test___get_raw_data_from_source(
     assert test_raw_data["numerator_data"].equals(transition_count_data)
     assert test_raw_data["denominator_data"].equals(person_time_data)
     assert ref_raw_data["artifact_data"].equals(artifact_disease_incidence)
+
+
+def test__load_gbd_data(sim_result_dir: Path) -> None:
+    """Ensure that we can load standard GBD data"""
+    if NO_GBD_ACCESS:
+        pytest.skip("No access to IHME cluster to extract GBD data.")
+        # TODO: mock load_standard_data return of GBD data
+    
+    data_loader = DataLoader(sim_result_dir)
+    gbd_data = data_loader._load_from_gbd("cause.lower_respiratory_infections.incidence_rate")
+
+    assert not gbd_data.empty
+    assert {"age_start", "age_end", "year_start", "year_end", "sex", DRAW_INDEX} == set(gbd_data.index.names)
+    assert {"value"} == set(gbd_data.columns)
