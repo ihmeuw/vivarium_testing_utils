@@ -158,7 +158,15 @@ class DataLoader:
         return data
 
     def _load_from_gbd(self, data_key: str) -> pd.DataFrame:
-        return load_standard_data(data_key, self.locations)
+        data = load_standard_data(data_key, self.locations)
+        # TODO: add cache
+        if (
+            isinstance(data, pd.DataFrame)
+            and not data.columns.empty
+            and data.columns.str.startswith(DRAW_PREFIX).all()
+        ):
+            data = calculations.clean_artifact_draws(data)
+        return data
 
     def _get_raw_data_from_source(
         self, measure_keys: dict[str, str], source: DataSource
