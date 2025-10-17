@@ -228,7 +228,13 @@ def test__load_gbd_data(sim_result_dir: Path) -> None:
     gbd_data = data_loader._load_from_gbd(key)
 
     assert not gbd_data.empty
-    assert {"age_start", "age_end", "year_start", "year_end", "sex", DRAW_INDEX} == set(
-        gbd_data.index.names
-    )
+    assert {
+        "age_start",
+        "age_end",
+        "year_start",
+        "year_end",
+        "sex",
+        "parameter",
+        DRAW_INDEX,
+    } == set(gbd_data.index.names)
     assert {"value"} == set(gbd_data.columns)
