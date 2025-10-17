@@ -28,7 +28,7 @@ class DataLoader:
         self._cache_size_mb = cache_size_mb
 
         self._results_dir = self._sim_output_dir / "results"
-        self._raw_data_cache: dict[DataSource, dict[str, pd.DataFrame]] = {
+        self._raw_data_cache: dict[DataSource, dict[str, pd.DataFrame | str]] = {
             data_source: {} for data_source in DataSource
         }
         self._loader_mapping = {
@@ -88,7 +88,8 @@ class DataLoader:
     def get_data(self, data_key: str, source: DataSource) -> Any:
         """Return the data from the cache if it exists, otherwise load it from the source."""
         try:
-            return self._raw_data_cache[source][data_key].copy()
+            data = self._raw_data_cache[source][data_key]
+            return data.copy() if isinstance(data, pd.DataFrame) else data
         except KeyError:
             if source == DataSource.CUSTOM:
                 raise ValueError(
@@ -106,11 +107,14 @@ class DataLoader:
         """Load the data from the given source via the loader mapping."""
         return self._loader_mapping[source](data_key)
 
-    def _add_to_cache(self, data_key: str, source: DataSource, data: pd.DataFrame) -> None:
+    def _add_to_cache(
+        self, data_key: str, source: DataSource, data: pd.DataFrame | str
+    ) -> None:
         """Update the raw_data_cache with the given data."""
         if data_key in self._raw_data_cache.get(source, {}):
             raise ValueError(f"Data for {data_key} already exist in the cache.")
-        self._raw_data_cache[source].update({data_key: data.copy()})
+        cache_data = data.copy() if isinstance(data, pd.DataFrame) else data
+        self._raw_data_cache[source].update({data_key: cache_data})
 
     @utils.check_io(out=SimOutputData)
     def _load_from_sim(self, data_key: str) -> pd.DataFrame:
@@ -154,18 +158,17 @@ class DataLoader:
             and not data.columns.empty
             and data.columns.str.startswith(DRAW_PREFIX).all()
         ):
-            data = calculations.clean_artifact_draws(data)
+            data = calculations.clean_draw_columns(data)
         return data
 
-    def _load_from_gbd(self, data_key: str) -> pd.DataFrame:
-        data = load_standard_data(data_key, self.locations)
-        # TODO: add cache
+    def _load_from_gbd(self, data_key: str) -> Any:
+        data = load_standard_data(data_key, self.location)
         if (
             isinstance(data, pd.DataFrame)
             and not data.columns.empty
             and data.columns.str.startswith(DRAW_PREFIX).all()
         ):
-            data = calculations.clean_artifact_draws(data)
+            data = calculations.clean_draw_columns(data)
         return data
 
     def _get_raw_data_from_source(

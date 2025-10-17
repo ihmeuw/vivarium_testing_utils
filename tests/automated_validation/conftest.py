@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 from unittest import mock
 
@@ -7,7 +8,11 @@ import yaml
 from pytest import TempPathFactory
 from vivarium.framework.artifact import Artifact
 
-from vivarium_testing_utils.automated_validation.constants import  DRAW_INDEX, LOCATION_ARTIFACT_KEY, SEED_INDEX
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_INDEX,
+    LOCATION_ARTIFACT_KEY,
+    SEED_INDEX,
+)
 from vivarium_testing_utils.automated_validation.data_loader import (
     _convert_to_total_person_time,
 )
@@ -529,7 +534,7 @@ def _make_artifact_prevalence() -> pd.DataFrame:
 
 
 @pytest.fixture(scope="session")
-def _artifact_keys_mapper() -> dict[str, pd.DataFrame | dict[str, str]]:
+def _artifact_keys_mapper() -> dict[str, str | pd.DataFrame | dict[str, str]]:
     _raw_artifact_disease_incidence = _create_raw_artifact_disease_incidence()
     _raw_artifact_risk_exposure = _create_raw_artifact_risk_exposure()
     _sample_age_group_df = _create_sample_age_group_df()
@@ -606,14 +611,9 @@ def reference_weights() -> pd.DataFrame:
     )
 
 
-def _no_gbd_access():
-    try:
-        from vivarium_inputs.globals import GBDDummy
-
-        return True
-    except ImportError:
-        pass
-    return False
+def is_on_slurm() -> bool:
+    """Returns True if the current environment is a SLURM cluster."""
+    return not shutil.which("sbatch") is not None
 
 
-NO_GBD_ACCESS = _no_gbd_access()
+NO_GBD_ACCESS = is_on_slurm()

@@ -1,5 +1,5 @@
 import pandas as pd
-import pandera.pandas as pa
+import pandera as pa
 import pytest
 from pandera.errors import SchemaError
 

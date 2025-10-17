@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from tests.automated_validation.conftest import NO_GBD_ACCESS
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import (
     DataLoader,
@@ -14,7 +15,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.age_groups 
     AgeSchema,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Incidence
-from tests.automated_validation.conftest import NO_GBD_ACCESS
 
 
 def test_get_sim_outputs(sim_result_dir: Path) -> None:
@@ -83,7 +83,9 @@ def test__add_to_cache(sim_result_dir: Path) -> None:
     df = pd.DataFrame({"baz": [1, 2, 3]})
     data_loader = DataLoader(sim_result_dir)
     data_loader._add_to_cache("foo", DataSource.SIM, df)
-    assert data_loader._raw_data_cache[DataSource.SIM]["foo"].equals(df)
+    cached_data = data_loader._raw_data_cache[DataSource.SIM]["foo"]
+    assert isinstance(cached_data, pd.DataFrame)
+    assert cached_data.equals(df)
     with pytest.raises(ValueError, match="Data for foo already exist in the cache."):
         data_loader._add_to_cache("foo", DataSource.SIM, df)
 
@@ -218,13 +220,15 @@ def test___get_raw_data_from_source(
 
 def test__load_gbd_data(sim_result_dir: Path) -> None:
     """Ensure that we can load standard GBD data"""
+    key = "risk_factor.child_stunting.exposure"
     if NO_GBD_ACCESS:
         pytest.skip("No access to IHME cluster to extract GBD data.")
-        # TODO: mock load_standard_data return of GBD data
-    
+
     data_loader = DataLoader(sim_result_dir)
-    gbd_data = data_loader._load_from_gbd("cause.lower_respiratory_infections.incidence_rate")
+    gbd_data = data_loader._load_from_gbd(key)
 
     assert not gbd_data.empty
-    assert {"age_start", "age_end", "year_start", "year_end", "sex", DRAW_INDEX} == set(gbd_data.index.names)
+    assert {"age_start", "age_end", "year_start", "year_end", "sex", DRAW_INDEX} == set(
+        gbd_data.index.names
+    )
     assert {"value"} == set(gbd_data.columns)

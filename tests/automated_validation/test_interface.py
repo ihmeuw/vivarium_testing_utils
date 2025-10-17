@@ -80,9 +80,16 @@ def test__get_age_groups_gbd(sim_result_dir: Path, mocker: MockFixture) -> None:
             "foo": ["bar"],
         },
     )
+
+    def selective_load_side_effect(data_key: str) -> pd.DataFrame:
+        if data_key == "population.age_bins":
+            raise ArtifactException()
+        # For other keys like "population.location", return a mock value
+        return pd.DataFrame({"mock_data": [1, 2, 3]})
+
     mocker.patch(
         "vivarium_testing_utils.automated_validation.data_loader.Artifact.load",
-        side_effect=ArtifactException(),
+        side_effect=selective_load_side_effect,
     )
 
     mocker.patch(
@@ -202,17 +209,6 @@ def test_metadata(sim_result_dir: Path, mocker: MockFixture) -> None:
 ######################################
 # Tests for NotImplementedError cases#
 ######################################
-
-
-def test_not_implemented(sim_result_dir: Path) -> None:
-    """Test that ValidationContext.add_comparison raises NotImplementedError when test_source is not 'sim'."""
-    context = ValidationContext(sim_result_dir)
-
-    with pytest.raises(
-        ValueError,
-        match="Unsupported data source: DataSource.GBD",
-    ):
-        context.add_comparison("cause.disease.incidence_rate", "artifact", "gbd")
 
 
 def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:

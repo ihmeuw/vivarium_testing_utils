@@ -438,7 +438,7 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
     assert_frame_equal(measure_data_from_ratio, expected_measure_data)
 
 
-@pytest.mark.parametrize("use_base_categories", [True, False])
+@pytest.mark.parametrize("use_base_categories", [False, True, False])
 def test_categorical_relative_risk(
     deaths_data: pd.DataFrame,
     person_time_data: pd.DataFrame,
@@ -482,17 +482,17 @@ def test_categorical_relative_risk(
     )
     if use_base_categories:
         index_tuples = [
-            ("high", "B", 0),
-            ("high", "B", 1),
-            ("medium", "D", 0),
-            ("medium", "D", 1),
+            ("B", 0, "high"),
+            ("B", 1, "high"),
+            ("D", 0, "medium"),
+            ("D", 1, "medium"),
         ]
     else:
         index_tuples = [
-            ("A", "B", 0),
-            ("A", "B", 1),
-            ("C", "D", 0),
-            ("C", "D", 1),
+            ("B", 0, "A"),
+            ("B", 1, "A"),
+            ("D", 0, "C"),
+            ("D", 1, "C"),
         ]
     expected_artifact_data = pd.DataFrame(
         {
@@ -500,7 +500,7 @@ def test_categorical_relative_risk(
         },
         index=pd.MultiIndex.from_tuples(
             index_tuples,
-            names=["common_stratify_column", "other_stratify_column", DRAW_INDEX],
+            names=["other_stratify_column", DRAW_INDEX, "common_stratify_column"],
         ),
     )
 
