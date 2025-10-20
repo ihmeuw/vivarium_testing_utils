@@ -204,17 +204,6 @@ def test_metadata(sim_result_dir: Path, mocker: MockFixture) -> None:
 ######################################
 
 
-def test_not_implemented(sim_result_dir: Path) -> None:
-    """Test that ValidationContext.add_comparison raises NotImplementedError when test_source is not 'sim'."""
-    context = ValidationContext(sim_result_dir)
-
-    with pytest.raises(
-        NotImplementedError,
-        match="Comparison for artifact source not implemented. Must be SIM.",
-    ):
-        context.add_comparison("cause.disease.incidence_rate", "artifact", "gbd")
-
-
 def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:
     """Test that ValidationContext.plot_comparison correctly calls plot_utils.plot_comparison"""
     # Setup
@@ -249,3 +238,36 @@ def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:
 
     # Check return value
     assert result == mock_figure
+
+
+@pytest.mark.parametrize("test_source", ["sim", "artifact"])
+def test_add_comparison_different_test_source(
+    test_source: str, sim_result_dir: Path, artifact_disease_incidence: pd.DataFrame
+) -> None:
+    """Ensure that we can add a comparison"""
+    measure_key = "cause.disease.incidence_rate"
+    context = ValidationContext(sim_result_dir)
+    context.add_comparison(measure_key, test_source, "artifact")
+    assert measure_key in context.comparisons
+    comparison = context.comparisons[measure_key]
+
+    assert comparison.measure.measure_key == measure_key  # type: ignore [attr-defined]
+
+    # Test that test_data is now a dictionary with numerator and denominator
+    assert isinstance(comparison.test_bundle.datasets, dict)
+    if test_source == "sim":
+        assert "numerator_data" in comparison.test_bundle.datasets
+        assert "denominator_data" in comparison.test_bundle.datasets
+    else:
+        assert "data" in comparison.test_bundle.datasets
+
+
+@pytest.mark.parametrize("test_source", ["sim", "artifact"])
+def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path) -> None:
+    measure_key = "cause.disease.incidence_rate"
+    context = ValidationContext(sim_result_dir)
+    context.add_comparison(measure_key, test_source, "artifact")
+    data = context.get_frame(measure_key)
+    assert isinstance(data, pd.DataFrame)
+    assert not data.empty
+    assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
