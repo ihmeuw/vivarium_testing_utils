@@ -131,11 +131,6 @@ class ValidationContext:
         test_source_enum = DataSource.from_str(test_source)
         ref_source_enum = DataSource.from_str(ref_source)
 
-        if not test_source_enum == DataSource.SIM:
-            raise NotImplementedError(
-                f"Comparison for {test_source} source not implemented. Must be SIM."
-            )
-
         # Check if the measure is a RatioMeasure for FuzzyComparison
         if not isinstance(measure, RatioMeasure):
             raise NotImplementedError(
