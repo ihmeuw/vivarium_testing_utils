@@ -438,7 +438,7 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
     assert_frame_equal(measure_data_from_ratio, expected_measure_data)
 
 
-@pytest.mark.parametrize("use_base_categories", [False, True, False])
+@pytest.mark.parametrize("use_base_categories", [True, False])
 def test_categorical_relative_risk(
     deaths_data: pd.DataFrame,
     person_time_data: pd.DataFrame,
