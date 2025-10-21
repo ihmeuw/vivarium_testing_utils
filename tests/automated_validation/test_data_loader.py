@@ -218,6 +218,7 @@ def test___get_raw_data_from_source(
     assert ref_raw_data["artifact_data"].equals(artifact_disease_incidence)
 
 
+@pytest.mark.slow
 def test__load_gbd_data(sim_result_dir: Path) -> None:
     """Ensure that we can load standard GBD data"""
     key = "risk_factor.child_stunting.exposure"
