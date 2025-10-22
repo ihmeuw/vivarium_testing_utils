@@ -68,6 +68,12 @@ class Measure(ABC):
         """Return a dictionary of required datasets for this measure."""
         pass
 
+    @property
+    @abstractmethod
+    def gbd_datasets(self) -> dict[str, str]:
+        """Return a dictionary of required datasets for this measure."""
+        pass
+
     @abstractmethod
     def get_measure_data_from_artifact(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process artifact data into a format suitable for calculations."""
@@ -76,6 +82,11 @@ class Measure(ABC):
     @abstractmethod
     def get_measure_data_from_sim(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process raw simulation data into a format suitable for calculations."""
+        pass
+
+    @abstractmethod
+    def get_measure_data_from_gbd(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
+        """Process gbd data into a format suitable for calculations."""
         pass
 
     @property
@@ -113,6 +124,13 @@ class RatioMeasure(Measure, ABC):
         """Return a dictionary of required datasets for this measure."""
         return {
             "artifact_data": self.artifact_key,
+        }
+
+    @property
+    def gbd_datasets(self) -> dict[str, str]:
+        """Return a dictionary of required datasets for this measure."""
+        return {
+            "gbd_data": self.artifact_key,
         }
 
     @utils.check_io(
@@ -178,6 +196,10 @@ class Incidence(RatioMeasure):
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
+    @utils.check_io(gbd_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_gbd(self, gbd_data: pd.DataFrame) -> pd.DataFrame:
+        return gbd_data
+
 
 class Prevalence(RatioMeasure):
     """Computes Prevalence of cause in the population."""
@@ -199,6 +221,10 @@ class Prevalence(RatioMeasure):
     @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
+
+    @utils.check_io(gbd_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_gbd(self, gbd_data: pd.DataFrame) -> pd.DataFrame:
+        return gbd_data
 
 
 class SIRemission(RatioMeasure):
@@ -229,6 +255,10 @@ class SIRemission(RatioMeasure):
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
 
+    @utils.check_io(gbd_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_gbd(self, gbd_data: pd.DataFrame) -> pd.DataFrame:
+        return gbd_data
+
 
 class CauseSpecificMortalityRate(RatioMeasure):
     """Computes cause-specific mortality rate in the population."""
@@ -250,6 +280,10 @@ class CauseSpecificMortalityRate(RatioMeasure):
     @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
+
+    @utils.check_io(gbd_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_gbd(self, gbd_data: pd.DataFrame) -> pd.DataFrame:
+        return gbd_data
 
 
 class ExcessMortalityRate(RatioMeasure):
@@ -281,6 +315,10 @@ class ExcessMortalityRate(RatioMeasure):
     @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
+
+    @utils.check_io(gbd_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_gbd(self, gbd_data: pd.DataFrame) -> pd.DataFrame:
+        return gbd_data
 
 
 class PopulationStructure(RatioMeasure):
@@ -315,6 +353,11 @@ class PopulationStructure(RatioMeasure):
     @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data / artifact_data.sum()
+
+    @utils.check_io(gbd_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_gbd(self, gbd_data: pd.DataFrame) -> pd.DataFrame:
+        # TODO: is this right?
+        return gbd_data / gbd_data.sum()
 
     @utils.check_io(
         numerator_data=SimOutputData,
@@ -359,6 +402,10 @@ class RiskExposure(RatioMeasure):
     @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
         return artifact_data
+
+    @utils.check_io(gbd_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_gbd(self, gbd_data: pd.DataFrame) -> pd.DataFrame:
+        return gbd_data
 
 
 class CategoricalRelativeRisk(RatioMeasure):
@@ -477,6 +524,11 @@ class CategoricalRelativeRisk(RatioMeasure):
                     f"Risk stratification column '{self.risk_stratification_column}' not found in dataset index names."
                 )
         return ratio_datasets
+
+    @utils.check_io(gbd_data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_gbd(self, gbd_data: pd.DataFrame) -> pd.DataFrame:
+        # TODO: update if needed
+        return gbd_data
 
 
 MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[..., Measure]]] = {

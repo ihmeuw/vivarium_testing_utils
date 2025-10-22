@@ -706,3 +706,17 @@ def test_rate_aggregation_weights(
         expected_weights = population_data
 
     pd.testing.assert_frame_equal(weights, expected_weights)
+
+
+def test_get_risk_exposure_gbd_datasets() -> None:
+    pass
+
+
+def test_gbd_datasets_property() -> None:
+    """Test the gbd_datasets property of a RatioMeasure subclass."""
+    risk_factor = "child_stunting"
+    measure = RiskExposure(risk_factor)
+    expected_gbd_datasets = {
+        "gbd_data": f"risk_factor.{risk_factor}.exposure",
+    }
+    assert measure.gbd_datasets == expected_gbd_datasets
