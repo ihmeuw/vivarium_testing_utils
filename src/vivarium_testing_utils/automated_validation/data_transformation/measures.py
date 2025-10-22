@@ -130,7 +130,7 @@ class RatioMeasure(Measure, ABC):
     def gbd_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
-            "gbd_data": self.artifact_key,
+            "gbd_data": self.measure_key,
         }
 
     @utils.check_io(
