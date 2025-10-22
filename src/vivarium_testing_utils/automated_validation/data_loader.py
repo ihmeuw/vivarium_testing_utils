@@ -5,8 +5,11 @@ from typing import Any
 
 import pandas as pd
 import yaml
+from gbd_mapping import causes, covariates, risk_factors
 from vivarium import Artifact
+from vivarium.framework.artifact import EntityKey
 from vivarium_inputs.interface import load_standard_data
+from vivarium_inputs.mapping_extension import alternative_risk_factors
 
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_PREFIX,
@@ -163,7 +166,10 @@ class DataLoader:
         return data
 
     def _load_from_gbd(self, data_key: str) -> Any:
-        data = load_standard_data(data_key, self.location)
+        if "categories" not in data_key:
+            data = load_standard_data(data_key, self.location)
+        else:
+            data = self._load_metadata(data_key, self.location)
         if (
             isinstance(data, pd.DataFrame)
             and not data.columns.empty
@@ -180,6 +186,23 @@ class DataLoader:
             dataset_name: self.get_data(data_key, source)
             for dataset_name, data_key in measure_keys.items()
         }
+
+    def _load_metadata(self, key: str, location: str) -> Any:
+        """Loads metadata for a given entity from GBD mapping. Generally will be in the
+        form of dict[str, str]. Most commonly used for risk factor categories."""
+
+        entity_key = EntityKey(key)
+        type_map = {
+            "cause": causes,
+            "covariate": covariates,
+            "risk_factor": risk_factors,
+            "alternative_risk_factor": alternative_risk_factors,
+        }
+        entity = type_map[entity_key.type][entity_key.name]
+        entity_metadata = entity[entity_key.measure]
+        if hasattr(entity_metadata, "to_dict"):
+            entity_metadata = entity_metadata.to_dict()
+        return entity_metadata
 
 
 #################
