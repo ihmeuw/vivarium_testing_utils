@@ -215,7 +215,7 @@ def test___get_raw_data_from_source(
 
     assert test_raw_data["numerator_data"].equals(transition_count_data)
     assert test_raw_data["denominator_data"].equals(person_time_data)
-    assert ref_raw_data["artifact_data"].equals(artifact_disease_incidence)
+    assert ref_raw_data["data"].equals(artifact_disease_incidence)
 
 
 @pytest.mark.slow

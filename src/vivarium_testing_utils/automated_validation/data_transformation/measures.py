@@ -174,9 +174,9 @@ class Incidence(RatioMeasure):
             denominator=StatePersonTime(cause, f"susceptible_to_{cause}"),
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class Prevalence(RatioMeasure):
@@ -196,9 +196,9 @@ class Prevalence(RatioMeasure):
             denominator=StatePersonTime(cause),
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class SIRemission(RatioMeasure):
@@ -225,9 +225,9 @@ class SIRemission(RatioMeasure):
             denominator=StatePersonTime(cause, cause),
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class CauseSpecificMortalityRate(RatioMeasure):
@@ -247,9 +247,9 @@ class CauseSpecificMortalityRate(RatioMeasure):
             denominator=StatePersonTime(),  # Total person time
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class ExcessMortalityRate(RatioMeasure):
@@ -278,9 +278,9 @@ class ExcessMortalityRate(RatioMeasure):
             ),  # Person time among those with the disease
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class PopulationStructure(RatioMeasure):
@@ -312,9 +312,9 @@ class PopulationStructure(RatioMeasure):
             denominator=TotalPopulationPersonTime(scenario_columns),
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data / artifact_data.sum()
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data / data.sum()
 
     @utils.check_io(
         numerator_data=SimOutputData,
@@ -356,9 +356,9 @@ class RiskExposure(RatioMeasure):
             denominator=RiskStatePersonTime(risk_factor, sum_all=True),
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class CategoricalRelativeRisk(RatioMeasure):
