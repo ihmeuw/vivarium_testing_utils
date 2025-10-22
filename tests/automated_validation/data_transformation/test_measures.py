@@ -47,6 +47,7 @@ def test_incidence(
         "denominator_data": f"person_time_{cause}",
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.gbd_datasets == {"gbd_data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=transition_count_data,
@@ -77,6 +78,7 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
         "denominator_data": f"person_time_{cause}",
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.gbd_datasets == {"gbd_data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=person_time_data,
@@ -165,6 +167,7 @@ def test_si_remission(
         "denominator_data": f"person_time_{cause}",
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.gbd_datasets == {"gbd_data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=transition_count_data,
@@ -195,6 +198,7 @@ def test_all_cause_mortality_rate(
         "denominator_data": "person_time_total",
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.gbd_datasets == {"gbd_data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
@@ -231,6 +235,7 @@ def test_cause_specific_mortality_rate(
         "denominator_data": "person_time_total",
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.gbd_datasets == {"gbd_data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
@@ -267,6 +272,7 @@ def test_excess_mortality_rate(
     }
 
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.gbd_datasets == {"gbd_data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
@@ -301,6 +307,7 @@ def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
         "denominator_data": f"person_time_{risk_factor}",
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.gbd_datasets == {"gbd_data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=risk_state_person_time_data,
@@ -371,6 +378,7 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         "denominator_data": "person_time_total",
     }
     assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.gbd_datasets == {"gbd_data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=person_time_data,
@@ -474,6 +482,9 @@ def test_categorical_relative_risk(
         "affected_measure_data": f"cause.{affected_entity}.excess_mortality_rate",
         "categories": f"risk_factor.{risk_factor}.categories",
     }
+    # TODO: is this right?
+    assert measure.gbd_datasets == {"gbd_data": measure.measure_key}
+    # TODO: do we need get_measure_data_from_gbd checks?
 
     artifact_data = measure.get_measure_data_from_artifact(
         relative_risks=artifact_relative_risk,
@@ -710,13 +721,3 @@ def test_rate_aggregation_weights(
 
 def test_get_risk_exposure_gbd_datasets() -> None:
     pass
-
-
-def test_gbd_datasets_property() -> None:
-    """Test the gbd_datasets property of a RatioMeasure subclass."""
-    risk_factor = "child_stunting"
-    measure = RiskExposure(risk_factor)
-    expected_gbd_datasets = {
-        "gbd_data": f"risk_factor.{risk_factor}.exposure",
-    }
-    assert measure.gbd_datasets == expected_gbd_datasets
