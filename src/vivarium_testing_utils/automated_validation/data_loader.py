@@ -8,12 +8,13 @@ import yaml
 from gbd_mapping import causes, covariates, risk_factors
 from vivarium import Artifact
 from vivarium.framework.artifact import EntityKey
-from vivarium_inputs.interface import load_standard_data
+from vivarium_inputs import interface
 from vivarium_inputs.mapping_extension import alternative_risk_factors
 
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_PREFIX,
     LOCATION_ARTIFACT_KEY,
+    POPULATION_STRUCTURE_ARTIFACT_KEY,
     DataSource,
 )
 from vivarium_testing_utils.automated_validation.data_transformation import (
@@ -166,10 +167,13 @@ class DataLoader:
         return data
 
     def _load_from_gbd(self, data_key: str) -> Any:
-        if "categories" not in data_key:
-            data = load_standard_data(data_key, self.location)
-        else:
+        if "categories" in data_key:
+            # Used for risk factor categories
             data = self._load_metadata(data_key, self.location)
+        elif data_key == POPULATION_STRUCTURE_ARTIFACT_KEY:
+            data = interface.get_demographic_dimensions(self.location)
+        else:
+            data = interface.load_standard_data(data_key, self.location)
         if (
             isinstance(data, pd.DataFrame)
             and not data.columns.empty

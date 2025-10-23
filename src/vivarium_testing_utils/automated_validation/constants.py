@@ -23,3 +23,4 @@ class DataSource(Enum):
 
 
 LOCATION_ARTIFACT_KEY = "population.location"
+POPULATION_STRUCTURE_ARTIFACT_KEY = "population.structure"
