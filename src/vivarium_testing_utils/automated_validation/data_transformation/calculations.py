@@ -124,7 +124,7 @@ def linear_combination(
 
 
 @utils.check_io(data=DrawData, out=SingleNumericColumn)
-def clean_artifact_draws(
+def clean_draw_columns(
     data: pd.DataFrame,
 ) -> pd.DataFrame:
     """Clean the artifact data by dropping unnecessary columns and renaming the value column."""
