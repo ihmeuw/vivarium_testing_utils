@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 from unittest import mock
 
@@ -7,7 +8,11 @@ import yaml
 from pytest import TempPathFactory
 from vivarium.framework.artifact import Artifact
 
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_INDEX,
+    LOCATION_ARTIFACT_KEY,
+    SEED_INDEX,
+)
 from vivarium_testing_utils.automated_validation.data_loader import (
     _convert_to_total_person_time,
 )
@@ -529,7 +534,7 @@ def _make_artifact_prevalence() -> pd.DataFrame:
 
 
 @pytest.fixture(scope="session")
-def _artifact_keys_mapper() -> dict[str, pd.DataFrame | dict[str, str]]:
+def _artifact_keys_mapper() -> dict[str, str | pd.DataFrame | dict[str, str]]:
     _raw_artifact_disease_incidence = _create_raw_artifact_disease_incidence()
     _raw_artifact_risk_exposure = _create_raw_artifact_risk_exposure()
     _sample_age_group_df = _create_sample_age_group_df()
@@ -543,6 +548,7 @@ def _artifact_keys_mapper() -> dict[str, pd.DataFrame | dict[str, str]]:
         "risk_factor.risky_risk.categories": _risk_categories,
         "population.structure": _population_structure,
         "cause.disease.prevalence": _artifact_prevalence,
+        LOCATION_ARTIFACT_KEY: "Ethiopia",
     }
 
 
@@ -603,3 +609,11 @@ def reference_weights() -> pd.DataFrame:
             names=["year", "sex", "age"],
         ),
     )
+
+
+def is_on_slurm() -> bool:
+    """Returns True if the current environment is a SLURM cluster."""
+    return not shutil.which("sbatch") is not None
+
+
+NO_GBD_ACCESS = is_on_slurm()

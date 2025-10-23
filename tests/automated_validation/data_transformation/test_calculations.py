@@ -244,19 +244,19 @@ def test_aggregate_sum_preserves_string_order() -> None:
         (
             ["sex"],
             [
-                2.83,
                 6.92,
+                2.83,
             ],  # Male: (20*2 + 100*3)/(20+100) ≈ 2.83, Female: (2*5 + 50*7)/(2+50) ≈ 6.92
-            pd.Index(["Male", "Female"], name="sex"),
+            pd.Index(["Female", "Male"], name="sex"),
         ),
         # Test aggregating by color
         (
             ["color"],
             [
-                2.27,
                 4.33,
+                2.27,
             ],  # Red: (20*2 + 2*5)/(20+2) ≈ 2.27, Blue: (100*3 + 50*7)/(100+50) ≈ 4.33
-            pd.Index(["Red", "Blue"], name="color"),
+            pd.Index(["Blue", "Red"], name="color"),
         ),
         # Test no aggregation - keeping all index levels
         (

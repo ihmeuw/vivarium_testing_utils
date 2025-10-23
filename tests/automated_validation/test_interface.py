@@ -80,9 +80,16 @@ def test__get_age_groups_gbd(sim_result_dir: Path, mocker: MockFixture) -> None:
             "foo": ["bar"],
         },
     )
+
+    def selective_load_side_effect(data_key: str) -> pd.DataFrame:
+        if data_key == "population.age_bins":
+            raise ArtifactException()
+        # For other keys like "population.location", return a mock value
+        return pd.DataFrame({"mock_data": [1, 2, 3]})
+
     mocker.patch(
         "vivarium_testing_utils.automated_validation.data_loader.Artifact.load",
-        side_effect=ArtifactException(),
+        side_effect=selective_load_side_effect,
     )
 
     mocker.patch(

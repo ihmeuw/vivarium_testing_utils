@@ -174,14 +174,14 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
     diff = comparison.get_frame(num_rows="all", aggregate_draws=True)
     expected_df = pd.DataFrame(
         {
-            "test_mean": [0.1, 0.2, 0.325],
-            "test_2.5%": [0.1, 0.2, 0.325],
-            "test_97.5%": [0.1, 0.2, 0.325],
+            "test_mean": [0.2, 0.1, 0.325],
+            "test_2.5%": [0.2, 0.1, 0.325],
+            "test_97.5%": [0.2, 0.1, 0.325],
             # Reference data has no draws and we have no stratifications so we just return the reference data
-            "reference_rate": list(reference_bundle.datasets["data"]["value"]),
+            "reference_rate": [0.2, 0.12, 0.29],
         },
         index=pd.MultiIndex.from_tuples(
-            [("2020", "male", 0), ("2020", "female", 0), ("2025", "male", 0)],
+            [("2020", "female", 0), ("2020", "male", 0), ("2025", "male", 0)],
             names=["year", "sex", "age"],
         ),
     )

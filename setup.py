@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     install_requirements = [
         "vivarium_dependencies[numpy,pyyaml,scipy,click,tables,loguru,networkx]",
-        "pandas>2.0.0",
+        "pandas",
         "vivarium_build_utils>=2.0.1,<3.0.0",
         "pyarrow",
         "seaborn",
@@ -57,8 +57,8 @@ if __name__ == "__main__":
 
     validation_requirements = [
         "vivarium>=3.4.0",
-        "vivarium-inputs",
-        "pandera",
+        "vivarium-inputs>=7.1.0, <8.0.0",
+        "pandera<0.23.0",
     ]
 
     interactive_requirements = [

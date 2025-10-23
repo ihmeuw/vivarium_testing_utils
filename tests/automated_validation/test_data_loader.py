@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from tests.automated_validation.conftest import NO_GBD_ACCESS
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import (
     DataLoader,
@@ -82,7 +83,9 @@ def test__add_to_cache(sim_result_dir: Path) -> None:
     df = pd.DataFrame({"baz": [1, 2, 3]})
     data_loader = DataLoader(sim_result_dir)
     data_loader._add_to_cache("foo", DataSource.SIM, df)
-    assert data_loader._raw_data_cache[DataSource.SIM]["foo"].equals(df)
+    cached_data = data_loader._raw_data_cache[DataSource.SIM]["foo"]
+    assert isinstance(cached_data, pd.DataFrame)
+    assert cached_data.equals(df)
     with pytest.raises(ValueError, match="Data for foo already exist in the cache."):
         data_loader._add_to_cache("foo", DataSource.SIM, df)
 
@@ -213,3 +216,26 @@ def test___get_raw_data_from_source(
     assert test_raw_data["numerator_data"].equals(transition_count_data)
     assert test_raw_data["denominator_data"].equals(person_time_data)
     assert ref_raw_data["artifact_data"].equals(artifact_disease_incidence)
+
+
+@pytest.mark.slow
+def test__load_gbd_data(sim_result_dir: Path) -> None:
+    """Ensure that we can load standard GBD data"""
+    key = "risk_factor.child_stunting.exposure"
+    if NO_GBD_ACCESS:
+        pytest.skip("No access to IHME cluster to extract GBD data.")
+
+    data_loader = DataLoader(sim_result_dir)
+    gbd_data = data_loader._load_from_gbd(key)
+
+    assert not gbd_data.empty
+    assert {
+        "age_start",
+        "age_end",
+        "year_start",
+        "year_end",
+        "sex",
+        "parameter",
+        DRAW_INDEX,
+    } == set(gbd_data.index.names)
+    assert {"value"} == set(gbd_data.columns)

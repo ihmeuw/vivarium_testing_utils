@@ -20,3 +20,6 @@ class DataSource(Enum):
             return cls(source)
         except ValueError:
             raise ValueError(f"Source {source} not recognized. Must be one of {DataSource}")
+
+
+LOCATION_ARTIFACT_KEY = "population.location"
