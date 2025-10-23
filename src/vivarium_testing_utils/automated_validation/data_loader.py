@@ -44,7 +44,7 @@ class DataLoader:
             self._add_to_cache(
                 data_key="person_time_total", data=person_time_total, source=DataSource.SIM
             )
-        # TODO: Update when all locations are in one artifact in the future.
+        # TODO: MIC-6533 - Update when all locations are in one artifact in the future.
         self.location = self.get_data(LOCATION_ARTIFACT_KEY, DataSource.ARTIFACT)
 
     def _create_person_time_total_dataset(self) -> pd.DataFrame | None:
