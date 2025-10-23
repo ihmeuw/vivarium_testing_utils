@@ -171,7 +171,7 @@ class DataLoader:
             # Used for risk factor categories
             data = self._load_metadata(data_key, self.location)
         elif data_key == POPULATION_STRUCTURE_ARTIFACT_KEY:
-            data = interface.get_demographic_dimensions(self.location)
+            data = interface.get_population_structure(self.location)
         else:
             data = interface.load_standard_data(data_key, self.location)
         if (
