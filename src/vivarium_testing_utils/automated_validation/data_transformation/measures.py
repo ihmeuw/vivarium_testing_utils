@@ -64,12 +64,14 @@ class Measure(ABC):
 
     @property
     @abstractmethod
-    def artifact_like_datasets(self) -> dict[str, str]:
+    def sim_input_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         pass
 
     @abstractmethod
-    def get_measure_data_from_artifact_gbd(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
+    def get_measure_data_from_simulation_inputs(
+        self, *args: Any, **kwargs: Any
+    ) -> pd.DataFrame:
         """Process artifact data into a format suitable for calculations."""
         pass
 
@@ -109,7 +111,7 @@ class RatioMeasure(Measure, ABC):
         }
 
     @property
-    def artifact_like_datasets(self) -> dict[str, str]:
+    def sim_input_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
             "data": self.artifact_key,
@@ -175,7 +177,7 @@ class Incidence(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -197,7 +199,7 @@ class Prevalence(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -226,7 +228,7 @@ class SIRemission(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -248,7 +250,7 @@ class CauseSpecificMortalityRate(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -279,7 +281,7 @@ class ExcessMortalityRate(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -313,7 +315,7 @@ class PopulationStructure(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data / data.sum()
 
     @utils.check_io(
@@ -357,7 +359,7 @@ class RiskExposure(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact_gbd(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -413,7 +415,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         return f"Effect of {format_str(self.entity)} on {format_str(self.affected_entity)} {format_str(self.affected_measure_name)}"
 
     @property
-    def artifact_like_datasets(self) -> dict[str, str]:
+    def sim_input_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
             "relative_risks": self.artifact_key,
@@ -431,7 +433,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         affected_measure_data=SingleNumericColumn,
         out=SingleNumericColumn,
     )
-    def get_measure_data_from_artifact_gbd(
+    def get_measure_data_from_simulation_inputs(
         self,
         relative_risks: pd.DataFrame,
         affected_measure_data: pd.DataFrame,

@@ -213,7 +213,7 @@ def test___get_raw_data_from_source(
         measure.sim_datasets, DataSource.SIM
     )
     ref_raw_data = data_loader._get_raw_data_from_source(
-        measure.artifact_like_datasets, DataSource.ARTIFACT
+        measure.sim_input_datasets, DataSource.ARTIFACT
     )
 
     assert test_raw_data["numerator_data"].equals(transition_count_data)
