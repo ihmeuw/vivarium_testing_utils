@@ -5,7 +5,10 @@ import pandas as pd
 import pytest
 
 from tests.automated_validation.conftest import NO_GBD_ACCESS
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_INDEX,
+    POPULATION_STRUCTURE_ARTIFACT_KEY,
+)
 from vivarium_testing_utils.automated_validation.data_loader import (
     DataLoader,
     DataSource,
@@ -210,32 +213,45 @@ def test___get_raw_data_from_source(
         measure.sim_datasets, DataSource.SIM
     )
     ref_raw_data = data_loader._get_raw_data_from_source(
-        measure.artifact_datasets, DataSource.ARTIFACT
+        measure.sim_input_datasets, DataSource.ARTIFACT
     )
 
     assert test_raw_data["numerator_data"].equals(transition_count_data)
     assert test_raw_data["denominator_data"].equals(person_time_data)
-    assert ref_raw_data["artifact_data"].equals(artifact_disease_incidence)
+    assert ref_raw_data["data"].equals(artifact_disease_incidence)
 
 
 @pytest.mark.slow
-def test__load_gbd_data(sim_result_dir: Path) -> None:
+@pytest.mark.parametrize(
+    "key",
+    [
+        "risk_factor.child_stunting.exposure",
+        "risk_factor.child_stunting.categories",
+        POPULATION_STRUCTURE_ARTIFACT_KEY,
+    ],
+)
+def test__load_gbd_data(key: str, sim_result_dir: Path) -> None:
     """Ensure that we can load standard GBD data"""
-    key = "risk_factor.child_stunting.exposure"
     if NO_GBD_ACCESS:
         pytest.skip("No access to IHME cluster to extract GBD data.")
 
     data_loader = DataLoader(sim_result_dir)
     gbd_data = data_loader._load_from_gbd(key)
 
-    assert not gbd_data.empty
-    assert {
+    if isinstance(gbd_data, pd.DataFrame):
+        assert not gbd_data.empty
+    if isinstance(gbd_data, dict):
+        assert gbd_data  # non-empty dict
+    demographic_cols = {
         "age_start",
         "age_end",
         "year_start",
         "year_end",
         "sex",
-        "parameter",
-        DRAW_INDEX,
-    } == set(gbd_data.index.names)
-    assert {"value"} == set(gbd_data.columns)
+    }
+    if key == "risk_factor.child_stunting.exposure":
+        assert demographic_cols.union({"parameter", DRAW_INDEX}) == set(gbd_data.index.names)
+    elif key == POPULATION_STRUCTURE_ARTIFACT_KEY:
+        assert demographic_cols.union({"location"}) == set(gbd_data.index.names)
+    if isinstance(gbd_data, pd.DataFrame):
+        assert {"value"} == set(gbd_data.columns)

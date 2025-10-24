@@ -64,12 +64,12 @@ class Measure(ABC):
 
     @property
     @abstractmethod
-    def artifact_datasets(self) -> dict[str, str]:
+    def sim_input_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         pass
 
     @abstractmethod
-    def get_measure_data_from_artifact(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
+    def get_measure_data_from_sim_inputs(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process artifact data into a format suitable for calculations."""
         pass
 
@@ -109,10 +109,10 @@ class RatioMeasure(Measure, ABC):
         }
 
     @property
-    def artifact_datasets(self) -> dict[str, str]:
+    def sim_input_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
-            "artifact_data": self.artifact_key,
+            "data": self.artifact_key,
         }
 
     @utils.check_io(
@@ -174,9 +174,9 @@ class Incidence(RatioMeasure):
             denominator=StatePersonTime(cause, f"susceptible_to_{cause}"),
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class Prevalence(RatioMeasure):
@@ -196,9 +196,9 @@ class Prevalence(RatioMeasure):
             denominator=StatePersonTime(cause),
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class SIRemission(RatioMeasure):
@@ -225,9 +225,9 @@ class SIRemission(RatioMeasure):
             denominator=StatePersonTime(cause, cause),
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class CauseSpecificMortalityRate(RatioMeasure):
@@ -247,9 +247,9 @@ class CauseSpecificMortalityRate(RatioMeasure):
             denominator=StatePersonTime(),  # Total person time
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class ExcessMortalityRate(RatioMeasure):
@@ -278,9 +278,9 @@ class ExcessMortalityRate(RatioMeasure):
             ),  # Person time among those with the disease
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class PopulationStructure(RatioMeasure):
@@ -312,9 +312,9 @@ class PopulationStructure(RatioMeasure):
             denominator=TotalPopulationPersonTime(scenario_columns),
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data / artifact_data.sum()
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data / data.sum()
 
     @utils.check_io(
         numerator_data=SimOutputData,
@@ -356,9 +356,9 @@ class RiskExposure(RatioMeasure):
             denominator=RiskStatePersonTime(risk_factor, sum_all=True),
         )
 
-    @utils.check_io(artifact_data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_artifact(self, artifact_data: pd.DataFrame) -> pd.DataFrame:
-        return artifact_data
+    @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
 
 
 class CategoricalRelativeRisk(RatioMeasure):
@@ -413,7 +413,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         return f"Effect of {format_str(self.entity)} on {format_str(self.affected_entity)} {format_str(self.affected_measure_name)}"
 
     @property
-    def artifact_datasets(self) -> dict[str, str]:
+    def sim_input_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
             "relative_risks": self.artifact_key,
@@ -431,7 +431,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         affected_measure_data=SingleNumericColumn,
         out=SingleNumericColumn,
     )
-    def get_measure_data_from_artifact(
+    def get_measure_data_from_sim_inputs(
         self,
         relative_risks: pd.DataFrame,
         affected_measure_data: pd.DataFrame,

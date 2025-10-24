@@ -49,7 +49,7 @@ class RatioMeasureDataBundle:
         if self.source == DataSource.SIM:
             return self.measure.sim_datasets
         elif self.source == DataSource.ARTIFACT:
-            return self.measure.artifact_datasets
+            return self.measure.sim_input_datasets
         else:
             raise ValueError(f"Unsupported data source: {self.source}")
 
@@ -108,7 +108,7 @@ class RatioMeasureDataBundle:
                 **raw_datasets,
             )
         elif self.source == DataSource.ARTIFACT:
-            data = self.measure.get_measure_data_from_artifact(**raw_datasets)
+            data = self.measure.get_measure_data_from_sim_inputs(**raw_datasets)
             datasets = {"data": data}
         elif self.source == DataSource.GBD:
             raise NotImplementedError
