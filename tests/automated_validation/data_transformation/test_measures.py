@@ -46,7 +46,7 @@ def test_incidence(
         "numerator_data": f"transition_count_{cause}",
         "denominator_data": f"person_time_{cause}",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.sim_input_datasets == {"data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=transition_count_data,
@@ -76,7 +76,7 @@ def test_prevalence(person_time_data: pd.DataFrame) -> None:
         "numerator_data": f"person_time_{cause}",
         "denominator_data": f"person_time_{cause}",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.sim_input_datasets == {"data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=person_time_data,
@@ -164,7 +164,7 @@ def test_si_remission(
         "numerator_data": f"transition_count_{cause}",
         "denominator_data": f"person_time_{cause}",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.sim_input_datasets == {"data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=transition_count_data,
@@ -194,7 +194,7 @@ def test_all_cause_mortality_rate(
         "numerator_data": "deaths",
         "denominator_data": "person_time_total",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.sim_input_datasets == {"data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
@@ -230,7 +230,7 @@ def test_cause_specific_mortality_rate(
         "numerator_data": f"deaths",
         "denominator_data": "person_time_total",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.sim_input_datasets == {"data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
@@ -266,7 +266,7 @@ def test_excess_mortality_rate(
         "denominator_data": f"person_time_{cause}",
     }
 
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.sim_input_datasets == {"data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=deaths_data,
@@ -300,7 +300,7 @@ def test_risk_exposure(risk_state_person_time_data: pd.DataFrame) -> None:
         "numerator_data": f"person_time_{risk_factor}",
         "denominator_data": f"person_time_{risk_factor}",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.sim_input_datasets == {"data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=risk_state_person_time_data,
@@ -370,7 +370,7 @@ def test_population_structure(person_time_data: pd.DataFrame) -> None:
         "numerator_data": "person_time_total",
         "denominator_data": "person_time_total",
     }
-    assert measure.artifact_datasets == {"artifact_data": measure.measure_key}
+    assert measure.sim_input_datasets == {"data": measure.measure_key}
 
     ratio_datasets = measure.get_ratio_datasets_from_sim(
         numerator_data=person_time_data,
@@ -469,13 +469,13 @@ def test_categorical_relative_risk(
         "numerator_data": "deaths",
         "denominator_data": f"person_time_{affected_entity}",
     }
-    assert measure.artifact_datasets == {
+    assert measure.sim_input_datasets == {
         "relative_risks": f"risk_factor.{risk_factor}.relative_risk",
         "affected_measure_data": f"cause.{affected_entity}.excess_mortality_rate",
         "categories": f"risk_factor.{risk_factor}.categories",
     }
 
-    artifact_data = measure.get_measure_data_from_artifact(
+    artifact_data = measure.get_measure_data_from_sim_inputs(
         relative_risks=artifact_relative_risk,
         affected_measure_data=artifact_excess_mortality_rate,
         categories=risk_categories,

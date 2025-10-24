@@ -59,6 +59,7 @@ if __name__ == "__main__":
         "vivarium>=3.4.0",
         "vivarium-inputs>=7.1.0, <8.0.0",
         "pandera<0.23.0",
+        "gbd_mapping",
     ]
 
     interactive_requirements = [
