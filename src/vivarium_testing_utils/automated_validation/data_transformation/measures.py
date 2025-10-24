@@ -69,9 +69,7 @@ class Measure(ABC):
         pass
 
     @abstractmethod
-    def get_measure_data_from_simulation_inputs(
-        self, *args: Any, **kwargs: Any
-    ) -> pd.DataFrame:
+    def get_measure_data_from_sim_inputs(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Process artifact data into a format suitable for calculations."""
         pass
 
@@ -177,7 +175,7 @@ class Incidence(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -199,7 +197,7 @@ class Prevalence(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -228,7 +226,7 @@ class SIRemission(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -250,7 +248,7 @@ class CauseSpecificMortalityRate(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -281,7 +279,7 @@ class ExcessMortalityRate(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -315,7 +313,7 @@ class PopulationStructure(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data / data.sum()
 
     @utils.check_io(
@@ -359,7 +357,7 @@ class RiskExposure(RatioMeasure):
         )
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
-    def get_measure_data_from_simulation_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+    def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
         return data
 
 
@@ -433,7 +431,7 @@ class CategoricalRelativeRisk(RatioMeasure):
         affected_measure_data=SingleNumericColumn,
         out=SingleNumericColumn,
     )
-    def get_measure_data_from_simulation_inputs(
+    def get_measure_data_from_sim_inputs(
         self,
         relative_risks: pd.DataFrame,
         affected_measure_data: pd.DataFrame,

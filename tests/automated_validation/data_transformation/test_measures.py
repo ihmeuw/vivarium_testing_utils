@@ -475,7 +475,7 @@ def test_categorical_relative_risk(
         "categories": f"risk_factor.{risk_factor}.categories",
     }
 
-    artifact_data = measure.get_measure_data_from_simulation_inputs(
+    artifact_data = measure.get_measure_data_from_sim_inputs(
         relative_risks=artifact_relative_risk,
         affected_measure_data=artifact_excess_mortality_rate,
         categories=risk_categories,
@@ -706,7 +706,3 @@ def test_rate_aggregation_weights(
         expected_weights = population_data
 
     pd.testing.assert_frame_equal(weights, expected_weights)
-
-
-def test_get_risk_exposure_gbd_datasets() -> None:
-    pass
