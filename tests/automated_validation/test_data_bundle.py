@@ -186,7 +186,7 @@ def test_aggregate_reference_stratifications(
         data_loader=mocker.MagicMock(spec=DataLoader),
         age_group_df=sample_age_group_df,
     )
-    aggregated = bundle._aggregate_artifact_stratifications(stratifications)
+    aggregated = bundle._aggregate_sim_input_stratifications(stratifications)
 
     if stratifications == "all":
         aggregated.equals(reference_data)
