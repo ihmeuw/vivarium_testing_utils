@@ -12,9 +12,7 @@ from tests.automated_validation.conftest import NO_GBD_ACCESS
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, DataSource
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
-from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AGE_GROUP_COLUMN,
-)
+from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Incidence,
     RatioMeasure,
@@ -220,7 +218,7 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
         pytest.skip("GBD access not available for this test.")
 
     age_bins = interface.get_age_bins()
-    age_bins.index.rename({"age_group_name": AGE_GROUP_COLUMN}, inplace=True)
+    age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
 
     incidence = Incidence("diarrheal_diseases")
     bundle = RatioMeasureDataBundle(
@@ -234,7 +232,7 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
     # Validate datasets and weights schema
     dataset_index_names = {
         "sex",
-        AGE_GROUP_COLUMN,
+        age_groups.AGE_GROUP_COLUMN,
         "year_start",
         "year_end",
         DRAW_INDEX,
@@ -247,9 +245,9 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
 
     # Validate data aggregation
     stratify_1 = bundle.get_measure_data("all")
-    assert stratify_1.equals(bundle.datasets["data"])
-    stratify_2 = bundle.get_measure_data(["sex", AGE_GROUP_COLUMN])
-    assert set(stratify_2.index.names) == {"sex", AGE_GROUP_COLUMN, DRAW_INDEX}
+    pd.testing.assert_frame_equal(stratify_1, bundle.datasets["data"])
+    stratify_2 = bundle.get_measure_data(["sex", age_groups.AGE_GROUP_COLUMN])
+    assert set(stratify_2.index.names) == {"sex", age_groups.AGE_GROUP_COLUMN, DRAW_INDEX}
 
     metadata = bundle.get_metadata()
     assert metadata["source"] == DataSource.GBD
