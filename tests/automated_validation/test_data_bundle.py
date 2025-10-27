@@ -6,10 +6,11 @@ from typing import Literal
 import pandas as pd
 import pytest
 from pytest_mock import MockFixture
+from vivarium_inputs import interface
 
 from tests.automated_validation.conftest import NO_GBD_ACCESS
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
-from vivarium_testing_utils.automated_validation.constants import DataSource
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, DataSource
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
@@ -211,27 +212,48 @@ def test_aggregate_reference_stratifications(
 
 
 @pytest.mark.slow
-def test_data_bundle_gbd_source(
-    sample_age_group_df: pd.DataFrame, sim_result_dir: Path
-) -> None:
+def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
     """Test that GBD data source is handled correctly in RatioMeasureDataBundle."""
     if NO_GBD_ACCESS:
         pytest.skip("GBD access not available for this test.")
 
+    age_bins = interface.get_age_bins()
     incidence = Incidence("diarrheal_diseases")
     bundle = RatioMeasureDataBundle(
         measure=incidence,
         source=DataSource.GBD,
         data_loader=DataLoader(sim_result_dir),
-        age_group_df=sample_age_group_df,
+        age_group_df=age_bins,
     )
 
     assert set(bundle.dataset_names) == {"data"}
-
-    # TODO: verify _formatted_datasets
-    # TODO: verify _aggregated_weights
+    # Validate datasets and weights schema
+    dataset_index_names = {
+        "sex",
+        "age_start",
+        "age_end",
+        "year_start",
+        "year_end",
+        DRAW_INDEX,
+    }
+    assert set(bundle.datasets["data"].index.names) == dataset_index_names
+    assert set(bundle.datasets["data"].columns) == {"value"}
     assert bundle.weights is not None
+    assert set(bundle.weights.index.names) == dataset_index_names.union({"location"})
+    assert set(bundle.weights.columns) == {"value"}
     breakpoint()
 
     # TODO: verify get_measure_data - do two stratifications
-    # TODO: verify get_metadata
+    stratify_1 = bundle.get_measure_data("all")
+    stratify_2 = bundle.get_measure_data(["sex", "age_start", "age_end"])
+
+    metadata = bundle.get_metadata()
+    assert metadata["source"] == DataSource.GBD
+    assert metadata["index_columns"] == dataset_index_names
+    assert set(metadata.keys()) == {
+        "source",
+        "index_columns",
+        "size",
+        "num_draws",
+        "input_draws",
+    }
