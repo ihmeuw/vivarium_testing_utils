@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 from pytest_mock import MockFixture
 
+from tests.automated_validation.conftest import NO_GBD_ACCESS
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.constants import DataSource
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
@@ -100,8 +101,7 @@ def test_get_metadata(
     assert metadata["size"] == "4 rows × 1 columns"
 
 
-@pytest.mark.parametrize("source", [DataSource.GBD, DataSource.CUSTOM])
-def test_dataset_names_value_error(
+def test_custom_data_source_dataset_names_value_error(
     mocker: MockFixture,
     mock_ratio_measure: RatioMeasure,
     sample_age_group_df: pd.DataFrame,
@@ -114,7 +114,7 @@ def test_dataset_names_value_error(
     with pytest.raises(ValueError):
         RatioMeasureDataBundle(
             measure=mock_ratio_measure,
-            source=source,
+            source=DataSource.CUSTOM,
             data_loader=mock_data_loader,
             age_group_df=sample_age_group_df,
         )
@@ -208,3 +208,30 @@ def test_aggregate_reference_stratifications(
             ),
         )
         pd.testing.assert_frame_equal(aggregated, expected)
+
+
+@pytest.mark.slow
+def test_data_bundle_gbd_source(
+    sample_age_group_df: pd.DataFrame, sim_result_dir: Path
+) -> None:
+    """Test that GBD data source is handled correctly in RatioMeasureDataBundle."""
+    if NO_GBD_ACCESS:
+        pytest.skip("GBD access not available for this test.")
+
+    incidence = Incidence("diarrheal_diseases")
+    bundle = RatioMeasureDataBundle(
+        measure=incidence,
+        source=DataSource.GBD,
+        data_loader=DataLoader(sim_result_dir),
+        age_group_df=sample_age_group_df,
+    )
+
+    assert set(bundle.dataset_names) == {"data"}
+
+    # TODO: verify _formatted_datasets
+    # TODO: verify _aggregated_weights
+    assert bundle.weights is not None
+    breakpoint()
+
+    # TODO: verify get_measure_data - do two stratifications
+    # TODO: verify get_metadata
