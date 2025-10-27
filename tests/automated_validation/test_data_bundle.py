@@ -250,7 +250,7 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
     assert set(stratify_2.index.names) == {"sex", age_groups.AGE_GROUP_COLUMN, DRAW_INDEX}
 
     metadata = bundle.get_metadata()
-    assert metadata["source"] == DataSource.GBD
+    assert metadata["source"] == "gbd"
     assert metadata["index_columns"] == dataset_index_names
     assert set(metadata.keys()) == {
         "source",
