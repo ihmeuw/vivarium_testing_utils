@@ -219,7 +219,7 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
     if NO_GBD_ACCESS:
         pytest.skip("GBD access not available for this test.")
 
-    age_bins = interface.get_age_bins()
+    age_bins = interface.get_age_bins().reset_index()
     incidence = Incidence("diarrheal_diseases")
     bundle = RatioMeasureDataBundle(
         measure=incidence,
@@ -242,11 +242,11 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
     assert bundle.weights is not None
     assert set(bundle.weights.index.names) == dataset_index_names.union({"location"})
     assert set(bundle.weights.columns) == {"value"}
-    breakpoint()
 
-    # TODO: verify get_measure_data - do two stratifications
+    # Validate data aggregation
     stratify_1 = bundle.get_measure_data("all")
-    stratify_2 = bundle.get_measure_data(["sex", "age_start", "age_end"])
+    stratify_2 = bundle.get_measure_data(["sex", AGE_GROUP_COLUMN])
+    breakpoint()
 
     metadata = bundle.get_metadata()
     assert metadata["source"] == DataSource.GBD
