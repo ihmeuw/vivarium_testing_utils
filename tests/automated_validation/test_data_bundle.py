@@ -219,7 +219,9 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
     if NO_GBD_ACCESS:
         pytest.skip("GBD access not available for this test.")
 
-    age_bins = interface.get_age_bins().reset_index()
+    age_bins = interface.get_age_bins()
+    age_bins.index.rename({"age_group_name": AGE_GROUP_COLUMN}, inplace=True)
+
     incidence = Incidence("diarrheal_diseases")
     bundle = RatioMeasureDataBundle(
         measure=incidence,
