@@ -247,8 +247,9 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
 
     # Validate data aggregation
     stratify_1 = bundle.get_measure_data("all")
+    assert stratify_1.equals(bundle.datasets["data"])
     stratify_2 = bundle.get_measure_data(["sex", AGE_GROUP_COLUMN])
-    breakpoint()
+    assert set(stratify_2.index.names) == {"sex", AGE_GROUP_COLUMN, DRAW_INDEX}
 
     metadata = bundle.get_metadata()
     assert metadata["source"] == DataSource.GBD
