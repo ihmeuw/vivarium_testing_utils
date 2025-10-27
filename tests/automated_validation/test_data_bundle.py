@@ -251,7 +251,7 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
 
     metadata = bundle.get_metadata()
     assert metadata["source"] == "gbd"
-    assert set(metadata["index_columns"]) == dataset_index_names
+    assert metadata["index_columns"] == "sex, year_start, year_end, input_draw, age_group"
     assert set(metadata.keys()) == {
         "source",
         "index_columns",
