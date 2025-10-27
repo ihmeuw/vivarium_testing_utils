@@ -106,7 +106,6 @@ def test_custom_data_source_dataset_names_value_error(
     mocker: MockFixture,
     mock_ratio_measure: RatioMeasure,
     sample_age_group_df: pd.DataFrame,
-    source: DataSource,
 ) -> None:
     """Test _get_formatted_datasets raises NotImplementedError for GBD source."""
     mock_data_loader = mocker.MagicMock(spec=DataLoader)
