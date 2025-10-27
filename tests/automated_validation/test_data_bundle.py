@@ -12,7 +12,9 @@ from tests.automated_validation.conftest import NO_GBD_ACCESS
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, DataSource
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
-from vivarium_testing_utils.automated_validation.data_transformation import age_groups
+from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
+    AGE_GROUP_COLUMN,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Incidence,
     RatioMeasure,
@@ -230,8 +232,7 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
     # Validate datasets and weights schema
     dataset_index_names = {
         "sex",
-        "age_start",
-        "age_end",
+        AGE_GROUP_COLUMN,
         "year_start",
         "year_end",
         DRAW_INDEX,
