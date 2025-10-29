@@ -8,6 +8,7 @@ from pandas.testing import assert_frame_equal
 from pytest_check import check
 from pytest_mock import MockFixture
 
+from tests.automated_validation.conftest import NO_GBD_ACCESS
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import (
@@ -310,6 +311,14 @@ def test_fuzzy_comparison_align_datasets_calculation(
             index=expected_index,
         ),
     )
+
+
+@pytest.mark.slow
+def test_comparison_with_gbd_init(test_bundle: RatioMeasureDataBundle) -> None:
+    if NO_GBD_ACCESS:
+        pytest.skip("No cluster access to use GBD data.")
+
+    pass
 
 
 def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.DataFrame:
