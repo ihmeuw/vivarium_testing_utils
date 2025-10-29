@@ -37,7 +37,7 @@ def test_data_bundle_init(
     )
 
     if data_source == DataSource.SIM:
-        expected_keys = set(measure.sim_datasets.keys())
+        expected_keys = set(measure.sim_output_datasets.keys())
     else:
         expected_keys = set(measure.sim_input_datasets.keys())
     assert set(bundle.dataset_names) == expected_keys

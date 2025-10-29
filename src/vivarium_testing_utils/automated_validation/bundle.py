@@ -47,10 +47,8 @@ class RatioMeasureDataBundle:
     def dataset_names(self) -> dict[str, str]:
         """Return a dictionary of required datasets for the specified source."""
         if self.source == DataSource.SIM:
-            return self.measure.sim_datasets
-        elif self.source == DataSource.ARTIFACT:
-            return self.measure.sim_input_datasets
-        elif self.source == DataSource.GBD:
+            return self.measure.sim_output_datasets
+        elif self.source in ([DataSource.ARTIFACT, DataSource.GBD]):
             return self.measure.sim_input_datasets
         else:
             raise ValueError(f"Unsupported data source: {self.source}")

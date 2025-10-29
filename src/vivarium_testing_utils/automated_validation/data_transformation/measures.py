@@ -58,7 +58,7 @@ class Measure(ABC):
 
     @property
     @abstractmethod
-    def sim_datasets(self) -> dict[str, str]:
+    def sim_output_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         pass
 
@@ -101,7 +101,7 @@ class RatioMeasure(Measure, ABC):
         self.denominator = denominator
 
     @property
-    def sim_datasets(self) -> dict[str, str]:
+    def sim_output_datasets(self) -> dict[str, str]:
         """Return a dictionary of required datasets for this measure."""
         return {
             "numerator_data": self.numerator.raw_dataset_name,
