@@ -19,10 +19,7 @@ from vivarium_testing_utils.automated_validation.constants import (
     DataSource,
 )
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
-from vivarium_testing_utils.automated_validation.data_transformation import (
-    age_groups,
-    calculations,
-)
+from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Incidence,
     RatioMeasure,
