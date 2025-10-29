@@ -6,9 +6,11 @@ from typing import Literal
 import pandas as pd
 import pytest
 from pytest_mock import MockFixture
+from vivarium_inputs import interface
 
+from tests.automated_validation.conftest import NO_GBD_ACCESS
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
-from vivarium_testing_utils.automated_validation.constants import DataSource
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, DataSource
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
@@ -35,7 +37,7 @@ def test_data_bundle_init(
     )
 
     if data_source == DataSource.SIM:
-        expected_keys = set(measure.sim_datasets.keys())
+        expected_keys = set(measure.sim_output_datasets.keys())
     else:
         expected_keys = set(measure.sim_input_datasets.keys())
     assert set(bundle.dataset_names) == expected_keys
@@ -100,12 +102,10 @@ def test_get_metadata(
     assert metadata["size"] == "4 rows × 1 columns"
 
 
-@pytest.mark.parametrize("source", [DataSource.GBD, DataSource.CUSTOM])
-def test_dataset_names_value_error(
+def test_custom_data_source_dataset_names_value_error(
     mocker: MockFixture,
     mock_ratio_measure: RatioMeasure,
     sample_age_group_df: pd.DataFrame,
-    source: DataSource,
 ) -> None:
     """Test _get_formatted_datasets raises NotImplementedError for GBD source."""
     mock_data_loader = mocker.MagicMock(spec=DataLoader)
@@ -114,7 +114,7 @@ def test_dataset_names_value_error(
     with pytest.raises(ValueError):
         RatioMeasureDataBundle(
             measure=mock_ratio_measure,
-            source=source,
+            source=DataSource.CUSTOM,
             data_loader=mock_data_loader,
             age_group_df=sample_age_group_df,
         )
@@ -186,7 +186,7 @@ def test_aggregate_reference_stratifications(
         data_loader=mocker.MagicMock(spec=DataLoader),
         age_group_df=sample_age_group_df,
     )
-    aggregated = bundle._aggregate_artifact_stratifications(stratifications)
+    aggregated = bundle._aggregate_sim_input_stratifications(stratifications)
 
     if stratifications == "all":
         aggregated.equals(reference_data)
@@ -208,3 +208,53 @@ def test_aggregate_reference_stratifications(
             ),
         )
         pd.testing.assert_frame_equal(aggregated, expected)
+
+
+@pytest.mark.slow
+def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
+    """Test that GBD data source is handled correctly in RatioMeasureDataBundle."""
+    if NO_GBD_ACCESS:
+        pytest.skip("GBD access not available for this test.")
+
+    age_bins = interface.get_age_bins()
+    age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
+
+    incidence = Incidence("diarrheal_diseases")
+    bundle = RatioMeasureDataBundle(
+        measure=incidence,
+        source=DataSource.GBD,
+        data_loader=DataLoader(sim_result_dir),
+        age_group_df=age_bins,
+    )
+
+    assert set(bundle.dataset_names) == {"data"}
+    # Validate datasets and weights schema
+    dataset_index_names = {
+        "sex",
+        age_groups.AGE_GROUP_COLUMN,
+        "year_start",
+        "year_end",
+        DRAW_INDEX,
+    }
+    assert set(bundle.datasets["data"].index.names) == dataset_index_names
+    assert set(bundle.datasets["data"].columns) == {"value"}
+    assert bundle.weights is not None
+    assert set(bundle.weights.index.names) == dataset_index_names.union({"location"})
+    assert set(bundle.weights.columns) == {"value"}
+
+    # Validate data aggregation
+    stratify_1 = bundle.get_measure_data("all")
+    pd.testing.assert_frame_equal(stratify_1, bundle.datasets["data"])
+    stratify_2 = bundle.get_measure_data(["sex", age_groups.AGE_GROUP_COLUMN])
+    assert set(stratify_2.index.names) == {"sex", age_groups.AGE_GROUP_COLUMN, DRAW_INDEX}
+
+    metadata = bundle.get_metadata()
+    assert metadata["source"] == "gbd"
+    assert metadata["index_columns"] == "sex, year_start, year_end, input_draw, age_group"
+    assert set(metadata.keys()) == {
+        "source",
+        "index_columns",
+        "size",
+        "num_draws",
+        "input_draws",
+    }

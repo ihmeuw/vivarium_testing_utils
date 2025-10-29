@@ -47,8 +47,8 @@ class RatioMeasureDataBundle:
     def dataset_names(self) -> dict[str, str]:
         """Return a dictionary of required datasets for the specified source."""
         if self.source == DataSource.SIM:
-            return self.measure.sim_datasets
-        elif self.source == DataSource.ARTIFACT:
+            return self.measure.sim_output_datasets
+        elif self.source in ([DataSource.ARTIFACT, DataSource.GBD]):
             return self.measure.sim_input_datasets
         else:
             raise ValueError(f"Unsupported data source: {self.source}")
@@ -107,11 +107,9 @@ class RatioMeasureDataBundle:
             datasets = self.measure.get_ratio_datasets_from_sim(
                 **raw_datasets,
             )
-        elif self.source == DataSource.ARTIFACT:
+        elif self.source in [DataSource.ARTIFACT, DataSource.GBD]:
             data = self.measure.get_measure_data_from_sim_inputs(**raw_datasets)
             datasets = {"data": data}
-        elif self.source == DataSource.GBD:
-            raise NotImplementedError
         elif self.source == DataSource.CUSTOM:
             raise NotImplementedError
         else:
@@ -132,7 +130,7 @@ class RatioMeasureDataBundle:
         self, data_loader: DataLoader, age_group_data: pd.DataFrame
     ) -> pd.DataFrame | None:
         """Fetches and aggregates weights if required by the measure."""
-        if self.source != DataSource.ARTIFACT:
+        if self.source not in [DataSource.ARTIFACT, DataSource.GBD]:
             return None
 
         raw_weights = data_loader._get_raw_data_from_source(
@@ -147,10 +145,8 @@ class RatioMeasureDataBundle:
         """Get the measure data, optionally aggregated over specified stratifications."""
         if self.source == DataSource.SIM:
             return self._aggregate_scenario_stratifications(self.datasets, stratifications)
-        elif self.source == DataSource.ARTIFACT:
-            return self._aggregate_artifact_stratifications(stratifications)
-        elif self.source == DataSource.GBD:
-            raise NotImplementedError
+        elif self.source in [DataSource.ARTIFACT, DataSource.GBD]:
+            return self._aggregate_sim_input_stratifications(stratifications)
         elif self.source == DataSource.CUSTOM:
             raise NotImplementedError
         else:
@@ -167,7 +163,7 @@ class RatioMeasureDataBundle:
         }
         return self.measure.get_measure_data_from_ratio(**datasets)
 
-    def _aggregate_artifact_stratifications(
+    def _aggregate_sim_input_stratifications(
         self, stratifications: Collection[str] | Literal["all"]
     ) -> pd.DataFrame:
         """Aggregate the artifact data over specified stratifications. Stratifactions will be retained
