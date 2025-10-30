@@ -340,7 +340,11 @@ def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
     comparison = FuzzyComparison(test_bundle, ref_bundle)
     assert comparison.reference_bundle == ref_bundle
     assert comparison.test_bundle == test_bundle
-    breakpoint()
+
+    # Bundles are the same so differences should be zero
+    diff = comparison.get_frame(num_rows="all")
+    assert (diff["test_rate"] == diff["reference_rate"]).all()
+    assert (diff["percent_error"] == 0.0).all()
 
 
 def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.DataFrame:
