@@ -114,6 +114,10 @@ class DataLoader:
         """Upload or update a custom DataFrame or Series to the GBD context given by a data key."""
         if data_key in self._raw_data_cache[DataSource.GBD] and not overwrite:
             existing = self._raw_data_cache[DataSource.GBD][data_key]
+            if set(existing.index.names) != set(data.index.names):
+                raise ValueError(
+                    f"Cannot update GBD data for {data_key} with different index names."
+                )
             if not existing.index.equals(data.index):
                 # Check if the new data has non-overlapping indices with existing data
                 overlapping_indices = existing.index.intersection(data.index)
