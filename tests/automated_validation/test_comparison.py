@@ -317,9 +317,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
 
 
 @pytest.mark.slow
-def test_comparison_with_gbd_init(
-    sim_result_dir: Path, test_bundle: RatioMeasureDataBundle
-) -> None:
+def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
     if NO_GBD_ACCESS:
         pytest.skip("No cluster access to use GBD data.")
 
@@ -327,15 +325,22 @@ def test_comparison_with_gbd_init(
     age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
 
     incidence = Incidence("diarrheal_diseases")
-    gbd_bundle = RatioMeasureDataBundle(
+    test_bundle = RatioMeasureDataBundle(
         measure=incidence,
         source=DataSource.GBD,
         data_loader=DataLoader(sim_result_dir),
         age_group_df=age_bins,
     )
-    comparison = FuzzyComparison(test_bundle, gbd_bundle)
-    assert comparison.reference_bundle == gbd_bundle
+    ref_bundle = RatioMeasureDataBundle(
+        measure=incidence,
+        source=DataSource.GBD,
+        data_loader=DataLoader(sim_result_dir),
+        age_group_df=age_bins,
+    )
+    comparison = FuzzyComparison(test_bundle, ref_bundle)
+    assert comparison.reference_bundle == ref_bundle
     assert comparison.test_bundle == test_bundle
+    breakpoint()
 
 
 def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.DataFrame:
