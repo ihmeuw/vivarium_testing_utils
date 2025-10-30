@@ -1,4 +1,5 @@
 from collections.abc import Collection
+from pathlib import Path
 from typing import Literal
 from unittest import mock
 
@@ -7,7 +8,9 @@ import pytest
 from pandas.testing import assert_frame_equal
 from pytest_check import check
 from pytest_mock import MockFixture
+from vivarium_inputs import interface
 
+from tests.automated_validation.conftest import NO_GBD_ACCESS
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import (
@@ -16,8 +19,9 @@ from vivarium_testing_utils.automated_validation.constants import (
     DataSource,
 )
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
-from vivarium_testing_utils.automated_validation.data_transformation import calculations
+from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    Incidence,
     RatioMeasure,
 )
 
@@ -310,6 +314,37 @@ def test_fuzzy_comparison_align_datasets_calculation(
             index=expected_index,
         ),
     )
+
+
+@pytest.mark.slow
+def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
+    if NO_GBD_ACCESS:
+        pytest.skip("No cluster access to use GBD data.")
+
+    age_bins = interface.get_age_bins()
+    age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
+
+    incidence = Incidence("diarrheal_diseases")
+    test_bundle = RatioMeasureDataBundle(
+        measure=incidence,
+        source=DataSource.GBD,
+        data_loader=DataLoader(sim_result_dir),
+        age_group_df=age_bins,
+    )
+    ref_bundle = RatioMeasureDataBundle(
+        measure=incidence,
+        source=DataSource.GBD,
+        data_loader=DataLoader(sim_result_dir),
+        age_group_df=age_bins,
+    )
+    comparison = FuzzyComparison(test_bundle, ref_bundle)
+    assert comparison.reference_bundle == ref_bundle
+    assert comparison.test_bundle == test_bundle
+
+    # Bundles are the same so differences should be zero
+    diff = comparison.get_frame(num_rows="all")
+    assert (diff["test_rate"] == diff["reference_rate"]).all()
+    assert (diff["percent_error"] == 0.0).all()
 
 
 def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.DataFrame:
