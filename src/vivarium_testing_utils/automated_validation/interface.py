@@ -8,6 +8,7 @@ from typing import Any, Collection, Literal
 import pandas as pd
 import yaml
 from matplotlib.figure import Figure
+from vivarium_inputs import utilities as vi
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
@@ -28,6 +29,7 @@ class ValidationContext:
         self.comparisons: dict[str, Comparison] = {}
         self.age_groups = self._get_age_groups()
         self.scenario_columns = scenario_columns
+        self.location = self.data_loader.location
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -315,3 +317,12 @@ class ValidationContext:
             # relabel index level age_group_name to age_group
 
         return age_groups.rename_axis(index={"age_group_name": "age_group"})
+
+    def cache_gbd_data(
+        self, data_key: str, data: pd.DataFrame | pd.Series[float], overwrite: bool = False
+    ) -> None:
+        """Upload a custom DataFrame or Series to the context given by a data key."""
+        if isinstance(data, pd.Series):
+            data = data.to_frame(name="value")
+        vi.scrub_gbd_conventions(data, self.location)
+        self.data_loader.cache_gbd_data(data_key, data, overwrite=overwrite)
