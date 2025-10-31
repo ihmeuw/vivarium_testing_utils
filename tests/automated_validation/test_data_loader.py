@@ -255,3 +255,16 @@ def test__load_gbd_data(key: str, sim_result_dir: Path) -> None:
         assert demographic_cols.union({"location"}) == set(gbd_data.index.names)
     if isinstance(gbd_data, pd.DataFrame):
         assert {"value"} == set(gbd_data.columns)
+
+
+def test_cache_gbd_data(sim_result_dir: Path, gbd_population_data: pd.DataFrame) -> None:
+    """Ensure that we can cache custom GBD data"""
+    data_loader = DataLoader(sim_result_dir)
+    data_loader.cache_gbd_data("population.structure", gbd_population_data)
+    cached_data = data_loader.get_data("population.structure", DataSource.GBD)
+    assert cached_data.equals(gbd_population_data)
+
+    # TODO: Test that updating with different index names raises an error
+    # TODO: Test that updating with overlapping indices raises an error
+    # TODO: Test that updating with non-overlapping indices appends data
+    # TODO: Test that overwrite=True replaces data
