@@ -257,14 +257,104 @@ def test__load_gbd_data(key: str, sim_result_dir: Path) -> None:
         assert {"value"} == set(gbd_data.columns)
 
 
-def test_cache_gbd_data(sim_result_dir: Path, gbd_population_data: pd.DataFrame) -> None:
+def test_cache_gbd_data(sim_result_dir: Path) -> None:
     """Ensure that we can cache custom GBD data"""
+    gbd_pop = pd.DataFrame(
+        {
+            "value": [1000, 2000, 1500, 2500],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                (0, 1, 1990, 1990, "male", "USA"),
+                (0, 1, 1990, 1990, "female", "USA"),
+                (1, 2, 1990, 1990, "male", "CAN"),
+                (1, 2, 1990, 1990, "female", "CAN"),
+            ],
+            names=["age_start", "age_end", "year_start", "year_end", "sex", "location"],
+        ),
+    )
     data_loader = DataLoader(sim_result_dir)
-    data_loader.cache_gbd_data("population.structure", gbd_population_data)
+    data_loader.cache_gbd_data("population.structure", gbd_pop)
     cached_data = data_loader.get_data("population.structure", DataSource.GBD)
-    assert cached_data.equals(gbd_population_data)
+    assert cached_data.equals(gbd_pop)
 
-    # TODO: Test that updating with different index names raises an error
-    # TODO: Test that updating with overlapping indices raises an error
-    # TODO: Test that updating with non-overlapping indices appends data
-    # TODO: Test that overwrite=True replaces data
+    # Different index names raises error
+    with pytest.raises(ValueError, match="different index names"):
+        data_loader.cache_gbd_data(
+            "population.structure",
+            pd.DataFrame(
+                {
+                    "value": [100, 200],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    [
+                        (0, 0, 5, 10, "dog", "mammal"),
+                        (0, 0, 5, 10, "cat", "mammal"),
+                    ],
+                    names=["age_group_1", "other_id", "length", "width", "species", "class"],
+                ),
+            ),
+        )
+
+    # Overlapping indices raises error
+    with pytest.raises(
+        ValueError,
+        match="overlapping indices",
+    ):
+        data_loader.cache_gbd_data(
+            "population.structure",
+            pd.DataFrame(
+                {
+                    "value": [1200, 2200],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    [
+                        (0, 1, 1990, 1990, "male", "USA"),
+                        (0, 1, 1990, 1990, "female", "USA"),
+                    ],
+                    names=[
+                        "age_start",
+                        "age_end",
+                        "year_start",
+                        "year_end",
+                        "sex",
+                        "location",
+                    ],
+                ),
+            ),
+        )
+
+    # Append non-overlapping indices
+    mexico = pd.DataFrame(
+        {
+            "value": [1800, 2200],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                (0, 1, 1990, 1990, "male", "MEX"),
+                (0, 1, 1990, 1990, "female", "MEX"),
+            ],
+            names=["age_start", "age_end", "year_start", "year_end", "sex", "location"],
+        ),
+    )
+    data_loader.cache_gbd_data("population.structure", mexico)
+    updated_data = data_loader.get_data("population.structure", DataSource.GBD)
+    expected_data = pd.concat([gbd_pop, mexico])
+    assert updated_data.equals(expected_data)
+
+    # Overwrite existing data
+    new_data = pd.DataFrame(
+        {
+            "value": [5000, 6000],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                (500, 1000),
+                (500, 1200),
+            ],
+            names=["attack_damage", "health"],
+        ),
+    )
+    data_loader.cache_gbd_data("population.structure", new_data, overwrite=True)
+    replaced_data = data_loader.get_data("population.structure", DataSource.GBD)
+    assert replaced_data.equals(new_data)

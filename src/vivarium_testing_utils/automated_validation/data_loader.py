@@ -126,20 +126,24 @@ class DataLoader:
                         f"Cannot update GBD data for {data_key} with overlapping indices: {overlapping_indices.tolist()}"
                     )
                 # Append data to existing since indices don't overlap
-                combined = pd.concat([existing, data])
-                self._raw_data_cache[DataSource.GBD][data_key] = combined
+                data = pd.concat([existing, data])
+                overwrite = True
 
-        self._add_to_cache(data_key, DataSource.GBD, data)
+        self._add_to_cache(data_key, DataSource.GBD, data, overwrite)
 
     def _load_from_source(self, data_key: str, source: DataSource) -> Any:
         """Load the data from the given source via the loader mapping."""
         return self._loader_mapping[source](data_key)
 
     def _add_to_cache(
-        self, data_key: str, source: DataSource, data: pd.DataFrame | str
+        self,
+        data_key: str,
+        source: DataSource,
+        data: pd.DataFrame | str,
+        overwrite: bool = False,
     ) -> None:
         """Update the raw_data_cache with the given data."""
-        if data_key in self._raw_data_cache.get(source, {}):
+        if data_key in self._raw_data_cache.get(source, {}) and not overwrite:
             raise ValueError(f"Data for {data_key} already exist in the cache.")
         cache_data = data.copy() if isinstance(data, pd.DataFrame) else data
         self._raw_data_cache[source].update({data_key: cache_data})
