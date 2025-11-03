@@ -295,7 +295,7 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
         {
             "cause_id": [294] * 10,
             "draw_0": list(range(10)),
-            "draw_1": list(range(100, 109)),
+            "draw_1": list(range(100, 110)),
         },
         index=pd.MultiIndex.from_tuples(
             [
