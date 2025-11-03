@@ -324,5 +324,15 @@ class ValidationContext:
         """Upload a custom DataFrame or Series to the context given by a data key."""
         if isinstance(data, pd.Series):
             data = data.to_frame(name="value")
-        mapped_data: pd.DataFrame = vi.scrub_gbd_conventions(data, self.location)
+        mapped_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(
+            data, self.location
+        )
         self.data_loader.cache_gbd_data(data_key, mapped_data, overwrite=overwrite)
+
+    def _format_to_vivarium_inputs_conventions(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Format a DataFrame or Series to vivarium inputs conventions."""
+        data = vi.scrub_gbd_conventions(data, self.location)
+        data = vi.split_interval(data, interval_column="age", split_column_prefix="age")
+        data = vi.split_interval(data, interval_column="year", split_column_prefix="year")
+        formatted_data: pd.DataFrame = vi.sort_hierarchical_data(data)
+        return formatted_data
