@@ -8,6 +8,7 @@ from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
 from tests.automated_validation.conftest import NO_GBD_ACCESS
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
@@ -293,7 +294,8 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
     mocked_gbd = pd.DataFrame(
         {
             "cause_id": [294] * 10,
-            "value": list(range(10)),
+            "draw_0": list(range(10)),
+            "draw_1": list(range(100, 109)),
         },
         index=pd.MultiIndex.from_tuples(
             [
@@ -321,7 +323,7 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
         "age_group",
         "year_start",
         "year_end",
-        "affected_entity",
+        DRAW_INDEX,
     } == set(cached_data.index.names)
 
 

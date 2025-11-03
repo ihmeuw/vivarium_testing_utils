@@ -133,6 +133,13 @@ class DataLoader:
                     data = pd.concat([existing, data])
                     overwrite = True
 
+        if (
+            isinstance(data, pd.DataFrame)
+            and not data.columns.empty
+            and data.columns.str.startswith(DRAW_PREFIX).all()
+        ):
+            data = calculations.clean_draw_columns(data)
+
         self._add_to_cache(data_key, DataSource.GBD, data, overwrite)
 
     def _load_from_source(self, data_key: str, source: DataSource) -> Any:
