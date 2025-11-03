@@ -324,9 +324,7 @@ class ValidationContext:
         """Upload a custom DataFrame or Series to the context given by a data key."""
         if isinstance(data, pd.Series):
             data = data.to_frame(name="value")
-        mapped_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(
-            data, self.location
-        )
+        mapped_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(data)
         self.data_loader.cache_gbd_data(data_key, mapped_data, overwrite=overwrite)
 
     def _format_to_vivarium_inputs_conventions(self, data: pd.DataFrame) -> pd.DataFrame:
