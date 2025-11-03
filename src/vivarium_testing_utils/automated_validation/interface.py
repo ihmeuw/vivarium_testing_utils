@@ -324,5 +324,5 @@ class ValidationContext:
         """Upload a custom DataFrame or Series to the context given by a data key."""
         if isinstance(data, pd.Series):
             data = data.to_frame(name="value")
-        vi.scrub_gbd_conventions(data, self.location)
+        data = vi.scrub_gbd_conventions(data, self.location)
         self.data_loader.cache_gbd_data(data_key, data, overwrite=overwrite)

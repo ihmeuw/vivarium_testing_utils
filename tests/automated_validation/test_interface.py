@@ -282,6 +282,9 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
 
 
 def test_cache_gbd_data(sim_result_dir: Path) -> None:
+    """Tests that we can cache custom GBD and retreivve it. More importantly, tests that
+    GBD data is properly mapped from id columns to value columns upon caching."""
+
     if NO_GBD_ACCESS:
         pytest.skip("No access to IHME cluster to extract GBD data.")
 
@@ -310,5 +313,28 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
     context.cache_gbd_data(measure_key, mocked_gbd)
     cached_data = context.get_raw_data(measure_key, "gbd")
     assert isinstance(cached_data, pd.DataFrame)
-    breakpoint()
-    assert mocked_gbd.equals(cached_data)
+    # Cached gbd data should update the id columns to be mapped to values
+    # NOTE: location currently dropped by vi.load_standard_data
+    assert {"sex", "age_group", "year_start", "year_end", "affected_entity"} == set(
+        cached_data.index.names
+    )
+
+
+@pytest.mark.slow
+def test_cache_gbd_data_integration(sim_result_dir: Path) -> None:
+    """Test specifically to test that we can cache already formatted data and have that
+    same data returned from the GBD cache."""
+
+    if NO_GBD_ACCESS:
+        pytest.skip("No access to IHME cluster to extract GBD data.")
+
+    measure_key = "cause.lower_respiratory_infections.incidence_rate"
+    context = ValidationContext(sim_result_dir)
+    data_loader = DataLoader(sim_result_dir)
+    gbd_data = data_loader._load_from_gbd(measure_key)
+    assert isinstance(gbd_data, pd.DataFrame)
+
+    context.cache_gbd_data(measure_key, gbd_data)
+    cached_data = context.get_raw_data(measure_key, "gbd")
+    assert isinstance(cached_data, pd.DataFrame)
+    assert gbd_data.equals(cached_data)
