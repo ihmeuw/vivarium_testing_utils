@@ -310,6 +310,7 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
     context.cache_gbd_data(measure_key, mocked_gbd)
     cached_data = context.get_raw_data(measure_key, "gbd")
     assert isinstance(cached_data, pd.DataFrame)
+    breakpoint()
     assert mocked_gbd.equals(cached_data)
 
 
