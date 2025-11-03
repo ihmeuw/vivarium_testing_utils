@@ -314,10 +314,14 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
     cached_data = context.get_raw_data(measure_key, "gbd")
     assert isinstance(cached_data, pd.DataFrame)
     # Cached gbd data should update the id columns to be mapped to values
-    # NOTE: location currently dropped by vi.load_standard_data
-    assert {"sex", "age_group", "year_start", "year_end", "affected_entity"} == set(
-        cached_data.index.names
-    )
+    assert {
+        "location",
+        "sex",
+        "age_group",
+        "year_start",
+        "year_end",
+        "affected_entity",
+    } == set(cached_data.index.names)
 
 
 @pytest.mark.slow
