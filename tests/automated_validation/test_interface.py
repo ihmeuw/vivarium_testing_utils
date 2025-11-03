@@ -325,23 +325,3 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
         "year_end",
         DRAW_INDEX,
     } == set(cached_data.index.names)
-
-
-@pytest.mark.slow
-def test_cached_gbd_data(sim_result_dir: Path) -> None:
-    """Test specifically to test that we can cache already formatted data and have that
-    same data returned from the GBD cache."""
-
-    if NO_GBD_ACCESS:
-        pytest.skip("No access to IHME cluster to extract GBD data.")
-
-    measure_key = "cause.lower_respiratory_infections.incidence_rate"
-    context = ValidationContext(sim_result_dir)
-    data_loader = DataLoader(sim_result_dir)
-    gbd_data = data_loader._load_from_gbd(measure_key)
-    assert isinstance(gbd_data, pd.DataFrame)
-
-    context.cache_gbd_data(measure_key, gbd_data)
-    cached_data = context.get_raw_data(measure_key, "gbd")
-    assert isinstance(cached_data, pd.DataFrame)
-    assert gbd_data.equals(cached_data)
