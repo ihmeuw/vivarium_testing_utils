@@ -329,8 +329,8 @@ class ValidationContext:
 
     def _format_to_vivarium_inputs_conventions(self, data: pd.DataFrame) -> pd.DataFrame:
         """Format a DataFrame or Series to vivarium inputs conventions."""
-        scrubbed = vi.scrub_gbd_conventions(data, self.location)
-        aged = vi.split_interval(scrubbed, interval_column="age", split_column_prefix="age")
-        year = vi.split_interval(aged, interval_column="year", split_column_prefix="year")
-        formatted_data: pd.DataFrame = vi.sort_hierarchical_data(year)
+        data = vi.scrub_gbd_conventions(data, self.location)
+        data = vi.split_interval(data, interval_column="age", split_column_prefix="age")
+        data = vi.split_interval(data, interval_column="year", split_column_prefix="year")
+        formatted_data: pd.DataFrame = vi.sort_hierarchical_data(data)
         return formatted_data
