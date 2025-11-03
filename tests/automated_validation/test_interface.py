@@ -7,6 +7,7 @@ from pandas.testing import assert_frame_equal
 from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
+from tests.automated_validation.conftest import NO_GBD_ACCESS
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
@@ -278,3 +279,53 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
     assert isinstance(data, pd.DataFrame)
     assert not data.empty
     assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
+
+
+def test_cache_gbd_data(sim_result_dir: Path) -> None:
+    if NO_GBD_ACCESS:
+        pytest.skip("No access to IHME cluster to extract GBD data.")
+
+    measure_key = "cause.fake_disease.incidence_rate"
+    context = ValidationContext(sim_result_dir)
+    mocked_gbd = pd.DataFrame(
+        {
+            "value": list(range(10)),
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                (1, 1, 5, 2020, 999),
+                (1, 2, 5, 2020, 999),
+                (1, 1, 6, 2020, 999),
+                (1, 2, 6, 2020, 999),
+                (1, 1, 7, 2020, 999),
+                (1, 2, 7, 2020, 999),
+                (1, 1, 8, 2020, 999),
+                (1, 2, 8, 2020, 999),
+                (1, 1, 9, 2020, 999),
+                (1, 2, 9, 2020, 999),
+            ],
+            names=["location_id", "sex_id", "age_group_id", "year_id", "cause_id"],
+        ),
+    )
+    context.cache_gbd_data(measure_key, mocked_gbd)
+    cached_data = context.get_raw_data(measure_key, "gbd")
+    assert isinstance(cached_data, pd.DataFrame)
+    assert mocked_gbd.equals(cached_data)
+
+
+@pytest.mark.slow
+def test_cache_gbd_data_integration(sim_result_dir: Path) -> None:
+    if NO_GBD_ACCESS:
+        pytest.skip("No access to IHME cluster to extract GBD data.")
+
+    measure_key = "cause.lower_respiratory.infection.incidence_rate"
+    context = ValidationContext(sim_result_dir)
+    data_loader = DataLoader(sim_result_dir)
+    gbd_data = data_loader._load_from_gbd(measure_key)
+    assert isinstance(gbd_data, pd.DataFrame)
+
+    context.cache_gbd_data(measure_key, gbd_data)
+    cached_data = context.get_raw_data(measure_key, "gbd")
+    assert isinstance(cached_data, pd.DataFrame)
+    breakpoint()
+    assert gbd_data.equals(cached_data)
