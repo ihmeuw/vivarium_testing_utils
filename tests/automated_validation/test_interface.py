@@ -326,7 +326,7 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
 
 
 @pytest.mark.slow
-def test_cache_gbd_data_integration(sim_result_dir: Path) -> None:
+def test_cached_gbd_data(sim_result_dir: Path) -> None:
     """Test specifically to test that we can cache already formatted data and have that
     same data returned from the GBD cache."""
 
