@@ -319,7 +319,7 @@ def test_cache_gbd_data_integration(sim_result_dir: Path) -> None:
     if NO_GBD_ACCESS:
         pytest.skip("No access to IHME cluster to extract GBD data.")
 
-    measure_key = "cause.lower_respiratory.infection.incidence_rate"
+    measure_key = "cause.lower_respiratory_infection.incidence_rate"
     context = ValidationContext(sim_result_dir)
     data_loader = DataLoader(sim_result_dir)
     gbd_data = data_loader._load_from_gbd(measure_key)
