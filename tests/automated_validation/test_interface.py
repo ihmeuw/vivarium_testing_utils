@@ -310,7 +310,7 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
                 (1, 1, 10, 2020),
                 (1, 2, 10, 2020),
             ],
-            names=["location_id", "sex_id", "age_group_id", "year_id", "cause_id"],
+            names=["location_id", "sex_id", "age_group_id", "year_id"],
         ),
     )
     context.cache_gbd_data(measure_key, mocked_gbd)
