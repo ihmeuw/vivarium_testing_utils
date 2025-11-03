@@ -292,20 +292,21 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
     context = ValidationContext(sim_result_dir)
     mocked_gbd = pd.DataFrame(
         {
+            "cause_id": [294] * 10,
             "value": list(range(10)),
         },
         index=pd.MultiIndex.from_tuples(
             [
-                (1, 1, 6, 2020, 294),
-                (1, 2, 6, 2020, 294),
-                (1, 1, 7, 2020, 294),
-                (1, 2, 7, 2020, 294),
-                (1, 1, 8, 2020, 294),
-                (1, 2, 8, 2020, 294),
-                (1, 1, 9, 2020, 294),
-                (1, 2, 9, 2020, 294),
-                (1, 1, 10, 2020, 294),
-                (1, 2, 10, 2020, 294),
+                (1, 1, 6, 2020),
+                (1, 2, 6, 2020),
+                (1, 1, 7, 2020),
+                (1, 2, 7, 2020),
+                (1, 1, 8, 2020),
+                (1, 2, 8, 2020),
+                (1, 1, 9, 2020),
+                (1, 2, 9, 2020),
+                (1, 1, 10, 2020),
+                (1, 2, 10, 2020),
             ],
             names=["location_id", "sex_id", "age_group_id", "year_id", "cause_id"],
         ),
