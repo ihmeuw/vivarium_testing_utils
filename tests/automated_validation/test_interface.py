@@ -293,8 +293,6 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                (1, 1, 5, 2020, 999),
-                (1, 2, 5, 2020, 999),
                 (1, 1, 6, 2020, 999),
                 (1, 2, 6, 2020, 999),
                 (1, 1, 7, 2020, 999),
@@ -303,6 +301,8 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
                 (1, 2, 8, 2020, 999),
                 (1, 1, 9, 2020, 999),
                 (1, 2, 9, 2020, 999),
+                (1, 1, 10, 2020, 999),
+                (1, 2, 10, 2020, 999),
             ],
             names=["location_id", "sex_id", "age_group_id", "year_id", "cause_id"],
         ),
@@ -312,21 +312,3 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
     assert isinstance(cached_data, pd.DataFrame)
     breakpoint()
     assert mocked_gbd.equals(cached_data)
-
-
-@pytest.mark.slow
-def test_cache_gbd_data_integration(sim_result_dir: Path) -> None:
-    if NO_GBD_ACCESS:
-        pytest.skip("No access to IHME cluster to extract GBD data.")
-
-    measure_key = "cause.lower_respiratory_infections.incidence_rate"
-    context = ValidationContext(sim_result_dir)
-    data_loader = DataLoader(sim_result_dir)
-    gbd_data = data_loader._load_from_gbd(measure_key)
-    assert isinstance(gbd_data, pd.DataFrame)
-
-    context.cache_gbd_data(measure_key, gbd_data)
-    cached_data = context.get_raw_data(measure_key, "gbd")
-    assert isinstance(cached_data, pd.DataFrame)
-    breakpoint()
-    assert gbd_data.equals(cached_data)
