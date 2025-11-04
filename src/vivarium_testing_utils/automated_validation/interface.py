@@ -333,5 +333,4 @@ class ValidationContext:
         data = vi.split_interval(data, interval_column="age", split_column_prefix="age")
         data = vi.split_interval(data, interval_column="year", split_column_prefix="year")
         formatted_data: pd.DataFrame = vi.sort_hierarchical_data(data)
-        # TODO: handle extra columns from gbd
         return formatted_data
