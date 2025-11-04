@@ -289,7 +289,7 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
     if NO_GBD_ACCESS:
         pytest.skip("No access to IHME cluster to extract GBD data.")
 
-    measure_key = "cause.fake_disease.incidence_rate"
+    measure_key = "cause.all_causes.incidence_rate"
     context = ValidationContext(sim_result_dir)
     mocked_gbd = pd.DataFrame(
         {
@@ -299,16 +299,16 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
         },
         index=pd.MultiIndex.from_tuples(
             [
-                (1, 1, 6, 2020),
-                (1, 2, 6, 2020),
-                (1, 1, 7, 2020),
-                (1, 2, 7, 2020),
-                (1, 1, 8, 2020),
-                (1, 2, 8, 2020),
-                (1, 1, 9, 2020),
-                (1, 2, 9, 2020),
-                (1, 1, 10, 2020),
-                (1, 2, 10, 2020),
+                (175, 1, 6, 2020),
+                (175, 2, 6, 2020),
+                (175, 1, 7, 2020),
+                (175, 2, 7, 2020),
+                (175, 1, 8, 2020),
+                (175, 2, 8, 2020),
+                (175, 1, 9, 2020),
+                (175, 2, 9, 2020),
+                (175, 1, 10, 2020),
+                (175, 2, 10, 2020),
             ],
             names=["location_id", "sex_id", "age_group_id", "year_id"],
         ),
