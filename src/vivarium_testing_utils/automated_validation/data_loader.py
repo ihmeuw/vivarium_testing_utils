@@ -112,11 +112,15 @@ class DataLoader:
         self, data_key: str, data: pd.DataFrame, overwrite: bool = False
     ) -> None:
         """Upload or update a custom DataFrame or Series to the GBD context given by a data key."""
+        if overwrite:
+            if data_key in self._raw_data_cache[DataSource.GBD]:
+                del self._raw_data_cache[DataSource.GBD][data_key]
         if data_key in self._raw_data_cache[DataSource.GBD] and not overwrite:
             existing = self._raw_data_cache[DataSource.GBD][data_key]
             if isinstance(existing, str):
-                # Assume user will always overwrite a string
-                overwrite = True
+                raise ValueError(
+                    f"Existing GBD data for {data_key} is a string and cannot be updated without the overwrite flag set to True."
+                )
             else:
                 if set(existing.index.names) != set(data.index.names):
                     raise ValueError(
@@ -131,7 +135,7 @@ class DataLoader:
                         )
                     # Append data to existing since indices don't overlap
                     data = pd.concat([existing, data])
-                    overwrite = True
+                    del self._raw_data_cache[DataSource.GBD][data_key]
 
         if (
             isinstance(data, pd.DataFrame)
@@ -140,7 +144,7 @@ class DataLoader:
         ):
             data = calculations.clean_draw_columns(data)
 
-        self._add_to_cache(data_key, DataSource.GBD, data, overwrite)
+        self._add_to_cache(data_key, DataSource.GBD, data)
 
     def _load_from_source(self, data_key: str, source: DataSource) -> Any:
         """Load the data from the given source via the loader mapping."""
@@ -151,10 +155,9 @@ class DataLoader:
         data_key: str,
         source: DataSource,
         data: pd.DataFrame | pd.Series[float] | str,
-        overwrite: bool = False,
     ) -> None:
         """Update the raw_data_cache with the given data."""
-        if data_key in self._raw_data_cache.get(source, {}) and not overwrite:
+        if data_key in self._raw_data_cache.get(source, {}):
             raise ValueError(f"Data for {data_key} already exist in the cache.")
         if isinstance(data, pd.Series):
             data = data.to_frame(name="value")

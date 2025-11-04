@@ -283,7 +283,7 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
 
 
 def test_cache_gbd_data(sim_result_dir: Path) -> None:
-    """Tests that we can cache custom GBD and retreivve it. More importantly, tests that
+    """Tests that we can cache custom GBD and retreive it. More importantly, tests that
     GBD data is properly mapped from id columns to value columns upon caching."""
 
     if NO_GBD_ACCESS:
