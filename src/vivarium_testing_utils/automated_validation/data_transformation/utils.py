@@ -40,3 +40,8 @@ def check_io(**model_dict: type) -> Callable[[F], F]:
 def series_to_dataframe(series: pd.Series[float]) -> pd.DataFrame:
     """Convert a Series to a DataFrame with the Series values as a single column."""
     return series.to_frame(name="value")
+
+
+def format_custom_gbd_data(raw_gbd: pd.DataFrame, location: str) -> pd.DataFrame:
+    """Format the output of a get_draws call to have expect index and value columns."""
+    pass

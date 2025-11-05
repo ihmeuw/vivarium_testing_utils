@@ -319,16 +319,14 @@ class ValidationContext:
         return age_groups.rename_axis(index={"age_group_name": "age_group"})
 
     def cache_gbd_data(
-        self, data_key: str, data: pd.DataFrame | pd.Series[float], overwrite: bool = False
+        self, data_key: str, data: pd.DataFrame, overwrite: bool = False
     ) -> None:
-        """Upload a custom DataFrame or Series to the context given by a data key."""
-        if isinstance(data, pd.Series):
-            data = data.to_frame(name="value")
+        """Upload the output of a get_draws call to the context given by a data key."""
         mapped_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(data)
         self.data_loader.cache_gbd_data(data_key, mapped_data, overwrite=overwrite)
 
     def _format_to_vivarium_inputs_conventions(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Format a DataFrame or Series to vivarium inputs conventions."""
+        """Format a DataFrame to data schema conventions for the validation context."""
         data = vi.scrub_gbd_conventions(data, self.location)
         data = vi.split_interval(data, interval_column="age", split_column_prefix="age")
         data = vi.split_interval(data, interval_column="year", split_column_prefix="year")
