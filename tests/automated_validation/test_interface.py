@@ -286,6 +286,17 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
     """Tests that we can cache custom GBD and retreive it. More importantly, tests that
     GBD data is properly mapped from id columns to value columns upon caching."""
 
+    measure_data_mapper = {
+        "risk_factor.child_wasting.exposure": "exposure",
+        "risk_factor.child_wasting.relative_risk": "relative_risks",
+        "population.structure": "population_structure",
+        "cause.diarrheal_diseases.remission_rate": "remission_rates",
+        "cause.diarrheal_diseases.cause_specific_mortality_rate": "cause_specific_mortality_rates",
+        "cause.diarrheal_diseases.incidence_rate": "incidence",
+        "cause.diarrheal_diseases.prevalence": "incidence",
+    }
+
     # TODO: parametrize by measure
+    # TODO: handle emrd
     # TODO: read in sample data based on measure
     context = ValidationContext(sim_result_dir)
