@@ -282,7 +282,17 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
     assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
 
 
-def test_cache_gbd_data(sim_result_dir: Path) -> None:
+@pytest.mark.parametrize("data_key", [
+    "risk_factor.child_wasting.exposure",
+    "risk_factor.child_wasting.relative_risk",
+    "population.structure",
+    "cause.diarrheal_diseases.remission_rate",
+    "cause.diarrheal_diseases.cause_specific_mortality_rate",
+    "cause.diarrheal_diseases.incidence_rate",
+    "cause.diarrheal_diseases.prevalence",
+    # TODO: add emr
+])
+def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
     """Tests that we can cache custom GBD and retreive it. More importantly, tests that
     GBD data is properly mapped from id columns to value columns upon caching."""
 
@@ -296,7 +306,7 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
         "cause.diarrheal_diseases.prevalence": "incidence",
     }
 
-    # TODO: parametrize by measure
-    # TODO: handle emrd
+
+    # TODO: handle emr
     # TODO: read in sample data based on measure
     context = ValidationContext(sim_result_dir)
