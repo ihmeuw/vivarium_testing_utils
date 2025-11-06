@@ -14,7 +14,9 @@ from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataB
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import measures
-from vivarium_testing_utils.automated_validation.data_transformation.utils import format_custom_gbd_data
+from vivarium_testing_utils.automated_validation.data_transformation.utils import (
+    format_custom_gbd_data,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CategoricalRelativeRisk,
     Measure,
@@ -327,8 +329,7 @@ class ValidationContext:
         self.data_loader.cache_gbd_data(data_key, mapped_data, overwrite=overwrite)
 
     def _format_to_vivarium_inputs_conventions(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Format a DataFrame to data schema conventions for the validation context."""
-        # TODO: update index columns
+        """Format the output of a get_draws call to data schema conventions for the validation context."""
         data = format_custom_gbd_data(data, self.location)
         data = vi.scrub_gbd_conventions(data, self.location)
         data = vi.split_interval(data, interval_column="age", split_column_prefix="age")

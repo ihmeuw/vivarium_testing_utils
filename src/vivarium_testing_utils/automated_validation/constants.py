@@ -24,3 +24,13 @@ class DataSource(Enum):
 
 LOCATION_ARTIFACT_KEY = "population.location"
 POPULATION_STRUCTURE_ARTIFACT_KEY = "population.structure"
+
+GBD_DATA_MAPPER = {
+    "exposure": "exposure",
+    "relative_risk": "relative_risks",
+    "population.structure": "population_structure",
+    "remission_rate": "remission_rates",
+    "cause_specific_mortality_rate": "cause_specific_mortality_rates",
+    "incidence_rate": "incidence",
+    "prevalence": "incidence",
+}

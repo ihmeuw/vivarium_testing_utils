@@ -42,6 +42,8 @@ def series_to_dataframe(series: pd.Series[float]) -> pd.DataFrame:
     return series.to_frame(name="value")
 
 
-def format_custom_gbd_data(raw_gbd: pd.DataFrame, location: str) -> pd.DataFrame:
+def format_custom_gbd_data(raw_gbd: pd.DataFrame, key: str) -> pd.DataFrame:
     """Format the output of a get_draws call to have expect index and value columns."""
+    # TODO: drop extra columns based on key
+    # TODO: set index
     pass

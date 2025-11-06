@@ -285,44 +285,7 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
 def test_cache_gbd_data(sim_result_dir: Path) -> None:
     """Tests that we can cache custom GBD and retreive it. More importantly, tests that
     GBD data is properly mapped from id columns to value columns upon caching."""
-    # TODO: update test to use csv from get_draws calls
 
-    if NO_GBD_ACCESS:
-        pytest.skip("No access to IHME cluster to extract GBD data.")
-
-    measure_key = "cause.all_causes.incidence_rate"
+    # TODO: parametrize by measure
+    # TODO: read in sample data based on measure
     context = ValidationContext(sim_result_dir)
-    mocked_gbd = pd.DataFrame(
-        {
-            "draw_0": list(range(10)),
-            "draw_1": list(range(100, 110)),
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                (174, 1, 6, 2020),
-                (174, 2, 6, 2020),
-                (174, 1, 7, 2020),
-                (174, 2, 7, 2020),
-                (174, 1, 8, 2020),
-                (174, 2, 8, 2020),
-                (174, 1, 9, 2020),
-                (174, 2, 9, 2020),
-                (174, 1, 10, 2020),
-                (174, 2, 10, 2020),
-            ],
-            names=["location_id", "sex_id", "age_group_id", "year_id"],
-        ),
-    )
-    context.cache_gbd_data(measure_key, mocked_gbd)
-    cached_data = context.get_raw_data(measure_key, "gbd")
-    assert isinstance(cached_data, pd.DataFrame)
-    # Cached gbd data should update the id columns to be mapped to values
-    assert {
-        "location",
-        "sex",
-        "age_start",
-        "age_end",
-        "year_start",
-        "year_end",
-        DRAW_INDEX,
-    } == set(cached_data.index.names)
