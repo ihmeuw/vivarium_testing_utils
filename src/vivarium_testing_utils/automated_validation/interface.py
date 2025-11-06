@@ -14,13 +14,13 @@ from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataB
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import measures
-from vivarium_testing_utils.automated_validation.data_transformation.utils import (
-    format_custom_gbd_data,
-)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CategoricalRelativeRisk,
     Measure,
     RatioMeasure,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.utils import (
+    format_custom_gbd_data,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 

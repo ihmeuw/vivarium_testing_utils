@@ -42,8 +42,14 @@ def series_to_dataframe(series: pd.Series[float]) -> pd.DataFrame:
     return series.to_frame(name="value")
 
 
-def format_custom_gbd_data(raw_gbd: pd.DataFrame, key: str) -> pd.DataFrame:
+def format_custom_gbd_data(raw_gbd: pd.DataFrame) -> pd.DataFrame:
     """Format the output of a get_draws call to have expect index and value columns."""
-    # TODO: drop extra columns based on key
-    # TODO: set index
-    pass
+
+    sort_order = ["location_id", "sex_id", "age_group_id", "year_id"]
+    sorted_data_index = [n for n in sort_order if n in raw_gbd.index.names]
+    sorted_data_index.extend([n for n in raw_gbd.index.names if n not in sorted_data_index])
+
+    if isinstance(raw_gbd.index, pd.MultiIndex):
+        raw_gbd = raw_gbd.reorder_levels(sorted_data_index)
+    raw_gbd = raw_gbd.sort_index()
+    return raw_gbd
