@@ -42,14 +42,32 @@ def series_to_dataframe(series: pd.Series[float]) -> pd.DataFrame:
     return series.to_frame(name="value")
 
 
-def format_custom_gbd_data(raw_gbd: pd.DataFrame) -> pd.DataFrame:
+def drop_extra_columns(raw_gbd: pd.DataFrame) -> pd.DataFrame:
     """Format the output of a get_draws call to have expect index and value columns."""
 
-    sort_order = ["location_id", "sex_id", "age_group_id", "year_id"]
-    sorted_data_index = [n for n in sort_order if n in raw_gbd.index.names]
-    sorted_data_index.extend([n for n in raw_gbd.index.names if n not in sorted_data_index])
+    value_cols = [col for col in raw_gbd.columns if "draw" in col]
+    # Population structure only has "value"
+    if not value_cols:
+        if "value" in raw_gbd.columns:
+            value_cols = ["value"]
+        else:
+            raise ValueError(
+                f"No value columns found in the data. Columns found: {raw_gbd.columns.tolist()}"
+            )
 
-    if isinstance(raw_gbd.index, pd.MultiIndex):
-        raw_gbd = raw_gbd.reorder_levels(sorted_data_index)
-    raw_gbd = raw_gbd.sort_index()
-    return raw_gbd
+    gbd_cols = ["location_id", "sex_id", "age_group_id", "year_id", "cause_id"]
+    columns_to_keep = [col for col in raw_gbd.columns if col in gbd_cols + value_cols]
+    return raw_gbd[columns_to_keep]
+
+
+def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
+    """Set the index of a GBD DataFrame based on the data key."""
+    measure = data_key.split(".")[-1]
+    index_cols = ["locaiton_id", "sex_id", "age_group_id", "year_id"]
+    if measure in ["exposure", "relative_risk"]:
+        index_cols.append("paremeter")
+    if measure != "relative_risk" and "cause_id" in data.columns:
+        data = data.drop(columns=["cause_id"])
+
+    formatted = data.set_index(index_cols)
+    return formatted

@@ -20,7 +20,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     RatioMeasure,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import (
-    format_custom_gbd_data,
+    drop_extra_columns,
+    set_gbd_index,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
@@ -325,12 +326,17 @@ class ValidationContext:
         self, data_key: str, data: pd.DataFrame, overwrite: bool = False
     ) -> None:
         """Upload the output of a get_draws call to the context given by a data key."""
-        mapped_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(data)
+        mapped_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(
+            data, data_key
+        )
         self.data_loader.cache_gbd_data(data_key, mapped_data, overwrite=overwrite)
 
-    def _format_to_vivarium_inputs_conventions(self, data: pd.DataFrame) -> pd.DataFrame:
+    def _format_to_vivarium_inputs_conventions(
+        self, data: pd.DataFrame, data_key: str
+    ) -> pd.DataFrame:
         """Format the output of a get_draws call to data schema conventions for the validation context."""
-        data = format_custom_gbd_data(data, self.location)
+        data = drop_extra_columns(data)
+        data = set_gbd_index(data, data_key=data_key)
         data = vi.scrub_gbd_conventions(data, self.location)
         data = vi.split_interval(data, interval_column="age", split_column_prefix="age")
         data = vi.split_interval(data, interval_column="year", split_column_prefix="year")
