@@ -314,7 +314,6 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
         "cause.diarrheal_diseases.excess_mortality_rate": "cause_specific_mortality_rate",
     }
 
-    # TODO: Import data from gbd_data directory
     file_name = measure_data_mapper[data_key] + ".csv"
     file_path = Path(__file__).parent / "gbd_data" / file_name
     gbd_data = pd.read_csv(file_path)
