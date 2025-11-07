@@ -311,7 +311,7 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
         "risk_factor.child_wasting.relative_risk": "relative_risks",
         "population.structure": "population_structure",
         "cause.diarrheal_diseases.remission_rate": "remission_rate",
-        "cause.diarrheal_diseases.cause_specific_mortality_rate": "cause_specific_mortality_rate",
+        "cause.diarrheal_diseases.cause_specific_mortality_rate": "remission_rate",
         "cause.diarrheal_diseases.incidence_rate": "incidence",
         "cause.diarrheal_diseases.prevalence": "incidence",
         "cause.diarrheal_diseases.excess_mortality_rate": "excess_mortality_rate",
