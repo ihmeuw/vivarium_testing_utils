@@ -63,11 +63,13 @@ def drop_extra_columns(raw_gbd: pd.DataFrame) -> pd.DataFrame:
 def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
     """Set the index of a GBD DataFrame based on the data key."""
     measure = data_key.split(".")[-1]
-    index_cols = ["locaiton_id", "sex_id", "age_group_id", "year_id"]
+    gbd_cols = ["locaiton_id", "sex_id", "age_group_id", "year_id"]
     if measure in ["exposure", "relative_risk"]:
-        index_cols.append("paremeter")
+        gbd_cols.append("paremeter")
     if measure != "relative_risk" and "cause_id" in data.columns:
         data = data.drop(columns=["cause_id"])
+
+    index_cols = [col for col in gbd_cols if col in data.columns]
 
     formatted = data.set_index(index_cols)
     return formatted

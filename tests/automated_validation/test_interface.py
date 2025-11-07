@@ -282,6 +282,7 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
     assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "data_key",
     [
@@ -292,14 +293,16 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
         "cause.diarrheal_diseases.cause_specific_mortality_rate",
         "cause.diarrheal_diseases.incidence_rate",
         "cause.diarrheal_diseases.prevalence",
-        # TODO: add emr
-        # "cause.diarrheal_diseases.excess_mortality_rate",
+        "cause.diarrheal_diseases.excess_mortality_rate",
     ],
 )
 def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
     """Tests that we can cache custom GBD and retreive it. More importantly, tests that
     GBD data is properly mapped from id columns to value columns upon caching."""
+    if NO_GBD_ACCESS:
+        pytest.skip("No GBD access available for testing.")
 
+    context = ValidationContext(sim_result_dir)
     measure_data_mapper = {
         "risk_factor.child_wasting.exposure": "exposure",
         "risk_factor.child_wasting.relative_risk": "relative_risks",
@@ -308,9 +311,33 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
         "cause.diarrheal_diseases.cause_specific_mortality_rate": "cause_specific_mortality_rates",
         "cause.diarrheal_diseases.incidence_rate": "incidence",
         "cause.diarrheal_diseases.prevalence": "incidence",
-        # TODO: handle emr
-        # "cause.diarrheal_diseases.excess_mortality_rate": "excess_mortality_rates",
+        "cause.diarrheal_diseases.excess_mortality_rate": "cause_specific_mortality_rate",
     }
 
-    # TODO: read in sample data based on measure
-    context = ValidationContext(sim_result_dir)
+    # TODO: Import data from gbd_data directory
+    file_name = measure_data_mapper[data_key] + ".csv"
+    file_path = Path(__file__).parent / "gbd_data" / file_name
+    gbd_data = pd.read_csv(file_path)
+    context.cache_gbd_data(data_key, gbd_data)
+
+    cached_data = context.get_raw_data(data_key, "gbd")
+    assert set(cached_data.columns) == {"value"}
+    index_cols = [
+        "location",
+        "sex",
+        "age_start",
+        "age_end",
+        "year_start",
+        "year_end",
+    ]
+    if data_key in [
+        "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.relative_risk",
+    ]:
+        index_cols.append("parameter")
+        if data_key == "risk_factor.child_wasting.relative_risk":
+            index_cols.append("affected_entity")
+    if data_key != "population.structure":
+        index_cols.append(DRAW_INDEX)
+
+    assert set(cached_data.index.names).issubset(set(index_cols))
