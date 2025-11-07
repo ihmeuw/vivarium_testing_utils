@@ -56,7 +56,8 @@ def drop_extra_columns(raw_gbd: pd.DataFrame) -> pd.DataFrame:
             )
 
     gbd_cols = ["location_id", "sex_id", "age_group_id", "year_id", "cause_id"]
-    columns_to_keep = [col for col in raw_gbd.columns if col in gbd_cols + value_cols]
+    allowed_cols = gbd_cols + value_cols
+    columns_to_keep = [col for col in raw_gbd.columns if col in allowed_cols]
     return raw_gbd[columns_to_keep]
 
 
