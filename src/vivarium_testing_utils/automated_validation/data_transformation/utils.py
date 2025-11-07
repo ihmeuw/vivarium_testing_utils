@@ -46,10 +46,10 @@ def drop_extra_columns(raw_gbd: pd.DataFrame) -> pd.DataFrame:
     """Format the output of a get_draws call to have expect index and value columns."""
 
     value_cols = [col for col in raw_gbd.columns if "draw" in col]
-    # Population structure only has "value"
+    # Population structure only has "population"
     if not value_cols:
-        if "value" in raw_gbd.columns:
-            value_cols = ["value"]
+        if "population" in raw_gbd.columns:
+            value_cols = ["population"]
         else:
             raise ValueError(
                 f"No value columns found in the data. Columns found: {raw_gbd.columns.tolist()}"
@@ -77,9 +77,10 @@ def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
 
 def set_validation_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
     """Set the index of cached validation data to expected columns."""
-    # Data should only have a "value" column when cached
+    # Data should only have a "value" column when cached. Draws get converted when cached
     if data_key == "population.structure":
-        # Population structure has only "value" column
+        # Population structure has only "population" column. Rename it
+        data = data.rename(columns={"population": "value"})
         extra_columns = [col for col in data.columns if col != "value"]
     else:
         extra_columns = [col for col in data.columns if "draw" not in col]
