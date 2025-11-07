@@ -303,15 +303,18 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
         pytest.skip("No GBD access available for testing.")
 
     context = ValidationContext(sim_result_dir)
+    # NOTE: Some of these CSVs are resued but have the same schema. Users will be expected to
+    # make the correct get draws calls. For example, prevalence and incidence cant be pull with
+    # one call and then filtered down or pulled separately but they have the same schema.
     measure_data_mapper = {
         "risk_factor.child_wasting.exposure": "exposure",
         "risk_factor.child_wasting.relative_risk": "relative_risks",
         "population.structure": "population_structure",
-        "cause.diarrheal_diseases.remission_rate": "remission_rates",
-        "cause.diarrheal_diseases.cause_specific_mortality_rate": "cause_specific_mortality_rates",
+        "cause.diarrheal_diseases.remission_rate": "remission_rate",
+        "cause.diarrheal_diseases.cause_specific_mortality_rate": "cause_specific_mortality_rate",
         "cause.diarrheal_diseases.incidence_rate": "incidence",
         "cause.diarrheal_diseases.prevalence": "incidence",
-        "cause.diarrheal_diseases.excess_mortality_rate": "cause_specific_mortality_rate",
+        "cause.diarrheal_diseases.excess_mortality_rate": "excess_mortality_rate",
     }
 
     file_name = measure_data_mapper[data_key] + ".csv"
