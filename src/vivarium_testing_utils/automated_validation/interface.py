@@ -22,6 +22,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 from vivarium_testing_utils.automated_validation.data_transformation.utils import (
     drop_extra_columns,
     set_gbd_index,
+    set_validation_index,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
@@ -329,7 +330,8 @@ class ValidationContext:
         mapped_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(
             data, data_key
         )
-        self.data_loader.cache_gbd_data(data_key, mapped_data, overwrite=overwrite)
+        formatted_data = set_validation_index(mapped_data, data_key)
+        self.data_loader.cache_gbd_data(data_key, formatted_data, overwrite=overwrite)
 
     def _format_to_vivarium_inputs_conventions(
         self, data: pd.DataFrame, data_key: str
