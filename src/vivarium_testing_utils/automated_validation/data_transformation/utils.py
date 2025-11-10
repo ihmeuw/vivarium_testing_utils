@@ -42,7 +42,7 @@ def series_to_dataframe(series: pd.Series[float]) -> pd.DataFrame:
     return series.to_frame(name="value")
 
 
-def drop_extra_columns(raw_gbd: pd.DataFrame) -> pd.DataFrame:
+def drop_extra_columns(raw_gbd: pd.DataFrame, data_key: str) -> pd.DataFrame:
     """Format the output of a get_draws call to have expect index and value columns."""
 
     value_cols = [col for col in raw_gbd.columns if "draw" in col]
@@ -56,6 +56,9 @@ def drop_extra_columns(raw_gbd: pd.DataFrame) -> pd.DataFrame:
             )
 
     gbd_cols = ["location_id", "sex_id", "age_group_id", "year_id", "cause_id"]
+    measure = data_key.split(".")[-1]
+    if measure in ["exposure", "relative_risk"]:
+        gbd_cols.append("parameter")
     columns_to_keep = [col for col in raw_gbd.columns if col in gbd_cols + value_cols]
     return raw_gbd[columns_to_keep]
 
