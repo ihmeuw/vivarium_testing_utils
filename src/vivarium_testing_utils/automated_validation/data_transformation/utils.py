@@ -84,14 +84,10 @@ def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
 def set_validation_index(data: pd.DataFrame) -> pd.DataFrame:
     """Set the index of cached validation data to expected columns."""
     # Data should only have a "value" column when cached. Draws get converted when cached
-    extra_columns = [col for col in data.columns if "draw" not in col]
-    if not extra_columns:
-        extra_columns = [col for col in data.columns if col != "value"]
-
+    extra_columns = [col for col in data.columns if "draw" not in col and "value" not in col]
     # Preserve existing index order and add extra columns
     sorted_data_index = [n for n in data.index.names]
     sorted_data_index.extend([col for col in extra_columns if col not in sorted_data_index])
-
     # Reset index to convert existing index to columns, then set new index
     data = data.reset_index()
     data = data.set_index(sorted_data_index)
