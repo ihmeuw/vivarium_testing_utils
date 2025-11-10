@@ -47,13 +47,16 @@ def drop_extra_columns(raw_gbd: pd.DataFrame, data_key: str) -> pd.DataFrame:
 
     value_cols = [col for col in raw_gbd.columns if "draw" in col]
     # Population structure only has "population"
-    if not value_cols:
+    # Data should only have a "value" column when cached. Draws get converted when cached
+    if data_key == "population.structure":
+        # Population structure has only "population" column. Rename it
+        raw_gbd = raw_gbd.rename(columns={"population": "value"})
         if "value" in raw_gbd.columns:
             value_cols = ["value"]
-        else:
-            raise ValueError(
-                f"No value columns found in the data. Columns found: {raw_gbd.columns.tolist()}"
-            )
+    if not value_cols:
+        raise ValueError(
+            f"No value columns found in the data. Columns found: {raw_gbd.columns.tolist()}"
+        )
 
     gbd_cols = ["location_id", "sex_id", "age_group_id", "year_id", "cause_id"]
     measure = data_key.split(".")[-1]
@@ -78,15 +81,12 @@ def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
     return formatted
 
 
-def set_validation_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
+def set_validation_index(data: pd.DataFrame) -> pd.DataFrame:
     """Set the index of cached validation data to expected columns."""
     # Data should only have a "value" column when cached. Draws get converted when cached
-    if data_key == "population.structure":
-        # Population structure has only "population" column. Rename it
-        data = data.rename(columns={"population": "value"})
+    extra_columns = [col for col in data.columns if "draw" not in col]
+    if not extra_columns:
         extra_columns = [col for col in data.columns if col != "value"]
-    else:
-        extra_columns = [col for col in data.columns if "draw" not in col]
 
     # Preserve existing index order and add extra columns
     sorted_data_index = [n for n in data.index.names]

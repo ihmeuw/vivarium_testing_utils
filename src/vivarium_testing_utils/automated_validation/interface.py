@@ -330,7 +330,7 @@ class ValidationContext:
         mapped_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(
             data, data_key
         )
-        formatted_data = set_validation_index(mapped_data, data_key)
+        formatted_data = set_validation_index(mapped_data)
         self.data_loader.cache_gbd_data(data_key, formatted_data, overwrite=overwrite)
 
     def _format_to_vivarium_inputs_conventions(
