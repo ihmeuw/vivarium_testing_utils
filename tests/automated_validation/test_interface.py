@@ -303,8 +303,8 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
         pytest.skip("No GBD access available for testing.")
 
     context = ValidationContext(sim_result_dir)
-    # NOTE: Some of these CSVs are resued but have the same schema. Users will be expected to
-    # make the correct get draws calls. For example, prevalence and incidence cant be pull with
+    # NOTE: Some of these CSVs are reused but have the same schema. Users will be expected to
+    # make the correct get draws calls. For example, prevalence and incidence can be pull with
     # one call and then filtered down or pulled separately but they have the same schema.
     measure_data_mapper = {
         "risk_factor.child_wasting.exposure": "exposure",

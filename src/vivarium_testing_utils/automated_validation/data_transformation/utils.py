@@ -48,8 +48,8 @@ def drop_extra_columns(raw_gbd: pd.DataFrame) -> pd.DataFrame:
     value_cols = [col for col in raw_gbd.columns if "draw" in col]
     # Population structure only has "population"
     if not value_cols:
-        if "population" in raw_gbd.columns:
-            value_cols = ["population"]
+        if "value" in raw_gbd.columns:
+            value_cols = ["value"]
         else:
             raise ValueError(
                 f"No value columns found in the data. Columns found: {raw_gbd.columns.tolist()}"
@@ -65,7 +65,7 @@ def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
     measure = data_key.split(".")[-1]
     gbd_cols = ["location_id", "sex_id", "age_group_id", "year_id"]
     if measure in ["exposure", "relative_risk"]:
-        gbd_cols.append("paremeter")
+        gbd_cols.append("parameter")
     if measure != "relative_risk" and "cause_id" in data.columns:
         data = data.drop(columns=["cause_id"])
 
