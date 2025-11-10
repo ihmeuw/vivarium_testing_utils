@@ -282,7 +282,6 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
     assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "data_key",
     [
@@ -342,5 +341,5 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
     if data_key != "population.structure":
         index_cols.append(DRAW_INDEX)
 
-    assert set(cached_data.index.names).issubset(set(index_cols))
+    assert set(cached_data.index.names) == (set(index_cols))
     assert {"value"} == set(cached_data.columns)

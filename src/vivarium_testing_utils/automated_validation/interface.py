@@ -337,6 +337,7 @@ class ValidationContext:
         self, data: pd.DataFrame, data_key: str
     ) -> pd.DataFrame:
         """Format the output of a get_draws call to data schema conventions for the validation context."""
+        breakpoint()
         data = drop_extra_columns(data)
         data = set_gbd_index(data, data_key=data_key)
         data = vi.scrub_gbd_conventions(data, self.location)
