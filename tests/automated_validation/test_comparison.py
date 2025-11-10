@@ -347,6 +347,35 @@ def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
     assert (diff["percent_error"] == 0.0).all()
 
 
+def test_comparison_artifact_and_gbd(sim_result_dir: Path) -> None:
+    if NO_GBD_ACCESS:
+        pytest.skip("No cluster access to use GBD data.")
+
+    age_bins = interface.get_age_bins()
+    age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
+
+    incidence = Incidence("diarrheal_diseases")
+    test_bundle = RatioMeasureDataBundle(
+        measure=incidence,
+        source=DataSource.ARTIFACT,
+        data_loader=DataLoader(sim_result_dir),
+        age_group_df=age_bins,
+    )
+    ref_bundle = RatioMeasureDataBundle(
+        measure=incidence,
+        source=DataSource.GBD,
+        data_loader=DataLoader(sim_result_dir),
+        age_group_df=age_bins,
+    )
+    comparison = FuzzyComparison(test_bundle, ref_bundle)
+    assert comparison.reference_bundle == ref_bundle
+    assert comparison.test_bundle == test_bundle
+    breakpoint()
+
+    diff = comparison.get_frame(num_rows="all")
+    assert not diff.empty
+
+
 def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.DataFrame:
     """Add a 'input_draw' index level to the DataFrame."""
     df["input_draw"] = draw_values
