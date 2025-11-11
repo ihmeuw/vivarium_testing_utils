@@ -373,7 +373,6 @@ def test_comparison_artifact_and_gbd(mocker: MockFixture, sim_result_dir: Path) 
     art_exposure["draw_0"] = 0.05
     art_exposure["draw_1"] = 0.1
     art_exposure["draw_2"] = 0.15
-    art_exposure = calculations.clean_draw_columns(art_exposure)
     art_exposure = art_exposure.set_index(
         [
             "location",
@@ -382,10 +381,10 @@ def test_comparison_artifact_and_gbd(mocker: MockFixture, sim_result_dir: Path) 
             "year_end",
             "age_start",
             "age_end",
-            DRAW_INDEX,
             "parameter",
         ]
     )
+    art_exposure = calculations.clean_draw_columns(art_exposure)
 
     class ArtifactDataBundle(RatioMeasureDataBundle):
         """Used to mock expected artifact data"""
