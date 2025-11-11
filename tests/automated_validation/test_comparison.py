@@ -348,16 +348,13 @@ def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
     assert (diff["percent_error"] == 0.0).all()
 
 
-def test_comparison_artifact_and_gbd(sim_result_dir: Path) -> None:
+def test_comparison_artifact_and_gbd(mocker: MockFixture, sim_result_dir: Path) -> None:
     if NO_GBD_ACCESS:
         pytest.skip("No cluster access to use GBD data.")
 
     age_bins = interface.get_age_bins()
     age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
-    class ArtifactDataBundle(RatioMeasureDataBundle):
-        """Used to mock expected artifact data"""
-        pass
-    
+
     # Make exposure data that would be in the artifact
     art_exposure = age_bins.copy().reset_index()[["age_start", "age_end"]]
     art_exposure["location"] = "Ethiopia"
@@ -367,24 +364,37 @@ def test_comparison_artifact_and_gbd(sim_result_dir: Path) -> None:
     art_exposure["year_end"] = 2024
     # Add parameter with cat1, cat2, cat3, cat4 by repeating the dataframe
     parameters = ["cat1", "cat2", "cat3", "cat4"]
-    art_exposure["parameter"] = [parameters[i % len(parameters)] for i in range(len(art_exposure))]
+    art_exposure["parameter"] = [
+        parameters[i % len(parameters)] for i in range(len(art_exposure))
+    ]
     art_exposure["draw_0"] = 0.05
     art_exposure["draw_1"] = 0.1
     art_exposure["draw_2"] = 0.15
     art_exposure = art_exposure.set_index(
         ["location", "sex", "year_start", "year_end", "age_start", "age_end"]
     )
-    # TODO: mock _get_formatted_datasets output to be a specific dataframe
 
-    incidence = RiskExposure("child_stunting")
-    test_bundle = RatioMeasureDataBundle(
-        measure=incidence,
+    class ArtifactDataBundle(RatioMeasureDataBundle):
+        """Used to mock expected artifact data"""
+
+        pass
+
+    # Mock _get_formatted_datasets to return art_exposure (only for ArtifactDataBundle)
+    mocker.patch.object(
+        ArtifactDataBundle,
+        "_get_formatted_datasets",
+        return_value={"child_stunting.exposure": art_exposure},
+    )
+
+    exposure = RiskExposure("child_stunting")
+    test_bundle = ArtifactDataBundle(
+        measure=exposure,
         source=DataSource.ARTIFACT,
         data_loader=DataLoader(sim_result_dir),
         age_group_df=age_bins,
     )
     ref_bundle = RatioMeasureDataBundle(
-        measure=incidence,
+        measure=exposure,
         source=DataSource.GBD,
         data_loader=DataLoader(sim_result_dir),
         age_group_df=age_bins,
