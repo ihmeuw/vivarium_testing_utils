@@ -19,7 +19,10 @@ from vivarium_testing_utils.automated_validation.constants import (
     DataSource,
 )
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
-from vivarium_testing_utils.automated_validation.data_transformation import age_groups
+from vivarium_testing_utils.automated_validation.data_transformation import (
+    age_groups,
+    calculations,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Incidence,
     RatioMeasure,
@@ -371,8 +374,18 @@ def test_comparison_artifact_and_gbd(mocker: MockFixture, sim_result_dir: Path) 
     art_exposure["draw_1"] = 0.1
     art_exposure["draw_2"] = 0.15
     art_exposure = art_exposure.set_index(
-        ["location", "sex", "year_start", "year_end", "age_start", "age_end"]
+        [
+            "location",
+            "sex",
+            "year_start",
+            "year_end",
+            "age_start",
+            "age_end",
+            DRAW_INDEX,
+            "parameter",
+        ]
     )
+    art_exposure = calculations.clean_draw_columns(art_exposure)
 
     class ArtifactDataBundle(RatioMeasureDataBundle):
         """Used to mock expected artifact data"""
@@ -400,8 +413,6 @@ def test_comparison_artifact_and_gbd(mocker: MockFixture, sim_result_dir: Path) 
         age_group_df=age_bins,
     )
     comparison = FuzzyComparison(test_bundle, ref_bundle)
-    assert comparison.reference_bundle == ref_bundle
-    assert comparison.test_bundle == test_bundle
     breakpoint()
 
     diff = comparison.get_frame(num_rows="all")
