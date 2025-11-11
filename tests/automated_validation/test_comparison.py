@@ -417,10 +417,7 @@ def test_comparison_artifact_and_gbd(mocker: MockFixture, sim_result_dir: Path) 
         ]
     )
     # Patch measure weights to use this population structure
-    mocker.patch(
-        "vivarium_testing_utils.automated_validation.measures.RiskExposure.rate_aggregation_weights",
-        return_value=pop,
-    )
+    mocker.patch.object(RiskExposure, "rate_aggregation_weights", return_value=pop)
 
     test_bundle = ArtifactDataBundle(
         measure=exposure,
