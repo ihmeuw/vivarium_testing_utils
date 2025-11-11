@@ -395,10 +395,33 @@ def test_comparison_artifact_and_gbd(mocker: MockFixture, sim_result_dir: Path) 
     mocker.patch.object(
         ArtifactDataBundle,
         "_get_formatted_datasets",
-        return_value={"child_stunting.exposure": art_exposure},
+        return_value={"data": art_exposure},
     )
 
     exposure = RiskExposure("child_stunting")
+    # "Mock" out real artifact population structure for weights
+    pop = age_bins.copy().reset_index()[["age_start", "age_end"]]
+    pop["location"] = "Ethiopia"
+    pop["sex"] = [sexes[i % len(sexes)] for i in range(len(pop))]
+    pop["year_start"] = 2023
+    pop["year_end"] = 2024
+    pop["value"] = 100_000
+    pop = pop.set_index(
+        [
+            "location",
+            "sex",
+            "year_start",
+            "year_end",
+            "age_start",
+            "age_end",
+        ]
+    )
+    # Patch measure weights to use this population structure
+    mocker.patch(
+        "vivarium_testing_utils.data_artifact.RiskExposure.rate_aggregation_weights",
+        return_value=pop,
+    )
+
     test_bundle = ArtifactDataBundle(
         measure=exposure,
         source=DataSource.ARTIFACT,
