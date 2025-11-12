@@ -617,3 +617,22 @@ def is_on_slurm() -> bool:
 
 
 NO_GBD_ACCESS = is_on_slurm()
+
+
+@pytest.fixture
+def gbd_pop() -> pd.DataFrame:
+    """Sample GBD population structure data."""
+    return pd.DataFrame(
+        {
+            "value": [1000, 2000, 1500, 2500],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                (0, 1, 1990, 1990, "male", "USA"),
+                (0, 1, 1990, 1990, "female", "USA"),
+                (1, 2, 1990, 1990, "male", "CAN"),
+                (1, 2, 1990, 1990, "female", "CAN"),
+            ],
+            names=["age_start", "age_end", "year_start", "year_end", "sex", "location"],
+        ),
+    )
