@@ -3,14 +3,21 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
+import yaml
 from pandas.testing import assert_frame_equal
+from pytest import TempPathFactory
 from pytest_mock import MockFixture
+from vivarium.framework.artifact import Artifact
 from vivarium.framework.artifact.artifact import ArtifactException
+from vivarium_inputs import interface
 
-from tests.automated_validation.conftest import NO_GBD_ACCESS
+from tests.automated_validation.conftest import NO_GBD_ACCESS, get_model_spec
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
-from vivarium_testing_utils.automated_validation.data_transformation import age_groups
+from vivarium_testing_utils.automated_validation.data_transformation import (
+    age_groups,
+    calculations,
+)
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
 
 
@@ -343,3 +350,90 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
 
     assert set(cached_data.index.names) == (set(index_cols))
     assert {"value"} == set(cached_data.columns)
+
+
+@pytest.mark.slow
+def test_compare_artifact_and_gbd(tmp_path_factory: TempPathFactory) -> None:
+    if NO_GBD_ACCESS:
+        pytest.skip("No cluster access to use GBD data.")
+
+    age_bins = interface.get_age_bins()
+    age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
+
+    # Make exposure data that would be in the artifact
+    art_exposure = age_bins.copy().reset_index()[["age_start", "age_end"]]
+    art_exposure["location"] = "Ethiopia"
+    sexes = ["Male", "Female"]
+    art_exposure["sex"] = [sexes[i % len(sexes)] for i in range(len(art_exposure))]
+    art_exposure["year_start"] = 2023
+    art_exposure["year_end"] = 2024
+    # Add parameter with cat1, cat2, cat3, cat4 by repeating the dataframe
+    parameters = ["cat1", "cat2", "cat3", "cat4"]
+    art_exposure["parameter"] = [
+        parameters[i % len(parameters)] for i in range(len(art_exposure))
+    ]
+    art_exposure["draw_0"] = 0.05
+    art_exposure["draw_1"] = 0.1
+    art_exposure["draw_2"] = 0.15
+    art_exposure = art_exposure.set_index(
+        [
+            "location",
+            "sex",
+            "year_start",
+            "year_end",
+            "age_start",
+            "age_end",
+            "parameter",
+        ]
+    )
+    art_exposure = calculations.clean_draw_columns(art_exposure)
+
+    # "Mock" out real artifact population structure for weights
+    pop = age_bins.copy().reset_index()[["age_start", "age_end"]]
+    pop["location"] = "Ethiopia"
+    pop["sex"] = [sexes[i % len(sexes)] for i in range(len(pop))]
+    pop["year_start"] = 2023
+    pop["year_end"] = 2024
+    pop["value"] = 100_000
+    pop = pop.set_index(
+        [
+            "location",
+            "sex",
+            "year_start",
+            "year_end",
+            "age_start",
+            "age_end",
+        ]
+    )
+    art_data_mapper = {
+        "risk_factor.child_wasting.exposure": art_exposure,
+        "population.structure": pop,
+    }
+
+    # Create sim output directory
+    tmp_path = tmp_path_factory.mktemp("model_run_output")
+
+    # Create the directory structure
+    results_dir = tmp_path / "results"
+    results_dir.mkdir(parents=True)
+    # Create Artifact
+    artifact_dir = tmp_path / "artifacts"
+    artifact_dir.mkdir(exist_ok=True)
+    artifact_path = artifact_dir / "artifact.hdf"
+    artifact = Artifact(artifact_path)
+    for key, data in art_data_mapper.items():
+        artifact.write(key, data)
+
+    # Save model specification
+    with open(tmp_path / "model_specification.yaml", "w") as f:
+        yaml.dump(get_model_spec(artifact_path), f)
+
+    vc = ValidationContext(tmp_path)
+    key = "risk_factor.child_wasting.exposure"
+    # TODO: use exposure csv to cache custom gbd data
+    gbd_exp = pd.read_csv(Path(__file__).parent / "gbd_data" / "exposure.csv")
+    vc.cache_gbd_data(key, gbd_exp)
+
+    vc.add_comparison(key, "artifact", "gbd")
+    breakpoint()
+    diff = vc.get_frame(key, num_rows="all")

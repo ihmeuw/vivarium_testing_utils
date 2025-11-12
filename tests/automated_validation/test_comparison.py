@@ -19,14 +19,10 @@ from vivarium_testing_utils.automated_validation.constants import (
     DataSource,
 )
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
-from vivarium_testing_utils.automated_validation.data_transformation import (
-    age_groups,
-    calculations,
-)
+from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     Incidence,
     RatioMeasure,
-    RiskExposure,
 )
 
 
@@ -349,93 +345,6 @@ def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
     diff = comparison.get_frame(num_rows="all")
     assert (diff["test_rate"] == diff["reference_rate"]).all()
     assert (diff["percent_error"] == 0.0).all()
-
-
-def test_comparison_artifact_and_gbd(mocker: MockFixture, sim_result_dir: Path) -> None:
-    if NO_GBD_ACCESS:
-        pytest.skip("No cluster access to use GBD data.")
-
-    age_bins = interface.get_age_bins()
-    age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
-
-    # Make exposure data that would be in the artifact
-    art_exposure = age_bins.copy().reset_index()[["age_start", "age_end"]]
-    art_exposure["location"] = "Ethiopia"
-    sexes = ["Male", "Female"]
-    art_exposure["sex"] = [sexes[i % len(sexes)] for i in range(len(art_exposure))]
-    art_exposure["year_start"] = 2023
-    art_exposure["year_end"] = 2024
-    # Add parameter with cat1, cat2, cat3, cat4 by repeating the dataframe
-    parameters = ["cat1", "cat2", "cat3", "cat4"]
-    art_exposure["parameter"] = [
-        parameters[i % len(parameters)] for i in range(len(art_exposure))
-    ]
-    art_exposure["draw_0"] = 0.05
-    art_exposure["draw_1"] = 0.1
-    art_exposure["draw_2"] = 0.15
-    art_exposure = art_exposure.set_index(
-        [
-            "location",
-            "sex",
-            "year_start",
-            "year_end",
-            "age_start",
-            "age_end",
-            "parameter",
-        ]
-    )
-    art_exposure = calculations.clean_draw_columns(art_exposure)
-
-    class ArtifactDataBundle(RatioMeasureDataBundle):
-        """Used to mock expected artifact data"""
-
-        pass
-
-    # Mock _get_formatted_datasets to return art_exposure (only for ArtifactDataBundle)
-    mocker.patch.object(
-        ArtifactDataBundle,
-        "_get_formatted_datasets",
-        return_value={"data": art_exposure},
-    )
-
-    exposure = RiskExposure("child_stunting")
-    # "Mock" out real artifact population structure for weights
-    pop = age_bins.copy().reset_index()[["age_start", "age_end"]]
-    pop["location"] = "Ethiopia"
-    pop["sex"] = [sexes[i % len(sexes)] for i in range(len(pop))]
-    pop["year_start"] = 2023
-    pop["year_end"] = 2024
-    pop["value"] = 100_000
-    pop = pop.set_index(
-        [
-            "location",
-            "sex",
-            "year_start",
-            "year_end",
-            "age_start",
-            "age_end",
-        ]
-    )
-    # Patch measure weights to use this population structure
-    mocker.patch.object(RiskExposure, "rate_aggregation_weights", return_value=pop)
-
-    test_bundle = ArtifactDataBundle(
-        measure=exposure,
-        source=DataSource.ARTIFACT,
-        data_loader=DataLoader(sim_result_dir),
-        age_group_df=age_bins,
-    )
-    ref_bundle = RatioMeasureDataBundle(
-        measure=exposure,
-        source=DataSource.GBD,
-        data_loader=DataLoader(sim_result_dir),
-        age_group_df=age_bins,
-    )
-    comparison = FuzzyComparison(test_bundle, ref_bundle)
-    breakpoint()
-
-    diff = comparison.get_frame(num_rows="all")
-    assert not diff.empty
 
 
 def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.DataFrame:
