@@ -403,6 +403,8 @@ def test_compare_artifact_and_gbd(tmp_path_factory: TempPathFactory) -> None:
     art_data_mapper = {
         "risk_factor.child_wasting.exposure": art_exposure,
         "population.structure": pop,
+        "population.location": "Ethiopia",
+        "population.age_bins": age_bins,
     }
 
     # Create sim output directory
