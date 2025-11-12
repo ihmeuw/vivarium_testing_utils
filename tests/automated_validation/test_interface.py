@@ -342,4 +342,4 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
         index_cols.append(DRAW_INDEX)
 
     assert set(cached_data.index.names) == (set(index_cols))
-    assert {"value"} == set(cached_data.columns)
+    assert set(cached_data.columns) == {"value"}

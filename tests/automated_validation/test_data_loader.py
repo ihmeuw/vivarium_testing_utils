@@ -257,28 +257,27 @@ def test__load_gbd_data(key: str, sim_result_dir: Path) -> None:
         assert {"value"} == set(gbd_data.columns)
 
 
-def test_cache_gbd_data(sim_result_dir: Path) -> None:
+def test_load_location_no_overwrite_error(sim_result_dir: Path) -> None:
+    data_loader = DataLoader(sim_result_dir)
+    location = "Ethiopia"
+    data_loader.cache_gbd_data("population.location", location)
+    with pytest.raises(ValueError, match="Existing GBD data for population.location"):
+        data_loader.cache_gbd_data("population.location", "Kenya")
+
+
+def test_cache_gbd_data(sim_result_dir: Path, gbd_pop: pd.DataFrame) -> None:
     """Ensure that we can cache custom GBD data"""
-    gbd_pop = pd.DataFrame(
-        {
-            "value": [1000, 2000, 1500, 2500],
-        },
-        index=pd.MultiIndex.from_tuples(
-            [
-                (0, 1, 1990, 1990, "male", "USA"),
-                (0, 1, 1990, 1990, "female", "USA"),
-                (1, 2, 1990, 1990, "male", "CAN"),
-                (1, 2, 1990, 1990, "female", "CAN"),
-            ],
-            names=["age_start", "age_end", "year_start", "year_end", "sex", "location"],
-        ),
-    )
     data_loader = DataLoader(sim_result_dir)
     data_loader.cache_gbd_data("population.structure", gbd_pop)
     cached_data = data_loader.get_data("population.structure", DataSource.GBD)
     assert cached_data.equals(gbd_pop)
 
-    # Different index names raises error
+
+def test_cache_gbd_different_index_errors(
+    sim_result_dir: Path, gbd_pop: pd.DataFrame
+) -> None:
+    data_loader = DataLoader(sim_result_dir)
+    data_loader.cache_gbd_data("population.structure", gbd_pop)
     with pytest.raises(ValueError, match="different index names"):
         data_loader.cache_gbd_data(
             "population.structure",
@@ -296,6 +295,10 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
             ),
         )
 
+
+def test_cache_gbd_overlapping_indices(sim_result_dir: Path, gbd_pop: pd.DataFrame) -> None:
+    data_loader = DataLoader(sim_result_dir)
+    data_loader.cache_gbd_data("population.structure", gbd_pop)
     # Overlapping indices raises error
     with pytest.raises(
         ValueError,
@@ -324,6 +327,10 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
             ),
         )
 
+
+def test_cache_gbd_append_and_overwrite(sim_result_dir: Path, gbd_pop: pd.DataFrame) -> None:
+    data_loader = DataLoader(sim_result_dir)
+    data_loader.cache_gbd_data("population.structure", gbd_pop)
     # Append non-overlapping indices
     mexico = pd.DataFrame(
         {
@@ -342,6 +349,10 @@ def test_cache_gbd_data(sim_result_dir: Path) -> None:
     expected_data = pd.concat([gbd_pop, mexico])
     assert updated_data.equals(expected_data)
 
+
+def test_cache_gbd_overwrite(sim_result_dir: Path, gbd_pop: pd.DataFrame) -> None:
+    data_loader = DataLoader(sim_result_dir)
+    data_loader.cache_gbd_data("population.structure", gbd_pop)
     # Overwrite existing data
     new_data = pd.DataFrame(
         {
