@@ -265,6 +265,15 @@ def test_load_location_no_overwrite_error(sim_result_dir: Path) -> None:
         data_loader.cache_gbd_data("population.location", "Kenya")
 
 
+def test_overwrite_location(sim_result_dir: Path) -> None:
+    data_loader = DataLoader(sim_result_dir)
+    location = "Ethiopia"
+    data_loader.cache_gbd_data("population.location", location)
+    data_loader.cache_gbd_data("population.location", "Kenya", overwrite=True)
+    cached_location = data_loader.get_data("population.location", DataSource.GBD)
+    assert cached_location == "Kenya"
+
+
 def test_cache_gbd_data(sim_result_dir: Path, gbd_pop: pd.DataFrame) -> None:
     """Ensure that we can cache custom GBD data"""
     data_loader = DataLoader(sim_result_dir)
