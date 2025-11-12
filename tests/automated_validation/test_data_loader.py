@@ -257,6 +257,13 @@ def test__load_gbd_data(key: str, sim_result_dir: Path) -> None:
         assert {"value"} == set(gbd_data.columns)
 
 
+def test_empty_gbd_cache(sim_result_dir: Path) -> None:
+    data_loader = DataLoader(sim_result_dir)
+    assert data_loader._raw_data_cache[DataSource.GBD] == {}
+    data_loader.cache_gbd_data("population.location", "Ethiopia")
+    assert "population.location" in data_loader._raw_data_cache[DataSource.GBD]
+
+
 def test_load_location_no_overwrite_error(sim_result_dir: Path) -> None:
     data_loader = DataLoader(sim_result_dir)
     location = "Ethiopia"
