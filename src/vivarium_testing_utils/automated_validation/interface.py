@@ -8,6 +8,7 @@ from typing import Any, Collection, Literal
 import pandas as pd
 import yaml
 from matplotlib.figure import Figure
+from vivarium_inputs import utilities as vi
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
@@ -17,6 +18,11 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     CategoricalRelativeRisk,
     Measure,
     RatioMeasure,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.utils import (
+    drop_extra_columns,
+    set_gbd_index,
+    set_validation_index,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 
@@ -28,6 +34,7 @@ class ValidationContext:
         self.comparisons: dict[str, Comparison] = {}
         self.age_groups = self._get_age_groups()
         self.scenario_columns = scenario_columns
+        self.location = self.data_loader.location
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -315,3 +322,25 @@ class ValidationContext:
             # relabel index level age_group_name to age_group
 
         return age_groups.rename_axis(index={"age_group_name": "age_group"})
+
+    def cache_gbd_data(
+        self, data_key: str, data: pd.DataFrame, overwrite: bool = False
+    ) -> None:
+        """Upload the output of a get_draws call to the context given by a data key."""
+        formatted_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(
+            data, data_key
+        )
+        formatted_data = set_validation_index(formatted_data)
+        self.data_loader.cache_gbd_data(data_key, formatted_data, overwrite=overwrite)
+
+    def _format_to_vivarium_inputs_conventions(
+        self, data: pd.DataFrame, data_key: str
+    ) -> pd.DataFrame:
+        """Format the output of a get_draws call to data schema conventions for the validation context."""
+        data = drop_extra_columns(data, data_key)
+        data = set_gbd_index(data, data_key=data_key)
+        data = vi.scrub_gbd_conventions(data, self.location)
+        data = vi.split_interval(data, interval_column="age", split_column_prefix="age")
+        data = vi.split_interval(data, interval_column="year", split_column_prefix="year")
+        formatted_data: pd.DataFrame = vi.sort_hierarchical_data(data)
+        return formatted_data

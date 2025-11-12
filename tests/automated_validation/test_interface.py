@@ -7,6 +7,8 @@ from pandas.testing import assert_frame_equal
 from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
+from tests.automated_validation.conftest import NO_GBD_ACCESS
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
@@ -278,3 +280,66 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
     assert isinstance(data, pd.DataFrame)
     assert not data.empty
     assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
+
+
+@pytest.mark.parametrize(
+    "data_key",
+    [
+        "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.relative_risk",
+        "population.structure",
+        "cause.diarrheal_diseases.remission_rate",
+        "cause.diarrheal_diseases.cause_specific_mortality_rate",
+        "cause.diarrheal_diseases.incidence_rate",
+        "cause.diarrheal_diseases.prevalence",
+        "cause.diarrheal_diseases.excess_mortality_rate",
+    ],
+)
+def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
+    """Tests that we can cache custom GBD and retreive it. More importantly, tests that
+    GBD data is properly mapped from id columns to value columns upon caching."""
+    if NO_GBD_ACCESS:
+        pytest.skip("No GBD access available for testing.")
+
+    context = ValidationContext(sim_result_dir)
+    # NOTE: Some of these CSVs are reused but have the same schema. Users will be expected to
+    # make the correct get draws calls. For example, prevalence and incidence can be pull with
+    # one call and then filtered down or pulled separately but they have the same schema.
+    measure_data_mapper = {
+        "risk_factor.child_wasting.exposure": "exposure",
+        "risk_factor.child_wasting.relative_risk": "relative_risks",
+        "population.structure": "population_structure",
+        "cause.diarrheal_diseases.remission_rate": "remission_rate",
+        "cause.diarrheal_diseases.cause_specific_mortality_rate": "remission_rate",
+        "cause.diarrheal_diseases.incidence_rate": "incidence",
+        "cause.diarrheal_diseases.prevalence": "incidence",
+        "cause.diarrheal_diseases.excess_mortality_rate": "remission_rate",
+    }
+
+    file_name = measure_data_mapper[data_key] + ".csv"
+    file_path = Path(__file__).parent / "gbd_data" / file_name
+    gbd_data = pd.read_csv(file_path)
+    context.cache_gbd_data(data_key, gbd_data)
+
+    cached_data = context.get_raw_data(data_key, "gbd")
+    assert set(cached_data.columns) == {"value"}
+    index_cols = [
+        "location",
+        "sex",
+        "age_start",
+        "age_end",
+        "year_start",
+        "year_end",
+    ]
+    if data_key in [
+        "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.relative_risk",
+    ]:
+        index_cols.append("parameter")
+        if data_key == "risk_factor.child_wasting.relative_risk":
+            index_cols.append("affected_entity")
+    if data_key != "population.structure":
+        index_cols.append(DRAW_INDEX)
+
+    assert set(cached_data.index.names) == (set(index_cols))
+    assert set(cached_data.columns) == {"value"}
