@@ -215,11 +215,6 @@ def test_metadata(sim_result_dir: Path, mocker: MockFixture) -> None:
     assert metadata["Reference Data"]["Run Time"] == "Dec 31 23:59 2024"
 
 
-######################################
-# Tests for NotImplementedError cases#
-######################################
-
-
 def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:
     """Test that ValidationContext.plot_comparison correctly calls plot_utils.plot_comparison"""
     # Setup
