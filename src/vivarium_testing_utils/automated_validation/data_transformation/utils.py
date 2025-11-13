@@ -74,7 +74,6 @@ def drop_extra_columns(raw_gbd: pd.DataFrame, data_key: str) -> pd.DataFrame:
 def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
     """Set the index of a GBD DataFrame based on the data key."""
     measure = data_key.split(".")[-1]
-    # gbd_cols = ["location_id", "sex_id", "age_group_id", "year_id"]
     gbd_cols = GBD_INDEX_ORDER.copy()
     if measure in ["exposure", "relative_risk"]:
         gbd_cols.append(GBD_INDEX_NAMES.PARAMETER)
