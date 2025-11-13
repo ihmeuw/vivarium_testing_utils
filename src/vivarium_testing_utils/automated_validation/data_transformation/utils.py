@@ -67,6 +67,8 @@ def drop_extra_columns(raw_gbd: pd.DataFrame, data_key: str) -> pd.DataFrame:
     measure = data_key.split(".")[-1]
     if measure in ["exposure", "relative_risk"]:
         gbd_cols.append(INPUT_DATA_INDEX_NAMES.PARAMETER)
+        if measure == "relative_risk":
+            gbd_cols.append(INPUT_DATA_INDEX_NAMES.CAUSE_ID)
     columns_to_keep = [col for col in raw_gbd.columns if col in gbd_cols + value_cols]
     return raw_gbd[columns_to_keep]
 
