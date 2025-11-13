@@ -343,3 +343,37 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
 
     assert set(cached_data.index.names) == (set(index_cols))
     assert set(cached_data.columns) == {"value"}
+
+
+@pytest.mark.parametrize(
+    "comparison_key",
+    [
+        "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.relative_risk",
+        "cause.diarrheal_diseases.remission_rate",
+        "cause.diarrheal_diseases.cause_specific_mortality_rate",
+        "cause.diarrheal_diseases.incidence_rate",
+        "cause.diarrheal_diseases.prevalence",
+        "cause.diarrheal_diseases.excess_mortality_rate",
+    ],
+)
+def test_get_frame_column_order(comparison_key: str) -> None:
+    """Tests that get_frame returns data with the correct index column order."""
+
+    data = pd.DataFrame(
+        {
+            "test_rate": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+            "reference_rate": [0.15, 0.25, 0.35, 0.45, 0.55, 0.65],
+            "percent_error": [33.3, 20.0, 14.3, 11.1, 9.1, 7.7],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("Persephone", "Male", 0, 5, 2023, 2024),
+                ("Persephone", "Male", 5, 10, 2023, 2024),
+                ("Persephone", "Female", 0, 5, 2023, 2024),
+                ("Persephone", "Female", 5, 10, 2023, 2024),
+            ],
+            names=["location", "sex", "age_start", "age_end", "year_start", "year_end"],
+        ),
+    )
+    
