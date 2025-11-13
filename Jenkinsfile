@@ -29,5 +29,6 @@ library("vivarium_build_utils@${get_vbu_version()}")
 
 reusable_pipeline(
     scheduled_branches: ["main", "epic/auto-validation"],
+    requires_slurm: true,
     skip_doc_build: true
 )
