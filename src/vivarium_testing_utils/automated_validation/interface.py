@@ -373,7 +373,8 @@ class ValidationContext:
             if measure == "relative_risk":
                 expected_order.append(GBD_INDEX_NAMES.AFFECTED_ENTITY)
 
-        extra_idx_cols = [col for col in data.index.names if col not in expected_order]
-        sorted_index = expected_order + extra_idx_cols
+        ordered_cols = [col for col in expected_order if col in data.index.names]
+        extra_idx_cols = [col for col in data.index.names if col not in ordered_cols]
+        sorted_index = ordered_cols + extra_idx_cols
         sorted = data.reorder_levels(sorted_index).sort_index()
         return sorted
