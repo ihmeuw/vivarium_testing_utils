@@ -8,11 +8,7 @@ from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
 from tests.automated_validation.conftest import NO_GBD_ACCESS
-from vivarium_testing_utils.automated_validation.constants import (
-    DRAW_INDEX,
-    VIVARIUM_INDEX_ORDER,
-    GBDIndexNames,
-)
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, GBD_INDEX_NAMES
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
@@ -367,8 +363,10 @@ def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> No
     idx_tuples = [
         ("Persephone", "Male", 0, 5, 2023, 2024),
         ("Persephone", "Male", 5, 10, 2023, 2024),
+        ("Persephone", "Male", 10, 15, 2023, 2024),
         ("Persephone", "Female", 0, 5, 2023, 2024),
         ("Persephone", "Female", 5, 10, 2023, 2024),
+        ("Persephone", "Female", 10, 15, 2023, 2024),
     ]
     data = pd.DataFrame(
         {
@@ -379,12 +377,12 @@ def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> No
         index=pd.MultiIndex.from_tuples(
             idx_tuples,
             names=[
-                GBDIndexNames.LOCATION,
-                GBDIndexNames.SEX,
-                GBDIndexNames.AGE_START,
-                GBDIndexNames.AGE_END,
-                GBDIndexNames.YEAR_START,
-                GBDIndexNames.YEAR_END,
+                GBD_INDEX_NAMES.LOCATION,
+                GBD_INDEX_NAMES.SEX,
+                GBD_INDEX_NAMES.AGE_START,
+                GBD_INDEX_NAMES.AGE_END,
+                GBD_INDEX_NAMES.YEAR_START,
+                GBD_INDEX_NAMES.YEAR_END,
             ],
         ),
     )
@@ -430,36 +428,36 @@ def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> No
             index=pd.MultiIndex.from_tuples(
                 new_tuples,
                 names=[
-                    GBDIndexNames.LOCATION,
-                    GBDIndexNames.SEX,
-                    GBDIndexNames.AGE_START,
-                    GBDIndexNames.AGE_END,
-                    GBDIndexNames.YEAR_START,
-                    GBDIndexNames.YEAR_END,
-                    GBDIndexNames.PARAMETER,
+                    GBD_INDEX_NAMES.LOCATION,
+                    GBD_INDEX_NAMES.SEX,
+                    GBD_INDEX_NAMES.AGE_START,
+                    GBD_INDEX_NAMES.AGE_END,
+                    GBD_INDEX_NAMES.YEAR_START,
+                    GBD_INDEX_NAMES.YEAR_END,
+                    GBD_INDEX_NAMES.PARAMETER,
                 ],
             ),
         )
         if comparison_key == "risk_factor.child_wasting.relative_risk":
             # Add "affected_entity" level with value "lost_in_space"
             data = data.assign(affected_entity="lost_in_space")
-            data = data.set_index(GBDIndexNames.AFFECTED_ENTITY, append=True)
+            data = data.set_index(GBD_INDEX_NAMES.AFFECTED_ENTITY, append=True)
 
-    # TODO: change column order
+    # NOTE: The index levels have been added in the order they are expected to be returned to users
+    expected_order = list(data.index.names)
     wrong_order = [
-        GBDIndexNames.YEAR_END,
-        GBDIndexNames.YEAR_START,
-        GBDIndexNames.AGE_END,
-        GBDIndexNames.AGE_START,
-        GBDIndexNames.SEX,
-        GBDIndexNames.LOCATION,
+        GBD_INDEX_NAMES.YEAR_END,
+        GBD_INDEX_NAMES.YEAR_START,
+        GBD_INDEX_NAMES.AGE_END,
+        GBD_INDEX_NAMES.AGE_START,
+        GBD_INDEX_NAMES.SEX,
+        GBD_INDEX_NAMES.LOCATION,
     ]
-    for level in [GBDIndexNames.AFFECTED_ENTITY, GBDIndexNames.PARAMETER]:
+    for level in [GBD_INDEX_NAMES.AFFECTED_ENTITY, GBD_INDEX_NAMES.PARAMETER]:
         if level in data.index.names:
             wrong_order.append(level)
     unsorted = data.reorder_levels(wrong_order)
 
     context = ValidationContext(sim_result_dir)
     sorted = context.sort_ui_data_index(unsorted, comparison_key)
-
-    # TODO: verify sorted data has index levels in correct order
+    assert list(sorted.index.names) == expected_order

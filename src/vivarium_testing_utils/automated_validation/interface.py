@@ -377,4 +377,5 @@ class ValidationContext:
         extra_idx_cols = [col for col in data.index.names if col not in ordered_cols]
         sorted_index = ordered_cols + extra_idx_cols
         sorted = data.reorder_levels(sorted_index).sort_index()
+
         return sorted
