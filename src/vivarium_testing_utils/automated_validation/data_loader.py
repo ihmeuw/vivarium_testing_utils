@@ -109,7 +109,7 @@ class DataLoader:
         self._add_to_cache(data_key, DataSource.CUSTOM, data)
 
     def cache_gbd_data(
-        self, data_key: str, data: pd.DataFrame, overwrite: bool = False
+        self, data_key: str, data: pd.DataFrame | str, overwrite: bool = False
     ) -> None:
         """Upload or update a custom DataFrame or Series to the GBD context given by a data key."""
         if overwrite:
@@ -117,7 +117,7 @@ class DataLoader:
                 del self._raw_data_cache[DataSource.GBD][data_key]
         if data_key in self._raw_data_cache[DataSource.GBD] and not overwrite:
             existing = self._raw_data_cache[DataSource.GBD][data_key]
-            if isinstance(existing, str):
+            if isinstance(existing, str) or isinstance(data, str):
                 raise ValueError(
                     f"Existing GBD data for {data_key} is a string and cannot be updated without the overwrite flag set to True."
                 )
@@ -125,6 +125,7 @@ class DataLoader:
                 if set(existing.index.names) != set(data.index.names):
                     raise ValueError(
                         f"Cannot update GBD data for {data_key} with different index names."
+                        f" Existing index names: {existing.index.names}, new data index names: {data.index.names}"
                     )
                 if not existing.index.equals(data.index):
                     # Check if the new data has non-overlapping indices with existing data
