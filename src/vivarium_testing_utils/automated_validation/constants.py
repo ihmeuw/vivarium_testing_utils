@@ -37,6 +37,7 @@ class GBDIndexNames(NamedTuple):
     AFFECTED_ENTITY: str = "affected_entity"
     LOCATION: str = "location"
     SEX: str = "sex"
+    AGE_GROUP: str = "age_group"
     AGE_START: str = "age_start"
     AGE_END: str = "age_end"
     YEAR_START: str = "year_start"

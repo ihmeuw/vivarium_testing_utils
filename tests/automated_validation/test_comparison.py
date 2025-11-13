@@ -15,6 +15,7 @@ from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataB
 from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
+    GBD_INDEX_NAMES,
     SEED_INDEX,
     DataSource,
 )
@@ -322,7 +323,7 @@ def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
         pytest.skip("No cluster access to use GBD data.")
 
     age_bins = interface.get_age_bins()
-    age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
+    age_bins.index.rename({"age_group_name": GBD_INDEX_NAMES.AGE_GROUP}, inplace=True)
 
     incidence = Incidence("diarrheal_diseases")
     test_bundle = RatioMeasureDataBundle(
