@@ -63,24 +63,14 @@ def drop_extra_columns(raw_gbd: pd.DataFrame, data_key: str) -> pd.DataFrame:
             f"No value columns found in the data. Columns found: {raw_gbd.columns.tolist()}"
         )
 
-    gbd_cols = GBD_INDEX_ORDER.copy()
-    measure = data_key.split(".")[-1]
-    if measure in ["exposure", "relative_risk"]:
-        gbd_cols.append(INPUT_DATA_INDEX_NAMES.PARAMETER)
-        if measure == "relative_risk":
-            gbd_cols.append(INPUT_DATA_INDEX_NAMES.CAUSE_ID)
+    gbd_cols = get_measure_index_names(GBD_INDEX_ORDER, data_key)
     columns_to_keep = [col for col in raw_gbd.columns if col in gbd_cols + value_cols]
     return raw_gbd[columns_to_keep]
 
 
 def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
     """Set the index of a GBD DataFrame based on the data key."""
-    measure = data_key.split(".")[-1]
-    gbd_cols = GBD_INDEX_ORDER.copy()
-    if measure in ["exposure", "relative_risk"]:
-        gbd_cols.append(INPUT_DATA_INDEX_NAMES.PARAMETER)
-    if measure != "relative_risk" and INPUT_DATA_INDEX_NAMES.CAUSE_ID in data.columns:
-        data = data.drop(columns=[INPUT_DATA_INDEX_NAMES.CAUSE_ID])
+    gbd_cols = get_measure_index_names(GBD_INDEX_ORDER, data_key)
 
     index_cols = [col for col in gbd_cols if col in data.columns]
 
@@ -100,3 +90,20 @@ def set_validation_index(data: pd.DataFrame) -> pd.DataFrame:
     data = data.set_index(sorted_data_index)
 
     return data
+
+
+def get_measure_index_names(
+    columns: list[str], data_key: str, already_mapped: bool = False
+) -> list[str]:
+    """Get the expected index names for a given data key."""
+    measure = data_key.split(".")[-1]
+    measure_cols = columns.copy()
+    if measure in ["exposure", "relative_risk"]:
+        measure_cols.append(INPUT_DATA_INDEX_NAMES.PARAMETER)
+    if measure == "relative_risk":
+        if not already_mapped:
+            measure_cols.append(INPUT_DATA_INDEX_NAMES.CAUSE_ID)
+        else:
+            measure_cols.append(INPUT_DATA_INDEX_NAMES.AFFECTED_ENTITY)
+
+    return measure_cols

@@ -25,6 +25,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import (
     drop_extra_columns,
+    get_measure_index_names,
     set_gbd_index,
     set_validation_index,
 )
@@ -366,12 +367,9 @@ class ValidationContext:
             The sorted DataFrame.
         """
 
-        measure = comparison_key.split(".")[-1]
-        expected_order = VIVARIUM_INDEX_ORDER.copy()
-        if measure in ["exposure", "relative_risk"]:
-            expected_order.append(INPUT_DATA_INDEX_NAMES.PARAMETER)
-            if measure == "relative_risk":
-                expected_order.append(INPUT_DATA_INDEX_NAMES.AFFECTED_ENTITY)
+        expected_order = get_measure_index_names(
+            VIVARIUM_INDEX_ORDER, comparison_key, already_mapped=True
+        )
 
         ordered_cols = [col for col in expected_order if col in data.index.names]
         extra_idx_cols = [col for col in data.index.names if col not in ordered_cols]
