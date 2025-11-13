@@ -301,8 +301,8 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
 def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
     """Tests that we can cache custom GBD and retreive it. More importantly, tests that
     GBD data is properly mapped from id columns to value columns upon caching."""
-    if NO_GBD_ACCESS:
-        pytest.skip("No GBD access available for testing.")
+    # if NO_GBD_ACCESS:
+    #     pytest.skip("No GBD access available for testing.")
 
     context = ValidationContext(sim_result_dir)
     # NOTE: Some of these CSVs are reused but have the same schema. Users will be expected to
@@ -371,6 +371,14 @@ def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> No
         ("Persephone", "Female", 5, 10, 2023, 2024),
         ("Persephone", "Female", 10, 15, 2023, 2024),
     ]
+    idx_names = [
+        INPUT_DATA_INDEX_NAMES.LOCATION,
+        INPUT_DATA_INDEX_NAMES.SEX,
+        INPUT_DATA_INDEX_NAMES.AGE_START,
+        INPUT_DATA_INDEX_NAMES.AGE_END,
+        INPUT_DATA_INDEX_NAMES.YEAR_START,
+        INPUT_DATA_INDEX_NAMES.YEAR_END,
+    ]
     data = pd.DataFrame(
         {
             "test_rate": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
@@ -379,14 +387,7 @@ def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> No
         },
         index=pd.MultiIndex.from_tuples(
             idx_tuples,
-            names=[
-                INPUT_DATA_INDEX_NAMES.LOCATION,
-                INPUT_DATA_INDEX_NAMES.SEX,
-                INPUT_DATA_INDEX_NAMES.AGE_START,
-                INPUT_DATA_INDEX_NAMES.AGE_END,
-                INPUT_DATA_INDEX_NAMES.YEAR_START,
-                INPUT_DATA_INDEX_NAMES.YEAR_END,
-            ],
+            names=idx_names,
         ),
     )
     if comparison_key in [
@@ -430,15 +431,7 @@ def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> No
             },
             index=pd.MultiIndex.from_tuples(
                 new_tuples,
-                names=[
-                    INPUT_DATA_INDEX_NAMES.LOCATION,
-                    INPUT_DATA_INDEX_NAMES.SEX,
-                    INPUT_DATA_INDEX_NAMES.AGE_START,
-                    INPUT_DATA_INDEX_NAMES.AGE_END,
-                    INPUT_DATA_INDEX_NAMES.YEAR_START,
-                    INPUT_DATA_INDEX_NAMES.YEAR_END,
-                    INPUT_DATA_INDEX_NAMES.PARAMETER,
-                ],
+                names=idx_names + [INPUT_DATA_INDEX_NAMES.PARAMETER],
             ),
         )
         if comparison_key == "risk_factor.child_wasting.relative_risk":
