@@ -10,7 +10,7 @@ from pytest_check import check
 from pytest_mock import MockFixture
 from vivarium_inputs import interface
 
-from tests.automated_validation.conftest import NO_GBD_ACCESS
+from tests.automated_validation.conftest import IS_ON_SLURM
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import (
@@ -319,7 +319,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
 
 @pytest.mark.slow
 def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
-    if NO_GBD_ACCESS:
+    if not IS_ON_SLURM:
         pytest.skip("No cluster access to use GBD data.")
 
     age_bins = interface.get_age_bins()

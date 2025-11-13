@@ -7,7 +7,7 @@ from pandas.testing import assert_frame_equal
 from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
-from tests.automated_validation.conftest import NO_GBD_ACCESS
+from tests.automated_validation.conftest import IS_ON_SLURM
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     INPUT_DATA_INDEX_NAMES,
@@ -301,8 +301,8 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
 def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
     """Tests that we can cache custom GBD and retreive it. More importantly, tests that
     GBD data is properly mapped from id columns to value columns upon caching."""
-    # if NO_GBD_ACCESS:
-    #     pytest.skip("No GBD access available for testing.")
+    if not IS_ON_SLURM:
+        pytest.skip("No access to slurm shared filesystem available for testing.")
 
     context = ValidationContext(sim_result_dir)
     # NOTE: Some of these CSVs are reused but have the same schema. Users will be expected to

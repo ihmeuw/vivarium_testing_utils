@@ -617,10 +617,10 @@ def reference_weights() -> pd.DataFrame:
 
 def is_on_slurm() -> bool:
     """Returns True if the current environment is a SLURM cluster."""
-    return not shutil.which("sbatch") is not None
+    return shutil.which("sbatch") is not None
 
 
-NO_GBD_ACCESS = is_on_slurm()
+IS_ON_SLURM = is_on_slurm()
 
 
 @pytest.fixture
