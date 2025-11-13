@@ -12,6 +12,10 @@ from vivarium_inputs import utilities as vi
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
+from vivarium_testing_utils.automated_validation.constants import (
+    GBD_INDEX_NAMES,
+    VIVARIUM_INDEX_ORDER,
+)
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import measures
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
@@ -249,9 +253,10 @@ class ValidationContext:
             sort_by = "percent_error"
 
         if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
-            return self.comparisons[comparison_key].get_frame(
+            data = self.comparisons[comparison_key].get_frame(
                 stratifications, num_rows, sort_by, ascending, aggregate_draws
             )
+            return self.sort_ui_data(data, comparison_key)
         else:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
 
@@ -344,3 +349,31 @@ class ValidationContext:
         data = vi.split_interval(data, interval_column="year", split_column_prefix="year")
         formatted_data: pd.DataFrame = vi.sort_hierarchical_data(data)
         return formatted_data
+
+    @staticmethod
+    def sort_ui_data(data: pd.DataFrame, comparison_key: str) -> pd.DataFrame:
+        """Sort the data for UI display.
+
+        Parameters
+        ----------
+        data
+            The DataFrame to sort.
+        comparison_key
+            The comparison key for logging purposes.
+
+        Returns
+        -------
+            The sorted DataFrame.
+        """
+
+        measure = comparison_key.split(".")[-1]
+        expected_order = VIVARIUM_INDEX_ORDER.copy()
+        if measure in ["exposure", "relative_risk"]:
+            expected_order.append(GBD_INDEX_NAMES.PARAMETER)
+            if measure == "relative_risk":
+                expected_order.append(GBD_INDEX_NAMES.AFFECTED_ENTITY)
+
+        extra_idx_cols = [col for col in data.index.names if col not in expected_order]
+        sorted_index = expected_order + extra_idx_cols
+        sorted = data.reorder_levels(sorted_index).sort_index()
+        return sorted

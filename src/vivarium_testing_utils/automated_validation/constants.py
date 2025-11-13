@@ -34,6 +34,7 @@ class GBDIndexNames(NamedTuple):
     YEAR_ID: str = "year_id"
     PARAMETER: str = "parameter"
     CAUSE_ID: str = "cause_id"
+    AFFECTED_ENTITY: str = "affected_entity"
 
 
 GBD_INDEX_NAMES = GBDIndexNames()
