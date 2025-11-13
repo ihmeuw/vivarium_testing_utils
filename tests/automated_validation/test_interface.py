@@ -8,7 +8,11 @@ from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
 from tests.automated_validation.conftest import NO_GBD_ACCESS
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_INDEX,
+    VIVARIUM_INDEX_ORDER,
+    GBDIndexNames,
+)
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
@@ -357,9 +361,15 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
         "cause.diarrheal_diseases.excess_mortality_rate",
     ],
 )
-def test_get_frame_column_order(comparison_key: str) -> None:
+def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> None:
     """Tests that get_frame returns data with the correct index column order."""
 
+    idx_tuples = [
+        ("Persephone", "Male", 0, 5, 2023, 2024),
+        ("Persephone", "Male", 5, 10, 2023, 2024),
+        ("Persephone", "Female", 0, 5, 2023, 2024),
+        ("Persephone", "Female", 5, 10, 2023, 2024),
+    ]
     data = pd.DataFrame(
         {
             "test_rate": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
@@ -367,13 +377,89 @@ def test_get_frame_column_order(comparison_key: str) -> None:
             "percent_error": [33.3, 20.0, 14.3, 11.1, 9.1, 7.7],
         },
         index=pd.MultiIndex.from_tuples(
-            [
-                ("Persephone", "Male", 0, 5, 2023, 2024),
-                ("Persephone", "Male", 5, 10, 2023, 2024),
-                ("Persephone", "Female", 0, 5, 2023, 2024),
-                ("Persephone", "Female", 5, 10, 2023, 2024),
+            idx_tuples,
+            names=[
+                GBDIndexNames.LOCATION,
+                GBDIndexNames.SEX,
+                GBDIndexNames.AGE_START,
+                GBDIndexNames.AGE_END,
+                GBDIndexNames.YEAR_START,
+                GBDIndexNames.YEAR_END,
             ],
-            names=["location", "sex", "age_start", "age_end", "year_start", "year_end"],
         ),
     )
-    
+    if comparison_key in [
+        "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.relative_risk",
+    ]:
+        # Add parameter level with cat1 and cat2 for each existing index group
+        new_tuples = [(*tup, param) for tup in idx_tuples for param in ["cat1", "cat2"]]
+
+        data = pd.DataFrame(
+            {
+                "test_rate": [0.1, 0.1, 0.2, 0.2, 0.3, 0.3, 0.4, 0.4, 0.5, 0.5, 0.6, 0.6],
+                "reference_rate": [
+                    0.15,
+                    0.15,
+                    0.25,
+                    0.25,
+                    0.35,
+                    0.35,
+                    0.45,
+                    0.45,
+                    0.55,
+                    0.55,
+                    0.65,
+                    0.65,
+                ],
+                "percent_error": [
+                    33.3,
+                    33.3,
+                    20.0,
+                    20.0,
+                    14.3,
+                    14.3,
+                    11.1,
+                    11.1,
+                    9.1,
+                    9.1,
+                    7.7,
+                    7.7,
+                ],
+            },
+            index=pd.MultiIndex.from_tuples(
+                new_tuples,
+                names=[
+                    GBDIndexNames.LOCATION,
+                    GBDIndexNames.SEX,
+                    GBDIndexNames.AGE_START,
+                    GBDIndexNames.AGE_END,
+                    GBDIndexNames.YEAR_START,
+                    GBDIndexNames.YEAR_END,
+                    GBDIndexNames.PARAMETER,
+                ],
+            ),
+        )
+        if comparison_key == "risk_factor.child_wasting.relative_risk":
+            # Add "affected_entity" level with value "lost_in_space"
+            data = data.assign(affected_entity="lost_in_space")
+            data = data.set_index(GBDIndexNames.AFFECTED_ENTITY, append=True)
+
+    # TODO: change column order
+    wrong_order = [
+        GBDIndexNames.YEAR_END,
+        GBDIndexNames.YEAR_START,
+        GBDIndexNames.AGE_END,
+        GBDIndexNames.AGE_START,
+        GBDIndexNames.SEX,
+        GBDIndexNames.LOCATION,
+    ]
+    for level in [GBDIndexNames.AFFECTED_ENTITY, GBDIndexNames.PARAMETER]:
+        if level in data.index.names:
+            wrong_order.append(level)
+    unsorted = data.reorder_levels(wrong_order)
+
+    context = ValidationContext(sim_result_dir)
+    sorted = context.sort_ui_data_index(unsorted, comparison_key)
+
+    # TODO: verify sorted data has index levels in correct order
