@@ -10,7 +10,7 @@ from vivarium.framework.artifact import Artifact
 
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
-    GBD_INDEX_NAMES,
+    INPUT_DATA_INDEX_NAMES,
     LOCATION_ARTIFACT_KEY,
     SEED_INDEX,
 )
@@ -136,8 +136,8 @@ def _get_artifact_index() -> pd.MultiIndex:
         names=[
             "common_stratify_column",
             "other_stratify_column",
-            GBD_INDEX_NAMES.AGE_START,
-            GBD_INDEX_NAMES.AGE_END,
+            INPUT_DATA_INDEX_NAMES.AGE_START,
+            INPUT_DATA_INDEX_NAMES.AGE_END,
         ],
     )
 
@@ -158,12 +158,16 @@ def _create_sample_age_group_df() -> pd.DataFrame:
     """Create sample age group data for testing."""
     return pd.DataFrame(
         {
-            GBD_INDEX_NAMES.AGE_GROUP: ["0_to_4", "5_to_9", "10_to_14"],
-            GBD_INDEX_NAMES.AGE_START: [0.0, 5.0, 10.0],
-            GBD_INDEX_NAMES.AGE_END: [5.0, 10.0, 15.0],
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP: ["0_to_4", "5_to_9", "10_to_14"],
+            INPUT_DATA_INDEX_NAMES.AGE_START: [0.0, 5.0, 10.0],
+            INPUT_DATA_INDEX_NAMES.AGE_END: [5.0, 10.0, 15.0],
         }
     ).set_index(
-        [GBD_INDEX_NAMES.AGE_GROUP, GBD_INDEX_NAMES.AGE_START, GBD_INDEX_NAMES.AGE_END]
+        [
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+            INPUT_DATA_INDEX_NAMES.AGE_START,
+            INPUT_DATA_INDEX_NAMES.AGE_END,
+        ]
     )
 
 
@@ -398,9 +402,9 @@ def sample_df_with_ages() -> pd.DataFrame:
             names=[
                 "cause",
                 "disease",
-                GBD_INDEX_NAMES.AGE_GROUP,
-                GBD_INDEX_NAMES.AGE_START,
-                GBD_INDEX_NAMES.AGE_END,
+                INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+                INPUT_DATA_INDEX_NAMES.AGE_START,
+                INPUT_DATA_INDEX_NAMES.AGE_END,
             ],
         ),
     )
@@ -514,8 +518,8 @@ def _artifact_population_structure() -> pd.DataFrame:
         "location",
         "common_stratify_column",
         "other_stratify_column",
-        GBD_INDEX_NAMES.AGE_START,
-        GBD_INDEX_NAMES.AGE_END,
+        INPUT_DATA_INDEX_NAMES.AGE_START,
+        INPUT_DATA_INDEX_NAMES.AGE_END,
     ]
     pop = pop.reset_index().set_index(index_order)
 

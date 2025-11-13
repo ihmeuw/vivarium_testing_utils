@@ -8,7 +8,10 @@ from pytest_mock import MockFixture
 from vivarium.framework.artifact.artifact import ArtifactException
 
 from tests.automated_validation.conftest import NO_GBD_ACCESS
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, GBD_INDEX_NAMES
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_INDEX,
+    INPUT_DATA_INDEX_NAMES,
+)
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import age_groups
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
@@ -377,12 +380,12 @@ def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> No
         index=pd.MultiIndex.from_tuples(
             idx_tuples,
             names=[
-                GBD_INDEX_NAMES.LOCATION,
-                GBD_INDEX_NAMES.SEX,
-                GBD_INDEX_NAMES.AGE_START,
-                GBD_INDEX_NAMES.AGE_END,
-                GBD_INDEX_NAMES.YEAR_START,
-                GBD_INDEX_NAMES.YEAR_END,
+                INPUT_DATA_INDEX_NAMES.LOCATION,
+                INPUT_DATA_INDEX_NAMES.SEX,
+                INPUT_DATA_INDEX_NAMES.AGE_START,
+                INPUT_DATA_INDEX_NAMES.AGE_END,
+                INPUT_DATA_INDEX_NAMES.YEAR_START,
+                INPUT_DATA_INDEX_NAMES.YEAR_END,
             ],
         ),
     )
@@ -428,32 +431,32 @@ def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> No
             index=pd.MultiIndex.from_tuples(
                 new_tuples,
                 names=[
-                    GBD_INDEX_NAMES.LOCATION,
-                    GBD_INDEX_NAMES.SEX,
-                    GBD_INDEX_NAMES.AGE_START,
-                    GBD_INDEX_NAMES.AGE_END,
-                    GBD_INDEX_NAMES.YEAR_START,
-                    GBD_INDEX_NAMES.YEAR_END,
-                    GBD_INDEX_NAMES.PARAMETER,
+                    INPUT_DATA_INDEX_NAMES.LOCATION,
+                    INPUT_DATA_INDEX_NAMES.SEX,
+                    INPUT_DATA_INDEX_NAMES.AGE_START,
+                    INPUT_DATA_INDEX_NAMES.AGE_END,
+                    INPUT_DATA_INDEX_NAMES.YEAR_START,
+                    INPUT_DATA_INDEX_NAMES.YEAR_END,
+                    INPUT_DATA_INDEX_NAMES.PARAMETER,
                 ],
             ),
         )
         if comparison_key == "risk_factor.child_wasting.relative_risk":
             # Add "affected_entity" level with value "lost_in_space"
             data = data.assign(affected_entity="lost_in_space")
-            data = data.set_index(GBD_INDEX_NAMES.AFFECTED_ENTITY, append=True)
+            data = data.set_index(INPUT_DATA_INDEX_NAMES.AFFECTED_ENTITY, append=True)
 
     # NOTE: The index levels have been added in the order they are expected to be returned to users
     expected_order = list(data.index.names)
     wrong_order = [
-        GBD_INDEX_NAMES.YEAR_END,
-        GBD_INDEX_NAMES.YEAR_START,
-        GBD_INDEX_NAMES.AGE_END,
-        GBD_INDEX_NAMES.AGE_START,
-        GBD_INDEX_NAMES.SEX,
-        GBD_INDEX_NAMES.LOCATION,
+        INPUT_DATA_INDEX_NAMES.YEAR_END,
+        INPUT_DATA_INDEX_NAMES.YEAR_START,
+        INPUT_DATA_INDEX_NAMES.AGE_END,
+        INPUT_DATA_INDEX_NAMES.AGE_START,
+        INPUT_DATA_INDEX_NAMES.SEX,
+        INPUT_DATA_INDEX_NAMES.LOCATION,
     ]
-    for level in [GBD_INDEX_NAMES.AFFECTED_ENTITY, GBD_INDEX_NAMES.PARAMETER]:
+    for level in [INPUT_DATA_INDEX_NAMES.AFFECTED_ENTITY, INPUT_DATA_INDEX_NAMES.PARAMETER]:
         if level in data.index.names:
             wrong_order.append(level)
     unsorted = data.reorder_levels(wrong_order)

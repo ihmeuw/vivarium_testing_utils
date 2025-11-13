@@ -13,7 +13,7 @@ from vivarium_inputs import utilities as vi
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import (
-    GBD_INDEX_NAMES,
+    INPUT_DATA_INDEX_NAMES,
     VIVARIUM_INDEX_ORDER,
 )
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
@@ -369,9 +369,9 @@ class ValidationContext:
         measure = comparison_key.split(".")[-1]
         expected_order = VIVARIUM_INDEX_ORDER.copy()
         if measure in ["exposure", "relative_risk"]:
-            expected_order.append(GBD_INDEX_NAMES.PARAMETER)
+            expected_order.append(INPUT_DATA_INDEX_NAMES.PARAMETER)
             if measure == "relative_risk":
-                expected_order.append(GBD_INDEX_NAMES.AFFECTED_ENTITY)
+                expected_order.append(INPUT_DATA_INDEX_NAMES.AFFECTED_ENTITY)
 
         ordered_cols = [col for col in expected_order if col in data.index.names]
         extra_idx_cols = [col for col in data.index.names if col not in ordered_cols]

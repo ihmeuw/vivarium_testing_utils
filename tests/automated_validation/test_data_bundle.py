@@ -12,7 +12,7 @@ from tests.automated_validation.conftest import NO_GBD_ACCESS
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
-    GBD_INDEX_NAMES,
+    INPUT_DATA_INDEX_NAMES,
     DataSource,
 )
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
@@ -221,7 +221,7 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
         pytest.skip("GBD access not available for this test.")
 
     age_bins = interface.get_age_bins()
-    age_bins.index.rename({"age_group_name": GBD_INDEX_NAMES.AGE_GROUP}, inplace=True)
+    age_bins.index.rename({"age_group_name": INPUT_DATA_INDEX_NAMES.AGE_GROUP}, inplace=True)
 
     incidence = Incidence("diarrheal_diseases")
     bundle = RatioMeasureDataBundle(
@@ -235,7 +235,7 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
     # Validate datasets and weights schema
     dataset_index_names = {
         "sex",
-        GBD_INDEX_NAMES.AGE_GROUP,
+        INPUT_DATA_INDEX_NAMES.AGE_GROUP,
         "year_start",
         "year_end",
         DRAW_INDEX,
@@ -249,8 +249,12 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
     # Validate data aggregation
     stratify_1 = bundle.get_measure_data("all")
     pd.testing.assert_frame_equal(stratify_1, bundle.datasets["data"])
-    stratify_2 = bundle.get_measure_data(["sex", GBD_INDEX_NAMES.AGE_GROUP])
-    assert set(stratify_2.index.names) == {"sex", GBD_INDEX_NAMES.AGE_GROUP, DRAW_INDEX}
+    stratify_2 = bundle.get_measure_data(["sex", INPUT_DATA_INDEX_NAMES.AGE_GROUP])
+    assert set(stratify_2.index.names) == {
+        "sex",
+        INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+        DRAW_INDEX,
+    }
 
     metadata = bundle.get_metadata()
     assert metadata["source"] == "gbd"

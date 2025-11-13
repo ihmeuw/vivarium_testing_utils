@@ -6,8 +6,8 @@ import pandas as pd
 import pandera as pa
 
 from vivarium_testing_utils.automated_validation.constants import (
-    GBD_INDEX_NAMES,
     GBD_INDEX_ORDER,
+    INPUT_DATA_INDEX_NAMES,
 )
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -66,7 +66,7 @@ def drop_extra_columns(raw_gbd: pd.DataFrame, data_key: str) -> pd.DataFrame:
     gbd_cols = GBD_INDEX_ORDER.copy()
     measure = data_key.split(".")[-1]
     if measure in ["exposure", "relative_risk"]:
-        gbd_cols.append(GBD_INDEX_NAMES.PARAMETER)
+        gbd_cols.append(INPUT_DATA_INDEX_NAMES.PARAMETER)
     columns_to_keep = [col for col in raw_gbd.columns if col in gbd_cols + value_cols]
     return raw_gbd[columns_to_keep]
 
@@ -76,9 +76,9 @@ def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
     measure = data_key.split(".")[-1]
     gbd_cols = GBD_INDEX_ORDER.copy()
     if measure in ["exposure", "relative_risk"]:
-        gbd_cols.append(GBD_INDEX_NAMES.PARAMETER)
-    if measure != "relative_risk" and GBD_INDEX_NAMES.CAUSE_ID in data.columns:
-        data = data.drop(columns=[GBD_INDEX_NAMES.CAUSE_ID])
+        gbd_cols.append(INPUT_DATA_INDEX_NAMES.PARAMETER)
+    if measure != "relative_risk" and INPUT_DATA_INDEX_NAMES.CAUSE_ID in data.columns:
+        data = data.drop(columns=[INPUT_DATA_INDEX_NAMES.CAUSE_ID])
 
     index_cols = [col for col in gbd_cols if col in data.columns]
 

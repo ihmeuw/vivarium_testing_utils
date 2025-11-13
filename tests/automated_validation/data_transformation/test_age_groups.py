@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vivarium_testing_utils.automated_validation.constants import GBD_INDEX_NAMES
+from vivarium_testing_utils.automated_validation.constants import INPUT_DATA_INDEX_NAMES
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
     AgeGroup,
     AgeRange,
@@ -218,12 +218,14 @@ def test_age_schema_format_cols(
     """Test we can format a DataFrame with only age groups."""
     for dataframe in [
         sample_df_with_ages,
-        sample_df_with_ages.droplevel([GBD_INDEX_NAMES.AGE_START, GBD_INDEX_NAMES.AGE_END]),
+        sample_df_with_ages.droplevel(
+            [INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]
+        ),
     ]:
         pd.testing.assert_frame_equal(
             _format_dataframe(sample_age_schema, dataframe),
             sample_df_with_ages.droplevel(
-                [GBD_INDEX_NAMES.AGE_START, GBD_INDEX_NAMES.AGE_END]
+                [INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]
             ),
         )
 
@@ -240,7 +242,7 @@ def test_age_schema_format_dataframe_invalid(sample_age_schema: AgeSchema) -> No
                 ("cause", "disease", "25_to_29"),
                 ("cause", "disease", "30_to_39"),
             ],
-            names=["cause", "disease", GBD_INDEX_NAMES.AGE_GROUP],
+            names=["cause", "disease", INPUT_DATA_INDEX_NAMES.AGE_GROUP],
         ),
     )
     with pytest.raises(ValueError, match="Cannot coerce"):
@@ -263,7 +265,7 @@ def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) ->
         rebin_count_dataframe(
             target_age_schema,
             sample_df_with_ages.droplevel(
-                [GBD_INDEX_NAMES.AGE_START, GBD_INDEX_NAMES.AGE_END]
+                [INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]
             ),
         ),
     )
@@ -271,7 +273,9 @@ def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) ->
 
 def test_rebin_dataframe(sample_df_with_ages: pd.DataFrame) -> None:
     """Test we can transform a DataFrame to a new age schema with uneven groups."""
-    df = sample_df_with_ages.droplevel([GBD_INDEX_NAMES.AGE_START, GBD_INDEX_NAMES.AGE_END])
+    df = sample_df_with_ages.droplevel(
+        [INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]
+    )
 
     target_age_schema = AgeSchema.from_tuples(
         [
@@ -300,7 +304,7 @@ def test_rebin_dataframe(sample_df_with_ages: pd.DataFrame) -> None:
                 ("cause", "disease", "4_to_7"),
                 ("cause", "disease", "7_to_15"),
             ],
-            names=["cause", "disease", GBD_INDEX_NAMES.AGE_GROUP],
+            names=["cause", "disease", INPUT_DATA_INDEX_NAMES.AGE_GROUP],
         ),
     )
     pd.testing.assert_frame_equal(rebinned_df, expected_df)
@@ -345,14 +349,14 @@ def test_resolve_special_age_groups() -> None:
                 ("cause", "disease", "2_to_4"),
                 ("cause", "disease", "5_to_9"),
             ],
-            names=["measure", "entity", GBD_INDEX_NAMES.AGE_GROUP],
+            names=["measure", "entity", INPUT_DATA_INDEX_NAMES.AGE_GROUP],
         ),
     )
 
     # Make sample age group to match GBD format
     age_bins = pd.DataFrame(
         {
-            GBD_INDEX_NAMES.AGE_GROUP: [
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP: [
                 "Early Neonatal",
                 "Late Neonatal",
                 "1-5 months",
@@ -361,12 +365,24 @@ def test_resolve_special_age_groups() -> None:
                 "2 to 4",
                 "5 to 9",
             ],
-            GBD_INDEX_NAMES.AGE_START: [0.0, 7 / 365.0, 28 / 365.0, 0.5, 1.0, 2.0, 5.0],
-            GBD_INDEX_NAMES.AGE_END: [7 / 365.0, 28 / 365.0, 0.5, 1.0, 2.0, 5.0, 10.0],
+            INPUT_DATA_INDEX_NAMES.AGE_START: [
+                0.0,
+                7 / 365.0,
+                28 / 365.0,
+                0.5,
+                1.0,
+                2.0,
+                5.0,
+            ],
+            INPUT_DATA_INDEX_NAMES.AGE_END: [7 / 365.0, 28 / 365.0, 0.5, 1.0, 2.0, 5.0, 10.0],
         }
     )
     age_bins = age_bins.set_index(
-        [GBD_INDEX_NAMES.AGE_GROUP, GBD_INDEX_NAMES.AGE_START, GBD_INDEX_NAMES.AGE_END]
+        [
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+            INPUT_DATA_INDEX_NAMES.AGE_START,
+            INPUT_DATA_INDEX_NAMES.AGE_END,
+        ]
     )
 
     formatted_df = format_dataframe_from_age_bin_df(data, age_bins)
@@ -385,23 +401,27 @@ def test_resolve_special_age_groups() -> None:
                 ("cause", "disease", "90_to_94"),
                 ("cause", "disease", "95_plus"),
             ],
-            names=["measure", "entity", GBD_INDEX_NAMES.AGE_GROUP],
+            names=["measure", "entity", INPUT_DATA_INDEX_NAMES.AGE_GROUP],
         ),
     )
     oldies = pd.DataFrame(
         {
-            GBD_INDEX_NAMES.AGE_GROUP: [
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP: [
                 "80 to 84",
                 "85 to 89",
                 "90 to 94",
                 "95 plus",
             ],
-            GBD_INDEX_NAMES.AGE_START: [80.0, 85.0, 90.0, 95.0],
-            GBD_INDEX_NAMES.AGE_END: [85.0, 90.0, 95.0, 125.0],
+            INPUT_DATA_INDEX_NAMES.AGE_START: [80.0, 85.0, 90.0, 95.0],
+            INPUT_DATA_INDEX_NAMES.AGE_END: [85.0, 90.0, 95.0, 125.0],
         }
     )
     oldies = oldies.set_index(
-        [GBD_INDEX_NAMES.AGE_GROUP, GBD_INDEX_NAMES.AGE_START, GBD_INDEX_NAMES.AGE_END]
+        [
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+            INPUT_DATA_INDEX_NAMES.AGE_START,
+            INPUT_DATA_INDEX_NAMES.AGE_END,
+        ]
     )
     formatted_oldies = format_dataframe_from_age_bin_df(old_but_gold, oldies)
     context_oldies_schema = AgeSchema.from_dataframe(oldies)
