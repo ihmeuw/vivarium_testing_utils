@@ -457,6 +457,7 @@ def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> No
         if level in data.index.names:
             wrong_order.append(level)
     unsorted = data.reorder_levels(wrong_order)
+    assert list(unsorted.index.names) == wrong_order
 
     context = ValidationContext(sim_result_dir)
     sorted = context.sort_ui_data_index(unsorted, comparison_key)
