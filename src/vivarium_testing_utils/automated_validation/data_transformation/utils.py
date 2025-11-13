@@ -5,6 +5,11 @@ from typing import Any, Callable, TypeVar
 import pandas as pd
 import pandera as pa
 
+from vivarium_testing_utils.automated_validation.constants import (
+    GBD_INDEX_NAMES,
+    VIVARIUM_INDEX_ORDER,
+)
+
 F = TypeVar("F", bound=Callable[..., Any])
 
 
@@ -58,10 +63,10 @@ def drop_extra_columns(raw_gbd: pd.DataFrame, data_key: str) -> pd.DataFrame:
             f"No value columns found in the data. Columns found: {raw_gbd.columns.tolist()}"
         )
 
-    gbd_cols = ["location_id", "sex_id", "age_group_id", "year_id", "cause_id"]
+    gbd_cols = VIVARIUM_INDEX_ORDER.copy()
     measure = data_key.split(".")[-1]
     if measure in ["exposure", "relative_risk"]:
-        gbd_cols.append("parameter")
+        gbd_cols.append(GBD_INDEX_NAMES.PARAMETER)
     columns_to_keep = [col for col in raw_gbd.columns if col in gbd_cols + value_cols]
     return raw_gbd[columns_to_keep]
 
@@ -69,11 +74,12 @@ def drop_extra_columns(raw_gbd: pd.DataFrame, data_key: str) -> pd.DataFrame:
 def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
     """Set the index of a GBD DataFrame based on the data key."""
     measure = data_key.split(".")[-1]
-    gbd_cols = ["location_id", "sex_id", "age_group_id", "year_id"]
+    # gbd_cols = ["location_id", "sex_id", "age_group_id", "year_id"]
+    gbd_cols = VIVARIUM_INDEX_ORDER.copy()
     if measure in ["exposure", "relative_risk"]:
-        gbd_cols.append("parameter")
-    if measure != "relative_risk" and "cause_id" in data.columns:
-        data = data.drop(columns=["cause_id"])
+        gbd_cols.append(GBD_INDEX_NAMES.PARAMETER)
+    if measure != "relative_risk" and GBD_INDEX_NAMES.CAUSE_ID in data.columns:
+        data = data.drop(columns=[GBD_INDEX_NAMES.CAUSE_ID])
 
     index_cols = [col for col in gbd_cols if col in data.columns]
 

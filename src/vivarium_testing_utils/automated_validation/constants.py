@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import NamedTuple
 
 DRAW_PREFIX = "draw_"
 
@@ -24,3 +25,23 @@ class DataSource(Enum):
 
 LOCATION_ARTIFACT_KEY = "population.location"
 POPULATION_STRUCTURE_ARTIFACT_KEY = "population.structure"
+
+
+class GBDIndexNames(NamedTuple):
+    LOCATION_ID: str = "location_id"
+    SEX_ID: str = "sex_id"
+    AGE_GROUP_ID: str = "age_group_id"
+    YEAR_ID: str = "year_id"
+    PARAMETER: str = "parameter"
+    CAUSE_ID: str = "cause_id"
+
+
+GBD_INDEX_NAMES = GBDIndexNames()
+
+
+VIVARIUM_INDEX_ORDER = [
+    GBD_INDEX_NAMES.LOCATION_ID,
+    GBD_INDEX_NAMES.SEX_ID,
+    GBD_INDEX_NAMES.AGE_GROUP_ID,
+    GBD_INDEX_NAMES.YEAR_ID,
+]
