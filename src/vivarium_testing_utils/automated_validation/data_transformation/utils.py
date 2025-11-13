@@ -72,7 +72,12 @@ def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
     """Set the index of a GBD DataFrame based on the data key."""
     gbd_cols = get_measure_index_names(GBD_INDEX_ORDER, data_key)
 
-    index_cols = [col for col in gbd_cols if col in data.columns]
+    # CAUSE_ID is expected to be a column when Vivarium Inputs maps all of the IDs to values.
+    index_cols = [
+        col
+        for col in gbd_cols
+        if col in data.columns and col != INPUT_DATA_INDEX_NAMES.CAUSE_ID
+    ]
 
     formatted = data.set_index(index_cols)
     return formatted
