@@ -43,11 +43,11 @@ class ValidationContext:
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
-        return self.data_loader.get_sim_outputs()
+        return self.data_loader.get_sim_outputs().sort()
 
     def get_artifact_keys(self) -> list[str]:
         """Get a list of the artifact keys available to compare against."""
-        return self.data_loader.get_artifact_keys()
+        return self.data_loader.get_artifact_keys().sort()
 
     def get_raw_data(self, data_key: str, source: str) -> Any:
         """Return a copy of the data for manual inspection."""
