@@ -35,14 +35,28 @@ class GBDIndexNames(NamedTuple):
     PARAMETER: str = "parameter"
     CAUSE_ID: str = "cause_id"
     AFFECTED_ENTITY: str = "affected_entity"
+    LOCATION: str = "location"
+    SEX: str = "sex"
+    AGE_START: str = "age_start"
+    AGE_END: str = "age_end"
+    YEAR_START: str = "year_start"
+    YEAR_END: str = "year_end"
 
 
 GBD_INDEX_NAMES = GBDIndexNames()
 
 
-VIVARIUM_INDEX_ORDER = [
+GBD_INDEX_ORDER = [
     GBD_INDEX_NAMES.LOCATION_ID,
     GBD_INDEX_NAMES.SEX_ID,
     GBD_INDEX_NAMES.AGE_GROUP_ID,
     GBD_INDEX_NAMES.YEAR_ID,
+]
+VIVARIUM_INDEX_ORDER = [
+    GBD_INDEX_NAMES.LOCATION,
+    GBD_INDEX_NAMES.SEX,
+    GBD_INDEX_NAMES.AGE_START,
+    GBD_INDEX_NAMES.AGE_END,
+    GBD_INDEX_NAMES.YEAR_START,
+    GBD_INDEX_NAMES.YEAR_END,
 ]
