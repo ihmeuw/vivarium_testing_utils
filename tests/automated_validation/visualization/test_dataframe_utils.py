@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from pytest_check import check
 
+from vivarium_testing_utils.automated_validation.constants import DataSource
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
     format_draws_sample,
     format_metadata,
@@ -82,19 +83,37 @@ def test_format_metadata_missing_fields() -> None:
         [],
     ],
 )
-def test_format_draws(draws: list[int]) -> None:
+@pytest.mark.parametrize(
+    "data_source",
+    [
+        DataSource.SIM,
+        DataSource.ARTIFACT,
+        DataSource.GBD,
+    ],
+)
+def test_format_draws(draws: list[int], data_source: DataSource) -> None:
     """Test formatting a small number of draws."""
     # Test with a small list of draws (less than 2 * max_display)
-    assert format_draws_sample(draws) == str(draws)
+    if data_source == DataSource.SIM:
+        assert format_draws_sample(draws, data_source) == str(draws)
+    else:
+        expected = f"range({draws[0]}-{draws[-1]})" if draws else "range()"
+        assert format_draws_sample(draws, data_source) == expected
 
 
-def test_format_draws_sample_large() -> None:
+@pytest.mark.parametrize(
+    "data_source",
+    [
+        DataSource.SIM,
+        DataSource.ARTIFACT,
+        DataSource.GBD,
+    ],
+)
+def test_format_draws_sample_large(data_source: DataSource) -> None:
     """Test formatting a large number of draws."""
     # Test with a large list of draws (more than 2 * max_display)
     draws = list(range(20))
-    with check:
-        assert format_draws_sample(draws) == "[0, 1, 2] ... [17, 18, 19]"
-        assert (
-            format_draws_sample(draws, max_display=5)
-            == "[0, 1, 2, 3, 4] ... [15, 16, 17, 18, 19]"
-        )
+    if data_source == DataSource.SIM:
+        assert format_draws_sample(draws, data_source) == str(draws)
+    else:
+        assert format_draws_sample(draws, data_source) == "range(0-19)"

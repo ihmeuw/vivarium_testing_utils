@@ -63,13 +63,15 @@ def format_metadata(
     ).set_index(["Property"])
 
 
-def format_draws_sample(draw_list: list[int], max_display: int = 3) -> str:
+def format_draws_sample(draw_list: list[int], source: DataSource) -> str:
     """Helper function to format draw samples for display.
 
     Parameters:
     -----------
     draw_list
         The list of draws to be formatted
+    source
+        The data source of the draws. One of the DataSource enum values.
     max_display
         The maximum number of draws to display. If the number of draws exceeds this, the
         function will display the first and last max_display draws, separated by ellipses.
@@ -79,9 +81,15 @@ def format_draws_sample(draw_list: list[int], max_display: int = 3) -> str:
         A string representation of the draws sample.
     """
     draw_list = sorted(draw_list)
-    if len(draw_list) <= max_display * 2:
+    if source == DataSource.SIM:
+        # Display all draws run in the simulation
         return str(draw_list)
+    elif source in [DataSource.GBD, DataSource.ARTIFACT]:
+        if not draw_list:
+            return "range()"
+        # Display range of draws for GBD and Artifact data
+        first = draw_list[0]
+        last = draw_list[-1]
+        return f"range({first}-{last})"
     else:
-        first = draw_list[:max_display]
-        last = draw_list[-max_display:]
-        return f"{first} ... {last}"
+        raise ValueError(f"Source {source} not recognized. Must be a valid DataSource")
