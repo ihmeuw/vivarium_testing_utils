@@ -113,9 +113,9 @@ def get_measure_index_names(data_key: str, data_schema: str = "gbd") -> list[str
 
     measure = data_key.split(".")[-1]
     if data_schema == "gbd":
-        measure_cols = [col for col in DEMOGRAPHIC_COLUMNS]
+        measure_cols = list(DEMOGRAPHIC_COLUMNS)
     else:
-        measure_cols = [col for col in VIVARIUM_COLUMNS]
+        measure_cols = list(VIVARIUM_COLUMNS)
     if measure in ["exposure", "relative_risk"]:
         measure_cols.append(INPUT_DATA_INDEX_NAMES.PARAMETER)
     if measure == "relative_risk":
