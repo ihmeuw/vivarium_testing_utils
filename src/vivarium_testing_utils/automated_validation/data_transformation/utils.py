@@ -4,11 +4,9 @@ from typing import Any, Callable, TypeVar
 
 import pandas as pd
 import pandera as pa
+from vivarium_inputs.globals import DEMOGRAPHIC_COLUMNS, VIVARIUM_COLUMNS
 
-from vivarium_testing_utils.automated_validation.constants import (
-    GBD_INDEX_ORDER,
-    INPUT_DATA_INDEX_NAMES,
-)
+from vivarium_testing_utils.automated_validation.constants import INPUT_DATA_INDEX_NAMES
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -63,14 +61,14 @@ def drop_extra_columns(raw_gbd: pd.DataFrame, data_key: str) -> pd.DataFrame:
             f"No value columns found in the data. Columns found: {raw_gbd.columns.tolist()}"
         )
 
-    gbd_cols = get_measure_index_names(GBD_INDEX_ORDER, data_key)
+    gbd_cols = get_measure_index_names(data_key)
     columns_to_keep = [col for col in raw_gbd.columns if col in gbd_cols + value_cols]
     return raw_gbd[columns_to_keep]
 
 
 def set_gbd_index(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
     """Set the index of a GBD DataFrame based on the data key."""
-    gbd_cols = get_measure_index_names(GBD_INDEX_ORDER, data_key)
+    gbd_cols = get_measure_index_names(data_key)
 
     # CAUSE_ID is expected to be a column when Vivarium Inputs maps all of the IDs to values.
     index_cols = [
@@ -97,18 +95,33 @@ def set_validation_index(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
-def get_measure_index_names(
-    columns: list[str], data_key: str, already_mapped: bool = False
-) -> list[str]:
-    """Get the expected index names for a given data key."""
+def get_measure_index_names(data_key: str, data_schema: str = "gbd") -> list[str]:
+    """Get the expected index names for a given data key.
+
+    Parameters
+    ----------
+    data_key : str
+        The data key to get the index names for.
+    data_schema : str
+        The data schema type. Either "gbd" or "vivarium". Defaults to "gbd".
+
+    Returns
+    -------
+    list[str]
+        The list of expected index names for the given data key.
+    """
+
     measure = data_key.split(".")[-1]
-    measure_cols = columns.copy()
+    if data_schema == "gbd":
+        measure_cols = DEMOGRAPHIC_COLUMNS.copy()
+    else:
+        measure_cols = VIVARIUM_COLUMNS.copy()
     if measure in ["exposure", "relative_risk"]:
         measure_cols.append(INPUT_DATA_INDEX_NAMES.PARAMETER)
     if measure == "relative_risk":
-        if not already_mapped:
+        if data_schema == "gbd":
             measure_cols.append(INPUT_DATA_INDEX_NAMES.CAUSE_ID)
         else:
             measure_cols.append(INPUT_DATA_INDEX_NAMES.AFFECTED_ENTITY)
 
-    return measure_cols
+    return list(measure_cols)
