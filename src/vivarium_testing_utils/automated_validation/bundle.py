@@ -89,7 +89,9 @@ class RatioMeasureDataBundle:
             num_draws = dataframe.index.get_level_values(DRAW_INDEX).nunique()
             data_info["num_draws"] = f"{num_draws:,}"
             draw_values = list(dataframe.index.get_level_values(DRAW_INDEX).unique())
-            data_info[DRAW_INDEX + "s"] = dataframe_utils.format_draws_sample(draw_values, self.source)
+            data_info[DRAW_INDEX + "s"] = dataframe_utils.format_draws_sample(
+                draw_values, self.source
+            )
 
         # Seeds information
         if SEED_INDEX in dataframe.index.names:
