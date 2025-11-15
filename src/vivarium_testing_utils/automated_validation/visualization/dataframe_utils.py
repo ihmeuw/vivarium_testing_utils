@@ -87,11 +87,14 @@ def format_draws_sample(draw_list: list[int], source: DataSource) -> str:
             return str(draw_list)
         else:
             # Split list into groups of 5 draws, format as comma-separated values
-            parts = []
+            lines = []
             for i in range(0, len(draw_list), 5):
-                chunk = draw_list[i : i + 5]
-                parts.append(", ".join(map(str, chunk)))
-            return "[" + ",\n".join(parts) + "]"
+                row = draw_list[i : i + 5]
+                # Convert numbers to strings and join with ', '
+                line = ", ".join(str(num) for num in row)
+                lines.append(line)
+            # Add brackets and newlines
+            return "[{}]".format(",\n ".join(lines))
     elif source in [DataSource.GBD, DataSource.ARTIFACT]:
         if not draw_list:
             return "range()"
