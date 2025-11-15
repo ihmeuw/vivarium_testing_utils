@@ -86,22 +86,12 @@ def format_draws_sample(draw_list: list[int], source: DataSource) -> str:
         if len(draw_list) <= 5:
             return str(draw_list)
         else:
-            # Split list into lists of 5 draws to display on each line
-            lines = []
+            # Split list into groups of 5 draws, format as comma-separated values
+            parts = []
             for i in range(0, len(draw_list), 5):
                 chunk = draw_list[i : i + 5]
-                if i + 5 < len(draw_list):
-                    # Not the last chunk, add comma at the end
-                    lines.append(str(chunk)[:-1] + ",")
-                else:
-                    # Last chunk, keep the closing bracket
-                    lines.append(str(chunk))
-            # Join with newline and fix the first line to not have opening bracket duplicated
-            result = lines[0]
-            for line in lines[1:]:
-                result += "\n" + line[1:]  # Skip the opening bracket on continuation lines
-            return result
-
+                parts.append(", ".join(map(str, chunk)))
+            return "[" + ",\n".join(parts) + "]"
     elif source in [DataSource.GBD, DataSource.ARTIFACT]:
         if not draw_list:
             return "range()"
