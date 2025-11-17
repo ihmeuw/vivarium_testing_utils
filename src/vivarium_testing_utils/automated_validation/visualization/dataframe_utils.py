@@ -54,7 +54,7 @@ def format_metadata(
     reference_values = [reference_data.get(key, "N/A") for key in display_keys]
 
     # Display full column
-    pd.set_option("display.max_colwidth", -1)
+    pd.set_option("display.max_colwidth", None)
     # Create the DataFrame
     return pd.DataFrame(
         {
