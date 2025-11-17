@@ -83,18 +83,7 @@ def format_draws_sample(draw_list: list[int], source: DataSource) -> str:
     draw_list = sorted(draw_list)
     if source == DataSource.SIM:
         # Display all draws run in the simulation
-        if len(draw_list) <= 5:
-            return str(draw_list)
-        else:
-            # Split list into groups of 5 draws, format as comma-separated values
-            lines = []
-            for i in range(0, len(draw_list), 5):
-                row = draw_list[i : i + 5]
-                # Convert numbers to strings and join with ', '
-                line = ", ".join(str(num) for num in row)
-                lines.append(line)
-            # Add brackets and newlines
-            return "[{}]".format(",\n ".join(lines))
+        return str(draw_list)
     elif source in [DataSource.GBD, DataSource.ARTIFACT]:
         if not draw_list:
             return "range()"
