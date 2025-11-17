@@ -5,9 +5,7 @@ import re
 import pandas as pd
 from loguru import logger
 
-AGE_GROUP_COLUMN = "age_group"
-AGE_START_COLUMN = "age_start"
-AGE_END_COLUMN = "age_end"
+from vivarium_testing_utils.automated_validation.constants import INPUT_DATA_INDEX_NAMES
 
 AgeTuple = tuple[str, int | float, int | float]
 AgeRange = tuple[int | float, int | float]
@@ -316,12 +314,19 @@ class AgeSchema:
         -------
             An AgeSchema with the specified age groups.
         """
-        has_names = AGE_GROUP_COLUMN in df.index.names
-        has_ranges = AGE_START_COLUMN in df.index.names and AGE_END_COLUMN in df.index.names
+        has_age_group = INPUT_DATA_INDEX_NAMES.AGE_GROUP in df.index.names
+        has_age_range = (
+            INPUT_DATA_INDEX_NAMES.AGE_START in df.index.names
+            and INPUT_DATA_INDEX_NAMES.AGE_END in df.index.names
+        )
 
         # Usually this occurs for the artifact population.age_bins
-        if has_names and has_ranges:
-            levels = [AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN]
+        if has_age_group and has_age_range:
+            levels = [
+                INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+                INPUT_DATA_INDEX_NAMES.AGE_START,
+                INPUT_DATA_INDEX_NAMES.AGE_END,
+            ]
             age_groups = list(
                 df.index.droplevel(list(set(df.index.names) - set(levels)))
                 .reorder_levels(levels)
@@ -330,8 +335,8 @@ class AgeSchema:
 
             return cls.from_tuples(age_groups)
         # Most artifact dataframes have age start/end but not age group
-        elif has_ranges:
-            levels = [AGE_START_COLUMN, AGE_END_COLUMN]
+        elif has_age_range:
+            levels = [INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]
             age_groups = (
                 df.index.droplevel(list(set(df.index.names) - set(levels)))
                 .reorder_levels(levels)
@@ -339,8 +344,8 @@ class AgeSchema:
             )
             return cls.from_ranges(age_groups)
         # Most simulation dataframes have age group but not start/end
-        elif has_names:
-            levels = [AGE_GROUP_COLUMN]
+        elif has_age_group:
+            levels = [INPUT_DATA_INDEX_NAMES.AGE_GROUP]
             age_groups = list(
                 df.index.droplevel(list(set(df.index.names) - set(levels))).unique()
             )
@@ -355,12 +360,16 @@ class AgeSchema:
         Convert the AgeSchema to a DataFrame with age group names and their start and end ages.
         """
         data = {
-            AGE_GROUP_COLUMN: [group.name for group in self.age_groups],
-            AGE_START_COLUMN: [group.start for group in self.age_groups],
-            AGE_END_COLUMN: [group.end for group in self.age_groups],
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP: [group.name for group in self.age_groups],
+            INPUT_DATA_INDEX_NAMES.AGE_START: [group.start for group in self.age_groups],
+            INPUT_DATA_INDEX_NAMES.AGE_END: [group.end for group in self.age_groups],
         }
         return pd.DataFrame(data).set_index(
-            [AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN]
+            [
+                INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+                INPUT_DATA_INDEX_NAMES.AGE_START,
+                INPUT_DATA_INDEX_NAMES.AGE_END,
+            ]
         )
 
     def _validate(self) -> None:
@@ -428,7 +437,11 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
     """
     source_age_schema = AgeSchema.from_dataframe(df)
     index_names = list(df.index.names)
-    for age_group_indices in [AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN]:
+    for age_group_indices in [
+        INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+        INPUT_DATA_INDEX_NAMES.AGE_START,
+        INPUT_DATA_INDEX_NAMES.AGE_END,
+    ]:
         if age_group_indices not in index_names:
             index_names.append(age_group_indices)
     df = pd.merge(
@@ -443,13 +456,13 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
     if source_age_schema.is_subset(target_schema):
         return (
             pd.merge(
-                df.droplevel([AGE_GROUP_COLUMN]),
+                df.droplevel([INPUT_DATA_INDEX_NAMES.AGE_GROUP]),
                 target_schema.to_dataframe(),
                 left_index=True,
                 right_index=True,
             )
             .reorder_levels(index_names)
-            .droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
+            .droplevel([INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END])
         )
     else:
         logger.info(
@@ -457,7 +470,8 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
         )
         # if we don't fit pandera schema SimOutputData, assume the data is rate data and raise an error.
         data = rebin_count_dataframe(
-            target_schema, df.droplevel([AGE_START_COLUMN, AGE_END_COLUMN])
+            target_schema,
+            df.droplevel([INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]),
         )
         return data
 
@@ -496,18 +510,20 @@ def rebin_count_dataframe(
         # Unstack the DataFrame to get the age groups as columns
         unstacked_series = (
             df[val_col]
-            .unstack(level=AGE_GROUP_COLUMN, fill_value=0)
+            .unstack(level=INPUT_DATA_INDEX_NAMES.AGE_GROUP, fill_value=0)
             .reindex(columns=transform_matrix.columns, fill_value=0)
         )
 
         # Perform the dot product
         result_matrix_for_col = unstacked_series.dot(transform_matrix.T)
 
-        # Name the column AGE_GROUP_COLUMN for re-stacking
-        result_matrix_for_col.columns.name = AGE_GROUP_COLUMN
+        # Name the column GBD_INDEX_NAMES.AGE_GROUP for re-stacking
+        result_matrix_for_col.columns.name = INPUT_DATA_INDEX_NAMES.AGE_GROUP
 
         # Stack the new age group columns into the index
-        stacked_series_for_col = result_matrix_for_col.stack(level=AGE_GROUP_COLUMN)
+        stacked_series_for_col = result_matrix_for_col.stack(
+            level=INPUT_DATA_INDEX_NAMES.AGE_GROUP
+        )
         stacked_series_for_col.name = val_col
 
         all_results_series.append(stacked_series_for_col)

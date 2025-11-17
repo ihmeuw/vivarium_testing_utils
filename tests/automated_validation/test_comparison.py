@@ -10,11 +10,12 @@ from pytest_check import check
 from pytest_mock import MockFixture
 from vivarium_inputs import interface
 
-from tests.automated_validation.conftest import NO_GBD_ACCESS
+from tests.automated_validation.conftest import IS_ON_SLURM
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
+    INPUT_DATA_INDEX_NAMES,
     SEED_INDEX,
     DataSource,
 )
@@ -318,11 +319,11 @@ def test_fuzzy_comparison_align_datasets_calculation(
 
 @pytest.mark.slow
 def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
-    if NO_GBD_ACCESS:
+    if not IS_ON_SLURM:
         pytest.skip("No cluster access to use GBD data.")
 
     age_bins = interface.get_age_bins()
-    age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
+    age_bins.index.rename({"age_group_name": INPUT_DATA_INDEX_NAMES.AGE_GROUP}, inplace=True)
 
     incidence = Incidence("diarrheal_diseases")
     test_bundle = RatioMeasureDataBundle(
