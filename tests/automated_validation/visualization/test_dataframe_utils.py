@@ -17,7 +17,7 @@ def test_info() -> dict[str, Any]:
     """Info dictionary with draws."""
     return {
         "source": "sim",
-        "index_columns": "year, sex, age, input_draw",
+        "index_columns": ["year", "sex", "age", "input_draw"],
         "size": "100 rows × 5 columns",
         "num_draws": "10",
         "input_draws": "[0, 1, 2, 3]",
@@ -29,7 +29,7 @@ def reference_info() -> dict[str, Any]:
     """Info dictionary without draws."""
     return {
         "source": "artifact",
-        "index_columns": "year, sex, age",
+        "index_columns": ["year", "sex", "age"],
         "size": "50 rows × 3 columns",
         "num_draws": "0",
         "input_draws": "[]",
@@ -45,14 +45,15 @@ def test_format_metadata_basic(
     expected_metadata = [
         ("Measure Key", "test_measure", "test_measure"),
         ("Source", "sim", "artifact"),
-        ("Index Columns", "year, sex, age, input_draw", "year, sex, age"),
+        ("Shared Indices", "age, sex, year", "age, sex, year"),
+        ("Source Indices", "input_draw", "N/A"),
         ("Size", "100 rows × 5 columns", "50 rows × 3 columns"),
         ("Num Draws", "10", "0"),
         ("Input Draws", "[0, 1, 2, 3]", "[]"),
     ]
 
     assert df.index.name == "Property"
-    assert df.shape == (6, 2)
+    assert df.shape == (7, 2)
     assert df.columns.tolist() == ["Test Data", "Reference Data"]
 
     with check:
@@ -65,13 +66,13 @@ def test_format_metadata_missing_fields() -> None:
     """Test we can format metadata into a pandas DataFrame wtih missing fields."""
     test_info = {"source": "sim"}
     reference_info = {"source": "artifact"}
+    test_info["index_columns"] = ["age"]
+    reference_info["index_columns"] = ["age"]
 
     df = format_metadata(MEASURE_KEY, test_info, reference_info)
-
-    with check:
-        for i in range(2, 6):
-            assert df["Test Data"].iloc[i] == "N/A"
-            assert df["Reference Data"].iloc[i] == "N/A"
+    for i in range(3, 6):
+        assert df["Test Data"].iloc[i] == "N/A"
+        assert df["Reference Data"].iloc[i] == "N/A"
 
 
 @pytest.mark.parametrize(

@@ -4,7 +4,15 @@ import pandas as pd
 
 from vivarium_testing_utils.automated_validation.data_loader import DataSource
 
-REQUIRED_KEYS = ("measure_key", "source", "index_columns", "size", "num_draws", "input_draws")
+REQUIRED_KEYS = (
+    "measure_key",
+    "source",
+    "shared_indices",
+    "source_indices",
+    "size",
+    "num_draws",
+    "input_draws",
+)
 
 
 def format_metadata(
@@ -28,9 +36,11 @@ def format_metadata(
     # Start with the required keys in the specified order
     display_keys = list(REQUIRED_KEYS)
 
-    # Get all unique keys from both dictionaries that aren't in REQUIRED_KEYS
+    # Get all unique keys from both dictionaries that aren't in REQUIRED_KEYS or "index_columns"
     non_standard_keys = sorted(
-        (set(test_info.keys()) | set(reference_info.keys())).difference(set(REQUIRED_KEYS))
+        (set(test_info.keys()) | set(reference_info.keys())).difference(
+            set(REQUIRED_KEYS).union({"index_columns"})
+        )
     )
 
     # Add non-standard keys to the required keys list
@@ -48,6 +58,21 @@ def format_metadata(
 
     reference_data = reference_info.copy()
     reference_data["measure_key"] = measure_key
+
+    # Get shared and source specific indices
+    intersection = set(test_data["index_columns"]).intersection(
+        set(reference_data["index_columns"])
+    )
+    if intersection:
+        test_data["shared_indices"] = ", ".join(sorted(intersection))
+        reference_data["shared_indices"] = ", ".join(sorted(intersection))
+    test_indices = sorted(set(test_data["index_columns"]).difference(intersection))
+    if test_indices:
+        test_data["source_indices"] = ", ".join(test_indices)
+
+    reference_indices = sorted(set(reference_data["index_columns"]).difference(intersection))
+    if reference_indices:
+        reference_data["source_indices"] = ", ".join(reference_indices)
 
     # Create the rows for the DataFrame
     test_values = [test_data.get(key, "N/A") for key in display_keys]

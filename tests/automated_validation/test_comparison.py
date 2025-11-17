@@ -109,18 +109,15 @@ def test_fuzzy_comparison_metadata(
     expected_metadata = [
         ("Measure Key", "mock_measure", "mock_measure"),
         ("Source", "sim", "artifact"),
-        (
-            "Index Columns",
-            "year, sex, age, input_draw, random_seed",
-            "year, sex, age",
-        ),
+        ("Shared Indices", "age, sex, year", "age, sex, year"),
+        ("Source Indices", "input_draw, random_seed", "N/A"),
         ("Size", "4 rows × 1 columns", "3 rows × 1 columns"),
         ("Num Draws", "3", "N/A"),
         ("Input Draws", "[1, 2, 5]", "N/A"),
         ("Num Seeds", "3", "N/A"),
     ]
     assert metadata.index.name == "Property"
-    assert metadata.shape == (7, 2)
+    assert metadata.shape == (8, 2)
     assert metadata.columns.tolist() == ["Test Data", "Reference Data"]
     for property_name, test_value, reference_value in expected_metadata:
         assert metadata.loc[property_name]["Test Data"] == test_value

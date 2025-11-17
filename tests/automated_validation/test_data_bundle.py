@@ -102,7 +102,14 @@ def test_get_metadata(
     metadata = bundle.get_metadata()
 
     assert metadata["source"] == "sim"
-    assert metadata["index_columns"] == "year, sex, age, input_draw, random_seed, scenario"
+    assert metadata["index_columns"] == [
+        "year",
+        "sex",
+        "age",
+        "input_draw",
+        "random_seed",
+        "scenario",
+    ]
     assert metadata["size"] == "4 rows × 1 columns"
 
 
