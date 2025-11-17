@@ -54,13 +54,17 @@ def format_metadata(
     reference_values = [reference_data.get(key, "N/A") for key in display_keys]
 
     # Create the DataFrame
-    return pd.DataFrame(
+    data = pd.DataFrame(
         {
             "Property": properties,
             "Test Data": test_values,
             "Reference Data": reference_values,
         }
     ).set_index(["Property"])
+    # Wrap strings to multiple lines to display all information
+    data["Test Data"] = data["Test Data"].str.wrap(25)
+    data["Reference Data"] = data["Reference Data"].str.wrap(25)
+    return data
 
 
 def format_draws_sample(draw_list: list[int], source: DataSource) -> str:
