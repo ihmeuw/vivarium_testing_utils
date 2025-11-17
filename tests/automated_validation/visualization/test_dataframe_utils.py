@@ -64,8 +64,8 @@ def test_format_metadata_basic(
 
 def test_format_metadata_missing_fields() -> None:
     """Test we can format metadata into a pandas DataFrame wtih missing fields."""
-    test_info = {"source": "sim"}
-    reference_info = {"source": "artifact"}
+    test_info: dict[str, Any] = {"source": "sim"}
+    reference_info: dict[str, Any] = {"source": "artifact"}
     test_info["index_columns"] = ["age"]
     reference_info["index_columns"] = ["age"]
 
