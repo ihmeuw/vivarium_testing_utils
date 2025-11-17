@@ -100,15 +100,14 @@ def get_measure_index_names(data_key: str, data_schema: str = "gbd") -> list[str
 
     Parameters
     ----------
-    data_key : str
+    data_key
         The data key to get the index names for.
-    data_schema : str
+    data_schema
         The data schema type. Either "gbd" or "vivarium". Defaults to "gbd".
 
     Returns
     -------
-    list[str]
-        The list of expected index names for the given data key.
+        The list of expected index names for the given data key and data schema pair.
     """
 
     measure = data_key.split(".")[-1]
