@@ -106,15 +106,9 @@ def format_draws_sample(draw_list: list[int], source: DataSource) -> str:
     """
     draw_list = sorted(draw_list)
     if source == DataSource.SIM:
-        # Display all draws run in the simulation
-        if len(draw_list) < 6:
-            return str(draw_list)
-        else:
-            # Display 5 draws per line
-            lines = []
-            for i in range(0, len(draw_list), 5):
-                lines.append(str(draw_list[i : i + 5]))
-            return "\n".join(lines)
+        # Display all draws run in the simulation. Display 5 draws per line if necessary.
+        lines = [str(draw_list[i : i + 5]) for i in range(0, len(draw_list), 5)]
+        return "<br>".join(lines)
     elif source in [DataSource.GBD, DataSource.ARTIFACT]:
         if not draw_list:
             return "range()"

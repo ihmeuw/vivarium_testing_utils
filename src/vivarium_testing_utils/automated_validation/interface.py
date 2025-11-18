@@ -187,7 +187,7 @@ class ValidationContext:
 
         data = pd.concat([comparison_metadata, directory_metadata])
         # Display draw values on multiple lines if necessary
-        display(HTML(data.to_html().replace("\\n", "<br>")))  # type: ignore[no-untyped-call]
+        display(HTML(data.to_html()))  # type: ignore[no-untyped-call]
         return data
 
     def _get_directory_metadata(self) -> pd.DataFrame:

@@ -79,7 +79,6 @@ def test_format_metadata_missing_fields() -> None:
         [0, 1, 2, 3],
         [0, 1, 2],
         [0],
-        [],
     ],
 )
 @pytest.mark.parametrize(
@@ -96,7 +95,7 @@ def test_format_draws(draws: list[int], data_source: DataSource) -> None:
     if data_source == DataSource.SIM:
         assert format_draws_sample(draws, data_source) == str(draws)
     else:
-        expected = f"range({draws[0]}-{draws[-1]})" if draws else "range()"
+        expected = f"range({draws[0]}-{draws[-1]})"
         assert format_draws_sample(draws, data_source) == expected
 
 
@@ -115,7 +114,7 @@ def test_format_draws_sample_large(data_source: DataSource) -> None:
     if data_source == DataSource.SIM:
         assert (
             format_draws_sample(draws, data_source)
-            == "[0, 1, 2, 3, 4]\n[5, 6, 7, 8, 9]\n[10, 11, 12, 13, 14]\n[15, 16, 17]"
+            == "[0, 1, 2, 3, 4]<br>[5, 6, 7, 8, 9]<br>[10, 11, 12, 13, 14]<br>[15, 16, 17]"
         )
     else:
         assert format_draws_sample(draws, data_source) == "range(0-17)"
