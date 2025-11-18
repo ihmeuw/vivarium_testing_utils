@@ -77,9 +77,6 @@ def format_metadata(
     test_values = [test_data.get(key, "") for key in display_keys]
     reference_values = [reference_data.get(key, "") for key in display_keys]
 
-    # Display full column
-    # TODO: find way to pretty print columns
-    # pd.set_option("display.max_colwidth", None)
     # Create the DataFrame
     return pd.DataFrame(
         {
@@ -116,7 +113,7 @@ def format_draws_sample(draw_list: list[int], source: DataSource) -> str:
             # Display 5 draws per line
             lines = []
             for i in range(0, len(draw_list), 5):
-                lines.append(str(draw_list[i:i+5]))
+                lines.append(str(draw_list[i : i + 5]))
             return "\n".join(lines)
     elif source in [DataSource.GBD, DataSource.ARTIFACT]:
         if not draw_list:

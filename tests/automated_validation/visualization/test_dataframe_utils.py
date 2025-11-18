@@ -111,8 +111,11 @@ def test_format_draws(draws: list[int], data_source: DataSource) -> None:
 def test_format_draws_sample_large(data_source: DataSource) -> None:
     """Test formatting a large number of draws."""
     # Test with a large list of draws (more than 2 * max_display)
-    draws = list(range(20))
+    draws = list(range(18))
     if data_source == DataSource.SIM:
-        assert format_draws_sample(draws, data_source) == str(draws)
+        assert (
+            format_draws_sample(draws, data_source)
+            == "[0, 1, 2, 3, 4]\n[5, 6, 7, 8, 9]\n[10, 11, 12, 13, 14]\n[15, 16, 17]"
+        )
     else:
-        assert format_draws_sample(draws, data_source) == "range(0-19)"
+        assert format_draws_sample(draws, data_source) == "range(0-17)"

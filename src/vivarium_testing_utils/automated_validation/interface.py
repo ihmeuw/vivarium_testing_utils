@@ -7,6 +7,7 @@ from typing import Any, Collection, Literal
 
 import pandas as pd
 import yaml
+from IPython.display import HTML, display
 from matplotlib.figure import Figure
 from vivarium_inputs import utilities as vi
 
@@ -184,7 +185,9 @@ class ValidationContext:
         comparison_metadata = self.comparisons[comparison_key].metadata
         directory_metadata = self._get_directory_metadata()
 
-        return pd.concat([comparison_metadata, directory_metadata])
+        data = pd.concat([comparison_metadata, directory_metadata])
+        # Display draw values on multiple lines if necessary
+        return display(HTML(data.to_html().replace("\\n", "<br>")))
 
     def _get_directory_metadata(self) -> pd.DataFrame:
         """Add model run metadata to the dictionary."""
