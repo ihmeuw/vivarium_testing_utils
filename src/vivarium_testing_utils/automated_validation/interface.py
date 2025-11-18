@@ -187,7 +187,8 @@ class ValidationContext:
 
         data = pd.concat([comparison_metadata, directory_metadata])
         # Display draw values on multiple lines if necessary
-        return display(HTML(data.to_html().replace("\\n", "<br>")))
+        display(HTML(data.to_html().replace("\\n", "<br>")))
+        return data
 
     def _get_directory_metadata(self) -> pd.DataFrame:
         """Add model run metadata to the dictionary."""
