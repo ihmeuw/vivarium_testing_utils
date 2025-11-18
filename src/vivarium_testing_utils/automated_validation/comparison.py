@@ -41,7 +41,7 @@ class Comparison(ABC):
     def get_frame(
         self,
         stratifications: Collection[str] | Literal["all"] = "all",
-        num_rows: int | Literal["all"] = 10,
+        num_rows: int | Literal["all"] = "all",
         sort_by: str = "",
         ascending: bool = False,
         aggregate_draws: bool = False,
@@ -106,7 +106,7 @@ class FuzzyComparison(Comparison):
     def get_frame(
         self,
         stratifications: Collection[str] | Literal["all"] = "all",
-        num_rows: int | Literal["all"] = 10,
+        num_rows: int | Literal["all"] = "all",
         sort_by: str = "",
         ascending: bool = False,
         aggregate_draws: bool = False,
