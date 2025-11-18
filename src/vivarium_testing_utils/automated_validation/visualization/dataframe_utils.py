@@ -21,16 +21,17 @@ def format_metadata(
     """
     Format the comparison data as a pandas DataFrame
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     measure_key
         The key of the measure being compared
     test_info
         Information about the test data to be displayed
     reference_info
         Information about the reference data to be displayed
-    Returns:
-    --------
+
+    Returns
+    -------
         DataFrame for display
     """
     # Start with the required keys in the specified order
@@ -90,8 +91,8 @@ def format_metadata(
 def format_draws_sample(draw_list: list[int], source: DataSource) -> str:
     """Helper function to format draw samples for display.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     draw_list
         The list of draws to be formatted
     source
@@ -100,8 +101,8 @@ def format_draws_sample(draw_list: list[int], source: DataSource) -> str:
         The maximum number of draws to display. If the number of draws exceeds this, the
         function will display the first and last max_display draws, separated by ellipses.
 
-    Returns:
-    --------
+    Returns
+    -------
         A string representation of the draws sample.
     """
     draw_list = sorted(draw_list)
