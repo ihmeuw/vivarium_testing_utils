@@ -110,11 +110,11 @@ def test_fuzzy_comparison_metadata(
         ("Measure Key", "mock_measure", "mock_measure"),
         ("Source", "sim", "artifact"),
         ("Shared Indices", "age, sex, year", "age, sex, year"),
-        ("Source Indices", "input_draw, random_seed", "N/A"),
+        ("Source Specific Indices", "input_draw, random_seed", ""),
         ("Size", "4 rows × 1 columns", "3 rows × 1 columns"),
-        ("Num Draws", "3", "N/A"),
-        ("Input Draws", "[1, 2, 5]", "N/A"),
-        ("Num Seeds", "3", "N/A"),
+        ("Num Draws", "3", ""),
+        ("Input Draws", "[1, 2, 5]", ""),
+        ("Num Seeds", "3", ""),
     ]
     assert metadata.index.name == "Property"
     assert metadata.shape == (8, 2)

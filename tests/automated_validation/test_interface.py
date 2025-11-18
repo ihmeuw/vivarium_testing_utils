@@ -201,7 +201,7 @@ def test_metadata(sim_result_dir: Path, mocker: MockFixture) -> None:
         "Measure Key",
         "Source",
         "Shared Indices",
-        "Source Indices",
+        "Source Specific Indices",
         "Size",
         "Num Draws",
         "Input Draws",

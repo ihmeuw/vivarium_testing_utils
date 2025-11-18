@@ -31,8 +31,6 @@ def reference_info() -> dict[str, Any]:
         "source": "artifact",
         "index_columns": ["year", "sex", "age"],
         "size": "50 rows × 3 columns",
-        "num_draws": "0",
-        "input_draws": "[]",
     }
 
 
@@ -46,10 +44,10 @@ def test_format_metadata_basic(
         ("Measure Key", "test_measure", "test_measure"),
         ("Source", "sim", "artifact"),
         ("Shared Indices", "age, sex, year", "age, sex, year"),
-        ("Source Indices", "input_draw", "N/A"),
+        ("Source Specific Indices", "input_draw", ""),
         ("Size", "100 rows × 5 columns", "50 rows × 3 columns"),
-        ("Num Draws", "10", "0"),
-        ("Input Draws", "[0, 1, 2, 3]", "[]"),
+        ("Num Draws", "10", ""),
+        ("Input Draws", "[0, 1, 2, 3]", ""),
     ]
 
     assert df.index.name == "Property"
@@ -66,13 +64,13 @@ def test_format_metadata_missing_fields() -> None:
     """Test we can format metadata into a pandas DataFrame wtih missing fields."""
     test_info: dict[str, Any] = {"source": "sim"}
     reference_info: dict[str, Any] = {"source": "artifact"}
-    test_info["index_columns"] = ["age"]
-    reference_info["index_columns"] = ["age"]
+    test_info["index_columns"] = []
+    reference_info["index_columns"] = []
 
     df = format_metadata(MEASURE_KEY, test_info, reference_info)
     for i in range(3, 6):
-        assert df["Test Data"].iloc[i] == "N/A"
-        assert df["Reference Data"].iloc[i] == "N/A"
+        assert df["Test Data"].iloc[i] == ""
+        assert df["Reference Data"].iloc[i] == ""
 
 
 @pytest.mark.parametrize(

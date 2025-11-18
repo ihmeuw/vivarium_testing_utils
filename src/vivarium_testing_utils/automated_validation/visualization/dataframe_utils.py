@@ -8,7 +8,7 @@ REQUIRED_KEYS = (
     "measure_key",
     "source",
     "shared_indices",
-    "source_indices",
+    "source_specific_indices",
     "size",
     "num_draws",
     "input_draws",
@@ -60,23 +60,22 @@ def format_metadata(
     reference_data["measure_key"] = measure_key
 
     # Get shared and source specific indices
-    intersection = set(test_data["index_columns"]).intersection(
-        set(reference_data["index_columns"])
+    shared_indices = sorted(
+        set(test_data["index_columns"]).intersection(set(reference_data["index_columns"]))
     )
-    if intersection:
-        test_data["shared_indices"] = ", ".join(sorted(intersection))
-        reference_data["shared_indices"] = ", ".join(sorted(intersection))
-    test_indices = sorted(set(test_data["index_columns"]).difference(intersection))
-    if test_indices:
-        test_data["source_indices"] = ", ".join(test_indices)
+    test_data["shared_indices"] = ", ".join(shared_indices)
+    reference_data["shared_indices"] = ", ".join(shared_indices)
 
-    reference_indices = sorted(set(reference_data["index_columns"]).difference(intersection))
-    if reference_indices:
-        reference_data["source_indices"] = ", ".join(reference_indices)
+    test_indices = sorted(set(test_data["index_columns"]).difference(shared_indices))
+    test_data["source_specific_indices"] = ", ".join(test_indices)
+    reference_indices = sorted(
+        set(reference_data["index_columns"]).difference(shared_indices)
+    )
+    reference_data["source_specific_indices"] = ", ".join(reference_indices)
 
     # Create the rows for the DataFrame
-    test_values = [test_data.get(key, "N/A") for key in display_keys]
-    reference_values = [reference_data.get(key, "N/A") for key in display_keys]
+    test_values = [test_data.get(key, "") for key in display_keys]
+    reference_values = [reference_data.get(key, "") for key in display_keys]
 
     # Display full column
     pd.set_option("display.max_colwidth", None)
