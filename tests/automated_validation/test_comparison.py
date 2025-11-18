@@ -113,7 +113,7 @@ def test_fuzzy_comparison_metadata(
         ("Source Specific Indices", "input_draw, random_seed", ""),
         ("Size", "4 rows × 1 columns", "3 rows × 1 columns"),
         ("Num Draws", "3", ""),
-        ("Input Draws", "[1, 2, 5]", ""),
+        ("Input Draws", "1, 2, 5", ""),
         ("Num Seeds", "3", ""),
     ]
     assert metadata.index.name == "Property"
