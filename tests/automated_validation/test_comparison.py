@@ -362,4 +362,23 @@ def test_get_frame_default_rows(
     assert len(diff) == 3  # There are only 3 rows in the test data
 
     non_default = comparison.get_frame(num_rows=2)
+    breakpoint()
     assert len(non_default) == 2
+
+
+def test_get_frame_filter_datasets(
+    test_bundle: RatioMeasureDataBundle, reference_bundle: RatioMeasureDataBundle
+) -> None:
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
+    diff = comparison.get_frame(filter={"year": [2020]})
+    assert diff.index.get_level_values("year").unique().tolist() == [2020]
+
+
+def test_get_frame_filter_datasets_bad_filter(
+    test_bundle: RatioMeasureDataBundle, reference_bundle: RatioMeasureDataBundle
+) -> None:
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
+    with pytest.raises(
+        ValueError, match="Filter contains invalid index levels: invalid_index"
+    ):
+        comparison.get_frame(filter={"invalid_index": [2020]})
