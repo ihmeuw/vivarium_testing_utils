@@ -363,19 +363,3 @@ def test_get_frame_default_rows(
 
     non_default = comparison.get_frame(num_rows=2)
     assert len(non_default) == 2
-
-
-def test_get_frame_filter_datasets(
-    test_bundle: RatioMeasureDataBundle, reference_bundle: RatioMeasureDataBundle
-) -> None:
-    comparison = FuzzyComparison(test_bundle, reference_bundle)
-    diff = comparison.get_frame(filters={"year": ["2020"]})
-    assert diff.index.get_level_values("year").unique().tolist() == ["2020"]
-
-
-def test_get_frame_filter_datasets_bad_filter(
-    test_bundle: RatioMeasureDataBundle, reference_bundle: RatioMeasureDataBundle
-) -> None:
-    comparison = FuzzyComparison(test_bundle, reference_bundle)
-    with pytest.raises(KeyError, match="Level invalid_index not found"):
-        comparison.get_frame(filters={"invalid_index": ["2020"]})

@@ -15,6 +15,9 @@ from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataB
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import measures
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    filter_data,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CategoricalRelativeRisk,
     Measure,
@@ -266,9 +269,14 @@ class ValidationContext:
 
         if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
             data = self.comparisons[comparison_key].get_frame(
-                stratifications, num_rows, sort_by, filters, ascending, aggregate_draws
+                stratifications, num_rows, sort_by, ascending, aggregate_draws
             )
-            return self.format_ui_data_index(data, comparison_key)
+            data = self.format_ui_data_index(data, comparison_key)
+            return (
+                filter_data(data, filters, drop_singles=False)
+                if filters is not None
+                else data
+            )
         else:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
 
