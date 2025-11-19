@@ -271,12 +271,7 @@ class ValidationContext:
             data = self.comparisons[comparison_key].get_frame(
                 stratifications, num_rows, sort_by, ascending, aggregate_draws
             )
-            data = self.format_ui_data_index(data, comparison_key)
-            return (
-                filter_data(data, filters, drop_singles=False)
-                if filters is not None
-                else data
-            )
+            return self.format_ui_data_index(data, comparison_key)
         else:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
 

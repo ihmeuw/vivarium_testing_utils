@@ -140,8 +140,7 @@ def add_comparison_metadata_levels(data: pd.DataFrame, comparison_key: str) -> p
     -------
         The DataFrame with the added index levels.
     """
-    entity = comparison_key.split(".")[-2]
-    measure = comparison_key.split(".")[-1]
+    entity, measure = comparison_key.split(".")[-2:]
     idx_order = list(data.index.names)
     # Add entity and measure to index
     return (
