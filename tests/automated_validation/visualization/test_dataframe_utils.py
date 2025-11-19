@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from pytest_check import check
 
+from vivarium_testing_utils.automated_validation.constants import DataSource
 from vivarium_testing_utils.automated_validation.visualization.dataframe_utils import (
     format_draws_sample,
     format_metadata,
@@ -16,7 +17,7 @@ def test_info() -> dict[str, Any]:
     """Info dictionary with draws."""
     return {
         "source": "sim",
-        "index_columns": "year, sex, age, input_draw",
+        "index_columns": ["year", "sex", "age", "input_draw"],
         "size": "100 rows × 5 columns",
         "num_draws": "10",
         "input_draws": "[0, 1, 2, 3]",
@@ -28,10 +29,8 @@ def reference_info() -> dict[str, Any]:
     """Info dictionary without draws."""
     return {
         "source": "artifact",
-        "index_columns": "year, sex, age",
+        "index_columns": ["year", "sex", "age"],
         "size": "50 rows × 3 columns",
-        "num_draws": "0",
-        "input_draws": "[]",
     }
 
 
@@ -44,14 +43,15 @@ def test_format_metadata_basic(
     expected_metadata = [
         ("Measure Key", "test_measure", "test_measure"),
         ("Source", "sim", "artifact"),
-        ("Index Columns", "year, sex, age, input_draw", "year, sex, age"),
+        ("Shared Indices", "age, sex, year", "age, sex, year"),
+        ("Source Specific Indices", "input_draw", ""),
         ("Size", "100 rows × 5 columns", "50 rows × 3 columns"),
-        ("Num Draws", "10", "0"),
-        ("Input Draws", "[0, 1, 2, 3]", "[]"),
+        ("Num Draws", "10", ""),
+        ("Input Draws", "[0, 1, 2, 3]", ""),
     ]
 
     assert df.index.name == "Property"
-    assert df.shape == (6, 2)
+    assert df.shape == (7, 2)
     assert df.columns.tolist() == ["Test Data", "Reference Data"]
 
     with check:
@@ -62,15 +62,15 @@ def test_format_metadata_basic(
 
 def test_format_metadata_missing_fields() -> None:
     """Test we can format metadata into a pandas DataFrame wtih missing fields."""
-    test_info = {"source": "sim"}
-    reference_info = {"source": "artifact"}
+    test_info: dict[str, Any] = {"source": "sim"}
+    reference_info: dict[str, Any] = {"source": "artifact"}
+    test_info["index_columns"] = []
+    reference_info["index_columns"] = []
 
     df = format_metadata(MEASURE_KEY, test_info, reference_info)
-
-    with check:
-        for i in range(2, 6):
-            assert df["Test Data"].iloc[i] == "N/A"
-            assert df["Reference Data"].iloc[i] == "N/A"
+    for i in range(3, 6):
+        assert df["Test Data"].iloc[i] == ""
+        assert df["Reference Data"].iloc[i] == ""
 
 
 @pytest.mark.parametrize(
@@ -79,22 +79,43 @@ def test_format_metadata_missing_fields() -> None:
         [0, 1, 2, 3],
         [0, 1, 2],
         [0],
-        [],
     ],
 )
-def test_format_draws(draws: list[int]) -> None:
+@pytest.mark.parametrize(
+    "data_source",
+    [
+        DataSource.SIM,
+        DataSource.ARTIFACT,
+        DataSource.GBD,
+    ],
+)
+def test_format_draws(draws: list[int], data_source: DataSource) -> None:
     """Test formatting a small number of draws."""
     # Test with a small list of draws (less than 2 * max_display)
-    assert format_draws_sample(draws) == str(draws)
+    if data_source == DataSource.SIM:
+        assert format_draws_sample(draws, data_source) == ", ".join(
+            str(draw) for draw in draws
+        )
+    else:
+        expected = f"range({draws[0]}-{draws[-1]})"
+        assert format_draws_sample(draws, data_source) == expected
 
 
-def test_format_draws_sample_large() -> None:
+@pytest.mark.parametrize(
+    "data_source",
+    [
+        DataSource.SIM,
+        DataSource.ARTIFACT,
+        DataSource.GBD,
+    ],
+)
+def test_format_draws_sample_large(data_source: DataSource) -> None:
     """Test formatting a large number of draws."""
     # Test with a large list of draws (more than 2 * max_display)
-    draws = list(range(20))
-    with check:
-        assert format_draws_sample(draws) == "[0, 1, 2] ... [17, 18, 19]"
-        assert (
-            format_draws_sample(draws, max_display=5)
-            == "[0, 1, 2, 3, 4] ... [15, 16, 17, 18, 19]"
+    draws = list(range(18))
+    if data_source == DataSource.SIM:
+        assert format_draws_sample(draws, data_source) == ", ".join(
+            str(draw) for draw in draws
         )
+    else:
+        assert format_draws_sample(draws, data_source) == "range(0-17)"
