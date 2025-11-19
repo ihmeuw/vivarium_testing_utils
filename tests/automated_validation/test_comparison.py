@@ -142,7 +142,7 @@ def test_fuzzy_comparison_get_frame(
         assert SEED_INDEX not in diff.index.names
 
     # Test returning all rows
-    all_diff = comparison.get_frame(num_rows="all")
+    all_diff = comparison.get_frame()
     assert len(all_diff) == 3
 
     # Test sorting
@@ -173,7 +173,7 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
 ) -> None:
     """Test the get_frame method of the FuzzyComparison class with aggregated draws."""
     comparison = FuzzyComparison(test_bundle, reference_bundle)
-    diff = comparison.get_frame(num_rows="all", aggregate_draws=True)
+    diff = comparison.get_frame(aggregate_draws=True)
     expected_df = pd.DataFrame(
         {
             "test_mean": [0.2, 0.1, 0.325],
@@ -340,7 +340,7 @@ def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
     assert comparison.test_bundle == test_bundle
 
     # Bundles are the same so differences should be zero
-    diff = comparison.get_frame(num_rows="all")
+    diff = comparison.get_frame()
     assert (diff["test_rate"] == diff["reference_rate"]).all()
     assert (diff["percent_error"] == 0.0).all()
 
@@ -349,3 +349,17 @@ def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.Data
     """Add a 'input_draw' index level to the DataFrame."""
     df["input_draw"] = draw_values
     return df.set_index("input_draw", append=True).sort_index()
+
+
+def test_get_frame_default_rows(
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
+) -> None:
+    """Test that get_frame returns default number of rows when num_rows is not specified."""
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
+
+    diff = comparison.get_frame()
+    assert len(diff) == 3  # There are only 3 rows in the test data
+
+    non_default = comparison.get_frame(num_rows=2)
+    assert len(non_default) == 2
