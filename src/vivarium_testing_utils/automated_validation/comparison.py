@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Collection, Literal
+from typing import Any, Collection, Literal, Mapping
 
 import numpy as np
 import pandas as pd
@@ -43,6 +43,7 @@ class Comparison(ABC):
         stratifications: Collection[str] | Literal["all"] = "all",
         num_rows: int | Literal["all"] = "all",
         sort_by: str = "",
+        filters: Mapping[str, str | list[str]] | None = None,
         ascending: bool = False,
         aggregate_draws: bool = False,
     ) -> pd.DataFrame:
@@ -56,6 +57,8 @@ class Comparison(ABC):
             The number of rows to return. If "all", return all rows.
         sort_by
             The column to sort by. Default is "percent_error".
+        filters
+            A mapping of index levels to filter values. Only rows matching the filter will be included.
         ascending
             Whether to sort in ascending order. Default is False.
         aggregate_draws
@@ -108,6 +111,7 @@ class FuzzyComparison(Comparison):
         stratifications: Collection[str] | Literal["all"] = "all",
         num_rows: int | Literal["all"] = "all",
         sort_by: str = "",
+        filters: Mapping[str, str | list[str]] | None = None,
         ascending: bool = False,
         aggregate_draws: bool = False,
     ) -> pd.DataFrame:
@@ -121,6 +125,8 @@ class FuzzyComparison(Comparison):
             The number of rows to return. If "all", return all rows.
         sort_by
             The column to sort by. Default for non-aggregated data is "percent_error", for aggregation default is to not sort.
+        filters
+            A mapping of index levels to filter values. Only rows matching the filter will be included.
         ascending
             Whether to sort in ascending order. Default is False.
         aggregate_draws
@@ -132,6 +138,14 @@ class FuzzyComparison(Comparison):
         """
 
         test_proportion_data, reference_data = self.align_datasets(stratifications)
+        if filters is not None:
+            test_proportion_data = calculations.filter_data(
+                test_proportion_data, filters, drop_singles=False
+            )
+            reference_data = calculations.filter_data(
+                reference_data, filters, drop_singles=False
+            )
+
         # Renaming and aggregating draws happens here instead of _align datasets because
         # "value" and "input_draw" are needed for comparison plots
         test_proportion_data = test_proportion_data.rename(columns={"value": "rate"})

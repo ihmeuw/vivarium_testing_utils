@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Collection, Literal
+from typing import Any, Collection, Literal, Mapping
 
 import pandas as pd
 import yaml
@@ -232,6 +232,7 @@ class ValidationContext:
         stratifications: Collection[str] | Literal["all"] = "all",
         num_rows: int | Literal["all"] = "all",
         sort_by: str = "",
+        filters: Mapping[str, str | list[str]] | None = None,
         ascending: bool = False,
         aggregate_draws: bool = False,
     ) -> pd.DataFrame:
@@ -247,12 +248,15 @@ class ValidationContext:
             will be retained.
         num_rows
             The number of rows to return. If "all", return all rows.
+        filters
+            A mapping of index levels to filter values. Only rows matching the filter will be included.
         sort_by
             The column to sort by. Default is "percent_error" for non-aggregated data, and no sorting for aggregated data.
         ascending
             Whether to sort in ascending order. Default is False.
         aggregate_draws
             If True, aggregate over draws to show means and 95% uncertainty intervals.
+
         Returns:
         --------
         A DataFrame of the comparison data.
@@ -262,7 +266,7 @@ class ValidationContext:
 
         if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
             data = self.comparisons[comparison_key].get_frame(
-                stratifications, num_rows, sort_by, ascending, aggregate_draws
+                stratifications, num_rows, sort_by, filters, ascending, aggregate_draws
             )
             return self.format_ui_data_index(data, comparison_key)
         else:
