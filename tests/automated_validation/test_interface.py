@@ -169,7 +169,12 @@ def test_get_frame(sim_result_dir: Path) -> None:
     data = context.get_frame(measure_key)
     assert isinstance(data, pd.DataFrame)
     assert not data.empty
-    assert set(data.index.names) == {"common_stratify_column", "input_draw"}
+    assert set(data.index.names) == {
+        "entity",
+        "measure",
+        "common_stratify_column",
+        "input_draw",
+    }
     assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
 
     # Test stratification works - there are only two columns and we do not remove input draw
@@ -177,7 +182,12 @@ def test_get_frame(sim_result_dir: Path) -> None:
     data2 = context.get_frame(measure_key, stratifications=["common_stratify_column"])
     assert isinstance(data2, pd.DataFrame)
     assert not data2.empty
-    assert set(data2.index.names) == {"common_stratify_column", "input_draw"}
+    assert set(data2.index.names) == {
+        "entity",
+        "measure",
+        "common_stratify_column",
+        "input_draw",
+    }
     assert set(data2.columns) == {"test_rate", "reference_rate", "percent_error"}
 
 

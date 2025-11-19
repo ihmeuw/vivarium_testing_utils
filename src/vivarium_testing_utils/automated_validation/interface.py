@@ -21,6 +21,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     RatioMeasure,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import (
+    add_comparison_metadata_levels,
     drop_extra_columns,
     get_measure_index_names,
     set_gbd_index,
@@ -359,7 +360,7 @@ class ValidationContext:
 
     @staticmethod
     def format_ui_data_index(data: pd.DataFrame, comparison_key: str) -> pd.DataFrame:
-        """Sort the data for UI display.
+        """Format and sort the data for UI display.
 
         Parameters
         ----------
@@ -378,5 +379,4 @@ class ValidationContext:
         extra_idx_cols = [col for col in data.index.names if col not in ordered_cols]
         sorted_index = ordered_cols + extra_idx_cols
         sorted = data.reorder_levels(sorted_index).sort_index()
-
-        return sorted
+        return add_comparison_metadata_levels(sorted, comparison_key)
