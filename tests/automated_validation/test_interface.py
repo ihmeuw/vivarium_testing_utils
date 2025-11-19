@@ -457,5 +457,10 @@ def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> No
     assert list(unsorted.index.names) == wrong_order
 
     context = ValidationContext(sim_result_dir)
-    sorted = context.sort_ui_data_index(unsorted, comparison_key)
+    # Add entity and measure to expect levels at front
+    expected_order = [
+        INPUT_DATA_INDEX_NAMES.ENTITY,
+        INPUT_DATA_INDEX_NAMES.MEASURE,
+    ] + expected_order
+    sorted = context.format_ui_data_index(unsorted, comparison_key)
     assert list(sorted.index.names) == expected_order
