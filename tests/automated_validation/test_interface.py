@@ -200,7 +200,8 @@ def test_metadata(sim_result_dir: Path, mocker: MockFixture) -> None:
     assert set(metadata.index) == {
         "Measure Key",
         "Source",
-        "Index Columns",
+        "Shared Indices",
+        "Source Specific Indices",
         "Size",
         "Num Draws",
         "Input Draws",

@@ -92,7 +92,8 @@ class FuzzyComparison(Comparison):
         """A summary of the test data and reference data, including:
         - the measure key
         - source
-        - index columns
+        - shared index columns
+        - source specific index columns
         - size
         - number of draws
         - a sample of the input draws.
