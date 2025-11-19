@@ -124,3 +124,31 @@ def get_measure_index_names(data_key: str, data_schema: str = "gbd") -> list[str
             measure_cols.append(INPUT_DATA_INDEX_NAMES.AFFECTED_ENTITY)
 
     return measure_cols
+
+
+def add_comparison_metadata_levels(data: pd.DataFrame, comparison_key: str) -> pd.DataFrame:
+    """Add entity and measure levels to a DataFrame index for comparison display.
+
+    Parameters
+    ----------
+    data
+        The DataFrame to add the levels to.
+    comparison_key
+        The comparison key in the format "entity.measure".
+
+    Returns
+    -------
+        The DataFrame with the added index levels.
+    """
+    entity, measure = comparison_key.split(".")[-2:]
+    idx_order = list(data.index.names)
+    # Add entity and measure to index
+    return (
+        data.reset_index()
+        .assign(
+            **{INPUT_DATA_INDEX_NAMES.ENTITY: entity, INPUT_DATA_INDEX_NAMES.MEASURE: measure}
+        )
+        .set_index(
+            [INPUT_DATA_INDEX_NAMES.ENTITY, INPUT_DATA_INDEX_NAMES.MEASURE] + idx_order
+        )
+    )

@@ -42,6 +42,8 @@ class InputDataIndexNames(NamedTuple):
     AGE_END: str = "age_end"
     YEAR_START: str = "year_start"
     YEAR_END: str = "year_end"
+    ENTITY: str = "entity"
+    MEASURE: str = "measure"
 
 
 INPUT_DATA_INDEX_NAMES = InputDataIndexNames()
