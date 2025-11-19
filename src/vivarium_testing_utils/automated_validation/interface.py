@@ -229,7 +229,7 @@ class ValidationContext:
         self,
         comparison_key: str,
         stratifications: Collection[str] | Literal["all"] = "all",
-        num_rows: int | Literal["all"] = 10,
+        num_rows: int | Literal["all"] = "all",
         sort_by: str = "",
         ascending: bool = False,
         aggregate_draws: bool = False,
