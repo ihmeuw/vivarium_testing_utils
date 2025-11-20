@@ -10,11 +10,12 @@ from pytest_check import check
 from pytest_mock import MockFixture
 from vivarium_inputs import interface
 
-from tests.automated_validation.conftest import NO_GBD_ACCESS
+from tests.automated_validation.conftest import IS_ON_SLURM
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
+    INPUT_DATA_INDEX_NAMES,
     SEED_INDEX,
     DataSource,
 )
@@ -108,18 +109,15 @@ def test_fuzzy_comparison_metadata(
     expected_metadata = [
         ("Measure Key", "mock_measure", "mock_measure"),
         ("Source", "sim", "artifact"),
-        (
-            "Index Columns",
-            "year, sex, age, input_draw, random_seed",
-            "year, sex, age",
-        ),
+        ("Shared Indices", "age, sex, year", "age, sex, year"),
+        ("Source Specific Indices", "input_draw, random_seed", ""),
         ("Size", "4 rows × 1 columns", "3 rows × 1 columns"),
-        ("Num Draws", "3", "N/A"),
-        ("Input Draws", "[1, 2, 5]", "N/A"),
-        ("Num Seeds", "3", "N/A"),
+        ("Num Draws", "3", ""),
+        ("Input Draws", "1, 2, 5", ""),
+        ("Num Seeds", "3", ""),
     ]
     assert metadata.index.name == "Property"
-    assert metadata.shape == (7, 2)
+    assert metadata.shape == (8, 2)
     assert metadata.columns.tolist() == ["Test Data", "Reference Data"]
     for property_name, test_value, reference_value in expected_metadata:
         assert metadata.loc[property_name]["Test Data"] == test_value
@@ -144,7 +142,7 @@ def test_fuzzy_comparison_get_frame(
         assert SEED_INDEX not in diff.index.names
 
     # Test returning all rows
-    all_diff = comparison.get_frame(num_rows="all")
+    all_diff = comparison.get_frame()
     assert len(all_diff) == 3
 
     # Test sorting
@@ -175,7 +173,7 @@ def test_fuzzy_comparison_get_frame_aggregated_draws(
 ) -> None:
     """Test the get_frame method of the FuzzyComparison class with aggregated draws."""
     comparison = FuzzyComparison(test_bundle, reference_bundle)
-    diff = comparison.get_frame(num_rows="all", aggregate_draws=True)
+    diff = comparison.get_frame(aggregate_draws=True)
     expected_df = pd.DataFrame(
         {
             "test_mean": [0.2, 0.1, 0.325],
@@ -318,11 +316,11 @@ def test_fuzzy_comparison_align_datasets_calculation(
 
 @pytest.mark.slow
 def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
-    if NO_GBD_ACCESS:
+    if not IS_ON_SLURM:
         pytest.skip("No cluster access to use GBD data.")
 
     age_bins = interface.get_age_bins()
-    age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
+    age_bins.index.rename({"age_group_name": INPUT_DATA_INDEX_NAMES.AGE_GROUP}, inplace=True)
 
     incidence = Incidence("diarrheal_diseases")
     test_bundle = RatioMeasureDataBundle(
@@ -342,7 +340,7 @@ def test_comparison_with_gbd_init(sim_result_dir: Path) -> None:
     assert comparison.test_bundle == test_bundle
 
     # Bundles are the same so differences should be zero
-    diff = comparison.get_frame(num_rows="all")
+    diff = comparison.get_frame()
     assert (diff["test_rate"] == diff["reference_rate"]).all()
     assert (diff["percent_error"] == 0.0).all()
 
@@ -351,3 +349,17 @@ def _add_draws_to_dataframe(df: pd.DataFrame, draw_values: list[int]) -> pd.Data
     """Add a 'input_draw' index level to the DataFrame."""
     df["input_draw"] = draw_values
     return df.set_index("input_draw", append=True).sort_index()
+
+
+def test_get_frame_default_rows(
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
+) -> None:
+    """Test that get_frame returns default number of rows when num_rows is not specified."""
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
+
+    diff = comparison.get_frame()
+    assert len(diff) == 3  # There are only 3 rows in the test data
+
+    non_default = comparison.get_frame(num_rows=2)
+    assert len(non_default) == 2

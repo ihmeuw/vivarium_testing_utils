@@ -3,10 +3,11 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Collection, Literal
+from typing import Any, Collection, Literal, Mapping
 
 import pandas as pd
 import yaml
+from IPython.display import HTML, display
 from matplotlib.figure import Figure
 from vivarium_inputs import utilities as vi
 
@@ -14,13 +15,18 @@ from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataB
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import measures
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    filter_data,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CategoricalRelativeRisk,
     Measure,
     RatioMeasure,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import (
+    add_comparison_metadata_levels,
     drop_extra_columns,
+    get_measure_index_names,
     set_gbd_index,
     set_validation_index,
 )
@@ -38,11 +44,11 @@ class ValidationContext:
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
-        return self.data_loader.get_sim_outputs()
+        return sorted(self.data_loader.get_sim_outputs())
 
     def get_artifact_keys(self) -> list[str]:
         """Get a list of the artifact keys available to compare against."""
-        return self.data_loader.get_artifact_keys()
+        return sorted(self.data_loader.get_artifact_keys())
 
     def get_raw_data(self, data_key: str, source: str) -> Any:
         """Return a copy of the data for manual inspection."""
@@ -183,7 +189,16 @@ class ValidationContext:
         comparison_metadata = self.comparisons[comparison_key].metadata
         directory_metadata = self._get_directory_metadata()
 
-        return pd.concat([comparison_metadata, directory_metadata])
+        data = pd.concat([comparison_metadata, directory_metadata])
+        # Display draw values on multiple lines if necessary
+        display_df = data.copy()
+        display_df["Test Data"] = display_df["Test Data"].str.wrap(30, break_long_words=False)
+        display_df["Reference Data"] = display_df["Reference Data"].str.wrap(
+            30, break_long_words=False
+        )
+
+        display(HTML(display_df.to_html().replace("\\n", "<br>")))  # type: ignore[no-untyped-call]
+        return data
 
     def _get_directory_metadata(self) -> pd.DataFrame:
         """Add model run metadata to the dictionary."""
@@ -218,8 +233,9 @@ class ValidationContext:
         self,
         comparison_key: str,
         stratifications: Collection[str] | Literal["all"] = "all",
-        num_rows: int | Literal["all"] = 10,
+        num_rows: int | Literal["all"] = "all",
         sort_by: str = "",
+        filters: Mapping[str, str | list[str]] | None = None,
         ascending: bool = False,
         aggregate_draws: bool = False,
     ) -> pd.DataFrame:
@@ -235,12 +251,15 @@ class ValidationContext:
             will be retained.
         num_rows
             The number of rows to return. If "all", return all rows.
+        filters
+            A mapping of index levels to filter values. Only rows matching the filter will be included.
         sort_by
             The column to sort by. Default is "percent_error" for non-aggregated data, and no sorting for aggregated data.
         ascending
             Whether to sort in ascending order. Default is False.
         aggregate_draws
             If True, aggregate over draws to show means and 95% uncertainty intervals.
+
         Returns:
         --------
         A DataFrame of the comparison data.
@@ -249,8 +268,14 @@ class ValidationContext:
             sort_by = "percent_error"
 
         if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
-            return self.comparisons[comparison_key].get_frame(
+            data = self.comparisons[comparison_key].get_frame(
                 stratifications, num_rows, sort_by, ascending, aggregate_draws
+            )
+            data = self.format_ui_data_index(data, comparison_key)
+            return (
+                filter_data(data, filters, drop_singles=False)
+                if filters is not None
+                else data
             )
         else:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
@@ -344,3 +369,26 @@ class ValidationContext:
         data = vi.split_interval(data, interval_column="year", split_column_prefix="year")
         formatted_data: pd.DataFrame = vi.sort_hierarchical_data(data)
         return formatted_data
+
+    @staticmethod
+    def format_ui_data_index(data: pd.DataFrame, comparison_key: str) -> pd.DataFrame:
+        """Format and sort the data for UI display.
+
+        Parameters
+        ----------
+        data
+            The DataFrame to sort.
+        comparison_key
+            The comparison key for logging purposes.
+
+        Returns
+        -------
+            The sorted DataFrame.
+        """
+
+        expected_order = get_measure_index_names(comparison_key, "vivarium")
+        ordered_cols = [col for col in expected_order if col in data.index.names]
+        extra_idx_cols = [col for col in data.index.names if col not in ordered_cols]
+        sorted_index = ordered_cols + extra_idx_cols
+        sorted = data.reorder_levels(sorted_index).sort_index()
+        return add_comparison_metadata_levels(sorted, comparison_key)

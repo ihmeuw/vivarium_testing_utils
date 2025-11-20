@@ -13,6 +13,11 @@ from vivarium_inputs import interface
 
 from tests.automated_validation.conftest import NO_GBD_ACCESS, get_model_spec
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
+from tests.automated_validation.conftest import IS_ON_SLURM
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_INDEX,
+    INPUT_DATA_INDEX_NAMES,
+)
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import (
     age_groups,
@@ -173,7 +178,12 @@ def test_get_frame(sim_result_dir: Path) -> None:
     data = context.get_frame(measure_key)
     assert isinstance(data, pd.DataFrame)
     assert not data.empty
-    assert set(data.index.names) == {"common_stratify_column", "input_draw"}
+    assert set(data.index.names) == {
+        "entity",
+        "measure",
+        "common_stratify_column",
+        "input_draw",
+    }
     assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
 
     # Test stratification works - there are only two columns and we do not remove input draw
@@ -181,7 +191,12 @@ def test_get_frame(sim_result_dir: Path) -> None:
     data2 = context.get_frame(measure_key, stratifications=["common_stratify_column"])
     assert isinstance(data2, pd.DataFrame)
     assert not data2.empty
-    assert set(data2.index.names) == {"common_stratify_column", "input_draw"}
+    assert set(data2.index.names) == {
+        "entity",
+        "measure",
+        "common_stratify_column",
+        "input_draw",
+    }
     assert set(data2.columns) == {"test_rate", "reference_rate", "percent_error"}
 
 
@@ -204,7 +219,8 @@ def test_metadata(sim_result_dir: Path, mocker: MockFixture) -> None:
     assert set(metadata.index) == {
         "Measure Key",
         "Source",
-        "Index Columns",
+        "Shared Indices",
+        "Source Specific Indices",
         "Size",
         "Num Draws",
         "Input Draws",
@@ -300,8 +316,8 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
 def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
     """Tests that we can cache custom GBD and retreive it. More importantly, tests that
     GBD data is properly mapped from id columns to value columns upon caching."""
-    if NO_GBD_ACCESS:
-        pytest.skip("No GBD access available for testing.")
+    if not IS_ON_SLURM:
+        pytest.skip("No access to slurm shared filesystem available for testing.")
 
     context = ValidationContext(sim_result_dir)
     # NOTE: Some of these CSVs are reused but have the same schema. Users will be expected to
@@ -434,3 +450,165 @@ def test_compare_artifact_and_gbd(tmp_path_factory: TempPathFactory) -> None:
     vc.add_comparison(key, "artifact", "gbd")
     breakpoint()
     diff = vc.get_frame(key, num_rows="all")
+
+
+@pytest.mark.parametrize(
+    "comparison_key",
+    [
+        "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.relative_risk",
+        "cause.diarrheal_diseases.remission_rate",
+        "cause.diarrheal_diseases.cause_specific_mortality_rate",
+        "cause.diarrheal_diseases.incidence_rate",
+        "cause.diarrheal_diseases.prevalence",
+        "cause.diarrheal_diseases.excess_mortality_rate",
+    ],
+)
+def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> None:
+    """Tests that get_frame returns data with the correct index column order."""
+
+    idx_tuples = [
+        ("Persephone", "Male", 0, 5, 2023, 2024),
+        ("Persephone", "Male", 5, 10, 2023, 2024),
+        ("Persephone", "Male", 10, 15, 2023, 2024),
+        ("Persephone", "Female", 0, 5, 2023, 2024),
+        ("Persephone", "Female", 5, 10, 2023, 2024),
+        ("Persephone", "Female", 10, 15, 2023, 2024),
+    ]
+    idx_names = [
+        INPUT_DATA_INDEX_NAMES.LOCATION,
+        INPUT_DATA_INDEX_NAMES.SEX,
+        INPUT_DATA_INDEX_NAMES.AGE_START,
+        INPUT_DATA_INDEX_NAMES.AGE_END,
+        INPUT_DATA_INDEX_NAMES.YEAR_START,
+        INPUT_DATA_INDEX_NAMES.YEAR_END,
+    ]
+    data = pd.DataFrame(
+        {
+            "test_rate": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+            "reference_rate": [0.15, 0.25, 0.35, 0.45, 0.55, 0.65],
+            "percent_error": [33.3, 20.0, 14.3, 11.1, 9.1, 7.7],
+        },
+        index=pd.MultiIndex.from_tuples(
+            idx_tuples,
+            names=idx_names,
+        ),
+    )
+    if comparison_key in [
+        "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.relative_risk",
+    ]:
+        # Add parameter level with cat1 and cat2 for each existing index group
+        new_tuples = [(*tup, param) for tup in idx_tuples for param in ["cat1", "cat2"]]
+
+        data = pd.DataFrame(
+            {
+                "test_rate": [0.1, 0.1, 0.2, 0.2, 0.3, 0.3, 0.4, 0.4, 0.5, 0.5, 0.6, 0.6],
+                "reference_rate": [
+                    0.15,
+                    0.15,
+                    0.25,
+                    0.25,
+                    0.35,
+                    0.35,
+                    0.45,
+                    0.45,
+                    0.55,
+                    0.55,
+                    0.65,
+                    0.65,
+                ],
+                "percent_error": [
+                    33.3,
+                    33.3,
+                    20.0,
+                    20.0,
+                    14.3,
+                    14.3,
+                    11.1,
+                    11.1,
+                    9.1,
+                    9.1,
+                    7.7,
+                    7.7,
+                ],
+            },
+            index=pd.MultiIndex.from_tuples(
+                new_tuples,
+                names=idx_names + [INPUT_DATA_INDEX_NAMES.PARAMETER],
+            ),
+        )
+        if comparison_key == "risk_factor.child_wasting.relative_risk":
+            # Add "affected_entity" level with value "lost_in_space"
+            data = data.assign(affected_entity="lost_in_space")
+            data = data.set_index(INPUT_DATA_INDEX_NAMES.AFFECTED_ENTITY, append=True)
+
+    # NOTE: The index levels have been added in the order they are expected to be returned to users
+    expected_order = list(data.index.names)
+    wrong_order = [
+        INPUT_DATA_INDEX_NAMES.YEAR_END,
+        INPUT_DATA_INDEX_NAMES.YEAR_START,
+        INPUT_DATA_INDEX_NAMES.AGE_END,
+        INPUT_DATA_INDEX_NAMES.AGE_START,
+        INPUT_DATA_INDEX_NAMES.SEX,
+        INPUT_DATA_INDEX_NAMES.LOCATION,
+    ]
+    for level in [INPUT_DATA_INDEX_NAMES.AFFECTED_ENTITY, INPUT_DATA_INDEX_NAMES.PARAMETER]:
+        if level in data.index.names:
+            wrong_order.append(level)
+    unsorted = data.reorder_levels(wrong_order)
+    assert list(unsorted.index.names) == wrong_order
+
+    context = ValidationContext(sim_result_dir)
+    # Add entity and measure to expect levels at front
+    expected_order = [
+        INPUT_DATA_INDEX_NAMES.ENTITY,
+        INPUT_DATA_INDEX_NAMES.MEASURE,
+    ] + expected_order
+    sorted = context.format_ui_data_index(unsorted, comparison_key)
+    assert list(sorted.index.names) == expected_order
+
+
+def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
+    """Tests that get_frame returns data filtered according to the provided filters."""
+
+    measure_key = "cause.disease.incidence_rate"
+    context = ValidationContext(sim_result_dir)
+    context.add_comparison(measure_key, "sim", "artifact")
+    # Mock comparison.get_frame return to isolate filters argument
+    data = pd.DataFrame(
+        {
+            "test_rate": [0.1, 0.2, 0.3, 0.4],
+            "reference_rate": [0.15, 0.25, 0.35, 0.45],
+            "percent_error": [33.3, 20.0, 14.3, 11.1],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("Male", "5", "10", "2020", "2021"),
+                ("Female", "5", "10", "2020", "2021"),
+                ("Male", "10", "15", "2020", "2021"),
+                ("Female", "10", "15", "2020", "2021"),
+            ],
+            names=[
+                INPUT_DATA_INDEX_NAMES.SEX,
+                INPUT_DATA_INDEX_NAMES.AGE_START,
+                INPUT_DATA_INDEX_NAMES.AGE_END,
+                INPUT_DATA_INDEX_NAMES.YEAR_START,
+                INPUT_DATA_INDEX_NAMES.YEAR_END,
+            ],
+        ),
+    )
+    # Patch the instance method after the comparison is created
+    mocker.patch.object(
+        context.comparisons[measure_key],
+        "get_frame",
+        return_value=data,
+    )
+
+    # Default is no filters
+    assert len(context.get_frame(measure_key)) == 4
+
+    assert (
+        len(context.get_frame(measure_key, filters={INPUT_DATA_INDEX_NAMES.AGE_START: "10"}))
+        == 2
+    )

@@ -1,17 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Any, Collection, Literal
+from typing import Collection, Literal
 
-import numpy as np
 import pandas as pd
 from loguru import logger
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
-from vivarium_testing_utils.automated_validation.data_transformation import calculations
-from vivarium_testing_utils.automated_validation.data_transformation.measures import (
-    Measure,
-    RatioMeasure,
-)
+from vivarium_testing_utils.automated_validation.data_transformation.measures import Measure
 from vivarium_testing_utils.automated_validation.visualization import dataframe_utils
 
 
@@ -41,7 +36,7 @@ class Comparison(ABC):
     def get_frame(
         self,
         stratifications: Collection[str] | Literal["all"] = "all",
-        num_rows: int | Literal["all"] = 10,
+        num_rows: int | Literal["all"] = "all",
         sort_by: str = "",
         ascending: bool = False,
         aggregate_draws: bool = False,
@@ -92,7 +87,8 @@ class FuzzyComparison(Comparison):
         """A summary of the test data and reference data, including:
         - the measure key
         - source
-        - index columns
+        - shared index columns
+        - source specific index columns
         - size
         - number of draws
         - a sample of the input draws.
@@ -105,7 +101,7 @@ class FuzzyComparison(Comparison):
     def get_frame(
         self,
         stratifications: Collection[str] | Literal["all"] = "all",
-        num_rows: int | Literal["all"] = 10,
+        num_rows: int | Literal["all"] = "all",
         sort_by: str = "",
         ascending: bool = False,
         aggregate_draws: bool = False,
