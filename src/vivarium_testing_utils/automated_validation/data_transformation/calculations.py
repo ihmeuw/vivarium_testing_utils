@@ -159,6 +159,7 @@ def weighted_average(
     data: pd.DataFrame,
     weights: pd.DataFrame,
     stratifications: list[str] | Literal["all"] = [],
+    scenario_columns: list[str] = [],
 ) -> pd.DataFrame | float:
     """Calculate a weighted average of the data using the provided weights.
 
@@ -170,11 +171,14 @@ def weighted_average(
         DataFrame with the weights to apply to the values in data. Must have a 'value' column.
     stratifications
         List of index level names to use for stratification/grouping.
+    scenario_columns
+        List of columns to retain. If scenario columns are present in data but not weights, these
+        columns will be cast across weights and added as index levels.
 
     Raises
     ------
     ValueError
-        If data index levels is not a subset of weights index levels.
+        If data index levels contain columns not present in weights or scenario columns.
 
     Returns
     -------

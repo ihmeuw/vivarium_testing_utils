@@ -11,9 +11,7 @@ from vivarium.framework.artifact import Artifact
 from vivarium.framework.artifact.artifact import ArtifactException
 from vivarium_inputs import interface
 
-from tests.automated_validation.conftest import NO_GBD_ACCESS, get_model_spec
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
-from tests.automated_validation.conftest import IS_ON_SLURM
+from tests.automated_validation.conftest import IS_ON_SLURM, NO_GBD_ACCESS, get_model_spec
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     INPUT_DATA_INDEX_NAMES,
@@ -443,8 +441,9 @@ def test_compare_artifact_and_gbd(tmp_path_factory: TempPathFactory) -> None:
 
     vc = ValidationContext(tmp_path)
     key = "risk_factor.child_wasting.exposure"
-    # TODO: use exposure csv to cache custom gbd data
+    # TODO: update to read in csv based on parametrized key
     gbd_exp = pd.read_csv(Path(__file__).parent / "gbd_data" / "exposure.csv")
+    # TODO: filter certain key csv like prevalence and incidence
     vc.cache_gbd_data(key, gbd_exp)
 
     vc.add_comparison(key, "artifact", "gbd")

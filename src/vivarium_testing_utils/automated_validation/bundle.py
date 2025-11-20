@@ -177,7 +177,9 @@ class RatioMeasureDataBundle:
                 stratifications.append(DRAW_INDEX)
         if self.weights is None:
             raise ValueError("Weights are required for aggregating artifact data.")
-        weighted_avg = calculations.weighted_average(data, self.weights, stratifications)
+        weighted_avg = calculations.weighted_average(
+            data, self.weights, stratifications, list(self.scenarios.keys())
+        )
         # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
         if not isinstance(weighted_avg, pd.DataFrame):
             weighted_avg = pd.DataFrame(
