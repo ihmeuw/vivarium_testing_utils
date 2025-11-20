@@ -474,3 +474,49 @@ def test_get_frame_column_order(comparison_key: str, sim_result_dir: Path) -> No
     ] + expected_order
     sorted = context.format_ui_data_index(unsorted, comparison_key)
     assert list(sorted.index.names) == expected_order
+
+
+def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
+    """Tests that get_frame returns data filtered according to the provided filters."""
+
+    measure_key = "cause.disease.incidence_rate"
+    context = ValidationContext(sim_result_dir)
+    context.add_comparison(measure_key, "sim", "artifact")
+    # Mock comparison.get_frame return to isolate filters argument
+    data = pd.DataFrame(
+        {
+            "test_rate": [0.1, 0.2, 0.3, 0.4],
+            "reference_rate": [0.15, 0.25, 0.35, 0.45],
+            "percent_error": [33.3, 20.0, 14.3, 11.1],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("Male", "5", "10", "2020", "2021"),
+                ("Female", "5", "10", "2020", "2021"),
+                ("Male", "10", "15", "2020", "2021"),
+                ("Female", "10", "15", "2020", "2021"),
+            ],
+            names=[
+                INPUT_DATA_INDEX_NAMES.SEX,
+                INPUT_DATA_INDEX_NAMES.AGE_START,
+                INPUT_DATA_INDEX_NAMES.AGE_END,
+                INPUT_DATA_INDEX_NAMES.YEAR_START,
+                INPUT_DATA_INDEX_NAMES.YEAR_END,
+            ],
+        ),
+    )
+    # Patch the instance method after the comparison is created
+    mocker.patch.object(
+        context.comparisons[measure_key],
+        "get_frame",
+        return_value=data,
+    )
+
+    # Default is no filters
+    assert len(context.get_frame(measure_key)) == 4
+
+    filtered = context.get_frame(
+        measure_key, filters={INPUT_DATA_INDEX_NAMES.AGE_START: "10"}
+    )
+    assert len(filtered) == 2
+    assert all(filtered.index.get_level_values(INPUT_DATA_INDEX_NAMES.AGE_START) == "10")
