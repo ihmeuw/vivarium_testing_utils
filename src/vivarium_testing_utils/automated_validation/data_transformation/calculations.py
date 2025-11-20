@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, DRAW_PREFIX
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, DRAW_PREFIX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation import utils
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
@@ -227,16 +227,20 @@ def weighted_average(
     # Check if weights has extra index levels compared to data
     data_index_names = set(data.index.names)
     weights_index_names = set(weights.index.names)
+    scenario_cols = set(scenario_columns + [DRAW_INDEX, SEED_INDEX])
 
-    if not data_index_names.issubset(weights_index_names):
+    # Check if data has extra columns outside of scenario columns
+    if (data_index_names - weights_index_names - scenario_cols):
         raise ValueError(
-            f"Data index levels {data_index_names - weights_index_names} "
-            f"are not present in weights index levels {weights_index_names}"
+            f"Data index levels {data_index_names - weights_index_names - scenario_cols} "
+            f"are not present in weights index levels {weights_index_names} or scenario columns {scenario_cols}"
         )
+    # Cast scenario columns across weights if they do not exist in weights
+    cols_to_cast = [col for col in scenario_cols if col in data_index_names and col not in weights_index_names]
 
     # If weights has extra index levels, aggregate by summing
-    extra_levels = weights_index_names - data_index_names
-    if extra_levels:
+    extra_weight_levels = weights_index_names - data_index_names
+    if extra_weight_levels:
         # Group by the levels that match data's index and sum over the extra levels
         weights = aggregate_sum(weights, data.index.names)
 
