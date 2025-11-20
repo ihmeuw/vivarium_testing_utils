@@ -1,17 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Any, Collection, Literal
+from typing import Collection, Literal
 
-import numpy as np
 import pandas as pd
 from loguru import logger
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
-from vivarium_testing_utils.automated_validation.data_transformation import calculations
-from vivarium_testing_utils.automated_validation.data_transformation.measures import (
-    Measure,
-    RatioMeasure,
-)
+from vivarium_testing_utils.automated_validation.data_transformation.measures import Measure
 from vivarium_testing_utils.automated_validation.visualization import dataframe_utils
 
 
