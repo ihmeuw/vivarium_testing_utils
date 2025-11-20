@@ -515,7 +515,8 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
     # Default is no filters
     assert len(context.get_frame(measure_key)) == 4
 
-    assert (
-        len(context.get_frame(measure_key, filters={INPUT_DATA_INDEX_NAMES.AGE_START: "10"}))
-        == 2
+    filtered = context.get_frame(
+        measure_key, filters={INPUT_DATA_INDEX_NAMES.AGE_START: "10"}
     )
+    assert len(filtered) == 2
+    assert all(filtered.index.get_level_values(INPUT_DATA_INDEX_NAMES.AGE_START) == "10")
