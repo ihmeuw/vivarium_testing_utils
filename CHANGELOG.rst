@@ -1,3 +1,7 @@
+**0.2.6 - 11/20/25**
+
+  - Make name optional and handle bar args to 'make build-env'
+
 **0.2.5 - 08/01/25**
 
  - Use vivarium_dependencies for common setup constraints
