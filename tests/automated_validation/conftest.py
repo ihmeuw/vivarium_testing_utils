@@ -696,8 +696,10 @@ def load_exposure_data() -> pd.DataFrame:
         df_copy = data.copy()
         df_copy["parameter"] = category
         tmp.append(df_copy)
-    return pd.concat(tmp).set_index(
-        ["sex", "age_start", "age_end", "year_start", "year_end", "parameter"]
+    return (
+        pd.concat(tmp)
+        .set_index(["sex", "age_start", "age_end", "year_start", "year_end", "parameter"])
+        .sort_index()
     )
 
 
