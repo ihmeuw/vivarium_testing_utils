@@ -545,9 +545,6 @@ def test_compare_artifact_and_gbd(
     if not IS_ON_SLURM:
         pytest.skip("No cluster access to use GBD data.")
 
-    # TODO: do not think we need to do the following line
-    # art_data = calculations.clean_draw_columns(art_data)
-
     # Create sim output directory
     tmp_path = tmp_path_factory.mktemp("model_run_output")
     # Create the directory structure
@@ -559,6 +556,8 @@ def test_compare_artifact_and_gbd(
     artifact_path = artifact_dir / "artifact.hdf"
     artifact = Artifact(artifact_path)
     for key, data in integration_artifact_data_mapper.items():
+        # TODO: do not think we need to do the following line
+        # art_data = calculations.clean_draw_columns(art_data)
         artifact.write(key, data)
 
     # Save model specification
