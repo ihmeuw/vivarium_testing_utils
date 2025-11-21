@@ -363,3 +363,57 @@ def test_weighted_average_cast_index() -> None:
     )
     assert isinstance(weighted_avg, pd.DataFrame)
     assert set(weighted_avg.index.names) == set(data.index.names)
+
+
+def test_weighted_average_extra_weights_index_and_cast() -> None:
+    data = pd.DataFrame(
+        {
+            "location": ["Hera"] * 8,
+            "sex": ["Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female"],
+            "age": ["0-4", "0-4", "5-9", "5-9", "0-4", "0-4", "5-9", "5-9"],
+            DRAW_INDEX: [0, 1, 0, 1, 0, 1, 0, 1],
+            SEED_INDEX: [42] * 8,
+            "value": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        }
+    )
+    data = data.set_index(["location", "sex", "age", DRAW_INDEX, SEED_INDEX])
+    weights = pd.DataFrame(
+        {
+            "location": ["Hera"] * 4,
+            "sex": ["Male", "Male", "Female", "Female"],
+            "age": ["0-4", "5-9", "0-4", "5-9"],
+            "color": ["Red", "Blue", "Red", "Blue"],
+            "value": [10, 30, 50, 70],
+        }
+    )
+    weights = weights.set_index(["location", "sex", "age", "color"])
+    weighted_avg = weighted_average(
+        data, weights, "all", scenario_columns=[DRAW_INDEX, SEED_INDEX]
+    )
+    assert isinstance(weighted_avg, pd.DataFrame)
+    assert set(weighted_avg.index.names) == set(data.index.names)
+
+
+def test_weighted_average_error_on_extra_data_indices() -> None:
+    data = pd.DataFrame(
+        {
+            "location": ["Regina"] * 4,
+            "sex": ["Male", "Male", "Female", "Female"],
+            "age": ["0-4", "5-9", "0-4", "5-9"],
+            "gravity": ["Low", "High", "Low", "High"],
+            "value": [1.0, 2.0, 3.0, 4.0],
+        }
+    )
+    data = data.set_index(["location", "sex", "age", "gravity"])
+    weights = pd.DataFrame(
+        {
+            "location": ["Regina"] * 4,
+            "sex": ["Male", "Male", "Female", "Female"],
+            "age": ["0-4", "5-9", "0-4", "5-9"],
+            "color": ["Red", "Blue", "Red", "Blue"],
+            "value": [10, 30, 50, 70],
+        }
+    )
+    weights = weights.set_index(["location", "sex", "age", "color"])
+    with pytest.raises(ValueError, match="are not present in weights index levels"):
+        weighted_average(data, weights)

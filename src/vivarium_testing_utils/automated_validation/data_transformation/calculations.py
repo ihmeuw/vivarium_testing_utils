@@ -234,10 +234,12 @@ def weighted_average(
     scenario_cols = set(scenario_columns + [DRAW_INDEX, SEED_INDEX])
 
     # If weights has extra index levels, aggregate by summing
-    extra_weight_levels = weights_index_names - data_index_names
+    extra_weight_levels = weights_index_names - data_index_names - scenario_cols
     if extra_weight_levels:
         # Group by the levels that match data's index and sum over the extra levels
-        weights = aggregate_sum(weights, data.index.names)
+        weights = aggregate_sum(
+            weights, [col for col in weights.index.names if col not in extra_weight_levels]
+        )
 
     # Check if data has extra columns outside of scenario columns
     if data_index_names - weights_index_names - scenario_cols:
