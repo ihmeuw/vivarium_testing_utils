@@ -6,7 +6,11 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, DRAW_PREFIX, SEED_INDEX
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_INDEX,
+    DRAW_PREFIX,
+    SEED_INDEX,
+)
 from vivarium_testing_utils.automated_validation.data_transformation import utils
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
@@ -230,13 +234,29 @@ def weighted_average(
     scenario_cols = set(scenario_columns + [DRAW_INDEX, SEED_INDEX])
 
     # Check if data has extra columns outside of scenario columns
-    if (data_index_names - weights_index_names - scenario_cols):
+    if data_index_names - weights_index_names - scenario_cols:
         raise ValueError(
             f"Data index levels {data_index_names - weights_index_names - scenario_cols} "
             f"are not present in weights index levels {weights_index_names} or scenario columns {scenario_cols}"
         )
     # Cast scenario columns across weights if they do not exist in weights
-    cols_to_cast = [col for col in scenario_cols if col in data_index_names and col not in weights_index_names]
+    cols_to_cast = [
+        col
+        for col in scenario_cols
+        if col in data_index_names and col not in weights_index_names
+    ]
+    # Cast cols_to_cast on weights by creating a cross product with unique values from data
+    for col in cols_to_cast:
+        unique_values = data.index.get_level_values(col).unique()
+        # Create a MultiIndex that is the cross product of weights index with the new column
+        new_index = pd.MultiIndex.from_product(
+            [weights.index.get_level_values(level).unique() for level in weights.index.names]
+            + [unique_values],
+            names=list(weights.index.names) + [col],
+        )
+        breakpoint()
+        # Reindex weights to the new MultiIndex, repeating values for each new index level
+        weights = weights.reindex(new_index, level=weights.index.names)
 
     # If weights has extra index levels, aggregate by summing
     extra_weight_levels = weights_index_names - data_index_names

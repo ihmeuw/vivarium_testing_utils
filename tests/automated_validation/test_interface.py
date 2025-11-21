@@ -11,7 +11,7 @@ from vivarium.framework.artifact import Artifact
 from vivarium.framework.artifact.artifact import ArtifactException
 from vivarium_inputs import interface
 
-from tests.automated_validation.conftest import IS_ON_SLURM, NO_GBD_ACCESS, get_model_spec
+from tests.automated_validation.conftest import IS_ON_SLURM, get_model_spec
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     INPUT_DATA_INDEX_NAMES,
@@ -363,11 +363,11 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
 
 @pytest.mark.slow
 def test_compare_artifact_and_gbd(tmp_path_factory: TempPathFactory) -> None:
-    if NO_GBD_ACCESS:
+    if not IS_ON_SLURM:
         pytest.skip("No cluster access to use GBD data.")
 
     age_bins = interface.get_age_bins()
-    age_bins.index.rename({"age_group_name": age_groups.AGE_GROUP_COLUMN}, inplace=True)
+    age_bins.index.rename({"age_group_name": age_groups.INPUT_DATA_INDEX_NAMES.AGE_GROUP}, inplace=True)
 
     # Make exposure data that would be in the artifact
     art_exposure = age_bins.copy().reset_index()[["age_start", "age_end"]]

@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     aggregate_sum,
     filter_data,
@@ -334,3 +335,29 @@ def test_aggregate_sum_all(fish_data: pd.DataFrame) -> None:
     data = pd.DataFrame({"value": fish_data["value"]}, index=fish_data.index)
     aggregate = aggregate_sum(data, "all")
     assert aggregate.equals(data)
+
+
+def test_weighted_average_cast_index():
+    data = pd.DataFrame(
+        {
+            "location": ["Shadow"] * 8,
+            "sex": ["Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female"],
+            "age": ["0-4", "0-4", "5-9", "5-9", "0-4", "0-4", "5-9", "5-9"],
+            "input_draw": [0, 1, 0, 1, 0, 1, 0, 1],
+            "value": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        }
+    )
+    data = data.set_index(["location", "sex", "age", DRAW_INDEX])
+    weights = pd.DataFrame(
+        {
+            "location": ["Shadow"] * 4,
+            "sex": ["Male", "Male", "Female", "Female"],
+            "age": ["0-4", "5-9", "0-4", "5-9"],
+            "value": [10, 30, 50, 70],
+        }
+    )
+    weights = weights.set_index(["location", "sex", "age"])
+    weighted_avg = weighted_average(data, weights, scenario_columns=[DRAW_INDEX])
+
+    breakpoint()
+    assert set(weighted_avg.index.names) == set(data.index.names)
