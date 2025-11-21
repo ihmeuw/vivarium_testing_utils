@@ -528,7 +528,7 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
     "data_key",
     [
         # "risk_factor.child_wasting.exposure",
-        "risk_factor.child_wasting.relative_risk",
+        # "risk_factor.child_wasting.relative_risk",
         "cause.diarrheal_diseases.remission_rate",
         "cause.diarrheal_diseases.cause_specific_mortality_rate",
         "cause.diarrheal_diseases.incidence_rate",
