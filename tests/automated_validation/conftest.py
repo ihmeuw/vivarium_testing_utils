@@ -685,7 +685,7 @@ def load_integration_age_bins() -> pd.DataFrame:
             "age_end": [10, 15, 20, 25, 30, 35, 40, 45, 50],
         }
     )
-    data = data.set_index(["age_group_id", "age_group_name  ", "age_start", "age_end"])
+    data = data.set_index(["age_group_id", "age_group_name", "age_start", "age_end"])
     return data
 
 
