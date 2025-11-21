@@ -527,8 +527,8 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
 @pytest.mark.parametrize(
     "data_key",
     [
-        # "risk_factor.child_wasting.exposure",
-        # "risk_factor.child_wasting.relative_risk",
+        "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.relative_risk",
         "cause.diarrheal_diseases.remission_rate",
         "cause.diarrheal_diseases.cause_specific_mortality_rate",
         "cause.diarrheal_diseases.incidence_rate",
@@ -537,70 +537,19 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
     ],
 )
 @pytest.mark.slow
-def test_compare_artifact_and_gbd(tmp_path_factory: TempPathFactory, data_key: str) -> None:
+def test_compare_artifact_and_gbd(
+    integration_artifact_data_mapper: dict[str, pd.DataFrame | str],
+    tmp_path_factory: TempPathFactory,
+    data_key: str,
+) -> None:
     if not IS_ON_SLURM:
         pytest.skip("No cluster access to use GBD data.")
 
-    age_bins = interface.get_age_bins()
-    age_bins.index.rename(
-        {"age_group_name": age_groups.INPUT_DATA_INDEX_NAMES.AGE_GROUP}, inplace=True
-    )
-
-    # Make exposure data that would be in the artifact
-    art_exposure = age_bins.copy().reset_index()[["age_start", "age_end"]]
-    art_exposure["location"] = "Ethiopia"
-    sexes = ["Male", "Female"]
-    art_exposure["sex"] = [sexes[i % len(sexes)] for i in range(len(art_exposure))]
-    art_exposure["year_start"] = 2023
-    art_exposure["year_end"] = 2024
-    # Add parameter with cat1, cat2, cat3, cat4 by repeating the dataframe
-    parameters = ["cat1", "cat2", "cat3", "cat4"]
-    art_exposure["parameter"] = [
-        parameters[i % len(parameters)] for i in range(len(art_exposure))
-    ]
-    art_exposure["draw_0"] = 0.05
-    art_exposure["draw_1"] = 0.1
-    art_exposure["draw_2"] = 0.15
-    art_exposure = art_exposure.set_index(
-        [
-            "location",
-            "sex",
-            "year_start",
-            "year_end",
-            "age_start",
-            "age_end",
-            "parameter",
-        ]
-    )
-    art_exposure = calculations.clean_draw_columns(art_exposure)
-
-    # "Mock" out real artifact population structure for weights
-    pop = age_bins.copy().reset_index()[["age_start", "age_end"]]
-    pop["location"] = "Ethiopia"
-    pop["sex"] = [sexes[i % len(sexes)] for i in range(len(pop))]
-    pop["year_start"] = 2023
-    pop["year_end"] = 2024
-    pop["value"] = 100_000
-    pop = pop.set_index(
-        [
-            "location",
-            "sex",
-            "year_start",
-            "year_end",
-            "age_start",
-            "age_end",
-        ]
-    )
-    art_data_mapper = {
-        "risk_factor.child_wasting.exposure": art_exposure,
-        "population.structure": pop,
-        "population.location": "Ethiopia",
-        "population.age_bins": age_bins,
-    }
+    # TODO: do not think we need to do the following line
+    # art_data = calculations.clean_draw_columns(art_data)
 
     # Create sim output directory
     tmp_path = tmp_path_factory.mktemp("model_run_output")
-
     # Create the directory structure
     results_dir = tmp_path / "results"
     results_dir.mkdir(parents=True)
@@ -609,7 +558,7 @@ def test_compare_artifact_and_gbd(tmp_path_factory: TempPathFactory, data_key: s
     artifact_dir.mkdir(exist_ok=True)
     artifact_path = artifact_dir / "artifact.hdf"
     artifact = Artifact(artifact_path)
-    for key, data in art_data_mapper.items():
+    for key, data in integration_artifact_data_mapper.items():
         artifact.write(key, data)
 
     # Save model specification
