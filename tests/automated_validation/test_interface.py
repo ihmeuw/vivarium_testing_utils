@@ -581,7 +581,7 @@ def test_compare_artifact_and_gbd(
         vc.add_comparison(data_key, "artifact", "gbd")
     else:
         vc.add_relative_risk_comparison(
-            data_key, "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
+            "child_wasting", "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
         )
     breakpoint()
     diff = vc.get_frame(data_key, num_rows="all")
