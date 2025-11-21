@@ -23,6 +23,17 @@ from vivarium_testing_utils.automated_validation.data_transformation import (
 )
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
 
+MEASURE_DATA_MAPPER = {
+    "risk_factor.child_wasting.exposure": "exposure",
+    "risk_factor.child_wasting.relative_risk": "relative_risks",
+    "population.structure": "population_structure",
+    "cause.diarrheal_diseases.remission_rate": "remission_rate",
+    "cause.diarrheal_diseases.cause_specific_mortality_rate": "remission_rate",
+    "cause.diarrheal_diseases.incidence_rate": "incidence",
+    "cause.diarrheal_diseases.prevalence": "incidence",
+    "cause.diarrheal_diseases.excess_mortality_rate": "remission_rate",
+}
+
 
 def test_context_initialization(
     sim_result_dir: Path, sample_age_group_df: pd.DataFrame
@@ -321,18 +332,7 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
     # NOTE: Some of these CSVs are reused but have the same schema. Users will be expected to
     # make the correct get draws calls. For example, prevalence and incidence can be pull with
     # one call and then filtered down or pulled separately but they have the same schema.
-    measure_data_mapper = {
-        "risk_factor.child_wasting.exposure": "exposure",
-        "risk_factor.child_wasting.relative_risk": "relative_risks",
-        "population.structure": "population_structure",
-        "cause.diarrheal_diseases.remission_rate": "remission_rate",
-        "cause.diarrheal_diseases.cause_specific_mortality_rate": "remission_rate",
-        "cause.diarrheal_diseases.incidence_rate": "incidence",
-        "cause.diarrheal_diseases.prevalence": "incidence",
-        "cause.diarrheal_diseases.excess_mortality_rate": "remission_rate",
-    }
-
-    file_name = measure_data_mapper[data_key] + ".csv"
+    file_name = MEASURE_DATA_MAPPER[data_key] + ".csv"
     file_path = Path(__file__).parent / "gbd_data" / file_name
     gbd_data = pd.read_csv(file_path)
     context.cache_gbd_data(data_key, gbd_data)
@@ -524,9 +524,21 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
     assert all(filtered.index.get_level_values(INPUT_DATA_INDEX_NAMES.AGE_START) == "10")
 
 
-# TODO: parametrize by measure
+@pytest.mark.parametrize(
+    "data_key",
+    [
+        "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.relative_risk",
+        "population.structure",
+        "cause.diarrheal_diseases.remission_rate",
+        "cause.diarrheal_diseases.cause_specific_mortality_rate",
+        "cause.diarrheal_diseases.incidence_rate",
+        "cause.diarrheal_diseases.prevalence",
+        "cause.diarrheal_diseases.excess_mortality_rate",
+    ],
+)
 @pytest.mark.slow
-def test_compare_artifact_and_gbd(tmp_path_factory: TempPathFactory) -> None:
+def test_compare_artifact_and_gbd(tmp_path_factory: TempPathFactory, data_key: str) -> None:
     if not IS_ON_SLURM:
         pytest.skip("No cluster access to use GBD data.")
 
@@ -606,12 +618,18 @@ def test_compare_artifact_and_gbd(tmp_path_factory: TempPathFactory) -> None:
         yaml.dump(get_model_spec(artifact_path), f)
 
     vc = ValidationContext(tmp_path)
-    key = "risk_factor.child_wasting.exposure"
-    # TODO: update to read in csv based on parametrized key
-    gbd_exp = pd.read_csv(Path(__file__).parent / "gbd_data" / "exposure.csv")
-    # TODO: filter certain key csv like prevalence and incidence
-    vc.cache_gbd_data(key, gbd_exp)
 
-    vc.add_comparison(key, "artifact", "gbd")
+    # Load get_draws data for custom GBD data
+    filename = MEASURE_DATA_MAPPER[data_key] + ".csv"
+    gbd = pd.read_csv(Path(__file__).parent / "gbd_data" / filename)
+    measure_mapper = {
+        "cause.diarrheal_diseases.prevalence": 5,
+        "cause.diarrheal_diseases.incidence_rate": 6,
+    }
+    if data_key in measure_mapper:
+        gbd = gbd.loc[gbd["measure_id"] == measure_mapper[data_key]]
+    vc.cache_gbd_data(data_key, gbd)
+
+    vc.add_comparison(data_key, "artifact", "gbd")
     breakpoint()
-    diff = vc.get_frame(key, num_rows="all")
+    diff = vc.get_frame(data_key, num_rows="all")
