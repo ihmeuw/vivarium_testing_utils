@@ -162,7 +162,7 @@ def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
 def weighted_average(
     data: pd.DataFrame,
     weights: pd.DataFrame,
-    stratifications: list[str] | Literal["all"] = [],
+    stratifications: list[str] | Literal["all"] = "all",
     scenario_columns: list[str] = [],
 ) -> pd.DataFrame | float:
     """Calculate a weighted average of the data using the provided weights.
