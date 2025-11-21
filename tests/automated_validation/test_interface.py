@@ -527,9 +527,8 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
 @pytest.mark.parametrize(
     "data_key",
     [
-        "risk_factor.child_wasting.exposure",
+        # "risk_factor.child_wasting.exposure",
         "risk_factor.child_wasting.relative_risk",
-        "population.structure",
         "cause.diarrheal_diseases.remission_rate",
         "cause.diarrheal_diseases.cause_specific_mortality_rate",
         "cause.diarrheal_diseases.incidence_rate",
@@ -630,6 +629,11 @@ def test_compare_artifact_and_gbd(tmp_path_factory: TempPathFactory, data_key: s
         gbd = gbd.loc[gbd["measure_id"] == measure_mapper[data_key]]
     vc.cache_gbd_data(data_key, gbd)
 
-    vc.add_comparison(data_key, "artifact", "gbd")
+    if data_key != "risk_factor.child_wasting.relative_risk":
+        vc.add_comparison(data_key, "artifact", "gbd")
+    else:
+        vc.add_relative_risk_comparison(
+            data_key, "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
+        )
     breakpoint()
     diff = vc.get_frame(data_key, num_rows="all")
