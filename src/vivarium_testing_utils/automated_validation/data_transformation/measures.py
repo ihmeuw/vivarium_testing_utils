@@ -124,7 +124,6 @@ class RatioMeasure(Measure, ABC):
         self, numerator_data: pd.DataFrame, denominator_data: pd.DataFrame
     ) -> pd.DataFrame:
         """Compute final measure data from separate numerator and denominator data."""
-        breakpoint()
         return calculations.ratio(numerator_data, denominator_data)
 
     @utils.check_io(out=SingleNumericColumn)
