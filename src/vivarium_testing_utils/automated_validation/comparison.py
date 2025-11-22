@@ -199,7 +199,6 @@ class FuzzyComparison(Comparison):
             if not set(stratifications).issubset(intersection):
                 raise ValueError("Stratifications must be a subset of the intersection")
 
-        breakpoint()
         aggregated_reference_data = self.reference_bundle.get_measure_data(
             stratifications=set(stratifications) | {DRAW_INDEX}
             if DRAW_INDEX in self.reference_bundle.index_names
@@ -210,6 +209,7 @@ class FuzzyComparison(Comparison):
             if DRAW_INDEX in self.test_bundle.index_names
             else stratifications,
         )
+        breakpoint()
 
         ## At this point, the only non-common index levels should be scenarios and draws.
         return stratified_test_data, aggregated_reference_data
