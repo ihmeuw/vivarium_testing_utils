@@ -209,7 +209,6 @@ class FuzzyComparison(Comparison):
             if DRAW_INDEX in self.test_bundle.index_names
             else stratifications,
         )
-        breakpoint()
 
         ## At this point, the only non-common index levels should be scenarios and draws.
         return stratified_test_data, aggregated_reference_data

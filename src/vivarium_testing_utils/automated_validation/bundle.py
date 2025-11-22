@@ -134,6 +134,7 @@ class RatioMeasureDataBundle:
         if self.source not in [DataSource.ARTIFACT, DataSource.GBD]:
             return None
 
+        breakpoint()
         raw_weights = data_loader._get_raw_data_from_source(
             self.measure.rate_aggregation_weights.weight_keys, self.source
         )
@@ -162,7 +163,6 @@ class RatioMeasureDataBundle:
         datasets = {
             key: calculations.stratify(datasets[key], stratifications) for key in datasets
         }
-        breakpoint()
         return self.measure.get_measure_data_from_ratio(**datasets)
 
     def _aggregate_sim_input_stratifications(
@@ -182,7 +182,6 @@ class RatioMeasureDataBundle:
             ["parameter"] if self.measure.measure in ["exposure", "relative_risk"] else []
         )
         scenario_cols.extend(list(self.scenarios.keys()))
-        breakpoint()
         weighted_avg = calculations.weighted_average(
             data, self.weights, stratifications, scenario_cols
         )
