@@ -586,4 +586,4 @@ def test_compare_artifact_and_gbd(
 
     diff = vc.get_frame(data_key)
     assert not diff.empty
-    assert not diff.isna().all()
+    assert not diff.isna().all().all()
