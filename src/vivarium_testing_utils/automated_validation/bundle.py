@@ -134,7 +134,6 @@ class RatioMeasureDataBundle:
         if self.source not in [DataSource.ARTIFACT, DataSource.GBD]:
             return None
 
-        breakpoint()
         raw_weights = data_loader._get_raw_data_from_source(
             self.measure.rate_aggregation_weights.weight_keys, self.source
         )

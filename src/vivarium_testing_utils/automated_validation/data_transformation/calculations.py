@@ -232,7 +232,6 @@ def weighted_average(
     data_index_names = set(data.index.names)
     weights_index_names = set(weights.index.names)
     scenario_cols = set(scenario_columns + [DRAW_INDEX, SEED_INDEX])
-    breakpoint()
 
     # If weights has extra index levels, aggregate by summing
     extra_weight_levels = weights_index_names - data_index_names - scenario_cols

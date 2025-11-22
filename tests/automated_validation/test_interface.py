@@ -583,7 +583,7 @@ def test_compare_artifact_and_gbd(
         vc.add_relative_risk_comparison(
             "child_wasting", "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
         )
-    breakpoint()
+
     diff = vc.get_frame(data_key, filters={"input_draw": "0"})
     assert not diff.empty
     assert not diff.isna().all()
