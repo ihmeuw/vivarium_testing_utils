@@ -645,17 +645,17 @@ def gbd_pop() -> pd.DataFrame:
 def integration_artifact_data() -> pd.DataFrame:
     data = pd.DataFrame(
         {
-            "sex": ["Male"] * 9 + ["Female"] * 9,
-            "age_start": [5, 10, 15, 20, 25, 30, 35, 40, 45] * 2,
-            "age_end": [10, 15, 20, 25, 30, 35, 40, 45, 50] * 2,
-            "year_start": [2023] * 18,
-            "year_end": [2024] * 18,
-            "draw_0": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9] * 2,
-            "draw_1": [0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95] * 2,
+            "sex": ["Male"] * 2 + ["Female"] * 2,
+            "age_start": [0, 7 / 365.0] * 2,
+            "age_end": [7 / 365.0, 28 / 365.0] * 2,
+            "year_start": [2023] * 4,
+            "year_end": [2024] * 4,
+            "draw_0": [0.1, 0.2, 0.3, 0.4] * 2,
+            "draw_1": [0.15, 0.25, 0.35, 0.45] * 2,
         }
     )
     data = data.set_index([col for col in data.columns if "draw" not in col])
-    return data
+    return data.sort_index()
 
 
 def load_integration_pop_structure() -> pd.DataFrame:
@@ -669,30 +669,22 @@ def load_integration_pop_structure() -> pd.DataFrame:
 def load_integration_age_bins() -> pd.DataFrame:
     data = pd.DataFrame(
         {
-            "age_group_id": list(range(6, 15)),
-            "age_group_name": [
-                "5_to_9",
-                "10_to_14",
-                "15_to_19",
-                "20_to_24",
-                "25_to_29",
-                "30_to_34",
-                "35_to_39",
-                "40_to_44",
-                "45_to_49",
-            ],
-            "age_start": [5, 10, 15, 20, 25, 30, 35, 40, 45],
-            "age_end": [10, 15, 20, 25, 30, 35, 40, 45, 50],
+            "age_group_id": [234, 235],  # Made up nubmers
+            "age_group_name": ["Early Neonatal", "Late Neonatal"],
+            "age_start": [0, 7 / 365.0],
+            "age_end": [7 / 365.0, 28 / 365.0],
         }
     )
-    data = data.set_index(["age_group_id", "age_group_name", "age_start", "age_end"])
+    data = data.set_index(
+        ["age_group_id", "age_group_name", "age_start", "age_end"]
+    ).sort_index()
     return data
 
 
 def load_exposure_data() -> pd.DataFrame:
     data = integration_artifact_data().reset_index()
     tmp = []
-    for category in ["cat1", "cat2"]:
+    for category in ["cat1", "cat2", "cat3", "cat4"]:
         df_copy = data.copy()
         df_copy["parameter"] = category
         tmp.append(df_copy)
