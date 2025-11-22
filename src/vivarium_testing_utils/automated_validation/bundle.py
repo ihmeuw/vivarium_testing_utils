@@ -162,6 +162,7 @@ class RatioMeasureDataBundle:
         datasets = {
             key: calculations.stratify(datasets[key], stratifications) for key in datasets
         }
+        breakpoint()
         return self.measure.get_measure_data_from_ratio(**datasets)
 
     def _aggregate_sim_input_stratifications(
