@@ -650,8 +650,8 @@ def integration_artifact_data() -> pd.DataFrame:
             "age_end": [7 / 365.0, 28 / 365.0] * 2,
             "year_start": [2023] * 4,
             "year_end": [2024] * 4,
-            "draw_0": [0.1, 0.2, 0.3, 0.4] * 2,
-            "draw_1": [0.15, 0.25, 0.35, 0.45] * 2,
+            "draw_0": [0.1, 0.2, 0.3, 0.4],
+            "draw_1": [0.15, 0.25, 0.35, 0.45],
         }
     )
     data = data.set_index([col for col in data.columns if "draw" not in col])
