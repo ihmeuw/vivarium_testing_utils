@@ -453,7 +453,7 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
             f"Cannot coerce {source_age_schema} to {target_schema}. "
             "The source age interval must be a contained by the target interval of age groups."
         )
-    breakpoint()
+
     if source_age_schema.is_subset(target_schema):
         return (
             pd.merge(

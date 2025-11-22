@@ -584,6 +584,6 @@ def test_compare_artifact_and_gbd(
             "child_wasting", "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
         )
 
-    diff = vc.get_frame(data_key, filters={"input_draw": "0"})
+    diff = vc.get_frame(data_key)
     assert not diff.empty
     assert not diff.isna().all()
