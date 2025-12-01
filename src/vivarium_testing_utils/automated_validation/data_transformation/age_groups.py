@@ -45,10 +45,10 @@ class AgeGroup:
         self.name = name
         if start < 0:
             raise ValueError(f"Negative start age.")
-        self.start = round(float(start), 7)
+        self.start = float(start)
         if end < 0:
             raise ValueError(f"Negative end age.")
-        self.end = round(float(end), 7)
+        self.end = float(end)
         if self.end - self.start <= 0:
             raise ValueError("End age must be greater than start age.")
         self.span = float(self.end - self.start)
