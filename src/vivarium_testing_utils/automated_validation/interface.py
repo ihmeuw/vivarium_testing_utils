@@ -355,7 +355,6 @@ class ValidationContext:
         formatted_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(
             data, data_key
         )
-        breakpoint()
         formatted_data = set_validation_index(formatted_data)
         self.data_loader.cache_gbd_data(data_key, formatted_data, overwrite=overwrite)
 

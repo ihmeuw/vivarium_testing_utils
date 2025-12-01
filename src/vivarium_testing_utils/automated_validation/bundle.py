@@ -109,7 +109,6 @@ class RatioMeasureDataBundle:
                 **raw_datasets,
             )
         elif self.source in [DataSource.ARTIFACT, DataSource.GBD]:
-            breakpoint()
             data = self.measure.get_measure_data_from_sim_inputs(**raw_datasets)
             datasets = {"data": data}
         elif self.source == DataSource.CUSTOM:
@@ -121,6 +120,7 @@ class RatioMeasureDataBundle:
             dataset_name: age_groups.format_dataframe_from_age_bin_df(dataset, age_group_data)
             for dataset_name, dataset in datasets.items()
         }
+        breakpoint()
         datasets = {
             key: calculations.filter_data(dataset, self.scenarios, drop_singles=True)
             for key, dataset in datasets.items()
