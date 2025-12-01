@@ -6,12 +6,6 @@ import pandas as pd
 from loguru import logger
 
 from vivarium_testing_utils.automated_validation.constants import INPUT_DATA_INDEX_NAMES
-
-# Tolerance for floating-point age comparisons (in years)
-# Approximately 0.03 seconds, sufficient to handle floating-point precision issues
-# while still catching legitimate data problems
-AGE_TOLERANCE = 1e-7
-
 AgeTuple = tuple[str, int | float, int | float]
 AgeRange = tuple[int | float, int | float]
 
@@ -19,6 +13,12 @@ from vivarium_testing_utils.automated_validation.data_transformation import util
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SingleNumericColumn,
 )
+
+
+# Tolerance for floating-point age comparisons (in years)
+# Approximately 0.03 seconds, sufficient to handle floating-point precision issues
+# while still catching legitimate data problems
+AGE_TOLERANCE = 1e-7
 
 
 class AgeGroup:
@@ -45,13 +45,13 @@ class AgeGroup:
         self.name = name
         if start < 0:
             raise ValueError(f"Negative start age.")
-        self.start = float(start)
+        self.start = round(float(start) / AGE_TOLERANCE) * AGE_TOLERANCE
         if end < 0:
             raise ValueError(f"Negative end age.")
-        self.end = float(end)
-        if end - start <= 0:
+        self.end = round(float(end) / AGE_TOLERANCE) * AGE_TOLERANCE
+        if self.end - self.start <= 0:
             raise ValueError("End age must be greater than start age.")
-        self.span = float(end - start)
+        self.span = float(self.end - self.start)
 
     def __eq__(self, other: object) -> bool:
         """Define equality between two age groups.
