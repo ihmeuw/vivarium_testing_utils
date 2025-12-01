@@ -447,9 +447,9 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
     df = pd.merge(
         df, source_age_schema.to_dataframe(), left_index=True, right_index=True
     ).reorder_levels(index_names)
-    breakpoint()
 
     if not source_age_schema.can_coerce_to(target_schema):
+        breakpoint()
         raise ValueError(
             f"Cannot coerce {source_age_schema} to {target_schema}. "
             "The source age interval must be a contained by the target interval of age groups."
