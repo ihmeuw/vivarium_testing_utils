@@ -109,6 +109,7 @@ class RatioMeasureDataBundle:
                 **raw_datasets,
             )
         elif self.source in [DataSource.ARTIFACT, DataSource.GBD]:
+            breakpoint()
             data = self.measure.get_measure_data_from_sim_inputs(**raw_datasets)
             datasets = {"data": data}
         elif self.source == DataSource.CUSTOM:

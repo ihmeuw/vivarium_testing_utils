@@ -575,7 +575,6 @@ def test_compare_artifact_and_gbd(
     }
     if data_key in measure_mapper:
         gbd = gbd.loc[gbd["measure_id"] == measure_mapper[data_key]]
-    breakpoint()
     vc.cache_gbd_data(data_key, gbd)
 
     if data_key != "risk_factor.child_wasting.relative_risk":

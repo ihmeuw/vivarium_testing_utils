@@ -436,6 +436,7 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
             If the source age schema cannot be coerced to the target schema.
     """
     source_age_schema = AgeSchema.from_dataframe(df)
+    breakpoint()
     index_names = list(df.index.names)
     for age_group_indices in [
         INPUT_DATA_INDEX_NAMES.AGE_GROUP,
