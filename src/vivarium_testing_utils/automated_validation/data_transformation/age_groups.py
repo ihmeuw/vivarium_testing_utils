@@ -7,6 +7,11 @@ from loguru import logger
 
 from vivarium_testing_utils.automated_validation.constants import INPUT_DATA_INDEX_NAMES
 
+# Tolerance for floating-point age comparisons (in years)
+# Approximately 0.03 seconds, sufficient to handle floating-point precision issues
+# while still catching legitimate data problems
+AGE_TOLERANCE = 1e-7
+
 AgeTuple = tuple[str, int | float, int | float]
 AgeRange = tuple[int | float, int | float]
 
@@ -380,11 +385,11 @@ class AgeSchema:
             raise ValueError("No age groups provided.")
 
         for i in range(len(self.age_groups) - 1):
-            if self.age_groups[i].end > self.age_groups[i + 1].start:
+            if self.age_groups[i].end > self.age_groups[i + 1].start + AGE_TOLERANCE:
                 raise ValueError(
                     f"Overlapping age groups: {self.age_groups[i]} and {self.age_groups[i + 1]}"
                 )
-            if self.age_groups[i].end < self.age_groups[i + 1].start:
+            if self.age_groups[i].end < self.age_groups[i + 1].start - AGE_TOLERANCE:
                 raise ValueError(
                     f"Gap between consecutive age groups: {self.age_groups[i]} and {self.age_groups[i + 1]}"
                 )
@@ -407,9 +412,9 @@ class AgeSchema:
         overlap_start = max(self.range[0], other.range[0])
         overlap_end = min(self.range[1], other.range[1])
         overlap = max(0, overlap_end - overlap_start)
-        if overlap < self.span:
+        if overlap < self.span - AGE_TOLERANCE:
             return False
-        if self.span < other.span:
+        if self.span < other.span - AGE_TOLERANCE:
             logger.warning(
                 "Warning: Age Groups span different total ranges. This could lead to unexpected results at extreme age ranges."
             )
