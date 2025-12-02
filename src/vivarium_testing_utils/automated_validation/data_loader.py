@@ -13,6 +13,7 @@ from vivarium_inputs.mapping_extension import alternative_risk_factors
 
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_PREFIX,
+    INPUT_DATA_INDEX_NAMES,
     LOCATION_ARTIFACT_KEY,
     POPULATION_STRUCTURE_ARTIFACT_KEY,
     DataSource,
@@ -216,6 +217,18 @@ class DataLoader:
             data = self._load_metadata(data_key, self.location)
         elif data_key == POPULATION_STRUCTURE_ARTIFACT_KEY:
             data = interface.get_population_structure(self.location)
+            pop_index_levels = list(data.index.names)
+            # Merge on age group names from age bins
+            age_bins = interface.get_age_bins()
+            data = data.join(
+                age_bins,
+                on=[INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END],
+                how="left",
+            )
+            data = data.rename_axis(
+                index={"age_group_name": INPUT_DATA_INDEX_NAMES.AGE_GROUP}
+            )
+            data = data.reorder_levels(pop_index_levels + [INPUT_DATA_INDEX_NAMES.AGE_GROUP])
         else:
             data = interface.load_standard_data(data_key, self.location)
         if (
