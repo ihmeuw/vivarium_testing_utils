@@ -120,7 +120,6 @@ class RatioMeasureDataBundle:
             dataset_name: age_groups.format_dataframe_from_age_bin_df(dataset, age_group_data)
             for dataset_name, dataset in datasets.items()
         }
-        breakpoint()
         datasets = {
             key: calculations.filter_data(dataset, self.scenarios, drop_singles=True)
             for key, dataset in datasets.items()
@@ -182,6 +181,7 @@ class RatioMeasureDataBundle:
             ["parameter"] if self.measure.measure in ["exposure", "relative_risk"] else []
         )
         scenario_cols.extend(list(self.scenarios.keys()))
+        breakpoint()
         weighted_avg = calculations.weighted_average(
             data, self.weights, stratifications, scenario_cols
         )

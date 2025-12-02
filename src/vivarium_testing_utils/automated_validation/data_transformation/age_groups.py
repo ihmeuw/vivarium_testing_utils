@@ -458,12 +458,6 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
             "The source age interval must be a contained by the target interval of age groups."
         )
 
-    not_subset = [
-        group
-        for group in source_age_schema.age_groups
-        if group not in target_schema.age_groups
-    ]
-    breakpoint()
     if source_age_schema.is_subset(target_schema):
         return (
             pd.merge(
