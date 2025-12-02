@@ -6,6 +6,7 @@ import pandas as pd
 from loguru import logger
 
 from vivarium_testing_utils.automated_validation.constants import INPUT_DATA_INDEX_NAMES
+
 AgeTuple = tuple[str, int | float, int | float]
 AgeRange = tuple[int | float, int | float]
 
@@ -14,11 +15,9 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SingleNumericColumn,
 )
 
-
-# Tolerance for floating-point age comparisons (in years)
-# Approximately 0.03 seconds, sufficient to handle floating-point precision issues
+# Tolerance for floating-point age comparisons, sufficient to handle floating-point precision issues
 # while still catching legitimate data problems
-AGE_TOLERANCE = 1e-7
+AGE_TOLERANCE = 1e-8
 
 
 class AgeGroup:
@@ -459,7 +458,11 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
             "The source age interval must be a contained by the target interval of age groups."
         )
 
-    not_subset = [group for group in source_age_schema.age_groups if group not in target_schema.age_groups]
+    not_subset = [
+        group
+        for group in source_age_schema.age_groups
+        if group not in target_schema.age_groups
+    ]
     breakpoint()
     if source_age_schema.is_subset(target_schema):
         return (

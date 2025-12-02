@@ -646,8 +646,8 @@ def integration_artifact_data() -> pd.DataFrame:
     data = pd.DataFrame(
         {
             "sex": ["Male"] * 2 + ["Female"] * 2,
-            "age_start": [0, 7 / 365.0] * 2,
-            "age_end": [7 / 365.0, 28 / 365.0] * 2,
+            "age_start": [0, round(7 / 365.0, 8)] * 2,
+            "age_end": [round(7 / 365.0, 8), round(28 / 365.0, 8)] * 2,
             "year_start": [2023] * 4,
             "year_end": [2024] * 4,
             "draw_0": [0.1, 0.2, 0.3, 0.4],
