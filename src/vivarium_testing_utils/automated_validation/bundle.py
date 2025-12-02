@@ -181,7 +181,6 @@ class RatioMeasureDataBundle:
             ["parameter"] if self.measure.measure in ["exposure", "relative_risk"] else []
         )
         scenario_cols.extend(list(self.scenarios.keys()))
-        breakpoint()
         weighted_avg = calculations.weighted_average(
             data, self.weights, stratifications, scenario_cols
         )
