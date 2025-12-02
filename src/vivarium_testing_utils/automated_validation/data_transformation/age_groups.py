@@ -393,7 +393,7 @@ class AgeSchema:
                     f"Gap between consecutive age groups: {self.age_groups[i]} and {self.age_groups[i + 1]}"
                 )
 
-    def can_coerce_to(self, other: AgeSchema) -> bool:
+    def can_coerce_to(self, target: AgeSchema) -> bool:
         """
         Check whether this schema can be coerced to another schema.
 
@@ -401,19 +401,19 @@ class AgeSchema:
 
         Parameters
         ----------
-        other
-            The other age schema to check against.
+        target
+            The target age schema to check against.
         Returns
         -------
             True if this schema can be coerced to the other schema, False otherwise.
 
         """
-        overlap_start = max(self.range[0], other.range[0])
-        overlap_end = min(self.range[1], other.range[1])
+        overlap_start = max(self.range[0], target.range[0])
+        overlap_end = min(self.range[1], target.range[1])
         overlap = max(0, overlap_end - overlap_start)
         if overlap < self.span - AGE_TOLERANCE:
             return False
-        if self.span < other.span - AGE_TOLERANCE:
+        if self.span < target.span - AGE_TOLERANCE:
             logger.warning(
                 "Warning: Age Groups span different total ranges. This could lead to unexpected results at extreme age ranges."
             )
