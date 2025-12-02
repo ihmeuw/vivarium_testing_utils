@@ -220,11 +220,7 @@ class DataLoader:
             pop_index_levels = list(data.index.names)
             # Merge on age group names from age bins
             age_bins = interface.get_age_bins()
-            data = data.join(
-                age_bins,
-                on=[INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END],
-                how="left",
-            )
+            data = data.join(age_bins, how="left")
             data = data.rename_axis(
                 index={"age_group_name": INPUT_DATA_INDEX_NAMES.AGE_GROUP}
             )
