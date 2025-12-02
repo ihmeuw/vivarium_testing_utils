@@ -458,7 +458,7 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
             "The source age interval must be a contained by the target interval of age groups."
         )
 
-    if source_age_schema.is_subset(target_schema):
+    if target_schema.is_subset(source_age_schema):
         return (
             pd.merge(
                 df.droplevel([INPUT_DATA_INDEX_NAMES.AGE_GROUP]),
