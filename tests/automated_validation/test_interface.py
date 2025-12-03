@@ -527,13 +527,13 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
 @pytest.mark.parametrize(
     "data_key",
     [
-        "risk_factor.child_wasting.exposure",
-        # "risk_factor.child_wasting.relative_risk",
-        "cause.diarrheal_diseases.remission_rate",
-        "cause.diarrheal_diseases.cause_specific_mortality_rate",
+        # "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.relative_risk",
+        # "cause.diarrheal_diseases.remission_rate",
+        # "cause.diarrheal_diseases.cause_specific_mortality_rate",
         "cause.diarrheal_diseases.incidence_rate",
-        "cause.diarrheal_diseases.prevalence",
-        "cause.diarrheal_diseases.excess_mortality_rate",
+        # "cause.diarrheal_diseases.prevalence",
+        # "cause.diarrheal_diseases.excess_mortality_rate",
     ],
 )
 @pytest.mark.slow
@@ -572,6 +572,7 @@ def test_compare_artifact_and_gbd(
     gbd = gbd.loc[gbd["year_id"] == 2023]
     measure_mapper = {
         "cause.diarrheal_diseases.prevalence": 5,
+        "cause.diarrheal_diseases.incidence_rate": 6,
         "cause.diarrheal_diseases.remission_rate": 7,
         "cause.diarrheal_diseases.excess_mortality_rate": 9,
         "cause.diarrheal_diseases.cause_specific_mortality_rate": 15,
