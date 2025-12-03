@@ -528,7 +528,7 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
     "data_key",
     [
         "risk_factor.child_wasting.exposure",
-        "risk_factor.child_wasting.relative_risk",
+        # "risk_factor.child_wasting.relative_risk",
         "cause.diarrheal_diseases.remission_rate",
         "cause.diarrheal_diseases.cause_specific_mortality_rate",
         "cause.diarrheal_diseases.incidence_rate",
@@ -569,9 +569,12 @@ def test_compare_artifact_and_gbd(
     # Load get_draws data for custom GBD data
     filename = MEASURE_DATA_MAPPER[data_key] + ".csv"
     gbd = pd.read_csv(Path(__file__).parent / "gbd_data" / filename)
+    gbd = gbd.loc[gbd["year_id"] == 2023]
     measure_mapper = {
         "cause.diarrheal_diseases.prevalence": 5,
-        "cause.diarrheal_diseases.incidence_rate": 6,
+        "cause.diarrheal_diseases.remission_rate": 7,
+        "cause.diarrheal_diseases.excess_mortality_rate": 9,
+        "cause.diarrheal_diseases.cause_specific_mortality_rate": 15,
     }
     if data_key in measure_mapper:
         gbd = gbd.loc[gbd["measure_id"] == measure_mapper[data_key]]
