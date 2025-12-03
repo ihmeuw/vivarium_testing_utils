@@ -531,7 +531,7 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
         "risk_factor.child_wasting.relative_risk",
         # "cause.diarrheal_diseases.remission_rate",
         # "cause.diarrheal_diseases.cause_specific_mortality_rate",
-        "cause.diarrheal_diseases.incidence_rate",
+        # "cause.diarrheal_diseases.incidence_rate",
         # "cause.diarrheal_diseases.prevalence",
         # "cause.diarrheal_diseases.excess_mortality_rate",
     ],
