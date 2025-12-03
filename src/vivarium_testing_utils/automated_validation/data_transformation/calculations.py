@@ -267,7 +267,7 @@ def weighted_average(
                 + list(cast_values.values()),
                 names=list(weights.index.names) + list(cast_values.keys()),
             )
-        )
+        ).reorder_levels(list(data.index.names))
 
     # Indexes should be equal at this point
     if not data.index.equals(weights.index):
