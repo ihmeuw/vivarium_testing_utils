@@ -255,7 +255,19 @@ def weighted_average(
     ]
     # Cast cols_to_cast on weights
     if cols_to_cast:
-        weights = weights.reindex_like(data)
+        # Get unique values for each column to cast from data
+        cast_values = {col: data.index.get_level_values(col).unique() for col in cols_to_cast}
+        # Cross join weights with the new index levels
+        weights = weights.reindex(
+            pd.MultiIndex.from_product(
+                [
+                    weights.index.get_level_values(level).unique()
+                    for level in weights.index.names
+                ]
+                + list(cast_values.values()),
+                names=list(weights.index.names) + list(cast_values.keys()),
+            )
+        )
 
     # Indexes should be equal at this point
     if not data.index.equals(weights.index):
