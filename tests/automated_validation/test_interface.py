@@ -583,6 +583,7 @@ def test_compare_artifact_and_gbd(
         vc.add_relative_risk_comparison(
             "child_wasting", "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
         )
+        data_key += ".diarrheal_diseases.incidence_rate"
 
     diff = vc.get_frame(data_key)
     assert not diff.empty
