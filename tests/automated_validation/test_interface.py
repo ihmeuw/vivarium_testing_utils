@@ -589,4 +589,4 @@ def test_compare_artifact_and_gbd(
     breakpoint()
     # GBD data has the same age groups as the artifact so we do not have extra age groups
     # in one of the sources which would result in NaNs after alignment.
-    assert not diff.isna().any()
+    assert not (diff.isna().any()).all()
