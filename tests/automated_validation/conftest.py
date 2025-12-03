@@ -670,7 +670,7 @@ def load_integration_pop_structure() -> pd.DataFrame:
 def load_integration_age_bins() -> pd.DataFrame:
     data = pd.DataFrame(
         {
-            "age_group_id": [234, 235],  # Made up nubmers
+            "age_group_id": [2, 3],
             "age_group_name": ["Early Neonatal", "Late Neonatal"],
             "age_start": [0, round(7 / 365.0, 8)],
             "age_end": [round(7 / 365.0, 8), round(28 / 365.0, 8)],
@@ -704,14 +704,24 @@ def load_rr_data() -> pd.DataFrame:
     return data
 
 
+def load_exposure_categories() -> dict[str, str]:
+    return {
+        "cat1": "high",
+        "cat2": "medium",
+        "cat3": "low",
+        "cat4": "unexposed",
+    }
+
+
 @pytest.fixture(scope="session")
-def integration_artifact_data_mapper() -> dict[str, pd.DataFrame | str]:
+def integration_artifact_data_mapper() -> dict[str, pd.DataFrame | str | dict[str, str]]:
     return {
         "population.structure": load_integration_pop_structure(),
         "population.age_bins": load_integration_age_bins(),
         "population.location": "Ethiopia",
         "risk_factor.child_wasting.exposure": load_exposure_data(),
         "risk_factor.child_wasting.relative_risk": load_rr_data(),
+        "risk_factor.child_wasting.categories": load_exposure_categories(),
         "cause.diarrheal_diseases.remission_rate": integration_artifact_data(),
         "cause.diarrheal_diseases.cause_specific_mortality_rate": integration_artifact_data(),
         "cause.diarrheal_diseases.incidence_rate": integration_artifact_data(),
