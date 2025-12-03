@@ -15,8 +15,10 @@ from vivarium_testing_utils.automated_validation.data_transformation import (
     calculations,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    CategoricalRelativeRisk,
     Measure,
     RatioMeasure,
+    RiskExposure,
 )
 from vivarium_testing_utils.automated_validation.visualization import dataframe_utils
 
@@ -177,13 +179,16 @@ class RatioMeasureDataBundle:
                 stratifications.append(DRAW_INDEX)
         if self.weights is None:
             raise ValueError("Weights are required for aggregating artifact data.")
-        scenario_cols = (
-            ["parameter"] if self.measure.measure in ["exposure", "relative_risk"] else []
-        )
+
+        # Update scenario columns to retain during aggregation
+        scenario_cols = []
+        if isinstance(self.measure, (RiskExposure, CategoricalRelativeRisk)):
+            scenario_cols.append(self.measure.risk_stratification_column)
         scenario_cols.extend(list(self.scenarios.keys()))
         weighted_avg = calculations.weighted_average(
             data, self.weights, stratifications, scenario_cols
         )
+
         # Reference data can be a float or dataframe. Convert floats so dataframes are aligned
         if not isinstance(weighted_avg, pd.DataFrame):
             weighted_avg = pd.DataFrame(

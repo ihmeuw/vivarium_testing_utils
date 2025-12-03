@@ -355,10 +355,11 @@ class RiskExposure(RatioMeasure):
             numerator=RiskStatePersonTime(risk_factor),
             denominator=RiskStatePersonTime(risk_factor, sum_all=True),
         )
+        self.risk_stratification_column = risk_factor
 
     @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
     def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
-        return data
+        return data.rename_axis(index={"parameter": self.risk_stratification_column})
 
 
 class CategoricalRelativeRisk(RatioMeasure):
