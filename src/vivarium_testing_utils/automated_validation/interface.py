@@ -26,6 +26,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 from vivarium_testing_utils.automated_validation.data_transformation.utils import (
     add_comparison_metadata_levels,
     drop_extra_columns,
+    get_affected_measure,
     get_measure_index_names,
     set_gbd_index,
     set_validation_index,
@@ -362,6 +363,8 @@ class ValidationContext:
         self, data: pd.DataFrame, data_key: str
     ) -> pd.DataFrame:
         """Format the output of a get_draws call to data schema conventions for the validation context."""
+        if "relative_risk" in data_key:
+            data = get_affected_measure(data, data_key)
         data = drop_extra_columns(data, data_key)
         data = set_gbd_index(data, data_key=data_key)
         data = vi.scrub_gbd_conventions(data, self.location)
