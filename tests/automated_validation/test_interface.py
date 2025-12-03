@@ -567,6 +567,34 @@ def test_compare_artifact_and_gbd(
     vc = ValidationContext(tmp_path)
 
     # Load get_draws data for custom GBD data
+    gbd = load_gbd_data(data_key)
+    vc.cache_gbd_data(data_key, gbd)
+
+    if data_key != "risk_factor.child_wasting.relative_risk":
+        vc.add_comparison(data_key, "artifact", "gbd")
+    else:
+        # Cache additional GBD data for relative risks
+        affected_measure_data = load_gbd_data("cause.diarrheal_diseases.incidence_rate")
+        vc.cache_gbd_data("cause.diarrheal_diseases.incidence_rate", affected_measure_data)
+        vc.add_relative_risk_comparison(
+            "child_wasting", "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
+        )
+        data_key += ".diarrheal_diseases.incidence_rate"
+
+    diff = vc.get_frame(data_key)
+    assert not diff.empty
+    breakpoint()
+    for col in diff.columns:
+        assert not diff[col].isnull().all()
+
+
+###########
+# Helpers #
+###########
+
+
+def load_gbd_data(data_key: str) -> pd.DataFrame:
+    """Helper function to load GBD data from CSV files for testing."""
     filename = MEASURE_DATA_MAPPER[data_key] + ".csv"
     gbd = pd.read_csv(Path(__file__).parent / "gbd_data" / filename)
     gbd = gbd.loc[gbd["year_id"] == 2023]
@@ -579,18 +607,4 @@ def test_compare_artifact_and_gbd(
     }
     if data_key in measure_mapper:
         gbd = gbd.loc[gbd["measure_id"] == measure_mapper[data_key]]
-    vc.cache_gbd_data(data_key, gbd)
-
-    if data_key != "risk_factor.child_wasting.relative_risk":
-        vc.add_comparison(data_key, "artifact", "gbd")
-    else:
-        vc.add_relative_risk_comparison(
-            "child_wasting", "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
-        )
-        data_key += ".diarrheal_diseases.incidence_rate"
-
-    diff = vc.get_frame(data_key)
-    assert not diff.empty
-    breakpoint()
-    for col in diff.columns:
-        assert not diff[col].isnull().all()
+    return gbd
