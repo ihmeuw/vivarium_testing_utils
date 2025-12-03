@@ -235,7 +235,6 @@ def weighted_average(
 
     # If weights has extra index levels, aggregate by summing
     extra_weight_levels = weights_index_names - data_index_names - scenario_cols
-    breakpoint()
     if extra_weight_levels:
         # Group by the levels that match data's index and sum over the extra levels
         weights = aggregate_sum(
