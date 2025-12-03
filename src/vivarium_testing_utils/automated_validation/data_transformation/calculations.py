@@ -267,9 +267,10 @@ def weighted_average(
                 + list(cast_values.values()),
                 names=list(weights.index.names) + list(cast_values.keys()),
             )
-        ).reorder_levels(list(data.index.names))
+        )
 
     # Sort both dataframes by their index to ensure they're in the same order
+    weights = weights.reorder_levels(list(data.index.names))
     data = data.sort_index()
     weights = weights.sort_index()
 
