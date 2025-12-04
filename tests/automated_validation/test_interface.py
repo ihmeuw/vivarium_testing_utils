@@ -355,9 +355,10 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
         "risk_factor.child_wasting.exposure",
         "risk_factor.child_wasting.relative_risk",
     ]:
-        index_cols.append("child_wasting")
+        index_cols.append("parameter")
         if data_key == "risk_factor.child_wasting.relative_risk":
             index_cols.append("affected_entity")
+            index_cols.append("affected_measure")
     if data_key != "population.structure":
         index_cols.append(DRAW_INDEX)
 
