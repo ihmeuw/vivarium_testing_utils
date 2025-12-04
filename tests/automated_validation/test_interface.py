@@ -580,14 +580,14 @@ def test_compare_artifact_and_gbd(
         # Cache additional GBD data for relative risks
         affected_measure_data = load_gbd_data("cause.diarrheal_diseases.incidence_rate")
         vc.cache_gbd_data("cause.diarrheal_diseases.incidence_rate", affected_measure_data)
-        vc.add_relative_risk_comparison(
-            "child_wasting", "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
-        )
         categories = integration_artifact_data_mapper["risk_factor.child_wasting.categories"]
         vc.cache_gbd_data(
             "risk_factor.child_wasting.categories",
             categories,
             overwrite=True,
+        )
+        vc.add_relative_risk_comparison(
+            "child_wasting", "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
         )
         data_key += ".diarrheal_diseases.incidence_rate"
 
