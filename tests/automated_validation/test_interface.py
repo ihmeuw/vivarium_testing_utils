@@ -589,6 +589,7 @@ def test_compare_artifact_and_gbd(
             categories,
             overwrite=True,
         )
+        data_key += ".diarrheal_diseases.incidence_rate"
 
     diff = vc.get_frame(data_key)
     assert not diff.empty
