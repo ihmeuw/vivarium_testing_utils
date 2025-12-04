@@ -361,6 +361,8 @@ class ValidationContext:
                 data, data_key
             )
             formatted_data = set_validation_index(formatted_data)
+        else:
+            formatted_data = data
         self.data_loader.cache_gbd_data(data_key, formatted_data, overwrite=overwrite)
 
     def _format_to_vivarium_inputs_conventions(
