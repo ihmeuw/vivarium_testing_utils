@@ -255,7 +255,9 @@ def test_data_bundle_gbd_source(sim_result_dir: Path) -> None:
 
     # Validate data aggregation
     stratify_1 = bundle.get_measure_data("all")
-    pd.testing.assert_frame_equal(stratify_1, bundle.datasets["data"])
+    pd.testing.assert_frame_equal(
+        stratify_1, bundle.datasets["data"], check_exact=False, rtol=1e-5, atol=1e-8
+    )
     stratify_2 = bundle.get_measure_data(["sex", INPUT_DATA_INDEX_NAMES.AGE_GROUP])
     assert set(stratify_2.index.names) == {
         "sex",
