@@ -587,6 +587,7 @@ def test_compare_artifact_and_gbd(
         vc.cache_gbd_data(
             "risk_factor.child_wasting.categories",
             categories,
+            overwrite=True,
         )
 
     diff = vc.get_frame(data_key)
