@@ -531,13 +531,13 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
 @pytest.mark.parametrize(
     "data_key",
     [
-        # "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.exposure",
         "risk_factor.child_wasting.relative_risk",
-        # "cause.diarrheal_diseases.remission_rate",
-        # "cause.diarrheal_diseases.cause_specific_mortality_rate",
-        # "cause.diarrheal_diseases.incidence_rate",
-        # "cause.diarrheal_diseases.prevalence",
-        # "cause.diarrheal_diseases.excess_mortality_rate",
+        "cause.diarrheal_diseases.remission_rate",
+        "cause.diarrheal_diseases.cause_specific_mortality_rate",
+        "cause.diarrheal_diseases.incidence_rate",
+        "cause.diarrheal_diseases.prevalence",
+        "cause.diarrheal_diseases.excess_mortality_rate",
     ],
 )
 @pytest.mark.slow
@@ -593,7 +593,6 @@ def test_compare_artifact_and_gbd(
 
     diff = vc.get_frame(data_key)
     assert not diff.empty
-    breakpoint()
     for col in diff.columns:
         assert not diff[col].isnull().all()
 

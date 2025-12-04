@@ -206,14 +206,14 @@ def test_aggregate_reference_stratifications(
         expected = pd.DataFrame(
             data={
                 "value": [
-                    ((0.15 * 0.12) + (0.35 * 0.29)) / (0.15 + 0.35),
                     (0.20 * 0.25) / 0.25,
+                    ((0.15 * 0.12) + (0.35 * 0.29)) / (0.15 + 0.35),
                 ]
             },
             index=pd.MultiIndex.from_tuples(
                 [
-                    ("male", 0),
                     ("female", 0),
+                    ("male", 0),
                 ],
                 names=["sex", "age"],
             ),

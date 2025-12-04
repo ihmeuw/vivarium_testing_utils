@@ -356,10 +356,9 @@ class ValidationContext:
         overwrite: bool = False,
     ) -> None:
         """Upload the output of a get_draws call to the context given by a data key."""
+        formatted_data: pd.DataFrame | dict[str, str] | str
         if isinstance(data, pd.DataFrame):
-            formatted_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(
-                data, data_key
-            )
+            formatted_data = self._format_to_vivarium_inputs_conventions(data, data_key)
             formatted_data = set_validation_index(formatted_data)
         else:
             formatted_data = data

@@ -262,9 +262,9 @@ def test_aggregate_sum_preserves_string_order() -> None:
         # Test no aggregation - keeping all index levels
         (
             ["sex", "color"],
-            [2.0, 3.0, 5.0, 7.0],  # Original values
+            [7.0, 5.0, 3.0, 2.0],  # Original values
             pd.MultiIndex.from_tuples(
-                [("Male", "Red"), ("Male", "Blue"), ("Female", "Red"), ("Female", "Blue")],
+                [("Female", "Blue"), ("Female", "Red"), ("Male", "Blue"), ("Male", "Red")],
                 names=["sex", "color"],
             ),
         ),

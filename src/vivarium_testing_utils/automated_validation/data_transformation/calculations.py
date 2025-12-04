@@ -270,7 +270,8 @@ def weighted_average(
         )
 
     # Sort both dataframes by their index to ensure they're in the same order
-    weights = weights.reorder_levels(list(data.index.names))
+    if len(weights.index.names) > 1:
+        weights = weights.reorder_levels(list(data.index.names))
     data = data.sort_index()
     weights = weights.sort_index()
 
