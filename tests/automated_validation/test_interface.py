@@ -11,7 +11,11 @@ from vivarium.framework.artifact import Artifact
 from vivarium.framework.artifact.artifact import ArtifactException
 from vivarium_inputs import interface
 
-from tests.automated_validation.conftest import IS_ON_SLURM, get_model_spec
+from tests.automated_validation.conftest import (
+    IS_ON_SLURM,
+    get_model_spec,
+    load_exposure_categories,
+)
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     INPUT_DATA_INDEX_NAMES,
@@ -579,7 +583,10 @@ def test_compare_artifact_and_gbd(
         vc.add_relative_risk_comparison(
             "child_wasting", "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
         )
-        data_key += ".diarrheal_diseases.incidence_rate"
+        vc.cache_gbd_data(
+            "risk_factor.child_wasting.categories",
+            integration_artifact_data_mapper["risk_factor.child_wasting.categories"],
+        )
 
     diff = vc.get_frame(data_key)
     assert not diff.empty
