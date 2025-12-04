@@ -350,13 +350,17 @@ class ValidationContext:
         return age_groups.rename_axis(index={"age_group_name": "age_group"})
 
     def cache_gbd_data(
-        self, data_key: str, data: pd.DataFrame, overwrite: bool = False
+        self,
+        data_key: str,
+        data: pd.DataFrame | dict[str, str] | str,
+        overwrite: bool = False,
     ) -> None:
         """Upload the output of a get_draws call to the context given by a data key."""
-        formatted_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(
-            data, data_key
-        )
-        formatted_data = set_validation_index(formatted_data)
+        if isinstance(data, pd.DataFrame):
+            formatted_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(
+                data, data_key
+            )
+            formatted_data = set_validation_index(formatted_data)
         self.data_loader.cache_gbd_data(data_key, formatted_data, overwrite=overwrite)
 
     def _format_to_vivarium_inputs_conventions(

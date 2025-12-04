@@ -583,9 +583,10 @@ def test_compare_artifact_and_gbd(
         vc.add_relative_risk_comparison(
             "child_wasting", "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
         )
+        categories = integration_artifact_data_mapper["risk_factor.child_wasting.categories"]
         vc.cache_gbd_data(
             "risk_factor.child_wasting.categories",
-            integration_artifact_data_mapper["risk_factor.child_wasting.categories"],
+            categories,
         )
 
     diff = vc.get_frame(data_key)
