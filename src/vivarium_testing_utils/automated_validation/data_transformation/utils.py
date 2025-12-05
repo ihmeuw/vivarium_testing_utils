@@ -153,25 +153,3 @@ def add_comparison_metadata_levels(data: pd.DataFrame, comparison_key: str) -> p
             [INPUT_DATA_INDEX_NAMES.ENTITY, INPUT_DATA_INDEX_NAMES.MEASURE] + idx_order
         )
     )
-
-
-def get_affected_measure(data: pd.DataFrame, data_key: str) -> pd.DataFrame:
-    """For relative risk data, add the affected measure to the DataFrame.
-
-    Parameters
-    ----------
-    data
-        The DataFrame to add the affected measure to.
-    data_key
-        The data key in the format "risk_factor.<risk_factor>.<measure>".
-
-    Returns
-    -------
-        The DataFrame with the added affected measure column.
-    """
-    morbidity = data.morbidity == 1
-    mortality = data.mortality == 1
-    data.loc[morbidity & mortality, "affected_measure"] = "incidence_rate"
-    data.loc[morbidity & ~mortality, "affected_measure"] = "incidence_rate"
-    data.loc[~morbidity & mortality, "affected_measure"] = "cause_specific_mortality_rate"
-    return data
