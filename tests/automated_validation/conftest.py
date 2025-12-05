@@ -597,6 +597,7 @@ def mock_ratio_measure() -> RatioMeasure:
 
     measure = mock.Mock(spec=RatioMeasure)
     measure.measure_key = "mock_measure"
+    measure.measure = "some_measure"
     measure.numerator = mock_numerator
     measure.denominator = mock_denominator
     measure.get_measure_data_from_ratio.side_effect = calculations.ratio
@@ -640,3 +641,90 @@ def gbd_pop() -> pd.DataFrame:
             names=["age_start", "age_end", "year_start", "year_end", "sex", "location"],
         ),
     )
+
+
+def integration_artifact_data() -> pd.DataFrame:
+    data = pd.DataFrame(
+        {
+            "sex": ["Male"] * 2 + ["Female"] * 2,
+            "age_start": [0, round(7 / 365.0, 8)] * 2,
+            "age_end": [round(7 / 365.0, 8), round(28 / 365.0, 8)] * 2,
+            "year_start": [2023] * 4,
+            "year_end": [2024] * 4,
+            "draw_0": [0.1, 0.2, 0.3, 0.4],
+            "draw_1": [0.15, 0.25, 0.35, 0.45],
+        }
+    )
+    data = data.set_index([col for col in data.columns if "draw" not in col])
+    return data.sort_index()
+
+
+def load_integration_pop_structure() -> pd.DataFrame:
+    data = integration_artifact_data().reset_index()
+    data = data.drop(columns=["draw_0", "draw_1"])
+    data["value"] = [1000 + i * 100 for i in range(len(data))]
+    data = data.set_index([col for col in data.columns if col != "value"])
+    return data
+
+
+def load_integration_age_bins() -> pd.DataFrame:
+    data = pd.DataFrame(
+        {
+            "age_group_id": [2, 3],
+            "age_group_name": ["Early Neonatal", "Late Neonatal"],
+            "age_start": [0, round(7 / 365.0, 8)],
+            "age_end": [round(7 / 365.0, 8), round(28 / 365.0, 8)],
+        }
+    )
+    data = data.set_index(
+        ["age_group_id", "age_group_name", "age_start", "age_end"]
+    ).sort_index()
+    return data
+
+
+def load_exposure_data() -> pd.DataFrame:
+    data = integration_artifact_data().reset_index()
+    tmp = []
+    for category in ["cat1", "cat2", "cat3", "cat4"]:
+        df_copy = data.copy()
+        df_copy["parameter"] = category
+        tmp.append(df_copy)
+    return (
+        pd.concat(tmp)
+        .set_index(["sex", "age_start", "age_end", "year_start", "year_end", "parameter"])
+        .sort_index()
+    )
+
+
+def load_rr_data() -> pd.DataFrame:
+    data = load_exposure_data()
+    data["affected_entity"] = "diarrheal_diseases"
+    data["affected_measure"] = "incidence_rate"
+    data = data.set_index(["affected_entity", "affected_measure"], append=True)
+    return data
+
+
+def load_exposure_categories() -> dict[str, str]:
+    return {
+        "cat1": "high",
+        "cat2": "medium",
+        "cat3": "low",
+        "cat4": "unexposed",
+    }
+
+
+@pytest.fixture(scope="session")
+def integration_artifact_data_mapper() -> dict[str, pd.DataFrame | str | dict[str, str]]:
+    return {
+        "population.structure": load_integration_pop_structure(),
+        "population.age_bins": load_integration_age_bins(),
+        "population.location": "Ethiopia",
+        "risk_factor.child_wasting.exposure": load_exposure_data(),
+        "risk_factor.child_wasting.relative_risk": load_rr_data(),
+        "risk_factor.child_wasting.categories": load_exposure_categories(),
+        "cause.diarrheal_diseases.remission_rate": integration_artifact_data(),
+        "cause.diarrheal_diseases.cause_specific_mortality_rate": integration_artifact_data(),
+        "cause.diarrheal_diseases.incidence_rate": integration_artifact_data(),
+        "cause.diarrheal_diseases.prevalence": integration_artifact_data(),
+        "cause.diarrheal_diseases.excess_mortality_rate": integration_artifact_data(),
+    }

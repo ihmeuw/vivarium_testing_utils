@@ -122,6 +122,7 @@ def get_measure_index_names(data_key: str, data_schema: str = "gbd") -> list[str
             measure_cols.append(INPUT_DATA_INDEX_NAMES.CAUSE_ID)
         else:
             measure_cols.append(INPUT_DATA_INDEX_NAMES.AFFECTED_ENTITY)
+        measure_cols.append(INPUT_DATA_INDEX_NAMES.AFFECTED_MEASURE)
 
     return measure_cols
 

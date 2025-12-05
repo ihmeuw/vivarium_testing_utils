@@ -35,6 +35,7 @@ class InputDataIndexNames(NamedTuple):
     PARAMETER: str = "parameter"
     CAUSE_ID: str = "cause_id"
     AFFECTED_ENTITY: str = "affected_entity"
+    AFFECTED_MEASURE: str = "affected_measure"
     LOCATION: str = "location"
     SEX: str = "sex"
     AGE_GROUP: str = "age_group"

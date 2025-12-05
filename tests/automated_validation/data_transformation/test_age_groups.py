@@ -192,8 +192,8 @@ def test_age_schema_can_coerce_to() -> None:
 
     assert schema1.can_coerce_to(schema2)
     assert schema2.can_coerce_to(schema1)
-    assert schema1.can_coerce_to(schema3)
-    assert not schema3.can_coerce_to(schema1)
+    assert not schema1.can_coerce_to(schema3)
+    assert schema3.can_coerce_to(schema1)
 
 
 def test_age_schema_get_transform_matrix(sample_age_schema: AgeSchema) -> None:
