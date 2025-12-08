@@ -151,3 +151,8 @@ class TotalLiveBirths(SimDataFormatter):
         # NOTE: Sub entity column is currently null but will have useful values at some point
         self.filters = {"sub_entity": [self.filter_value]}
         self.name = f"{self.filter_value}_{self.measure}"
+
+    def format_dataset(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        """Clean up unused columns, and filter for the state."""
+        cols_to_marginalize = self.unused_columns + [DRAW_INDEX, SEED_INDEX]
+        return calculations.marginalize(dataset, cols_to_marginalize)

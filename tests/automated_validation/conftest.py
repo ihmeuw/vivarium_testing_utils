@@ -737,34 +737,42 @@ def _create_births_observer_data() -> pd.DataFrame:
             "value": [10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0] * 2,
         },
         index=pd.MultiIndex.from_tuples(
-            ("births", pd.NA, pd.NA, pd.NA, "Male", "stratify_1", 0, 0),
-            ("births", pd.NA, pd.NA, pd.NA, "Male", "stratify_1", 0, 1),
-            ("births", pd.NA, pd.NA, pd.NA, "Male", "stratify_1", 1, 0),
-            ("births", pd.NA, pd.NA, pd.NA, "Male", "stratify_1", 1, 1),
-            ("births", pd.NA, pd.NA, pd.NA, "Male", "stratify_2", 0, 0),
-            ("births", pd.NA, pd.NA, pd.NA, "Male", "stratify_2", 0, 1),
-            ("births", pd.NA, pd.NA, pd.NA, "Male", "stratify_2", 1, 0),
-            ("births", pd.NA, pd.NA, pd.NA, "Male", "stratify_2", 1, 1),
-            ("births", pd.NA, pd.NA, pd.NA, "Female", "stratify_1", 0, 0),
-            ("births", pd.NA, pd.NA, pd.NA, "Female", "stratify_1", 0, 1),
-            ("births", pd.NA, pd.NA, pd.NA, "Female", "stratify_1", 1, 0),
-            ("births", pd.NA, pd.NA, pd.NA, "Female", "stratify_1", 1, 1),
-            ("births", pd.NA, pd.NA, pd.NA, "Female", "stratify_2", 0, 0),
-            ("births", pd.NA, pd.NA, pd.NA, "Female", "stratify_2", 0, 1),
-            ("births", pd.NA, pd.NA, pd.NA, "Female", "stratify_2", 1, 0),
-            ("births", pd.NA, pd.NA, pd.NA, "Female", "stratify_2", 1, 1),
+            [
+                ("births", pd.NA, pd.NA, pd.NA, "Male", "A", 0, 0),
+                ("births", pd.NA, pd.NA, pd.NA, "Male", "A", 0, 1),
+                ("births", pd.NA, pd.NA, pd.NA, "Male", "A", 1, 0),
+                ("births", pd.NA, pd.NA, pd.NA, "Male", "A", 1, 1),
+                ("births", pd.NA, pd.NA, pd.NA, "Male", "B", 0, 0),
+                ("births", pd.NA, pd.NA, pd.NA, "Male", "B", 0, 1),
+                ("births", pd.NA, pd.NA, pd.NA, "Male", "B", 1, 0),
+                ("births", pd.NA, pd.NA, pd.NA, "Male", "B", 1, 1),
+                ("births", pd.NA, pd.NA, pd.NA, "Female", "A", 0, 0),
+                ("births", pd.NA, pd.NA, pd.NA, "Female", "A", 0, 1),
+                ("births", pd.NA, pd.NA, pd.NA, "Female", "A", 1, 0),
+                ("births", pd.NA, pd.NA, pd.NA, "Female", "A", 1, 1),
+                ("births", pd.NA, pd.NA, pd.NA, "Female", "B", 0, 0),
+                ("births", pd.NA, pd.NA, pd.NA, "Female", "B", 0, 1),
+                ("births", pd.NA, pd.NA, pd.NA, "Female", "B", 1, 0),
+                ("births", pd.NA, pd.NA, pd.NA, "Female", "B", 1, 1),
+            ],
+            names=[
+                "measure",
+                "entity_type",
+                "entity",
+                "sub_entity",
+                "child_sex",
+                "common_stratify_column",
+                DRAW_INDEX,
+                SEED_INDEX,
+            ],
         ),
-        names=[
-            "measure",
-            "entity_type",
-            "entity",
-            "sub_entity",
-            "child_sex",
-            "common_stratify_column",
-            DRAW_INDEX,
-            SEED_INDEX,
-        ],
     )
+
+
+@pytest.fixture
+def get_births_observer_data() -> pd.DataFrame:
+    """Get births observer data for testing."""
+    return _create_births_observer_data()
 
 
 @pytest.fixture(scope="session")

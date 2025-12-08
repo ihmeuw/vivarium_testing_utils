@@ -5,6 +5,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     Deaths,
     RiskStatePersonTime,
     StatePersonTime,
+    TotalLiveBirths,
     TotalPopulationPersonTime,
     TransitionCounts,
 )
@@ -277,3 +278,26 @@ def test_risk_state_person_time_sum_all(risk_state_person_time_data: pd.DataFram
     assert_frame_equal(
         formatter.format_dataset(risk_state_person_time_data), expected_dataframe
     )
+
+
+def test_births_formatter(get_births_observer_data: pd.DataFrame) -> None:
+    """Test Births formatter."""
+
+    formatter = TotalLiveBirths()
+
+    assert formatter.measure == "live_births"
+    assert formatter.raw_dataset_name == "births"
+    assert formatter.unused_columns == ["measure", "entity_type", "entity", "sub_entity"]
+    assert formatter.filters == {"sub_entity": ["total"]}
+
+    expected_dataframe = pd.DataFrame(
+        {
+            "value": [70.0, 150.0] * 2,
+        },
+        index=pd.MultiIndex.from_tuples(
+            [("Male", "A"), ("Male", "B"), ("Female", "A"), ("Female", "B")],
+            names=["child_sex", "common_stratify_column"],
+        ),
+    )
+
+    assert_frame_equal(formatter.format_dataset(get_births_observer_data), expected_dataframe)
