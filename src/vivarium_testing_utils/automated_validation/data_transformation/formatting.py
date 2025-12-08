@@ -139,7 +139,7 @@ class TotalLiveBirths(SimDataFormatter):
     def __init__(self) -> None:
         self.measure = "live_births"
         self.entity = "total"
-        # Only change
+        # Hardcoding raw dataset name due to custom observers
         self.raw_dataset_name = "births"
         self.unused_columns = [
             "measure",
