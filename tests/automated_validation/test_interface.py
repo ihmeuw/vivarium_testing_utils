@@ -363,7 +363,7 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
         index_cols.append(DRAW_INDEX)
 
     assert set(cached_data.index.names) == (set(index_cols))
-    assert {"value"} == set(cached_data.columns)
+    assert set(cached_data.columns) == {"value"}
 
 
 @pytest.mark.parametrize(
@@ -561,8 +561,6 @@ def test_compare_artifact_and_gbd(
     artifact_path = artifact_dir / "artifact.hdf"
     artifact = Artifact(artifact_path)
     for key, data in integration_artifact_data_mapper.items():
-        # TODO: do not think we need to do the following line
-        # art_data = calculations.clean_draw_columns(art_data)
         artifact.write(key, data)
 
     # Save model specification
