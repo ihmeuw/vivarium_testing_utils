@@ -6,7 +6,11 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, DRAW_PREFIX
+from vivarium_testing_utils.automated_validation.constants import (
+    DRAW_INDEX,
+    DRAW_PREFIX,
+    SEED_INDEX,
+)
 from vivarium_testing_utils.automated_validation.data_transformation import utils
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     DrawData,
@@ -158,7 +162,8 @@ def get_singular_indices(data: pd.DataFrame) -> dict[str, Any]:
 def weighted_average(
     data: pd.DataFrame,
     weights: pd.DataFrame,
-    stratifications: list[str] | Literal["all"] = [],
+    stratifications: list[str] | Literal["all"] = "all",
+    scenario_columns: list[str] = [],
 ) -> pd.DataFrame | float:
     """Calculate a weighted average of the data using the provided weights.
 
@@ -170,11 +175,14 @@ def weighted_average(
         DataFrame with the weights to apply to the values in data. Must have a 'value' column.
     stratifications
         List of index level names to use for stratification/grouping.
+    scenario_columns
+        List of columns to retain. If scenario columns are present in data but not weights, these
+        columns will be cast across weights and added as index levels.
 
     Raises
     ------
     ValueError
-        If data index levels is not a subset of weights index levels.
+        If data index levels contain columns not present in weights or scenario columns.
 
     Returns
     -------
@@ -223,18 +231,49 @@ def weighted_average(
     # Check if weights has extra index levels compared to data
     data_index_names = set(data.index.names)
     weights_index_names = set(weights.index.names)
-
-    if not data_index_names.issubset(weights_index_names):
-        raise ValueError(
-            f"Data index levels {data_index_names - weights_index_names} "
-            f"are not present in weights index levels {weights_index_names}"
-        )
+    scenario_cols = set(scenario_columns + [DRAW_INDEX, SEED_INDEX])
 
     # If weights has extra index levels, aggregate by summing
-    extra_levels = weights_index_names - data_index_names
-    if extra_levels:
+    extra_weight_levels = weights_index_names - data_index_names - scenario_cols
+    if extra_weight_levels:
         # Group by the levels that match data's index and sum over the extra levels
-        weights = aggregate_sum(weights, data.index.names)
+        weights = aggregate_sum(
+            weights, [col for col in weights.index.names if col not in extra_weight_levels]
+        )
+
+    # Check if data has extra columns outside of scenario columns
+    if data_index_names - weights_index_names - scenario_cols:
+        raise ValueError(
+            f"Data index levels {data_index_names - weights_index_names - scenario_cols} "
+            f"are not present in weights index levels {weights_index_names} or scenario columns {scenario_cols}"
+        )
+    # Cast scenario columns across weights if they do not exist in weights
+    cols_to_cast = [
+        col
+        for col in scenario_cols
+        if col in data_index_names and col not in weights_index_names
+    ]
+    # Cast cols_to_cast on weights
+    if cols_to_cast:
+        # Get unique values for each column to cast from data
+        cast_values = {col: data.index.get_level_values(col).unique() for col in cols_to_cast}
+        # Cross join weights with the new index levels
+        weights = weights.reindex(
+            pd.MultiIndex.from_product(
+                [
+                    weights.index.get_level_values(level).unique()
+                    for level in weights.index.names
+                ]
+                + list(cast_values.values()),
+                names=list(weights.index.names) + list(cast_values.keys()),
+            )
+        )
+
+    # Sort both dataframes by their index to ensure they're in the same order
+    if len(weights.index.names) > 1:
+        weights = weights.reorder_levels(list(data.index.names))
+    data = data.sort_index()
+    weights = weights.sort_index()
 
     # Indexes should be equal at this point
     if not data.index.equals(weights.index):

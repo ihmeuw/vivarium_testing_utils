@@ -349,19 +349,26 @@ class ValidationContext:
         return age_groups.rename_axis(index={"age_group_name": "age_group"})
 
     def cache_gbd_data(
-        self, data_key: str, data: pd.DataFrame, overwrite: bool = False
+        self,
+        data_key: str,
+        data: pd.DataFrame | dict[str, str] | str,
+        overwrite: bool = False,
     ) -> None:
         """Upload the output of a get_draws call to the context given by a data key."""
-        formatted_data: pd.DataFrame = self._format_to_vivarium_inputs_conventions(
-            data, data_key
-        )
-        formatted_data = set_validation_index(formatted_data)
+        formatted_data: pd.DataFrame | dict[str, str] | str
+        if isinstance(data, pd.DataFrame):
+            formatted_data = self._format_to_vivarium_inputs_conventions(data, data_key)
+            formatted_data = set_validation_index(formatted_data)
+        else:
+            formatted_data = data
         self.data_loader.cache_gbd_data(data_key, formatted_data, overwrite=overwrite)
 
     def _format_to_vivarium_inputs_conventions(
         self, data: pd.DataFrame, data_key: str
     ) -> pd.DataFrame:
         """Format the output of a get_draws call to data schema conventions for the validation context."""
+        if "relative_risk" in data_key:
+            data = vi.get_affected_measure_column(data)
         data = drop_extra_columns(data, data_key)
         data = set_gbd_index(data, data_key=data_key)
         data = vi.scrub_gbd_conventions(data, self.location)

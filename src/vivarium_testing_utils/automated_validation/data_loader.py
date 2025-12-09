@@ -32,9 +32,9 @@ class DataLoader:
         self._cache_size_mb = cache_size_mb
 
         self._results_dir = self._sim_output_dir / "results"
-        self._raw_data_cache: dict[DataSource, dict[str, pd.DataFrame | str]] = {
-            data_source: {} for data_source in DataSource
-        }
+        self._raw_data_cache: dict[
+            DataSource, dict[str, pd.DataFrame | dict[str, str] | str]
+        ] = {data_source: {} for data_source in DataSource}
         self._loader_mapping = {
             DataSource.SIM: self._load_from_sim,
             DataSource.GBD: self._load_from_gbd,
@@ -109,7 +109,10 @@ class DataLoader:
         self._add_to_cache(data_key, DataSource.CUSTOM, data)
 
     def cache_gbd_data(
-        self, data_key: str, data: pd.DataFrame | str, overwrite: bool = False
+        self,
+        data_key: str,
+        data: pd.DataFrame | dict[str, str] | str,
+        overwrite: bool = False,
     ) -> None:
         """Upload or update a custom DataFrame or Series to the GBD context given by a data key."""
         if overwrite:
@@ -117,9 +120,9 @@ class DataLoader:
                 del self._raw_data_cache[DataSource.GBD][data_key]
         if data_key in self._raw_data_cache[DataSource.GBD] and not overwrite:
             existing = self._raw_data_cache[DataSource.GBD][data_key]
-            if isinstance(existing, str) or isinstance(data, str):
+            if isinstance(existing, (dict, str)) or isinstance(data, (dict, str)):
                 raise ValueError(
-                    f"Existing GBD data for {data_key} is a string and cannot be updated without the overwrite flag set to True."
+                    f"Existing GBD data for {data_key} is a type {type(existing)} and cannot be updated without the overwrite flag set to True."
                 )
             else:
                 if set(existing.index.names) != set(data.index.names):
@@ -155,7 +158,7 @@ class DataLoader:
         self,
         data_key: str,
         source: DataSource,
-        data: pd.DataFrame | pd.Series[float] | str,
+        data: pd.DataFrame | pd.Series[float] | dict[str, str] | str,
     ) -> None:
         """Update the raw_data_cache with the given data."""
         if data_key in self._raw_data_cache.get(source, {}):
