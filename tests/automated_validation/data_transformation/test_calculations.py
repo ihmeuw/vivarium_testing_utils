@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, SEED_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     aggregate_sum,
     filter_data,
@@ -261,9 +262,9 @@ def test_aggregate_sum_preserves_string_order() -> None:
         # Test no aggregation - keeping all index levels
         (
             ["sex", "color"],
-            [2.0, 3.0, 5.0, 7.0],  # Original values
+            [7.0, 5.0, 3.0, 2.0],  # Original values
             pd.MultiIndex.from_tuples(
-                [("Male", "Red"), ("Male", "Blue"), ("Female", "Red"), ("Female", "Blue")],
+                [("Female", "Blue"), ("Female", "Red"), ("Male", "Blue"), ("Male", "Red")],
                 names=["sex", "color"],
             ),
         ),
@@ -325,7 +326,7 @@ def test_weighted_average_extra_weights_index(fish_data: pd.DataFrame) -> None:
 
     # Remove index layer from data so weights has an extra layer
     data = data.groupby("sex", sort=False, observed=True).sum()
-    weighted_avg = weighted_average(data, weights)
+    weighted_avg = weighted_average(data=data, weights=weights, stratifications=[])
     assert weighted_avg == ((5 * (20 + 100)) + (12 * (2 + 50))) / (20 + 100 + 2 + 50)
 
 
@@ -334,3 +335,85 @@ def test_aggregate_sum_all(fish_data: pd.DataFrame) -> None:
     data = pd.DataFrame({"value": fish_data["value"]}, index=fish_data.index)
     aggregate = aggregate_sum(data, "all")
     assert aggregate.equals(data)
+
+
+def test_weighted_average_cast_index() -> None:
+    data = pd.DataFrame(
+        {
+            "location": ["Shadow"] * 8,
+            "sex": ["Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female"],
+            "age": ["0-4", "0-4", "5-9", "5-9", "0-4", "0-4", "5-9", "5-9"],
+            DRAW_INDEX: [0, 1, 0, 1, 0, 1, 0, 1],
+            SEED_INDEX: [42] * 8,
+            "value": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        }
+    )
+    data = data.set_index(["location", "sex", "age", DRAW_INDEX, SEED_INDEX])
+    weights = pd.DataFrame(
+        {
+            "location": ["Shadow"] * 4,
+            "sex": ["Male", "Male", "Female", "Female"],
+            "age": ["0-4", "5-9", "0-4", "5-9"],
+            "value": [10, 30, 50, 70],
+        }
+    )
+    weights = weights.set_index(["location", "sex", "age"])
+    weighted_avg = weighted_average(
+        data, weights, "all", scenario_columns=[DRAW_INDEX, SEED_INDEX]
+    )
+    assert isinstance(weighted_avg, pd.DataFrame)
+    assert set(weighted_avg.index.names) == set(data.index.names)
+
+
+def test_weighted_average_extra_weights_index_and_cast() -> None:
+    data = pd.DataFrame(
+        {
+            "location": ["Hera"] * 8,
+            "sex": ["Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female"],
+            "age": ["0-4", "0-4", "5-9", "5-9", "0-4", "0-4", "5-9", "5-9"],
+            DRAW_INDEX: [0, 1, 0, 1, 0, 1, 0, 1],
+            SEED_INDEX: [42] * 8,
+            "value": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        }
+    )
+    data = data.set_index(["location", "sex", "age", DRAW_INDEX, SEED_INDEX])
+    weights = pd.DataFrame(
+        {
+            "location": ["Hera"] * 4,
+            "sex": ["Male", "Male", "Female", "Female"],
+            "age": ["0-4", "5-9", "0-4", "5-9"],
+            "color": ["Red", "Blue", "Red", "Blue"],
+            "value": [10, 30, 50, 70],
+        }
+    )
+    weights = weights.set_index(["location", "sex", "age", "color"])
+    weighted_avg = weighted_average(
+        data, weights, "all", scenario_columns=[DRAW_INDEX, SEED_INDEX]
+    )
+    assert isinstance(weighted_avg, pd.DataFrame)
+    assert set(weighted_avg.index.names) == set(data.index.names)
+
+
+def test_weighted_average_error_on_extra_data_indices() -> None:
+    data = pd.DataFrame(
+        {
+            "location": ["Regina"] * 4,
+            "sex": ["Male", "Male", "Female", "Female"],
+            "age": ["0-4", "5-9", "0-4", "5-9"],
+            "gravity": ["Low", "High", "Low", "High"],
+            "value": [1.0, 2.0, 3.0, 4.0],
+        }
+    )
+    data = data.set_index(["location", "sex", "age", "gravity"])
+    weights = pd.DataFrame(
+        {
+            "location": ["Regina"] * 4,
+            "sex": ["Male", "Male", "Female", "Female"],
+            "age": ["0-4", "5-9", "0-4", "5-9"],
+            "color": ["Red", "Blue", "Red", "Blue"],
+            "value": [10, 30, 50, 70],
+        }
+    )
+    weights = weights.set_index(["location", "sex", "age", "color"])
+    with pytest.raises(ValueError, match="are not present in weights index levels"):
+        weighted_average(data, weights)

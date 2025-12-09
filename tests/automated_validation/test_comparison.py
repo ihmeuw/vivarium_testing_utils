@@ -293,7 +293,7 @@ def test_fuzzy_comparison_align_datasets_calculation(
     aligned_test_data, aligned_reference_data = comparison.align_datasets()
     pd.testing.assert_frame_equal(
         aligned_reference_data,
-        reference_bundle.datasets["data"],
+        reference_bundle.datasets["data"].sort_index(),
     )
 
     expected_values = [10 / 100, 20 / 100, (30 + 35) / (100 + 100)]

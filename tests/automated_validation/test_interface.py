@@ -3,18 +3,40 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
+import yaml
 from pandas.testing import assert_frame_equal
+from pytest import TempPathFactory
 from pytest_mock import MockFixture
+from vivarium.framework.artifact import Artifact
 from vivarium.framework.artifact.artifact import ArtifactException
+from vivarium_inputs import interface
 
-from tests.automated_validation.conftest import IS_ON_SLURM
+from tests.automated_validation.conftest import (
+    IS_ON_SLURM,
+    get_model_spec,
+    load_exposure_categories,
+)
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     INPUT_DATA_INDEX_NAMES,
 )
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
-from vivarium_testing_utils.automated_validation.data_transformation import age_groups
+from vivarium_testing_utils.automated_validation.data_transformation import (
+    age_groups,
+    calculations,
+)
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
+
+MEASURE_DATA_MAPPER = {
+    "risk_factor.child_wasting.exposure": "exposure",
+    "risk_factor.child_wasting.relative_risk": "relative_risks",
+    "population.structure": "population_structure",
+    "cause.diarrheal_diseases.remission_rate": "remission_rate",
+    "cause.diarrheal_diseases.cause_specific_mortality_rate": "remission_rate",
+    "cause.diarrheal_diseases.incidence_rate": "incidence",
+    "cause.diarrheal_diseases.prevalence": "incidence",
+    "cause.diarrheal_diseases.excess_mortality_rate": "remission_rate",
+}
 
 
 def test_context_initialization(
@@ -222,11 +244,6 @@ def test_metadata(sim_result_dir: Path, mocker: MockFixture) -> None:
     assert metadata["Reference Data"]["Run Time"] == "Dec 31 23:59 2024"
 
 
-######################################
-# Tests for NotImplementedError cases#
-######################################
-
-
 def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:
     """Test that ValidationContext.plot_comparison correctly calls plot_utils.plot_comparison"""
     # Setup
@@ -319,18 +336,7 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
     # NOTE: Some of these CSVs are reused but have the same schema. Users will be expected to
     # make the correct get draws calls. For example, prevalence and incidence can be pull with
     # one call and then filtered down or pulled separately but they have the same schema.
-    measure_data_mapper = {
-        "risk_factor.child_wasting.exposure": "exposure",
-        "risk_factor.child_wasting.relative_risk": "relative_risks",
-        "population.structure": "population_structure",
-        "cause.diarrheal_diseases.remission_rate": "remission_rate",
-        "cause.diarrheal_diseases.cause_specific_mortality_rate": "remission_rate",
-        "cause.diarrheal_diseases.incidence_rate": "incidence",
-        "cause.diarrheal_diseases.prevalence": "incidence",
-        "cause.diarrheal_diseases.excess_mortality_rate": "remission_rate",
-    }
-
-    file_name = measure_data_mapper[data_key] + ".csv"
+    file_name = MEASURE_DATA_MAPPER[data_key] + ".csv"
     file_path = Path(__file__).parent / "gbd_data" / file_name
     gbd_data = pd.read_csv(file_path)
     context.cache_gbd_data(data_key, gbd_data)
@@ -352,6 +358,7 @@ def test_cache_gbd_data(sim_result_dir: Path, data_key: str) -> None:
         index_cols.append("parameter")
         if data_key == "risk_factor.child_wasting.relative_risk":
             index_cols.append("affected_entity")
+            index_cols.append("affected_measure")
     if data_key != "population.structure":
         index_cols.append(DRAW_INDEX)
 
@@ -520,3 +527,91 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
     )
     assert len(filtered) == 2
     assert all(filtered.index.get_level_values(INPUT_DATA_INDEX_NAMES.AGE_START) == "10")
+
+
+@pytest.mark.parametrize(
+    "data_key",
+    [
+        "risk_factor.child_wasting.exposure",
+        "risk_factor.child_wasting.relative_risk",
+        "cause.diarrheal_diseases.remission_rate",
+        "cause.diarrheal_diseases.cause_specific_mortality_rate",
+        "cause.diarrheal_diseases.incidence_rate",
+        "cause.diarrheal_diseases.prevalence",
+        "cause.diarrheal_diseases.excess_mortality_rate",
+    ],
+)
+@pytest.mark.slow
+def test_compare_artifact_and_gbd(
+    integration_artifact_data_mapper: dict[str, pd.DataFrame | str],
+    tmp_path_factory: TempPathFactory,
+    data_key: str,
+) -> None:
+    if not IS_ON_SLURM:
+        pytest.skip("No cluster access to use GBD data.")
+
+    # Create sim output directory
+    tmp_path = tmp_path_factory.mktemp("model_run_output")
+    # Create the directory structure
+    results_dir = tmp_path / "results"
+    results_dir.mkdir(parents=True)
+    # Create Artifact
+    artifact_dir = tmp_path / "artifacts"
+    artifact_dir.mkdir(exist_ok=True)
+    artifact_path = artifact_dir / "artifact.hdf"
+    artifact = Artifact(artifact_path)
+    for key, data in integration_artifact_data_mapper.items():
+        artifact.write(key, data)
+
+    # Save model specification
+    with open(tmp_path / "model_specification.yaml", "w") as f:
+        yaml.dump(get_model_spec(artifact_path), f)
+
+    vc = ValidationContext(tmp_path)
+
+    # Load get_draws data for custom GBD data
+    gbd = load_gbd_data(data_key)
+    vc.cache_gbd_data(data_key, gbd)
+
+    if data_key != "risk_factor.child_wasting.relative_risk":
+        vc.add_comparison(data_key, "artifact", "gbd")
+    else:
+        # Cache additional GBD data for relative risks
+        affected_measure_data = load_gbd_data("cause.diarrheal_diseases.incidence_rate")
+        vc.cache_gbd_data("cause.diarrheal_diseases.incidence_rate", affected_measure_data)
+        categories = integration_artifact_data_mapper["risk_factor.child_wasting.categories"]
+        vc.cache_gbd_data(
+            "risk_factor.child_wasting.categories",
+            categories,
+            overwrite=True,
+        )
+        vc.add_relative_risk_comparison(
+            "child_wasting", "diarrheal_diseases", "incidence_rate", "artifact", "gbd"
+        )
+        data_key += ".diarrheal_diseases.incidence_rate"
+
+    diff = vc.get_frame(data_key)
+    assert not diff.empty
+    assert diff.notna().all().all()
+
+
+###########
+# Helpers #
+###########
+
+
+def load_gbd_data(data_key: str) -> pd.DataFrame:
+    """Helper function to load GBD data from CSV files for testing."""
+    filename = MEASURE_DATA_MAPPER[data_key] + ".csv"
+    gbd = pd.read_csv(Path(__file__).parent / "gbd_data" / filename)
+    gbd = gbd.loc[gbd["year_id"] == 2023]
+    measure_mapper = {
+        "cause.diarrheal_diseases.prevalence": 5,
+        "cause.diarrheal_diseases.incidence_rate": 6,
+        "cause.diarrheal_diseases.remission_rate": 7,
+        "cause.diarrheal_diseases.excess_mortality_rate": 9,
+        "cause.diarrheal_diseases.cause_specific_mortality_rate": 15,
+    }
+    if data_key in measure_mapper:
+        gbd = gbd.loc[gbd["measure_id"] == measure_mapper[data_key]]
+    return gbd

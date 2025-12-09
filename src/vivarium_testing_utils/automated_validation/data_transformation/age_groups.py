@@ -15,6 +15,10 @@ from vivarium_testing_utils.automated_validation.data_transformation.data_schema
     SingleNumericColumn,
 )
 
+# Tolerance for floating-point age comparisons, sufficient to handle floating-point precision issues
+# while still catching legitimate data problems
+AGE_TOLERANCE = 1e-8
+
 
 class AgeGroup:
     """
@@ -44,9 +48,9 @@ class AgeGroup:
         if end < 0:
             raise ValueError(f"Negative end age.")
         self.end = float(end)
-        if end - start <= 0:
+        if self.end - self.start <= 0:
             raise ValueError("End age must be greater than start age.")
-        self.span = float(end - start)
+        self.span = float(self.end - self.start)
 
     def __eq__(self, other: object) -> bool:
         """Define equality between two age groups.
@@ -380,16 +384,16 @@ class AgeSchema:
             raise ValueError("No age groups provided.")
 
         for i in range(len(self.age_groups) - 1):
-            if self.age_groups[i].end > self.age_groups[i + 1].start:
+            if self.age_groups[i].end > self.age_groups[i + 1].start + AGE_TOLERANCE:
                 raise ValueError(
                     f"Overlapping age groups: {self.age_groups[i]} and {self.age_groups[i + 1]}"
                 )
-            if self.age_groups[i].end < self.age_groups[i + 1].start:
+            if self.age_groups[i].end < self.age_groups[i + 1].start - AGE_TOLERANCE:
                 raise ValueError(
                     f"Gap between consecutive age groups: {self.age_groups[i]} and {self.age_groups[i + 1]}"
                 )
 
-    def can_coerce_to(self, other: AgeSchema) -> bool:
+    def can_coerce_to(self, target: AgeSchema) -> bool:
         """
         Check whether this schema can be coerced to another schema.
 
@@ -397,19 +401,19 @@ class AgeSchema:
 
         Parameters
         ----------
-        other
-            The other age schema to check against.
+        target
+            The target age schema to check against.
         Returns
         -------
             True if this schema can be coerced to the other schema, False otherwise.
 
         """
-        overlap_start = max(self.range[0], other.range[0])
-        overlap_end = min(self.range[1], other.range[1])
+        overlap_start = max(self.range[0], target.range[0])
+        overlap_end = min(self.range[1], target.range[1])
         overlap = max(0, overlap_end - overlap_start)
-        if overlap < self.span:
+        if overlap < target.span - AGE_TOLERANCE:
             return False
-        if self.span < other.span:
+        if self.span < target.span - AGE_TOLERANCE:
             logger.warning(
                 "Warning: Age Groups span different total ranges. This could lead to unexpected results at extreme age ranges."
             )
@@ -453,7 +457,8 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
             f"Cannot coerce {source_age_schema} to {target_schema}. "
             "The source age interval must be a contained by the target interval of age groups."
         )
-    if source_age_schema.is_subset(target_schema):
+
+    if target_schema.is_subset(source_age_schema):
         return (
             pd.merge(
                 df.droplevel([INPUT_DATA_INDEX_NAMES.AGE_GROUP]),
