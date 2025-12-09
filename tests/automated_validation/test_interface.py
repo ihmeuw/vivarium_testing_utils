@@ -561,8 +561,6 @@ def test_compare_artifact_and_gbd(
     artifact_path = artifact_dir / "artifact.hdf"
     artifact = Artifact(artifact_path)
     for key, data in integration_artifact_data_mapper.items():
-        # TODO: do not think we need to do the following line
-        # art_data = calculations.clean_draw_columns(art_data)
         artifact.write(key, data)
 
     # Save model specification

@@ -326,7 +326,7 @@ def test_weighted_average_extra_weights_index(fish_data: pd.DataFrame) -> None:
 
     # Remove index layer from data so weights has an extra layer
     data = data.groupby("sex", sort=False, observed=True).sum()
-    weighted_avg = weighted_average(data, weights, [])
+    weighted_avg = weighted_average(data=data, weights=weights, stratifications=[])
     assert weighted_avg == ((5 * (20 + 100)) + (12 * (2 + 50))) / (20 + 100 + 2 + 50)
 
 
