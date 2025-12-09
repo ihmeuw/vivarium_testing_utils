@@ -24,6 +24,22 @@ from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import (
     age_groups,
     calculations,
+    utils,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    SingleNumericColumn,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
+    SimDataFormatter,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    RatioMeasure,
+    get_measure_from_key,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.rate_aggregation import (
+    RateAggregationWeights,
+    population_weighted,
+    population_weighted,
 )
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
 
@@ -593,6 +609,35 @@ def test_compare_artifact_and_gbd(
     diff = vc.get_frame(data_key)
     assert not diff.empty
     assert diff.notna().all().all()
+
+
+def test_add_new_measure(sim_result_dir: Path) -> None:
+    """Test that add_new_measure method can be called to return a custom measure
+    added to the measure mapping."""
+
+    class DogBarkMeasure(RatioMeasure):
+        @property
+        def rate_aggregation_weights(self) -> RateAggregationWeights:
+            """Returns rate aggregated weights."""
+            return population_weighted()
+
+        def __init__(self) -> None:
+            super().__init__(
+                entity_type="animal",
+                entity="dog",
+                measure="bark_rate",
+                numerator=SimDataFormatter(),
+                denominator=SimDataFormatter(),
+            )
+
+        @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+        def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+            return data
+
+    context = ValidationContext(sim_result_dir)
+    measure_key = "animal.dog.bark_rate"
+    context.add_new_measure(measure_key)
+    assert isinstance(get_measure_from_key(measure_key), DogBarkMeasure)
 
 
 ###########
