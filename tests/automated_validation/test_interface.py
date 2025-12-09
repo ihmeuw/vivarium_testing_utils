@@ -636,6 +636,8 @@ def test_add_new_measure(sim_result_dir: Path) -> None:
 
     context = ValidationContext(sim_result_dir)
     measure_key = "animal.dog.bark_rate"
+    with pytest.raises(KeyError, match=measure_key):
+        get_measure_from_key(measure_key)
     context.add_new_measure(measure_key)
     assert isinstance(get_measure_from_key(measure_key), DogBarkMeasure)
 
