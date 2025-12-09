@@ -182,6 +182,9 @@ class RatioMeasureDataBundle:
 
         # Update scenario columns to retain during aggregation
         scenario_cols = []
+        # NOTE: This is a hack to handle alignment of index levels in weighted_average. Risk
+        # stratification column is treated as a scenario column and the population can be
+        # broadcast across each index group since the exposure for each group should sum to 1.
         if isinstance(self.measure, (RiskExposure, CategoricalRelativeRisk)):
             scenario_cols.append(self.measure.risk_stratification_column)
         scenario_cols.extend(list(self.scenarios.keys()))
