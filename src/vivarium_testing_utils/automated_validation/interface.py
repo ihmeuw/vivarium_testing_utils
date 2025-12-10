@@ -44,7 +44,7 @@ class ValidationContext:
         self.age_groups = self._get_age_groups()
         self.scenario_columns = scenario_columns
         self.location = self.data_loader.location
-        self._measure_mapper = self._get_measure_mapper()
+        self.measure_mapper = self._get_measure_mapper()
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -81,7 +81,9 @@ class ValidationContext:
                 f"Got measure_key='{measure_key}'"
             )
 
-        measure = measures.get_measure_from_key(measure_key, list(self.scenario_columns))
+        measure = measures.get_measure_from_key(
+            measure_key, self.measure_mapper, list(self.scenario_columns)
+        )
         self._add_comparison_with_measure(
             measure,
             test_source,
@@ -404,8 +406,28 @@ class ValidationContext:
         sorted = data.reorder_levels(sorted_index).sort_index()
         return add_comparison_metadata_levels(sorted, comparison_key)
 
-    def add_new_measure(self, measure_key: str) -> None:
-        pass
+    def add_new_measure(self, measure_key: str, measure_class: Measure) -> None:
+        """Add a new measure class to the context's measure mapper.
+        Parameters
+        ----------
+        measure_key
+            The measure key in format 'entity_type.entity.measure_key' or 'entity_type.measure_key'.
+        measure_class
+            The class implementing the measure.
+        """
+        parts = measure_key.split(".")
+        if len(parts) not in (2, 3):
+            raise ValueError(
+                f"Measure key must be in format 'entity_type.entity.measure_key' or 'entity_type.measure_key'. "
+                f"Got measure_key='{measure_key}'"
+            )
+        if len(parts) == 3:
+            entity_type, entity, measure_key = parts
+        else:
+            entity_type, measure_key = parts
+
+        # NOTE: This will overwrite existing mappings
+        self.measure_mapper[entity_type][measure_key] = measure_class
 
     def _get_measure_mapper(self) -> defaultdict[str, dict[str, Callable[..., Measure]]]:
         return defaultdict(dict, MEASURE_KEY_MAPPINGS)

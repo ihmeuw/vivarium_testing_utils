@@ -614,19 +614,23 @@ def test_add_new_measure(sim_result_dir: Path) -> None:
     """Test that add_new_measure method can be called to return a custom measure
     added to the measure mapping."""
 
-    class DogBarkMeasure(RatioMeasure):
+    class AnimalSpeedMeasure(RatioMeasure):
         @property
         def rate_aggregation_weights(self) -> RateAggregationWeights:
             """Returns rate aggregated weights."""
             return population_weighted()
 
-        def __init__(self) -> None:
+        def __init__(self, entity: str) -> None:
             super().__init__(
                 entity_type="animal",
-                entity="dog",
-                measure="bark_rate",
-                numerator=SimDataFormatter(),
-                denominator=SimDataFormatter(),
+                entity=entity,
+                measure="speed",
+                numerator=SimDataFormatter(
+                    entity=entity, measure="speed", filter_value="total"
+                ),
+                denominator=SimDataFormatter(
+                    entity=entity, measure="speed", filter_value="total"
+                ),
             )
 
         @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
@@ -634,12 +638,12 @@ def test_add_new_measure(sim_result_dir: Path) -> None:
             return data
 
     context = ValidationContext(sim_result_dir)
-    measure_key = "animal.dog.bark_rate"
-    with pytest.raises(KeyError, match=measure_key):
-        get_measure_from_key(measure_key, context._measure_mapper)
-    context.add_new_measure(measure_key)
+    measure_key = "animal.dog.speed"
+    with pytest.raises(KeyError, match="speed"):
+        get_measure_from_key(measure_key, context.measure_mapper, [])
+    context.add_new_measure(measure_key, AnimalSpeedMeasure)
     assert isinstance(
-        get_measure_from_key(measure_key, context._measure_mapper), DogBarkMeasure
+        get_measure_from_key(measure_key, context.measure_mapper, []), AnimalSpeedMeasure
     )
 
 
