@@ -408,6 +408,7 @@ class ValidationContext:
 
     def add_new_measure(self, measure_key: str, measure_class: type[Measure]) -> None:
         """Add a new measure class to the context's measure mapper.
+        
         Parameters
         ----------
         measure_key
@@ -415,6 +416,7 @@ class ValidationContext:
         measure_class
             The class implementing the measure.
         """
+        
         parts = measure_key.split(".")
         if len(parts) not in (2, 3):
             raise ValueError(
