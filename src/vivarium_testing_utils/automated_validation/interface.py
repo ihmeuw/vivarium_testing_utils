@@ -406,7 +406,7 @@ class ValidationContext:
         sorted = data.reorder_levels(sorted_index).sort_index()
         return add_comparison_metadata_levels(sorted, comparison_key)
 
-    def add_new_measure(self, measure_key: str, measure_class: Measure) -> None:
+    def add_new_measure(self, measure_key: str, measure_class: type[Measure]) -> None:
         """Add a new measure class to the context's measure mapper.
         Parameters
         ----------

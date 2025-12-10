@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
@@ -541,7 +543,8 @@ def test_get_measure_from_key(measure_key: str, expected_class: type[RatioMeasur
     """Test get_measure_from_key for 3-part measure keys."""
     scenario_columns = ["scenario"]
 
-    measure = get_measure_from_key(measure_key, MEASURE_KEY_MAPPINGS, scenario_columns)
+    mapper = defaultdict(dict, MEASURE_KEY_MAPPINGS)
+    measure = get_measure_from_key(measure_key, mapper, scenario_columns)
     assert isinstance(measure, expected_class)
     assert measure.measure_key == measure_key
     if measure_key == "population.structure":
@@ -566,9 +569,10 @@ def test_get_measure_from_key_invalid_inputs(
 ) -> None:
     """Test get_measure_from_key with invalid inputs."""
     scenario_columns = ["scenario"]
+    mapper = defaultdict(dict, MEASURE_KEY_MAPPINGS)
 
     with pytest.raises(expected_error):
-        get_measure_from_key(invalid_key, MEASURE_KEY_MAPPINGS, scenario_columns)
+        get_measure_from_key(invalid_key, mapper, scenario_columns)
 
 
 def test_format_title() -> None:
