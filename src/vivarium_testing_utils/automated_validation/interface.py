@@ -424,7 +424,7 @@ class ValidationContext:
                 f"Got measure_key='{measure_key}'"
             )
         if len(parts) == 3:
-            entity_type, entity, measure_key = parts
+            entity_type, _, measure_key = parts
         else:
             entity_type, measure_key = parts
 
