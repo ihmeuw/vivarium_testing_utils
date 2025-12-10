@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+from collections import defaultdict
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Collection, Literal, Mapping
@@ -19,6 +21,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.calculation
     filter_data,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    MEASURE_KEY_MAPPINGS,
     CategoricalRelativeRisk,
     Measure,
     RatioMeasure,
@@ -41,6 +44,7 @@ class ValidationContext:
         self.age_groups = self._get_age_groups()
         self.scenario_columns = scenario_columns
         self.location = self.data_loader.location
+        self._measure_mapper = self._get_measure_mapper()
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -399,3 +403,9 @@ class ValidationContext:
         sorted_index = ordered_cols + extra_idx_cols
         sorted = data.reorder_levels(sorted_index).sort_index()
         return add_comparison_metadata_levels(sorted, comparison_key)
+
+    def add_new_measure(self, measure_key: str) -> None:
+        pass
+
+    def _get_measure_mapper(self) -> defaultdict[str, dict[str, Callable[..., Measure]]]:
+        return defaultdict(dict, MEASURE_KEY_MAPPINGS)

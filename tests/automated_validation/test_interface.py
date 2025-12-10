@@ -39,7 +39,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 from vivarium_testing_utils.automated_validation.data_transformation.rate_aggregation import (
     RateAggregationWeights,
     population_weighted,
-    population_weighted,
 )
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
 
@@ -637,9 +636,11 @@ def test_add_new_measure(sim_result_dir: Path) -> None:
     context = ValidationContext(sim_result_dir)
     measure_key = "animal.dog.bark_rate"
     with pytest.raises(KeyError, match=measure_key):
-        get_measure_from_key(measure_key)
+        get_measure_from_key(measure_key, context._measure_mapper)
     context.add_new_measure(measure_key)
-    assert isinstance(get_measure_from_key(measure_key), DogBarkMeasure)
+    assert isinstance(
+        get_measure_from_key(measure_key, context._measure_mapper), DogBarkMeasure
+    )
 
 
 ###########

@@ -7,6 +7,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     TotalPopulationPersonTime,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    MEASURE_KEY_MAPPINGS,
     CategoricalRelativeRisk,
     CauseSpecificMortalityRate,
     ExcessMortalityRate,
@@ -540,7 +541,7 @@ def test_get_measure_from_key(measure_key: str, expected_class: type[RatioMeasur
     """Test get_measure_from_key for 3-part measure keys."""
     scenario_columns = ["scenario"]
 
-    measure = get_measure_from_key(measure_key, scenario_columns)
+    measure = get_measure_from_key(measure_key, MEASURE_KEY_MAPPINGS, scenario_columns)
     assert isinstance(measure, expected_class)
     assert measure.measure_key == measure_key
     if measure_key == "population.structure":
@@ -567,7 +568,7 @@ def test_get_measure_from_key_invalid_inputs(
     scenario_columns = ["scenario"]
 
     with pytest.raises(expected_error):
-        get_measure_from_key(invalid_key, scenario_columns)
+        get_measure_from_key(invalid_key, MEASURE_KEY_MAPPINGS, scenario_columns)
 
 
 def test_format_title() -> None:

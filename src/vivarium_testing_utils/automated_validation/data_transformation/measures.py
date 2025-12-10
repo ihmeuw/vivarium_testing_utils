@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
@@ -497,13 +498,19 @@ MEASURE_KEY_MAPPINGS: dict[str, dict[str, Callable[..., Measure]]] = {
 }
 
 
-def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measure:
+def get_measure_from_key(
+    measure_key: str,
+    measure_mapper: defaultdict[str, dict[str, Callable[..., Measure]]],
+    scenario_columns: list[str],
+) -> Measure:
     """Get a measure instance from a measure key string.
 
     Parameters
     ----------
     measure_key
         The measure key in format 'entity_type.entity.measure_key' or 'entity_type.measure_key'
+    measure_mapper
+        A mapping of entity types and measure keys to Measure classes.
     scenario_columns
         Column names for scenario stratification. Used by some measures like PopulationStructure.
 
@@ -514,14 +521,14 @@ def get_measure_from_key(measure_key: str, scenario_columns: list[str]) -> Measu
     parts = measure_key.split(".")
     if len(parts) == 3:
         entity_type, entity, measure_key = parts
-        return MEASURE_KEY_MAPPINGS[entity_type][measure_key](entity)
+        return measure_mapper[entity_type][measure_key](entity)
     elif len(parts) == 2:
         entity_type, measure_key = parts
         # Special case for PopulationStructure which needs scenario_columns
         if entity_type == "population" and measure_key == "structure":
-            return MEASURE_KEY_MAPPINGS[entity_type][measure_key](scenario_columns)
+            return measure_mapper[entity_type][measure_key](scenario_columns)
         else:
-            return MEASURE_KEY_MAPPINGS[entity_type][measure_key]()
+            return measure_mapper[entity_type][measure_key]()
     else:
         raise ValueError(
             f"Invalid measure key format: {measure_key}. Expected format is two or three period-delimited strings e.g. 'population.structure' or 'cause.deaths.excess_mortality_rate'."
