@@ -16,14 +16,13 @@ from vivarium_inputs import utilities as vi
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
-from vivarium_testing_utils.automated_validation.data_transformation import measures
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
-    MEASURE_KEY_MAPPINGS,
     CategoricalRelativeRisk,
     Measure,
+    MeasureMapper,
     RatioMeasure,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import (
@@ -44,7 +43,7 @@ class ValidationContext:
         self.age_groups = self._get_age_groups()
         self.scenario_columns = scenario_columns
         self.location = self.data_loader.location
-        self.measure_mapper = self._get_measure_mapper()
+        self.measure_mapper = MeasureMapper()
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -81,8 +80,8 @@ class ValidationContext:
                 f"Got measure_key='{measure_key}'"
             )
 
-        measure = measures.get_measure_from_key(
-            measure_key, self.measure_mapper, list(self.scenario_columns)
+        measure = self.measure_mapper.get_measure_from_key(
+            measure_key, list(self.scenario_columns)
         )
         self._add_comparison_with_measure(
             measure,
@@ -417,19 +416,4 @@ class ValidationContext:
             The class implementing the measure.
         """
 
-        parts = measure_key.split(".")
-        if len(parts) not in (2, 3):
-            raise ValueError(
-                f"Measure key must be in format 'entity_type.entity.measure_key' or 'entity_type.measure_key'. "
-                f"Got measure_key='{measure_key}'"
-            )
-        if len(parts) == 3:
-            entity_type, _, measure_key = parts
-        else:
-            entity_type, measure_key = parts
-
-        # NOTE: This will overwrite existing mappings
-        self.measure_mapper[entity_type][measure_key] = measure_class
-
-    def _get_measure_mapper(self) -> defaultdict[str, dict[str, Callable[..., Measure]]]:
-        return defaultdict(dict, MEASURE_KEY_MAPPINGS)
+        self.measure_mapper.add_new_measure(measure_key, measure_class)

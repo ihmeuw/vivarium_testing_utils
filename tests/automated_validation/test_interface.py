@@ -33,8 +33,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     SimDataFormatter,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    MeasureMapper,
     RatioMeasure,
-    get_measure_from_key,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.rate_aggregation import (
     RateAggregationWeights,
@@ -640,10 +640,10 @@ def test_add_new_measure(sim_result_dir: Path) -> None:
     context = ValidationContext(sim_result_dir)
     measure_key = "animal.dog.speed"
     with pytest.raises(KeyError, match="speed"):
-        get_measure_from_key(measure_key, context.measure_mapper, [])
+        context.measure_mapper.get_measure_from_key(measure_key, [])
     context.add_new_measure(measure_key, AnimalSpeedMeasure)
     assert isinstance(
-        get_measure_from_key(measure_key, context.measure_mapper, []), AnimalSpeedMeasure
+        context.measure_mapper.get_measure_from_key(measure_key, []), AnimalSpeedMeasure
     )
 
 

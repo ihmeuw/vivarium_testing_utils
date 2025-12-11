@@ -9,18 +9,17 @@ from vivarium_testing_utils.automated_validation.data_transformation.formatting 
     TotalPopulationPersonTime,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
-    MEASURE_KEY_MAPPINGS,
     CategoricalRelativeRisk,
     CauseSpecificMortalityRate,
     ExcessMortalityRate,
     Incidence,
+    MeasureMapper,
     PopulationStructure,
     Prevalence,
     RatioMeasure,
     RiskExposure,
     SIRemission,
     _format_title,
-    get_measure_from_key,
 )
 
 
@@ -543,8 +542,8 @@ def test_get_measure_from_key(measure_key: str, expected_class: type[RatioMeasur
     """Test get_measure_from_key for 3-part measure keys."""
     scenario_columns = ["scenario"]
 
-    mapper = defaultdict(dict, MEASURE_KEY_MAPPINGS)
-    measure = get_measure_from_key(measure_key, mapper, scenario_columns)
+    mapper = MeasureMapper()
+    measure = mapper.get_measure_from_key(measure_key, scenario_columns)
     assert isinstance(measure, expected_class)
     assert measure.measure_key == measure_key
     if measure_key == "population.structure":
@@ -569,10 +568,10 @@ def test_get_measure_from_key_invalid_inputs(
 ) -> None:
     """Test get_measure_from_key with invalid inputs."""
     scenario_columns = ["scenario"]
-    mapper = defaultdict(dict, MEASURE_KEY_MAPPINGS)
+    mapper = MeasureMapper()
 
     with pytest.raises(expected_error):
-        get_measure_from_key(invalid_key, mapper, scenario_columns)
+        mapper.get_measure_from_key(invalid_key, scenario_columns)
 
 
 def test_format_title() -> None:
