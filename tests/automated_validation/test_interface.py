@@ -24,6 +24,21 @@ from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import (
     age_groups,
     calculations,
+    utils,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
+    SingleNumericColumn,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.formatting import (
+    SimDataFormatter,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.measures import (
+    MeasureMapper,
+    RatioMeasure,
+)
+from vivarium_testing_utils.automated_validation.data_transformation.rate_aggregation import (
+    RateAggregationWeights,
+    population_weighted,
 )
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
 
@@ -593,6 +608,43 @@ def test_compare_artifact_and_gbd(
     diff = vc.get_frame(data_key)
     assert not diff.empty
     assert diff.notna().all().all()
+
+
+def test_add_new_measure(sim_result_dir: Path) -> None:
+    """Test that add_new_measure method can be called to return a custom measure
+    added to the measure mapping."""
+
+    class AnimalSpeedMeasure(RatioMeasure):
+        @property
+        def rate_aggregation_weights(self) -> RateAggregationWeights:
+            """Returns rate aggregated weights."""
+            return population_weighted()
+
+        def __init__(self, entity: str) -> None:
+            super().__init__(
+                entity_type="animal",
+                entity=entity,
+                measure="speed",
+                numerator=SimDataFormatter(
+                    entity=entity, measure="speed", filter_value="total"
+                ),
+                denominator=SimDataFormatter(
+                    entity=entity, measure="speed", filter_value="total"
+                ),
+            )
+
+        @utils.check_io(data=SingleNumericColumn, out=SingleNumericColumn)
+        def get_measure_data_from_sim_inputs(self, data: pd.DataFrame) -> pd.DataFrame:
+            return data
+
+    context = ValidationContext(sim_result_dir)
+    measure_key = "animal.dog.speed"
+    with pytest.raises(KeyError, match="speed"):
+        context.measure_mapper.get_measure_from_key(measure_key, [])
+    context.add_new_measure(measure_key, AnimalSpeedMeasure)
+    assert isinstance(
+        context.measure_mapper.get_measure_from_key(measure_key, []), AnimalSpeedMeasure
+    )
 
 
 ###########
