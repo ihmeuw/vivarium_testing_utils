@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+from collections import defaultdict
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Collection, Literal, Mapping
@@ -14,13 +16,13 @@ from vivarium_inputs import utilities as vi
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
-from vivarium_testing_utils.automated_validation.data_transformation import measures
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.measures import (
     CategoricalRelativeRisk,
     Measure,
+    MeasureMapper,
     RatioMeasure,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import (
@@ -41,6 +43,7 @@ class ValidationContext:
         self.age_groups = self._get_age_groups()
         self.scenario_columns = scenario_columns
         self.location = self.data_loader.location
+        self.measure_mapper = MeasureMapper()
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -77,7 +80,9 @@ class ValidationContext:
                 f"Got measure_key='{measure_key}'"
             )
 
-        measure = measures.get_measure_from_key(measure_key, list(self.scenario_columns))
+        measure = self.measure_mapper.get_measure_from_key(
+            measure_key, list(self.scenario_columns)
+        )
         self._add_comparison_with_measure(
             measure,
             test_source,
@@ -399,3 +404,16 @@ class ValidationContext:
         sorted_index = ordered_cols + extra_idx_cols
         sorted = data.reorder_levels(sorted_index).sort_index()
         return add_comparison_metadata_levels(sorted, comparison_key)
+
+    def add_new_measure(self, measure_key: str, measure_class: type[Measure]) -> None:
+        """Add a new measure class to the context's measure mapper.
+
+        Parameters
+        ----------
+        measure_key
+            The measure key in format 'entity_type.entity.measure_key' or 'entity_type.measure_key'.
+        measure_class
+            The class implementing the measure.
+        """
+
+        self.measure_mapper.add_new_measure(measure_key, measure_class)
