@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import NamedTuple
 
 DRAW_PREFIX = "draw_"
 
@@ -24,3 +25,23 @@ class DataSource(Enum):
 
 LOCATION_ARTIFACT_KEY = "population.location"
 POPULATION_STRUCTURE_ARTIFACT_KEY = "population.structure"
+
+
+class InputDataIndexNames(NamedTuple):
+    LOCATION_ID: str = "location_id"
+    SEX_ID: str = "sex_id"
+    AGE_GROUP_ID: str = "age_group_id"
+    YEAR_ID: str = "year_id"
+    PARAMETER: str = "parameter"
+    CAUSE_ID: str = "cause_id"
+    AFFECTED_ENTITY: str = "affected_entity"
+    LOCATION: str = "location"
+    SEX: str = "sex"
+    AGE_GROUP: str = "age_group"
+    AGE_START: str = "age_start"
+    AGE_END: str = "age_end"
+    YEAR_START: str = "year_start"
+    YEAR_END: str = "year_end"
+
+
+INPUT_DATA_INDEX_NAMES = InputDataIndexNames()

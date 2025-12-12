@@ -10,6 +10,7 @@ from vivarium.framework.artifact import Artifact
 
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
+    INPUT_DATA_INDEX_NAMES,
     LOCATION_ARTIFACT_KEY,
     SEED_INDEX,
 )
@@ -21,9 +22,6 @@ from vivarium_testing_utils.automated_validation.data_transformation import (
     utils,
 )
 from vivarium_testing_utils.automated_validation.data_transformation.age_groups import (
-    AGE_END_COLUMN,
-    AGE_GROUP_COLUMN,
-    AGE_START_COLUMN,
     AgeSchema,
     AgeTuple,
 )
@@ -138,8 +136,8 @@ def _get_artifact_index() -> pd.MultiIndex:
         names=[
             "common_stratify_column",
             "other_stratify_column",
-            AGE_START_COLUMN,
-            AGE_END_COLUMN,
+            INPUT_DATA_INDEX_NAMES.AGE_START,
+            INPUT_DATA_INDEX_NAMES.AGE_END,
         ],
     )
 
@@ -160,11 +158,17 @@ def _create_sample_age_group_df() -> pd.DataFrame:
     """Create sample age group data for testing."""
     return pd.DataFrame(
         {
-            AGE_GROUP_COLUMN: ["0_to_4", "5_to_9", "10_to_14"],
-            AGE_START_COLUMN: [0.0, 5.0, 10.0],
-            AGE_END_COLUMN: [5.0, 10.0, 15.0],
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP: ["0_to_4", "5_to_9", "10_to_14"],
+            INPUT_DATA_INDEX_NAMES.AGE_START: [0.0, 5.0, 10.0],
+            INPUT_DATA_INDEX_NAMES.AGE_END: [5.0, 10.0, 15.0],
         }
-    ).set_index([AGE_GROUP_COLUMN, AGE_START_COLUMN, AGE_END_COLUMN])
+    ).set_index(
+        [
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+            INPUT_DATA_INDEX_NAMES.AGE_START,
+            INPUT_DATA_INDEX_NAMES.AGE_END,
+        ]
+    )
 
 
 @utils.check_io(out=SingleNumericColumn)
@@ -398,9 +402,9 @@ def sample_df_with_ages() -> pd.DataFrame:
             names=[
                 "cause",
                 "disease",
-                AGE_GROUP_COLUMN,
-                AGE_START_COLUMN,
-                AGE_END_COLUMN,
+                INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+                INPUT_DATA_INDEX_NAMES.AGE_START,
+                INPUT_DATA_INDEX_NAMES.AGE_END,
             ],
         ),
     )
@@ -514,8 +518,8 @@ def _artifact_population_structure() -> pd.DataFrame:
         "location",
         "common_stratify_column",
         "other_stratify_column",
-        AGE_START_COLUMN,
-        AGE_END_COLUMN,
+        INPUT_DATA_INDEX_NAMES.AGE_START,
+        INPUT_DATA_INDEX_NAMES.AGE_END,
     ]
     pop = pop.reset_index().set_index(index_order)
 
@@ -613,10 +617,10 @@ def reference_weights() -> pd.DataFrame:
 
 def is_on_slurm() -> bool:
     """Returns True if the current environment is a SLURM cluster."""
-    return not shutil.which("sbatch") is not None
+    return shutil.which("sbatch") is not None
 
 
-NO_GBD_ACCESS = is_on_slurm()
+IS_ON_SLURM = is_on_slurm()
 
 
 @pytest.fixture

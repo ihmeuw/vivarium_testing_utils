@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from tests.automated_validation.conftest import NO_GBD_ACCESS
+from tests.automated_validation.conftest import IS_ON_SLURM
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     POPULATION_STRUCTURE_ARTIFACT_KEY,
@@ -232,7 +232,7 @@ def test___get_raw_data_from_source(
 )
 def test__load_gbd_data(key: str, sim_result_dir: Path) -> None:
     """Ensure that we can load standard GBD data"""
-    if NO_GBD_ACCESS:
+    if not IS_ON_SLURM:
         pytest.skip("No access to IHME cluster to extract GBD data.")
 
     data_loader = DataLoader(sim_result_dir)

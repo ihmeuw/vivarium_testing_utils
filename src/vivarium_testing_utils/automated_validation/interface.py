@@ -21,6 +21,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 )
 from vivarium_testing_utils.automated_validation.data_transformation.utils import (
     drop_extra_columns,
+    get_measure_index_names,
     set_gbd_index,
     set_validation_index,
 )
@@ -249,9 +250,10 @@ class ValidationContext:
             sort_by = "percent_error"
 
         if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
-            return self.comparisons[comparison_key].get_frame(
+            data = self.comparisons[comparison_key].get_frame(
                 stratifications, num_rows, sort_by, ascending, aggregate_draws
             )
+            return self.sort_ui_data_index(data, comparison_key)
         else:
             raise ValueError("num_rows must be a positive integer or literal 'all'")
 
@@ -344,3 +346,27 @@ class ValidationContext:
         data = vi.split_interval(data, interval_column="year", split_column_prefix="year")
         formatted_data: pd.DataFrame = vi.sort_hierarchical_data(data)
         return formatted_data
+
+    @staticmethod
+    def sort_ui_data_index(data: pd.DataFrame, comparison_key: str) -> pd.DataFrame:
+        """Sort the data for UI display.
+
+        Parameters
+        ----------
+        data
+            The DataFrame to sort.
+        comparison_key
+            The comparison key for logging purposes.
+
+        Returns
+        -------
+            The sorted DataFrame.
+        """
+
+        expected_order = get_measure_index_names(comparison_key, "vivarium")
+        ordered_cols = [col for col in expected_order if col in data.index.names]
+        extra_idx_cols = [col for col in data.index.names if col not in ordered_cols]
+        sorted_index = ordered_cols + extra_idx_cols
+        sorted = data.reorder_levels(sorted_index).sort_index()
+
+        return sorted
