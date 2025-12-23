@@ -108,15 +108,15 @@ class AgeGroup:
         """
         # Special case for "early_neonatal", "late_neonatal", and "95_plus"
         special_age_groups = {
-            "early_neonatal": ("Early Neonatal", 0.0, 7 / 365.0),
-            "late_neonatal": ("Late Neonatal", 7 / 365.0, 28 / 365.0),
+            "early_neonatal": (0.0, 7 / 365.0),
+            "late_neonatal": (7 / 365.0, 28 / 365.0),
             # 1-5 months is not exactly 1 month so it is special cased
-            "1-5_months": ("1-5 months", 28.0 / 365.0, 0.5),
-            "95_plus": ("95 plus", 95.0, 125.0),
+            "1-5_months": (28.0 / 365.0, 0.5),
+            "95_plus": (95.0, 125.0),
         }
         if name in special_age_groups:
-            special_name, start, end = special_age_groups[name]
-            return cls(special_name, start, end)
+            start, end = special_age_groups[name]
+            return cls(name, start, end)
         # Extract numbers and unit from the group name
         pattern = r"(\d+(?:\.\d+)?)(?:_to_|-)(\d+(?:\.\d+)?)(?:_(\w+))?"
         match = re.match(pattern, name.lower())
