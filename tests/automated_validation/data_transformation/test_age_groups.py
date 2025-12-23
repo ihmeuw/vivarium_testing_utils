@@ -386,6 +386,7 @@ def test_resolve_special_age_groups() -> None:
     )
 
     formatted_df = format_dataframe_from_age_bin_df(data, age_bins)
+    assert len(formatted_df) == len(age_bins)
     context_age_schema = AgeSchema.from_dataframe(age_bins)
     pd.testing.assert_frame_equal(formatted_df, _format_dataframe(context_age_schema, data))
 
@@ -424,6 +425,7 @@ def test_resolve_special_age_groups() -> None:
         ]
     )
     formatted_oldies = format_dataframe_from_age_bin_df(old_but_gold, oldies)
+    assert len(formatted_oldies) == len(oldies)
     context_oldies_schema = AgeSchema.from_dataframe(oldies)
     pd.testing.assert_frame_equal(
         formatted_oldies, _format_dataframe(context_oldies_schema, old_but_gold)
