@@ -411,7 +411,10 @@ class AgeSchema:
         overlap_start = max(self.range[0], target.range[0])
         overlap_end = min(self.range[1], target.range[1])
         overlap = max(0, overlap_end - overlap_start)
+        breakpoint()
         if overlap < target.span - AGE_TOLERANCE:
+            # TODO: check if age groups for self is subset of age groups in target
+            # TODO: fill in gaps with NaNs
             return False
         if self.span < target.span - AGE_TOLERANCE:
             logger.warning(
