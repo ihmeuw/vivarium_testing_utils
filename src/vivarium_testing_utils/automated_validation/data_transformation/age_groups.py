@@ -438,7 +438,27 @@ class AgeSchema:
             True if this schema can be coerced to the other schema, False otherwise.
 
         """
-        pass
+        # Collect all unique boundary points from target schema
+        target_boundaries = set()
+        for group in target.age_groups:
+            target_boundaries.add(group.start)
+            target_boundaries.add(group.end)
+
+        # Check if all boundaries of self's age groups exist in target
+        for group in self.age_groups:
+            # Check start boundary
+            if not any(
+                abs(group.start - boundary) <= AGE_TOLERANCE for boundary in target_boundaries
+            ):
+                return False
+
+            # Check end boundary
+            if not any(
+                abs(group.end - boundary) <= AGE_TOLERANCE for boundary in target_boundaries
+            ):
+                return False
+
+        return True
 
 
 def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame:
