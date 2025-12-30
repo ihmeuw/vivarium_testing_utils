@@ -451,3 +451,16 @@ def test_coerce_with_subset_schema() -> None:
 
     assert schema1.is_subset(schema2)
     assert schema1.can_coerce_to(schema2)
+
+
+def test_coerce_with_partial_span() -> None:
+    """The use case here is there is an observer that has age groups that do not cover the full span
+    of the age groups found in the age groups of the ValidationContext. For example, an observer may
+    only have age groups from 0-10 years, while the ValidationContext has age groups from 0-15 years.
+    """
+
+    schema1 = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
+    schema2 = AgeSchema.from_tuples(
+        [("0_to_5", 0, 5), ("5_to_10", 5, 10), ("10_to_15", 10, 15)]
+    )
+    assert schema1.can_coerce_partial_span(schema2)

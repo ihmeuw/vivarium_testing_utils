@@ -411,16 +411,34 @@ class AgeSchema:
         overlap_start = max(self.range[0], target.range[0])
         overlap_end = min(self.range[1], target.range[1])
         overlap = max(0, overlap_end - overlap_start)
-        breakpoint()
         if overlap < target.span - AGE_TOLERANCE:
-            # TODO: check if age groups for self is subset of age groups in target
-            # TODO: fill in gaps with NaNs
-            return False
+            if self.can_coerce_partial_span(target):
+                return True
+            else:
+                return False
         if self.span < target.span - AGE_TOLERANCE:
             logger.warning(
                 "Warning: Age Groups span different total ranges. This could lead to unexpected results at extreme age ranges."
             )
         return True
+
+    def can_coerce_partial_span(self, target: AgeSchema) -> bool:
+        """
+        Check whether this schema can be coerced to another schema even if it spans a sub-interval.
+        That is, all age groups in this schema are fully contained within age groups in the target schema
+        where the age group boundaries match for all age groups in this schema but the target scehma may
+        have additional age groups outside the range of this schema.
+
+        Parameters
+        ----------
+        target
+            The target age schema to check against.
+        Returns
+        -------
+            True if this schema can be coerced to the other schema, False otherwise.
+
+        """
+        pass
 
 
 def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFrame:
