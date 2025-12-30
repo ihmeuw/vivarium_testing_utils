@@ -463,4 +463,6 @@ def test_coerce_with_partial_span() -> None:
     schema2 = AgeSchema.from_tuples(
         [("0_to_5", 0, 5), ("5_to_10", 5, 10), ("10_to_15", 10, 15)]
     )
+    schema3 = AgeSchema.from_tuples([("0_to_4", 0, 4), ("4_to_10", 4, 10)])
     assert schema1.can_coerce_partial_span(schema2)
+    assert not schema3.can_coerce_partial_span(schema2)
