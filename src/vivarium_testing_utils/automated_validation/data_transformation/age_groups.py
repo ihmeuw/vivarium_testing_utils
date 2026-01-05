@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+import numpy as np
 import pandas as pd
 from loguru import logger
 
@@ -615,12 +616,20 @@ def rebin_count_dataframe(
         # Perform the dot product
         result_matrix_for_col = unstacked_series.dot(transform_matrix.T)
 
+        # Identify target age groups with no source data (all-zero rows in transform matrix)
+        # and set their values to NaN to indicate missing/extrapolated data
+        zero_rows = (transform_matrix == 0).all(axis=1)
+        target_groups_with_no_source = transform_matrix.index[zero_rows].tolist()
+        if target_groups_with_no_source:
+            result_matrix_for_col[target_groups_with_no_source] = np.nan
+
         # Name the column GBD_INDEX_NAMES.AGE_GROUP for re-stacking
         result_matrix_for_col.columns.name = INPUT_DATA_INDEX_NAMES.AGE_GROUP
 
         # Stack the new age group columns into the index
+        # Use dropna=False to preserve rows with NaN values for age groups with no source data
         stacked_series_for_col = result_matrix_for_col.stack(
-            level=INPUT_DATA_INDEX_NAMES.AGE_GROUP
+            level=INPUT_DATA_INDEX_NAMES.AGE_GROUP, dropna=False
         )
         stacked_series_for_col.name = val_col
 

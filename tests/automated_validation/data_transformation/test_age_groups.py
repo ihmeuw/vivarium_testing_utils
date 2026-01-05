@@ -470,8 +470,8 @@ def test_coerce_with_partial_span() -> None:
     assert schema4.can_coerce_partial_span(schema2)
 
 
-def test_rebin_dataframe_partial_span(sample_df_with_ages) -> None:
-    
+def test_rebin_dataframe_partial_span(sample_df_with_ages: pd.DataFrame) -> None:
+
     target_age_schema = AgeSchema.from_tuples(
         [
             ("0_to_5", 0, 5),
@@ -481,8 +481,6 @@ def test_rebin_dataframe_partial_span(sample_df_with_ages) -> None:
         ]
     )
     formatted_df = _format_dataframe(target_age_schema, sample_df_with_ages)
-    # TODO: for the age groups in formatted_df where the age group exists in target_age_schema but not in
-    # sample_df_with_ages, we want the dataframe to be build with NAs, currently they get filled with 0.0
     pd.testing.assert_frame_equal(
         formatted_df,
         rebin_count_dataframe(
@@ -491,4 +489,16 @@ def test_rebin_dataframe_partial_span(sample_df_with_ages) -> None:
                 [INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]
             ),
         ),
+    )
+    # Target schema has an extra age group (15_to_20) that is not in the data.
+    assert "15_to_20" in formatted_df.index.get_level_values(INPUT_DATA_INDEX_NAMES.AGE_GROUP)
+    # 15_to_20 group is NaNs
+    assert (
+        formatted_df.loc[
+            formatted_df.index.get_level_values(INPUT_DATA_INDEX_NAMES.AGE_GROUP)
+            == "15_to_20"
+        ]
+        .isna()
+        .all()
+        .all()
     )
