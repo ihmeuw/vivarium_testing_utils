@@ -463,12 +463,18 @@ class AgeSchema:
         """
         overlap_start = max(self.range[0], target.range[0])
         overlap_end = min(self.range[1], target.range[1])
-        overlap = max(0, overlap_end - overlap_start)
-        if overlap < target.span - AGE_TOLERANCE:
+        shared_age_span = max(0, overlap_end - overlap_start)
+
+        does_not_cover_full_target = shared_age_span < target.span - AGE_TOLERANCE
+        if does_not_cover_full_target:
+            # Target's full range is not covered so check if all our age group boundaries
+            # align with target boundaries
             return self.can_coerce_partial_span(target)
+
         if self._span_less_than(target.span):
             logger.warning(
-                "Warning: Age Groups span different total ranges. This could lead to unexpected results at extreme age ranges."
+                "Warning: Age Groups span different total ranges. "
+                "This could lead to unexpected results at extreme age ranges."
             )
         return True
 
