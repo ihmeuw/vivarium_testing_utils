@@ -502,3 +502,21 @@ def test_rebin_dataframe_partial_span(sample_df_with_ages: pd.DataFrame) -> None
         .all()
         .all()
     )
+
+
+def test_transform_matrix_with_partial_span() -> None:
+    """Test we can get a transform matrix between two schemas with partial span."""
+    source_schema = AgeSchema.from_tuples([("0_to_5", 0, 5), ("5_to_10", 5, 10)])
+    target_schema = AgeSchema.from_tuples(
+        [("0_to_5", 0, 5), ("5_to_10", 5, 10), ("10_to_15", 10, 15)]
+    )
+    transform_matrix = _get_transform_matrix(source_schema, target_schema)
+    expected_matrix = pd.DataFrame(
+        {
+            "0_to_5": [1.0, 0.0, 0.0],
+            "5_to_10": [0.0, 1.0, 0.0],
+        },
+        index=["0_to_5", "5_to_10", "10_to_15"],
+    )
+
+    pd.testing.assert_frame_equal(transform_matrix, expected_matrix)
