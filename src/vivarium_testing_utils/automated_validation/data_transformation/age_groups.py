@@ -55,6 +55,8 @@ class AgeGroup:
     def __eq__(self, other: object) -> bool:
         """Define equality between two age groups.
 
+        Uses AGE_TOLERANCE to handle floating-point precision issues.
+
         Parameters
         ----------
         other
@@ -62,11 +64,42 @@ class AgeGroup:
 
         Returns
         -------
-            True if the two age groups have the same start and end ages, False otherwise.
+            True if the two age groups have the same start and end ages (within AGE_TOLERANCE), False otherwise.
         """
         if not isinstance(other, AgeGroup):
             return NotImplemented
-        return (self.start, self.end) == (other.start, other.end)
+        return (
+            abs(self.start - other.start) <= AGE_TOLERANCE
+            and abs(self.end - other.end) <= AGE_TOLERANCE
+        )
+
+    def end_matches(self, value: float) -> bool:
+        """Check if the end age matches a value within AGE_TOLERANCE.
+
+        Parameters
+        ----------
+        value
+            The value to compare against.
+
+        Returns
+        -------
+            True if the end age matches the value within AGE_TOLERANCE, False otherwise.
+        """
+        return abs(self.end - value) <= AGE_TOLERANCE
+
+    def start_matches(self, value: float) -> bool:
+        """Check if the start age matches a value within AGE_TOLERANCE.
+
+        Parameters
+        ----------
+        value
+            The value to compare against.
+
+        Returns
+        -------
+            True if the start age matches the value within AGE_TOLERANCE, False otherwise.
+        """
+        return abs(self.start - value) <= AGE_TOLERANCE
 
     def fraction_contained_by(self, other: AgeGroup) -> float:
         """
@@ -384,14 +417,34 @@ class AgeSchema:
             raise ValueError("No age groups provided.")
 
         for i in range(len(self.age_groups) - 1):
-            if self.age_groups[i].end > self.age_groups[i + 1].start + AGE_TOLERANCE:
-                raise ValueError(
-                    f"Overlapping age groups: {self.age_groups[i]} and {self.age_groups[i + 1]}"
-                )
-            if self.age_groups[i].end < self.age_groups[i + 1].start - AGE_TOLERANCE:
-                raise ValueError(
-                    f"Gap between consecutive age groups: {self.age_groups[i]} and {self.age_groups[i + 1]}"
-                )
+            current_group = self.age_groups[i]
+            next_group = self.age_groups[i + 1]
+
+            # Check if end of current matches start of next (within tolerance)
+            if not current_group.end_matches(next_group.start):
+                # If they don't match, check if there's overlap or a gap
+                if current_group.end > next_group.start:
+                    raise ValueError(
+                        f"Overlapping age groups: {current_group} and {next_group}"
+                    )
+                else:
+                    raise ValueError(
+                        f"Gap between consecutive age groups: {current_group} and {next_group}"
+                    )
+
+    def _span_less_than(self, value: float) -> bool:
+        """Check if the span is less than a value (accounting for tolerance).
+
+        Parameters
+        ----------
+        value
+            The value to compare against.
+
+        Returns
+        -------
+            True if the span is less than the value minus AGE_TOLERANCE, False otherwise.
+        """
+        return self.span < value - AGE_TOLERANCE
 
     def can_coerce_to(self, target: AgeSchema) -> bool:
         """
@@ -412,11 +465,8 @@ class AgeSchema:
         overlap_end = min(self.range[1], target.range[1])
         overlap = max(0, overlap_end - overlap_start)
         if overlap < target.span - AGE_TOLERANCE:
-            if self.can_coerce_partial_span(target):
-                return True
-            else:
-                return False
-        if self.span < target.span - AGE_TOLERANCE:
+            return self.can_coerce_partial_span(target)
+        if self._span_less_than(target.span):
             logger.warning(
                 "Warning: Age Groups span different total ranges. This could lead to unexpected results at extreme age ranges."
             )
@@ -447,15 +497,11 @@ class AgeSchema:
         # Check if all boundaries of self's age groups exist in target
         for group in self.age_groups:
             # Check start boundary
-            if not any(
-                abs(group.start - boundary) <= AGE_TOLERANCE for boundary in target_boundaries
-            ):
+            if not any(group.start_matches(boundary) for boundary in target_boundaries):
                 return False
 
             # Check end boundary
-            if not any(
-                abs(group.end - boundary) <= AGE_TOLERANCE for boundary in target_boundaries
-            ):
+            if not any(group.end_matches(boundary) for boundary in target_boundaries):
                 return False
 
         return True
