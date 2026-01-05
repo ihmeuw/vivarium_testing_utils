@@ -467,7 +467,7 @@ class AgeSchema:
 
         does_not_cover_full_target = shared_age_span < target.span - AGE_TOLERANCE
         if does_not_cover_full_target:
-            # Target's full range is not covered so check if all our age group boundaries
+            # Target's full range is not covered so check if all age group boundaries
             # align with target boundaries
             return self.can_coerce_partial_span(target)
 
