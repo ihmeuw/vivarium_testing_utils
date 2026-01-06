@@ -616,12 +616,21 @@ def rebin_count_dataframe(
         # Perform the dot product
         result_matrix_for_col = unstacked_series.dot(transform_matrix.T)
 
-        # Identify target age groups with no source data (all-zero rows in transform matrix)
-        # and set their values to NaN to indicate missing/extrapolated data
-        zero_rows = (transform_matrix == 0).all(axis=1)
-        target_groups_with_no_source = transform_matrix.index[zero_rows].tolist()
-        if target_groups_with_no_source:
-            result_matrix_for_col[target_groups_with_no_source] = np.nan
+        # Identify target age groups that are completely outside the source schema's range
+        # These "extra" age groups should be set to NaN to indicate no source data
+        extra_age_groups = []
+        for target_group in target_schema.age_groups:
+            # Check if target group has any overlap with any source group
+            has_overlap = any(
+                source_group.fraction_contained_by(target_group) > 0
+                for source_group in source_age_schema.age_groups
+            )
+            if not has_overlap:
+                extra_age_groups.append(target_group.name)
+
+        # Set only the truly extra age groups to NaN
+        if extra_age_groups:
+            result_matrix_for_col[extra_age_groups] = np.nan
 
         # Name the column GBD_INDEX_NAMES.AGE_GROUP for re-stacking
         result_matrix_for_col.columns.name = INPUT_DATA_INDEX_NAMES.AGE_GROUP
