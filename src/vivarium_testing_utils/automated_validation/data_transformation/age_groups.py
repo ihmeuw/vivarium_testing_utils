@@ -299,7 +299,9 @@ class AgeSchema:
         return cls(age_groups)
 
     @classmethod
-    def from_ranges(cls, age_ranges: list[AgeRange], target_schema: AgeSchema) -> AgeSchema:
+    def from_ranges(
+        cls, age_ranges: list[AgeRange], target_schema: AgeSchema | None = None
+    ) -> AgeSchema:
         """
         Create an AgeSchema from a list of age ranges.
 
@@ -314,14 +316,15 @@ class AgeSchema:
         """
         age_groups = []
         for start, end in age_ranges:
-            # Check if target_schema has an age group with matching start and end ages
             matching_group = None
-            for group in target_schema.age_groups:
-                if group.start_matches(start) and group.end_matches(end):
-                    matching_group = group
-                    break
+            # Check if target_schema has an age group with matching start and end ages
+            if target_schema is not None:
+                for group in target_schema.age_groups:
+                    if group.start_matches(start) and group.end_matches(end):
+                        matching_group = group
+                        break
 
-            if matching_group:
+            if matching_group is not None:
                 # Use the name from the target schema
                 age_groups.append(AgeGroup(matching_group.name, start, end))
             else:

@@ -262,6 +262,7 @@ def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) ->
         ]
     )
     formatted_df = _format_dataframe(target_age_schema, sample_df_with_ages)
+    source_schema = AgeSchema.from_dataframe(sample_df_with_ages)
     pd.testing.assert_frame_equal(
         formatted_df,
         rebin_count_dataframe(
@@ -269,6 +270,7 @@ def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) ->
             sample_df_with_ages.droplevel(
                 [INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]
             ),
+            source_schema,
         ),
     )
 
@@ -293,8 +295,9 @@ def test_rebin_dataframe(sample_df_with_ages: pd.DataFrame) -> None:
         "4_to_7": 1.0 * 1 / 5 + 2.0 * 2 / 5,
         "7_to_15": 2.0 * 3 / 5 + 3.0,
     }
+    source_schema = AgeSchema.from_dataframe(sample_df_with_ages)
 
-    rebinned_df = rebin_count_dataframe(target_age_schema, df)
+    rebinned_df = rebin_count_dataframe(target_age_schema, df, source_schema)
     expected_df = pd.DataFrame(
         {
             "value": expected_foo.values(),
@@ -481,6 +484,7 @@ def test_rebin_dataframe_partial_span(sample_df_with_ages: pd.DataFrame) -> None
         ]
     )
     formatted_df = _format_dataframe(target_age_schema, sample_df_with_ages)
+    source_schema = AgeSchema.from_dataframe(sample_df_with_ages)
     pd.testing.assert_frame_equal(
         formatted_df,
         rebin_count_dataframe(
@@ -488,6 +492,7 @@ def test_rebin_dataframe_partial_span(sample_df_with_ages: pd.DataFrame) -> None
             sample_df_with_ages.droplevel(
                 [INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]
             ),
+            source_schema,
         ),
     )
     # Target schema has an extra age group (15_to_20) that is not in the data.
