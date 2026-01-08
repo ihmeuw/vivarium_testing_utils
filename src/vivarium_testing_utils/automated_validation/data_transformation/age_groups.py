@@ -312,10 +312,21 @@ class AgeSchema:
         -------
             An AgeSchema with the specified age groups.
         """
-        # TODO: use target schema to name age groups appropriately
         age_groups = []
         for start, end in age_ranges:
-            age_groups.append(AgeGroup.from_range(start, end))
+            # Check if target_schema has an age group with matching start and end ages
+            matching_group = None
+            for group in target_schema.age_groups:
+                if group.start_matches(start) and group.end_matches(end):
+                    matching_group = group
+                    break
+
+            if matching_group:
+                # Use the name from the target schema
+                age_groups.append(AgeGroup(matching_group.name, start, end))
+            else:
+                # Create a generic name
+                age_groups.append(AgeGroup.from_range(start, end))
         return cls(age_groups)
 
     @classmethod
@@ -542,6 +553,8 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
         ValueError
             If the source age schema cannot be coerced to the target schema.
     """
+    # Target schema should have age_start, age_end, and age_group (population.age_bins format)
+    # df will have either age_group or age_start and age_end (artifact/gbd vs sim data format)
     source_age_schema = AgeSchema.from_dataframe(df, target_schema)
     index_names = list(df.index.names)
     for age_group_indices in [
@@ -693,6 +706,7 @@ def format_dataframe_from_age_bin_df(
     data: pd.DataFrame, age_bin_df: pd.DataFrame
 ) -> pd.DataFrame:
     """Try to merge the age groups with the data. If it fails, just return the data."""
+    # age_bin_df is expected to have 'age_group', 'age_start', 'age_end' columns (population.age_bins format)
     context_age_schema = AgeSchema.from_dataframe(age_bin_df)
     try:
         return _format_dataframe(context_age_schema, data)
