@@ -316,7 +316,7 @@ class AgeSchema:
         """
         age_groups = []
         for start, end in age_ranges:
-            matching_group = None
+            matching_group = AgeGroup.from_range(start, end)
             # Check if target_schema has an age group with matching start and end ages
             if target_schema is not None:
                 for group in target_schema.age_groups:
@@ -324,12 +324,7 @@ class AgeSchema:
                         matching_group = group
                         break
 
-            if matching_group is not None:
-                # Use the name from the target schema
-                age_groups.append(AgeGroup(matching_group.name, start, end))
-            else:
-                # Create a generic name
-                age_groups.append(AgeGroup.from_range(start, end))
+            age_groups.append(matching_group)
         return cls(age_groups)
 
     @classmethod
