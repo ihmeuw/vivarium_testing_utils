@@ -69,10 +69,7 @@ class AgeGroup:
         """
         if not isinstance(other, AgeGroup):
             return NotImplemented
-        return (
-            abs(self.start - other.start) <= AGE_TOLERANCE
-            and abs(self.end - other.end) <= AGE_TOLERANCE
-        )
+        return self.start_matches(other.start) and self.end_matches(other.end)
 
     def end_matches(self, value: float) -> bool:
         """Check if the end age matches a value within AGE_TOLERANCE.
@@ -320,7 +317,7 @@ class AgeSchema:
             # Check if target_schema has an age group with matching start and end ages
             if target_schema is not None:
                 for group in target_schema.age_groups:
-                    if group.start_matches(start) and group.end_matches(end):
+                    if matching_group == group:
                         matching_group = group
                         break
 
