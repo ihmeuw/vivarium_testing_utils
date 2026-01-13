@@ -69,10 +69,7 @@ class AgeGroup:
         """
         if not isinstance(other, AgeGroup):
             return NotImplemented
-        return (
-            abs(self.start - other.start) <= AGE_TOLERANCE
-            and abs(self.end - other.end) <= AGE_TOLERANCE
-        )
+        return self.start_matches(other.start) and self.end_matches(other.end)
 
     def end_matches(self, value: float) -> bool:
         """Check if the end age matches a value within AGE_TOLERANCE.
@@ -299,7 +296,9 @@ class AgeSchema:
         return cls(age_groups)
 
     @classmethod
-    def from_ranges(cls, age_ranges: list[AgeRange]) -> AgeSchema:
+    def from_ranges(
+        cls, age_ranges: list[AgeRange], target_schema: AgeSchema | None = None
+    ) -> AgeSchema:
         """
         Create an AgeSchema from a list of age ranges.
 
@@ -314,7 +313,15 @@ class AgeSchema:
         """
         age_groups = []
         for start, end in age_ranges:
-            age_groups.append(AgeGroup.from_range(start, end))
+            matching_group = AgeGroup.from_range(start, end)
+            # Check if target_schema has an age group with matching start and end ages
+            if target_schema is not None:
+                for group in target_schema.age_groups:
+                    if matching_group == group:
+                        matching_group = group
+                        break
+
+            age_groups.append(matching_group)
         return cls(age_groups)
 
     @classmethod
@@ -337,7 +344,9 @@ class AgeSchema:
         return cls(age_groups)
 
     @classmethod
-    def from_dataframe(cls, df: pd.DataFrame) -> AgeSchema:
+    def from_dataframe(
+        cls, df: pd.DataFrame, target_schema: AgeSchema | None = None
+    ) -> AgeSchema:
         """
         Create an AgeSchema from a DataFrame with age group names.
 
@@ -347,6 +356,8 @@ class AgeSchema:
         ----------
         df
             A DataFrame with age group names and/or their start and end ages.
+        target_schema
+            The target age schema to map age ranges to if only start/end are provided.
 
         Returns
         -------
@@ -380,7 +391,11 @@ class AgeSchema:
                 .reorder_levels(levels)
                 .unique()
             )
-            return cls.from_ranges(age_groups)
+            if target_schema is None:
+                raise ValueError(
+                    "Target schema must be provided when DataFrame has only 'age_start' and 'age_end' index levels."
+                )
+            return cls.from_ranges(age_groups, target_schema)
         # Most simulation dataframes have age group but not start/end
         elif has_age_group:
             levels = [INPUT_DATA_INDEX_NAMES.AGE_GROUP]
@@ -533,7 +548,9 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
         ValueError
             If the source age schema cannot be coerced to the target schema.
     """
-    source_age_schema = AgeSchema.from_dataframe(df)
+    # Target schema should have age_start, age_end, and age_group (population.age_bins format)
+    # df will have either age_group or age_start and age_end (artifact/gbd vs sim data format)
+    source_age_schema = AgeSchema.from_dataframe(df, target_schema)
     index_names = list(df.index.names)
     for age_group_indices in [
         INPUT_DATA_INDEX_NAMES.AGE_GROUP,
@@ -571,6 +588,7 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
         data = rebin_count_dataframe(
             target_schema,
             df.droplevel([INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]),
+            source_age_schema,
         )
         return data
 
@@ -579,6 +597,7 @@ def _format_dataframe(target_schema: AgeSchema, df: pd.DataFrame) -> pd.DataFram
 def rebin_count_dataframe(
     target_schema: AgeSchema,
     df: pd.DataFrame,
+    source_age_schema: AgeSchema,
 ) -> pd.DataFrame:
     """
     Rebin a DataFrame to match the target age schema.
@@ -592,12 +611,12 @@ def rebin_count_dataframe(
         The target age schema to convert to.
     df
         The DataFrame to rebin.
+    source_age_schema
+        The source age schema of the DataFrame.
     Returns
     -------
         A DataFrame with the target age schema in the index and transformed values.
     """
-    source_age_schema = AgeSchema.from_dataframe(df)
-
     transform_matrix = _get_transform_matrix(source_age_schema, target_schema)
 
     original_index_names = list(df.index.names)
@@ -682,6 +701,7 @@ def format_dataframe_from_age_bin_df(
     data: pd.DataFrame, age_bin_df: pd.DataFrame
 ) -> pd.DataFrame:
     """Try to merge the age groups with the data. If it fails, just return the data."""
+    # age_bin_df is expected to have 'age_group', 'age_start', 'age_end' columns (population.age_bins format)
     context_age_schema = AgeSchema.from_dataframe(age_bin_df)
     try:
         return _format_dataframe(context_age_schema, data)

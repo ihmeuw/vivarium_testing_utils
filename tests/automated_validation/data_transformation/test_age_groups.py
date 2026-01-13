@@ -54,7 +54,7 @@ def test_age_group_eq() -> None:
     [
         ("0_to_4_years", (0, 5)),
         ("0_to_5_months", (0, 0.5)),
-        ("0_to_7_days", (0, 0.02191780821917808)),
+        ("0_to_6_days", (0, 7 / 365.0)),
         ("14_to_16", (14, 17)),
     ],
 )
@@ -262,6 +262,7 @@ def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) ->
         ]
     )
     formatted_df = _format_dataframe(target_age_schema, sample_df_with_ages)
+    source_schema = AgeSchema.from_dataframe(sample_df_with_ages)
     pd.testing.assert_frame_equal(
         formatted_df,
         rebin_count_dataframe(
@@ -269,6 +270,7 @@ def test_age_schema_format_dataframe_rebin(sample_df_with_ages: pd.DataFrame) ->
             sample_df_with_ages.droplevel(
                 [INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]
             ),
+            source_schema,
         ),
     )
 
@@ -293,8 +295,9 @@ def test_rebin_dataframe(sample_df_with_ages: pd.DataFrame) -> None:
         "4_to_7": 1.0 * 1 / 5 + 2.0 * 2 / 5,
         "7_to_15": 2.0 * 3 / 5 + 3.0,
     }
+    source_schema = AgeSchema.from_dataframe(sample_df_with_ages)
 
-    rebinned_df = rebin_count_dataframe(target_age_schema, df)
+    rebinned_df = rebin_count_dataframe(target_age_schema, df, source_schema)
     expected_df = pd.DataFrame(
         {
             "value": expected_foo.values(),
@@ -481,6 +484,7 @@ def test_rebin_dataframe_partial_span(sample_df_with_ages: pd.DataFrame) -> None
         ]
     )
     formatted_df = _format_dataframe(target_age_schema, sample_df_with_ages)
+    source_schema = AgeSchema.from_dataframe(sample_df_with_ages)
     pd.testing.assert_frame_equal(
         formatted_df,
         rebin_count_dataframe(
@@ -488,6 +492,7 @@ def test_rebin_dataframe_partial_span(sample_df_with_ages: pd.DataFrame) -> None
             sample_df_with_ages.droplevel(
                 [INPUT_DATA_INDEX_NAMES.AGE_START, INPUT_DATA_INDEX_NAMES.AGE_END]
             ),
+            source_schema,
         ),
     )
     # Target schema has an extra age group (15_to_20) that is not in the data.
@@ -520,3 +525,98 @@ def test_transform_matrix_with_partial_span() -> None:
     )
 
     pd.testing.assert_frame_equal(transform_matrix, expected_matrix)
+
+
+def test_age_schema_from_df_with_target_schema() -> None:
+    """Test that we can create an AgeSchema from a DataFrame with only age_start and age_end,
+    given a target schema to get the age group names from."""
+    target = pd.DataFrame(
+        {
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP: [
+                "Early Neonatal",
+                "Late Neonatal",
+                "1-5 months",
+            ],
+            INPUT_DATA_INDEX_NAMES.AGE_START: [0.0, 7.0 / 365.0, 28.0 / 365.0],
+            INPUT_DATA_INDEX_NAMES.AGE_END: [7.0 / 365.0, 28.0 / 365.0, 0.5],
+        }
+    ).set_index(
+        [
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+            INPUT_DATA_INDEX_NAMES.AGE_START,
+            INPUT_DATA_INDEX_NAMES.AGE_END,
+        ]
+    )
+    target_schema = AgeSchema.from_dataframe(target)
+
+    # Artifact/GBD style DataFrame with only age_start and age_end
+    df = pd.DataFrame(
+        {
+            "value": [1.0, 2.0, 3.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cause", "disease", 0.0, 7.0 / 365.0),
+                ("cause", "disease", 7.0 / 365.0, 28.0 / 365.0),
+                ("cause", "disease", 28.0 / 365.0, 0.5),
+            ],
+            names=[
+                "measure",
+                "entity",
+                INPUT_DATA_INDEX_NAMES.AGE_START,
+                INPUT_DATA_INDEX_NAMES.AGE_END,
+            ],
+        ),
+    )
+    source_schema = AgeSchema.from_dataframe(df, target_schema)
+    assert set([group.name for group in source_schema.age_groups]) == set(
+        [group.name for group in target_schema.age_groups]
+    )
+    assert source_schema == target_schema
+
+
+def test_age_schema_from_df_with_target_missing_age_group() -> None:
+    """Test that we get an error when trying to create an AgeSchema from a DataFrame with only
+    age_start and age_end, when the target schema is missing an age group."""
+    target = pd.DataFrame(
+        {
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP: [
+                "Early Neonatal",
+                "Late Neonatal",
+            ],
+            INPUT_DATA_INDEX_NAMES.AGE_START: [0.0, 7.0 / 365.0],
+            INPUT_DATA_INDEX_NAMES.AGE_END: [7.0 / 365.0, 28.0 / 365.0],
+        }
+    ).set_index(
+        [
+            INPUT_DATA_INDEX_NAMES.AGE_GROUP,
+            INPUT_DATA_INDEX_NAMES.AGE_START,
+            INPUT_DATA_INDEX_NAMES.AGE_END,
+        ]
+    )
+    target_schema = AgeSchema.from_dataframe(target)
+
+    # Artifact/GBD style DataFrame with only age_start and age_end
+    df = pd.DataFrame(
+        {
+            "value": [1.0, 2.0, 3.0],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("cause", "disease", 0.0, 7.0 / 365.0),
+                ("cause", "disease", 7.0 / 365.0, 28.0 / 365.0),
+                ("cause", "disease", 28.0 / 365.0, 0.5),
+            ],
+            names=[
+                "measure",
+                "entity",
+                INPUT_DATA_INDEX_NAMES.AGE_START,
+                INPUT_DATA_INDEX_NAMES.AGE_END,
+            ],
+        ),
+    )
+    source_schema = AgeSchema.from_dataframe(df, target_schema)
+    assert len(source_schema.age_groups) == 3
+    start = 28.0 / 365.0
+    expected_names = {"Early Neonatal", "Late Neonatal", f"{start}_to_0.5"}
+    assert set([group.name for group in source_schema.age_groups]) == expected_names
