@@ -21,7 +21,7 @@ class TestResult:
 
     name: str
     """Name of the test proportion being calculated."""
-    name_addl: str
+    name_additional: str
     """Additional name for test, used for when the same proportion is calculated multiple times."""
     observed_proportion: float
     """The observed proportion of a specific event happening."""
@@ -37,6 +37,10 @@ class TestResult:
     """Calculated Bayes factor from the test for the observed proportion."""
     reject_null: bool
     """Whether the null hypothesis was rejected."""
+    bug_issue_distribution: tuple[float, float]
+    """Parameters of the no-bug/issue beta distribution used in the test."""
+    no_bug_issue_distribution: rv_discrete_frozen
+    """The no-bug/issue distribution used in the test."""
 
 
 class FuzzyChecker:
@@ -139,6 +143,70 @@ class FuzzyChecker:
             Useful for e.g. specifying the timestep when an assertion happened.
 
         """
+        test_proportion = self.test_proportion(
+            name=name,
+            name_additional=name_additional,
+            target_proportion=target_proportion,
+            observed_numerator=observed_numerator,
+            observed_denominator=observed_denominator,
+            bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
+            fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+        )
+        self.proportion_test_diagnostics.append(test_proportion)
+
+        if test_proportion.reject_null:
+            if test_proportion.observed_proportion < test_proportion.target_lower_bound:
+                raise AssertionError(
+                    f"{name} value {test_proportion.observed_proportion:g} is significantly less than expected, bayes factor = {test_proportion.bayes_factor:g}"
+                )
+            else:
+                raise AssertionError(
+                    f"{name} value {test_proportion.observed_proportion:g} is significantly greater than expected, bayes factor = {test_proportion.bayes_factor:g}"
+                )
+
+        if (
+            test_proportion.target_lower_bound > 0
+            and self._calculate_bayes_factor(
+                0,
+                test_proportion.bug_issue_distribution,
+                test_proportion.no_bug_issue_distribution,
+            )
+            < fail_bayes_factor_cutoff
+        ):
+            logger.warning(
+                f"Sample size too small to ever find that the simulation's '{name}' value is less than expected."
+            )
+
+        if test_proportion.target_upper_bound < 1 and (
+            self._calculate_bayes_factor(
+                observed_denominator,
+                test_proportion.bug_issue_distribution,
+                test_proportion.no_bug_issue_distribution,
+            )
+            < fail_bayes_factor_cutoff
+        ):
+            logger.warning(
+                f"Sample size too small to ever find that the simulation's '{name}' value is greater than expected."
+            )
+
+        if (
+            fail_bayes_factor_cutoff
+            > test_proportion.bayes_factor
+            > inconclusive_bayes_factor_cutoff
+        ):
+            logger.warning(f"Bayes factor for '{name}' is not conclusive.")
+
+    def test_proportion(
+        self,
+        name: str = "",
+        name_additional: str = "",
+        target_proportion: float | tuple[float, float] = 0.1,
+        observed_numerator: int = 0,
+        observed_denominator: int = 0,
+        bug_issue_beta_distribution_parameters: tuple[float, float] = (0.5, 0.5),
+        fail_bayes_factor_cutoff: float = 100.0,
+    ) -> TestResult:
+        """Convert a dictionary representation of a test result to a TestResult object."""
         if isinstance(target_proportion, tuple):
             target_lower_bound, target_upper_bound = target_proportion
         else:
@@ -175,67 +243,18 @@ class FuzzyChecker:
 
         observed_proportion = observed_numerator / observed_denominator
         reject_null = bayes_factor > fail_bayes_factor_cutoff
-        test_proportion = self.test_proportion(
-            {
-                "name": name,
-                "name_addl": name_additional,
-                "observed_proportion": observed_proportion,
-                "observed_numerator": observed_numerator,
-                "observed_denominator": observed_denominator,
-                "target_lower_bound": target_lower_bound,
-                "target_upper_bound": target_upper_bound,
-                "bayes_factor": bayes_factor,
-                "reject_null": reject_null,
-            }
-        )
-        self.proportion_test_diagnostics.append(test_proportion)
-
-        if test_proportion.reject_null:
-            if observed_proportion < target_lower_bound:
-                raise AssertionError(
-                    f"{name} value {observed_proportion:g} is significantly less than expected, bayes factor = {bayes_factor:g}"
-                )
-            else:
-                raise AssertionError(
-                    f"{name} value {observed_proportion:g} is significantly greater than expected, bayes factor = {bayes_factor:g}"
-                )
-
-        if (
-            target_lower_bound > 0
-            and self._calculate_bayes_factor(
-                0, bug_issue_distribution, no_bug_issue_distribution
-            )
-            < fail_bayes_factor_cutoff
-        ):
-            logger.warning(
-                f"Sample size too small to ever find that the simulation's '{name}' value is less than expected."
-            )
-
-        if target_upper_bound < 1 and (
-            self._calculate_bayes_factor(
-                observed_denominator, bug_issue_distribution, no_bug_issue_distribution
-            )
-            < fail_bayes_factor_cutoff
-        ):
-            logger.warning(
-                f"Sample size too small to ever find that the simulation's '{name}' value is greater than expected."
-            )
-
-        if fail_bayes_factor_cutoff > bayes_factor > inconclusive_bayes_factor_cutoff:
-            logger.warning(f"Bayes factor for '{name}' is not conclusive.")
-
-    def test_proportion(self, result_dict: dict[str, Any]) -> TestResult:
-        """Convert a dictionary representation of a test result to a TestResult object."""
         return TestResult(
-            name=result_dict["name"],
-            name_addl=result_dict["name_addl"],
-            observed_proportion=result_dict["observed_proportion"],
-            observed_numerator=result_dict["observed_numerator"],
-            observed_denominator=result_dict["observed_denominator"],
-            target_lower_bound=result_dict["target_lower_bound"],
-            target_upper_bound=result_dict["target_upper_bound"],
-            bayes_factor=result_dict["bayes_factor"],
-            reject_null=result_dict["reject_null"],
+            name=name,
+            name_additional=name_additional,
+            observed_proportion=observed_proportion,
+            observed_numerator=observed_numerator,
+            observed_denominator=observed_denominator,
+            target_lower_bound=target_lower_bound,
+            target_upper_bound=target_upper_bound,
+            bayes_factor=bayes_factor,
+            reject_null=reject_null,
+            bug_issue_distribution=(bug_issue_alpha, bug_issue_beta),
+            no_bug_issue_distribution=no_bug_issue_distribution,
         )
 
     def _calculate_bayes_factor(

@@ -253,17 +253,14 @@ def _make_beta_distribution(lower_bound: float, upper_bound: float) -> rv_contin
 def test_fuzzy_checker_test_proportion_no_assertion_error() -> None:
     """Tests that FuzzyChecker.test_proportion returns a TestResult without raising an assertion."""
 
-    test_results = {
-        "name": "failing_test",
-        "name_addl": "",
-        "observed_proportion": 0.05,
-        "observed_numerator": 50,
-        "observed_denominator": 1000,
-        "target_lower_bound": 0.1,
-        "target_upper_bound": 0.1,
-        "bayes_factor": 15.0,
-        "reject_null": True,
-    }
-    test_proportion = FuzzyChecker().test_proportion(test_results)
+    test_proportion = FuzzyChecker().test_proportion(
+        name="test_proportion_no_assertion_error",
+        name_additional="unit_test",
+        target_proportion=0.1,
+        observed_numerator=10_008,
+        observed_denominator=100_000,
+        bug_issue_beta_distribution_parameters=(0.5, 0.5),
+        fail_bayes_factor_cutoff=3.0,
+    )
     assert isinstance(test_proportion, TestResult)
     assert test_proportion.reject_null is True
