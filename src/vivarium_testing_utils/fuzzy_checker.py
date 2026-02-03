@@ -3,6 +3,7 @@
 #################
 from __future__ import annotations
 
+from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,30 @@ import pandas as pd
 import scipy.stats
 from loguru import logger
 from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_frozen
+
+
+@dataclass
+class TestResult:
+    """Class to store metadata for individual tests run by FuzzyChecker."""
+
+    name: str
+    """Name of the test proportion being calculated."""
+    name_addl: str
+    """Additional name for test, used for when the same proportion is calculated multiple times."""
+    observed_proportion: float
+    """The observed proportion of a specific event happening."""
+    observed_numerator: int
+    """Observed counts of the event happening."""
+    observed_denominator: int
+    """Total counts of opportunities for the event to happen."""
+    target_lower_bound: float
+    """Lower bound of the target proportion range."""
+    target_upper_bound: float
+    """Upper bound of the target proportion range."""
+    bayes_factor: float
+    """Calculated Bayes factor from the test for the observed proportion."""
+    reject_null: bool
+    """Whether the null hypothesis was rejected."""
 
 
 class FuzzyChecker:
