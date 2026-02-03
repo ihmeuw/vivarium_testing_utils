@@ -175,7 +175,7 @@ class FuzzyChecker:
 
         observed_proportion = observed_numerator / observed_denominator
         reject_null = bayes_factor > fail_bayes_factor_cutoff
-        self.proportion_test_diagnostics.append(
+        test_proportion = self.test_proportion(
             {
                 "name": name,
                 "name_addl": name_additional,
@@ -188,8 +188,9 @@ class FuzzyChecker:
                 "reject_null": reject_null,
             }
         )
+        self.proportion_test_diagnostics.append(test_proportion)
 
-        if reject_null:
+        if test_proportion.reject_null:
             if observed_proportion < target_lower_bound:
                 raise AssertionError(
                     f"{name} value {observed_proportion:g} is significantly less than expected, bayes factor = {bayes_factor:g}"
@@ -222,6 +223,20 @@ class FuzzyChecker:
 
         if fail_bayes_factor_cutoff > bayes_factor > inconclusive_bayes_factor_cutoff:
             logger.warning(f"Bayes factor for '{name}' is not conclusive.")
+
+    def test_proportion(self, result_dict: dict[str, str | float | int | bool]) -> TestResult:
+        """Convert a dictionary representation of a test result to a TestResult object."""
+        return TestResult(
+            name=result_dict["name"],
+            name_addl=result_dict["name_addl"],
+            observed_proportion=result_dict["observed_proportion"],
+            observed_numerator=result_dict["observed_numerator"],
+            observed_denominator=result_dict["observed_denominator"],
+            target_lower_bound=result_dict["target_lower_bound"],
+            target_upper_bound=result_dict["target_upper_bound"],
+            bayes_factor=result_dict["bayes_factor"],
+            reject_null=result_dict["reject_null"],
+        )
 
     def _calculate_bayes_factor(
         self,
