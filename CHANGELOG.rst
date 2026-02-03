@@ -1,3 +1,7 @@
+**0.3.3 - 02/03/26**
+
+  - Feature: create a pytest plugin with extraction ofg "no_gbd_cache"
+
 **0.3.2 - 01/26/26**
 
   - Feature: Update AgeGroup and AgeGroupSchema to handle subsets 
