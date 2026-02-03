@@ -38,7 +38,7 @@ class TestResult:
     reject_null: bool
     """Whether the null hypothesis was rejected."""
     bug_issue_distribution: tuple[float, float]
-    """Parameters of the no-bug/issue beta distribution used in the test."""
+    """The bug/issue distribution used in the test."""
     no_bug_issue_distribution: rv_discrete_frozen
     """The no-bug/issue distribution used in the test."""
 
@@ -217,7 +217,7 @@ class FuzzyChecker:
         ), f"There cannot be more events ({observed_numerator}) than opportunities for events ({observed_denominator})"
         assert (
             target_upper_bound >= target_lower_bound
-        ), f"The lower bound of the V&V target ({target_lower_bound}) cannot be greater than the upper bound ({target_upper_bound})"
+        ), f"The lower bound of the V&  V target ({target_lower_bound}) cannot be greater than the upper bound ({target_upper_bound})"
 
         bug_issue_alpha, bug_issue_beta = bug_issue_beta_distribution_parameters
         bug_issue_distribution = scipy.stats.betabinom(
@@ -253,7 +253,7 @@ class FuzzyChecker:
             target_upper_bound=target_upper_bound,
             bayes_factor=bayes_factor,
             reject_null=reject_null,
-            bug_issue_distribution=(bug_issue_alpha, bug_issue_beta),
+            bug_issue_distribution=bug_issue_distribution,
             no_bug_issue_distribution=no_bug_issue_distribution,
         )
 

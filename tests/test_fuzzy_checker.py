@@ -231,7 +231,7 @@ def test_save_diagnostic_output(tmpdir: LocalPath) -> None:
     assert len(tmpdir.listdir()) == 1
 
     output = pd.read_csv(tmpdir.listdir()[0])
-    assert output.shape == (1, 9)
+    assert output.shape == (1, 11)
 
 
 ###########
@@ -256,7 +256,7 @@ def test_fuzzy_checker_test_proportion_no_assertion_error() -> None:
     test_proportion = FuzzyChecker().test_proportion(
         name="test_proportion_no_assertion_error",
         name_additional="unit_test",
-        target_proportion=0.1,
+        target_proportion=0.9,
         observed_numerator=10_008,
         observed_denominator=100_000,
         bug_issue_beta_distribution_parameters=(0.5, 0.5),
