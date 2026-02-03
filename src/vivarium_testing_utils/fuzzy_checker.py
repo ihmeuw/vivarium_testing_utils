@@ -224,7 +224,7 @@ class FuzzyChecker:
         if fail_bayes_factor_cutoff > bayes_factor > inconclusive_bayes_factor_cutoff:
             logger.warning(f"Bayes factor for '{name}' is not conclusive.")
 
-    def test_proportion(self, result_dict: dict[str, str | float | int | bool]) -> TestResult:
+    def test_proportion(self, result_dict: dict[str, Any]) -> TestResult:
         """Convert a dictionary representation of a test result to a TestResult object."""
         return TestResult(
             name=result_dict["name"],

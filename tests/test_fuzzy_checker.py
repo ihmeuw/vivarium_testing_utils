@@ -250,12 +250,12 @@ def _make_beta_distribution(lower_bound: float, upper_bound: float) -> rv_contin
     )
 
 
-def test_fuzzy_checker_assert_fail_with_test_result() -> None:
+def test_fuzzy_checker_test_proportion_no_assertion_error() -> None:
     """Tests that FuzzyChecker.test_proportion returns a TestResult without raising an assertion."""
 
     test_results = {
         "name": "failing_test",
-        "name_addendum": "",
+        "name_addl": "",
         "observed_proportion": 0.05,
         "observed_numerator": 50,
         "observed_denominator": 1000,
