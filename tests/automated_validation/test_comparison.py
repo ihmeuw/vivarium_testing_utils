@@ -25,6 +25,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     Incidence,
     RatioMeasure,
 )
+from vivarium_testing_utils.fuzzy_checker import TestResult
 
 
 @pytest.fixture
@@ -363,3 +364,15 @@ def test_get_frame_default_rows(
 
     non_default = comparison.get_frame(num_rows=2)
     assert len(non_default) == 2
+
+
+def test_comparison_verify(
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
+) -> None:
+    """Test the verify method of the FuzzyComparison class."""
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
+    result = comparison.verify()
+
+    assert isinstance(result, TestResult)
+    

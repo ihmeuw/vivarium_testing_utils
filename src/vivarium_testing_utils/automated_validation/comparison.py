@@ -233,4 +233,15 @@ class FuzzyComparison(Comparison):
         return test_data, reference_data
 
     def verify(self, stratifications: Collection[str] = ()) -> TestResult:
-        raise NotImplementedError
+        # TODO: this needs to be vectorized to handle stratifications and dataframes
+        # The observed numerator, denominator, and target proportion are all dataframes
+        # and not single values like FuzzyChecker.test_proportion expects
+        return self.fuzzy_checker.test_proportion(
+            nmame=self.measure.measure_key,
+            name_additional=f"{self.test_bundle.source}_vs_{self.reference_bundle.source}",
+            observed_numerator=self.test_datasets["numerator"],
+            observed_denominator=self.test_datasets["denominator"],
+            # TODO: update target proportion
+            target_proportion=self.reference_data,
+
+        )
