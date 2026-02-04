@@ -239,9 +239,9 @@ class FuzzyComparison(Comparison):
         return self.fuzzy_checker.test_proportion(
             nmame=self.measure.measure_key,
             name_additional=f"{self.test_bundle.source}_vs_{self.reference_bundle.source}",
-            observed_numerator=self.test_datasets["numerator"],
-            observed_denominator=self.test_datasets["denominator"],
-            # TODO: update target proportion
-            target_proportion=self.reference_data,
+            observed_numerator=self.test_bundle.datasets["numerator"],
+            observed_denominator=self.test_bundle.datasets["denominator"],
+            # TODO: update target proportion - reference numerator / denominator?
+            target_proportion=self.reference_bundle.datasets["numerator"],
 
         )
