@@ -8,6 +8,7 @@ from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataB
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Measure
 from vivarium_testing_utils.automated_validation.visualization import dataframe_utils
+from vivarium_testing_utils.fuzzy_checker import FuzzyChecker, TestResult
 
 
 class Comparison(ABC):
@@ -81,6 +82,7 @@ class FuzzyComparison(Comparison):
         if self.test_bundle.measure != self.reference_bundle.measure:
             raise ValueError("Test and reference measures must be the same.")
         self.measure: Measure = self.test_bundle.measure
+        self.fuzzy_checker = FuzzyChecker()
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -229,3 +231,6 @@ class FuzzyComparison(Comparison):
             ).set_index(test_data.index)
 
         return test_data, reference_data
+
+    def verify(self, stratifications: Collection[str] = ()) -> TestResult:
+        raise NotImplementedError
