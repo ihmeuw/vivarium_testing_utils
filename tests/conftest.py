@@ -1,5 +1,6 @@
 from typing import Generator
 
+import pandas as pd
 import pytest
 from _pytest.config import Config, argparsing
 from _pytest.logging import LogCaptureFixture
@@ -36,3 +37,17 @@ def caplog(caplog: LogCaptureFixture) -> Generator[LogCaptureFixture, None, None
     )
     yield caplog
     logger.remove(handler_id)
+
+
+@pytest.fixture
+def simple_demographic_index() -> pd.MultiIndex:
+    pass
+
+@pytest.fixture
+def observed_proportion_dataframe(simple_demographic_index: pd.MultiIndex) -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "numerator": [10_008],
+            "denominator": [100_000],
+        }
+    )

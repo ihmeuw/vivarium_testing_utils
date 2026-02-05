@@ -264,3 +264,7 @@ def test_fuzzy_checker_test_proportion_no_assertion_error() -> None:
     )
     assert isinstance(test_proportion, TestResult)
     assert test_proportion.reject_null is True
+
+
+class TestFuzzyCheckerTestProportionVectorized:
+    pass
