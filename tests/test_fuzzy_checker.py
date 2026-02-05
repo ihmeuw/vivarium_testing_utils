@@ -12,7 +12,7 @@ from scipy.stats._distn_infrastructure import rv_continuous_frozen
 if TYPE_CHECKING:
     from py._path.local import LocalPath
 
-from vivarium_testing_utils.fuzzy_checker import FuzzyChecker
+from vivarium_testing_utils.fuzzy_checker import FuzzyChecker, TestResult
 
 OBSERVED_DENOMINATORS = [100_000, 1_000_000, 10_000_000]
 TARGET_PROPORTION = 0.1
@@ -231,7 +231,7 @@ def test_save_diagnostic_output(tmpdir: LocalPath) -> None:
     assert len(tmpdir.listdir()) == 1
 
     output = pd.read_csv(tmpdir.listdir()[0])
-    assert output.shape == (1, 9)
+    assert output.shape == (1, 11)
 
 
 ###########
@@ -248,3 +248,19 @@ def _make_beta_distribution(lower_bound: float, upper_bound: float) -> rv_contin
         a=mean * concentration,
         b=(1 - mean) * concentration,
     )
+
+
+def test_fuzzy_checker_test_proportion_no_assertion_error() -> None:
+    """Tests that FuzzyChecker.test_proportion returns a TestResult without raising an assertion."""
+
+    test_proportion = FuzzyChecker().test_proportion(
+        name="test_proportion_no_assertion_error",
+        name_additional="unit_test",
+        target_proportion=0.9,
+        observed_numerator=10_008,
+        observed_denominator=100_000,
+        bug_issue_beta_distribution_parameters=(0.5, 0.5),
+        fail_bayes_factor_cutoff=3.0,
+    )
+    assert isinstance(test_proportion, TestResult)
+    assert test_proportion.reject_null is True
