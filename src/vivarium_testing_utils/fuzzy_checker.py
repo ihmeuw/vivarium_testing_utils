@@ -257,6 +257,144 @@ class FuzzyChecker:
             no_bug_issue_distribution=no_bug_issue_distribution,
         )
 
+    def test_proportion_vectorized(
+        self,
+        observed_numerator: pd.DataFrame,
+        observed_denominator: pd.DataFrame,
+        target_proportion: pd.DataFrame,
+        name: str = "",
+        bug_issue_beta_distribution_parameters: tuple[float, float] = (0.5, 0.5),
+        fail_bayes_factor_cutoff: float = 100.0,
+    ) -> TestResult:
+        """Vectorized version of test_proportion that operates on DataFrames.
+
+        Performs test_proportion for each row/index group in the input data structures,
+        enabling efficient batch testing of multiple proportions.
+
+        Parameters:
+        -----------
+        observed_numerator
+            A DataFrame with a single column named "value" containing the observed number
+            of events for each group. Values should represent counts
+        observed_denominator
+            A DataFrame with a single column named "value" containing the number of opportunities
+            for events for each group. Values should represent counts
+        target_proportion
+            A DataFrame with a single column named "value" containing the target proportion
+            for each group. Values should be floats between 0 and 1
+        name
+            The name of the proportion being tested
+        bug_issue_beta_distribution_parameters
+            The parameters of the beta distribution characterizing the bug/issue hypothesis.
+        fail_bayes_factor_cutoff
+            The Bayes factor above which a hypothesis test is considered to favor a bug/issue..
+
+        Returns:
+        -------
+            A TestResult instance containing aggregated test results across all index groups.
+        """
+
+        aggregate_data = pd.DataFrame(
+            {
+                "numerator": observed_numerator["value"],
+                "denominator": observed_denominator["value"],
+                "target": target_proportion["value"],
+            }
+        )
+
+        # First pass: Calculate Bayes factors for each group
+        individual_bayes_factors = []
+        for idx, row in aggregate_data.iterrows():
+            numerator_val = int(round(row["numerator"]))
+            denominator_val = int(round(row["denominator"]))
+            target_val = float(row["target"])
+
+            # Call test_proportion to get the Bayes factor for this group
+            result = self.test_proportion(
+                name=name,
+                name_additional="",
+                observed_numerator=numerator_val,
+                observed_denominator=denominator_val,
+                target_proportion=target_val,
+                bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
+                fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+            )
+
+            individual_bayes_factors.append(result.bayes_factor)
+
+        # Multiply all Bayes factors together for overall Bayes factor
+        overall_bayes_factor = 1.0
+        for bayes_factor in individual_bayes_factors:
+            overall_bayes_factor *= bayes_factor
+
+        # Second pass: Create proper TestResult objects for each group with context
+        results = []
+        for idx, row in aggregate_data.iterrows():
+            numerator_val = int(round(row["numerator"]))
+            denominator_val = int(round(row["denominator"]))
+            target_val = float(row["target"])
+            # Generate a string representation of the index for name_additional
+            if isinstance(idx, tuple):
+                idx_str = "_".join(str(i) for i in idx)
+            else:
+                idx_str = str(idx)
+
+            # Call test_proportion to create full TestResult for diagnostics
+            result = self.test_proportion(
+                name=name,
+                name_additional=idx_str,
+                observed_numerator=numerator_val,
+                observed_denominator=denominator_val,
+                target_proportion=target_val,
+                bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
+                fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+            )
+            results.append(result)
+        # Store the full TestResult objects in the diagnostics
+        self.proportion_test_diagnostics.extend(results)
+
+        # Create aggregated TestResult
+        # Determine overall reject_null: True if ANY individual group failed
+        overall_reject_null = any(result.reject_null for result in results)
+        total_numerator = int(aggregate_data["numerator"].sum())
+        total_denominator = int(aggregate_data["denominator"].sum())
+        overall_proportion = total_numerator / total_denominator
+
+        # Calculate weighted average of target proportions (weighted by denominator)
+        weighted_target = (
+            aggregate_data["target"] * aggregate_data["denominator"]
+        ).sum() / aggregate_data["denominator"].sum()
+
+        # Count how many individual groups failed
+        num_failed = sum(1 for result in results if result.reject_null)
+        num_groups = len(results)
+        name_additional = f"aggregated_{num_groups}_groups_{num_failed}_failed"
+
+        # Recalculate distributions based on aggregated data
+        bug_issue_alpha, bug_issue_beta = bug_issue_beta_distribution_parameters
+        bug_issue_distribution = scipy.stats.betabinom(
+            a=bug_issue_alpha, b=bug_issue_beta, n=total_denominator
+        )
+        # Use weighted target as the no-bug target
+        no_bug_issue_distribution = scipy.stats.binom(p=weighted_target, n=total_denominator)
+
+        # Create and return aggregated TestResult
+        aggregated_result = TestResult(
+            name=name,
+            name_additional=name_additional,
+            observed_proportion=overall_proportion,
+            observed_numerator=total_numerator,
+            observed_denominator=total_denominator,
+            target_lower_bound=weighted_target,
+            target_upper_bound=weighted_target,
+            bayes_factor=overall_bayes_factor,
+            reject_null=overall_reject_null,
+            bug_issue_distribution=bug_issue_distribution,
+            no_bug_issue_distribution=no_bug_issue_distribution,
+        )
+
+        return aggregated_result
+
     def _calculate_bayes_factor(
         self,
         numerator: int,
@@ -280,39 +418,39 @@ class FuzzyChecker:
         self, lower_bound: float, upper_bound: float
     ) -> tuple[float, float]:
         """
-        Finds a and b parameters of a beta distribution that approximates the specified 95% UI.
-        The overall approach was inspired by https://stats.stackexchange.com/a/112671/.
+             Finds a and b parameters of a beta distribution that approximates the specified 95% UI.
+             The overall approach was inspired by https://stats.stackexchange.com/a/112671/.
 
-        SciPy optimization methods turned out not to be able to search such a large and unbounded
-        space of possibilities.
+             SciPy optimization methods turned out not to be able to search such a large and unbounded
+             space of possibilities.
 
-        Additionally, they suffer from problems with floating-point precision, which can lead
-        to nonsensical results because those methods don't "know" what we know about how beta
-        distributions vary with their parameters, and numerical approximation of the derivatives
-        is inaccurate.
+             Additionally, they suffer from problems with floating-point precision, which can lead
+             to nonsensical results because those methods don't "know" what we know about how beta
+             distributions vary with their parameters, and numerical approximation of the derivatives
+             is inaccurate.
 
-        An example of a substantial problem here is that very incorrect parameters will have
-        CDF values smaller than floating point error at our desired bounds, so they will be
-        indistinguishable from each other for derivative purposes, and the derivative might even go the wrong way.
+             An example of a substantial problem here is that very incorrect parameters will have
+             CDF values smaller than floating point error at our desired bounds, so they will be
+             indistinguishable from each other for derivative purposes, and the derivative might even go the wrong way.
 
-        To address these issues, we use a heuristic approach based on binary search
-        and knowledge about how beta distributions react to their parameters
-        (using the concentration-and-mean parameterization, since that has clearer behavior):
-        - Increasing concentration makes the bounds narrower
-        - Decreasing concentration makes the bounds wider
-        - Increasing mean increases both bounds
-        - Decreasing mean decreases both bounds
+             To address these issues, we use a heuristic approach based on binary search
+             and knowledge about how beta distributions react to their parameters
+             (using the concentration-and-mean parameterization, since that has clearer behavior):
+             - Increasing concentration makes the bounds narrower
+             - Decreasing concentration makes the bounds wider
+             - Increasing mean increases both bounds
+             - Decreasing mean decreases both bounds
 
-        It is much harder to search for the correct concentration -- which is essentially unbounded
-        except for overflow limits -- than the correct mean.
-        Our strategy is based on this fact: we make mean more "sticky" (only update our best guess
-        when we find we must move mean to the left or right), and restart our mean search from scratch
-        each time we change the concentration.
-        We tried other strategies, but they didn't work consistently.
+             It is much harder to search for the correct concentration -- which is essentially unbounded
+             except for overflow limits -- than the correct mean.
+             Our strategy is based on this fact: we make mean more "sticky" (only update our best guess
+             when we find we must move mean to the left or right), and restart our mean search from scratch
+             each time we change the concentration.
+             We tried other strategies, but they didn't work consistently.
 
-        This method has been tested on a wide range of inputs and finds reasonable solutions even when
-        the bounds themselves (or the difference between them) are only a few orders of magnitude
-        larger than the floating point precision.
+             This method has been tested on a wide range of inputs and finds reasonable solutions even when
+        aaaaa     the bounds themselves (or the difference between them) are only a few orders of magnitude
+             larger than the floating point precision.
         """
         assert 0 < lower_bound < upper_bound < 1
 

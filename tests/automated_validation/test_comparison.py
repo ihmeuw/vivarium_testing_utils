@@ -375,4 +375,3 @@ def test_comparison_verify(
     result = comparison.verify()
 
     assert isinstance(result, TestResult)
-    

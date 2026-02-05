@@ -243,5 +243,4 @@ class FuzzyComparison(Comparison):
             observed_denominator=self.test_bundle.datasets["denominator"],
             # TODO: update target proportion - reference numerator / denominator?
             target_proportion=self.reference_bundle.datasets["numerator"],
-
         )
