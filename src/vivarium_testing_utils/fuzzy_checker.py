@@ -205,6 +205,7 @@ class FuzzyChecker:
         observed_denominator: int = 0,
         bug_issue_beta_distribution_parameters: tuple[float, float] = (0.5, 0.5),
         fail_bayes_factor_cutoff: float = 100.0,
+        bayes_factor: float | None = None,
     ) -> TestResult:
         """Convert a dictionary representation of a test result to a TestResult object."""
         if isinstance(target_proportion, tuple):
@@ -237,9 +238,10 @@ class FuzzyChecker:
                 a=a, b=b, n=observed_denominator
             )
 
-        bayes_factor = self._calculate_bayes_factor(
-            observed_numerator, bug_issue_distribution, no_bug_issue_distribution
-        )
+        if bayes_factor is None:
+            bayes_factor = self._calculate_bayes_factor(
+                observed_numerator, bug_issue_distribution, no_bug_issue_distribution
+            )
 
         observed_proportion = observed_numerator / observed_denominator
         reject_null = bayes_factor > fail_bayes_factor_cutoff
@@ -348,9 +350,10 @@ class FuzzyChecker:
                 target_proportion=target_val,
                 bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
                 fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+                bayes_factor=overall_bayes_factor,
             )
             results.append(result)
-        # Store the full TestResult objects in the diagnostics
+        # Store the full list of proportion test so users can look at individual groups if needed
         self.proportion_test_diagnostics.extend(results)
 
         # Create aggregated TestResult

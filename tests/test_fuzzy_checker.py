@@ -267,4 +267,31 @@ def test_fuzzy_checker_test_proportion_no_assertion_error() -> None:
 
 
 class TestFuzzyCheckerTestProportionVectorized:
-    pass
+    def test_fuzzy_test_proportion_vectorized_pass(
+        self,
+        simple_demographic_index: pd.MultiIndex,
+        observed_proportion_dataframe: pd.DataFrame,
+    ) -> None:
+        numerator = pd.DataFrame(
+            {"value": [10_000, 25_000, 50_000, 75_000]}, index=simple_demographic_index
+        )
+        denominator = pd.DataFrame(
+            {"value": [100_000, 100_000, 100_000, 100_000]}, index=simple_demographic_index
+        )
+        fuzzy_checker = FuzzyChecker()
+        result = fuzzy_checker.test_proportion_vectorized(
+            name="test_proportion_vectorized_passes",
+            observed_numerator=numerator,
+            observed_denominator=denominator,
+            target_proportion=observed_proportion_dataframe,
+        )
+        assert isinstance(result, TestResult)
+        assert not result.reject_null
+        assert len(fuzzy_checker.proportion_test_diagnostics) == 4
+
+        # All bayes factors should be the same
+        bayes_factors = [
+            diagnostic.bayes_factor
+            for diagnostic in fuzzy_checker.proportion_test_diagnostics
+        ]
+        assert all(bf == bayes_factors[0] for bf in bayes_factors)
