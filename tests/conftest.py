@@ -41,13 +41,20 @@ def caplog(caplog: LogCaptureFixture) -> Generator[LogCaptureFixture, None, None
 
 @pytest.fixture
 def simple_demographic_index() -> pd.MultiIndex:
-    pass
+    return pd.MultiIndex.from_tuples(
+        [
+            ("Male", 5, 10),
+            ("Male", 10, 15),
+            ("Female", 5, 10),
+            ("Female", 10, 15),
+        ],
+        names=["sex", "age_start", "age_end"],
+    )
+
 
 @pytest.fixture
 def observed_proportion_dataframe(simple_demographic_index: pd.MultiIndex) -> pd.DataFrame:
     return pd.DataFrame(
-        {
-            "numerator": [10_008],
-            "denominator": [100_000],
-        }
+        {"value": [0.10, 0.25, 0.50, 0.75]},
+        index=simple_demographic_index,
     )

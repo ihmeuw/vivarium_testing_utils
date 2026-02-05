@@ -217,7 +217,7 @@ class FuzzyChecker:
         ), f"There cannot be more events ({observed_numerator}) than opportunities for events ({observed_denominator})"
         assert (
             target_upper_bound >= target_lower_bound
-        ), f"The lower bound of the V&  V target ({target_lower_bound}) cannot be greater than the upper bound ({target_upper_bound})"
+        ), f"The lower bound of the V&V target ({target_lower_bound}) cannot be greater than the upper bound ({target_upper_bound})"
 
         bug_issue_alpha, bug_issue_beta = bug_issue_beta_distribution_parameters
         bug_issue_distribution = scipy.stats.betabinom(
