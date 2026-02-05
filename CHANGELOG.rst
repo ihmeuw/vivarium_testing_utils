@@ -1,6 +1,6 @@
 **0.3.3 - 02/03/26**
 
-  - Feature: create a pytest plugin with extraction ofg "no_gbd_cache"
+  - Feature: create a pytest plugin with extraction of "no_gbd_cache"
 
 **0.3.2 - 01/26/26**
 
