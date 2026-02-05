@@ -425,39 +425,39 @@ class FuzzyChecker:
         self, lower_bound: float, upper_bound: float
     ) -> tuple[float, float]:
         """
-             Finds a and b parameters of a beta distribution that approximates the specified 95% UI.
-             The overall approach was inspired by https://stats.stackexchange.com/a/112671/.
+        Finds a and b parameters of a beta distribution that approximates the specified 95% UI.
+        The overall approach was inspired by https://stats.stackexchange.com/a/112671/.
 
-             SciPy optimization methods turned out not to be able to search such a large and unbounded
-             space of possibilities.
+        SciPy optimization methods turned out not to be able to search such a large and unbounded
+        space of possibilities.
 
-             Additionally, they suffer from problems with floating-point precision, which can lead
-             to nonsensical results because those methods don't "know" what we know about how beta
-             distributions vary with their parameters, and numerical approximation of the derivatives
-             is inaccurate.
+        Additionally, they suffer from problems with floating-point precision, which can lead
+        to nonsensical results because those methods don't "know" what we know about how beta
+        distributions vary with their parameters, and numerical approximation of the derivatives
+        is inaccurate.
 
-             An example of a substantial problem here is that very incorrect parameters will have
-             CDF values smaller than floating point error at our desired bounds, so they will be
-             indistinguishable from each other for derivative purposes, and the derivative might even go the wrong way.
+        An example of a substantial problem here is that very incorrect parameters will have
+        CDF values smaller than floating point error at our desired bounds, so they will be
+        indistinguishable from each other for derivative purposes, and the derivative might even go the wrong way.
 
-             To address these issues, we use a heuristic approach based on binary search
-             and knowledge about how beta distributions react to their parameters
-             (using the concentration-and-mean parameterization, since that has clearer behavior):
-             - Increasing concentration makes the bounds narrower
-             - Decreasing concentration makes the bounds wider
-             - Increasing mean increases both bounds
-             - Decreasing mean decreases both bounds
+        To address these issues, we use a heuristic approach based on binary search
+        and knowledge about how beta distributions react to their parameters
+        (using the concentration-and-mean parameterization, since that has clearer behavior):
+        - Increasing concentration makes the bounds narrower
+        - Decreasing concentration makes the bounds wider
+        - Increasing mean increases both bounds
+        - Decreasing mean decreases both bounds
 
-             It is much harder to search for the correct concentration -- which is essentially unbounded
-             except for overflow limits -- than the correct mean.
-             Our strategy is based on this fact: we make mean more "sticky" (only update our best guess
-             when we find we must move mean to the left or right), and restart our mean search from scratch
-             each time we change the concentration.
-             We tried other strategies, but they didn't work consistently.
+        It is much harder to search for the correct concentration -- which is essentially unbounded
+        except for overflow limits -- than the correct mean.
+        Our strategy is based on this fact: we make mean more "sticky" (only update our best guess
+        when we find we must move mean to the left or right), and restart our mean search from scratch
+        each time we change the concentration.
+        We tried other strategies, but they didn't work consistently.
 
-             This method has been tested on a wide range of inputs and finds reasonable solutions even when
-        aaaaa     the bounds themselves (or the difference between them) are only a few orders of magnitude
-             larger than the floating point precision.
+        This method has been tested on a wide range of inputs and finds reasonable solutions even when
+        the bounds themselves (or the difference between them) are only a few orders of magnitude
+        larger than the floating point precision.
         """
         assert 0 < lower_bound < upper_bound < 1
 
