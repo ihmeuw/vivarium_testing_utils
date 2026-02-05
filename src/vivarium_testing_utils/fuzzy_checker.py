@@ -370,7 +370,11 @@ class FuzzyChecker:
         num_groups = len(results)
         name_additional = f"aggregated_{num_groups}_groups_{num_failed}_failed"
 
-        # Recalculate distributions based on aggregated data
+        # Create distributions for the aggregated TestResult
+        # Note: These distributions are created to satisfy the TestResult dataclass requirements
+        # and represent the aggregated data scale. However, the overall_bayes_factor above was
+        # calculated by multiplying individual group Bayes factors, not from these distributions.
+        # These distributions would produce a different Bayes factor if used directly.
         bug_issue_alpha, bug_issue_beta = bug_issue_beta_distribution_parameters
         bug_issue_distribution = scipy.stats.betabinom(
             a=bug_issue_alpha, b=bug_issue_beta, n=total_denominator
