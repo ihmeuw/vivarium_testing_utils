@@ -361,7 +361,6 @@ def test_comparison_verify(
     reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the verify method of the FuzzyComparison class."""
-    # comparison = FuzzyComparison(test_bundle, reference_bundle)
-    # result = comparison.verify()
-    # assert isinstance(result, TestResult)
-    pass
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
+    result = comparison.verify()
+    assert isinstance(result, TestResult)

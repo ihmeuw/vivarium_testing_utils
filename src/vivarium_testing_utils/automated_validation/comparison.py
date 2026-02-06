@@ -184,18 +184,19 @@ class FuzzyComparison(Comparison):
         return aggregated_data[["mean", "2.5%", "97.5%"]]
 
     def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
-        # TODO: this needs to be vectorized to handle stratifications and dataframes
-        # The observed numerator, denominator, and target proportion are all dataframes
-        # and not single values like FuzzyChecker.test_proportion expects
-        # return self.fuzzy_checker.test_proportion(
-        #     nmame=self.measure.measure_key,
-        #     name_additional=f"{self.test_bundle.source}_vs_{self.reference_bundle.source}",
-        #     observed_numerator=self.test_bundle.datasets["numerator"],
-        #     observed_denominator=self.test_bundle.datasets["denominator"],
-        #     # TODO: update target proportion - reference numerator / denominator?
-        #     target_proportion=self.reference_bundle.datasets["numerator"],
-        # )
-        pass
+        # TODO: handle inputs
+        #    - align datasets on shared stratifications, aggregating over non-shared stratifications
+        #         - we need the denominators aligned too
+        #    - convert rates to "counts" based on measure_key
+        aggregated_test_data, aggregated_reference_data = self.align_datasets(stratifications)
+        return self.fuzzy_checker.test_proportion_vectorized(
+            nmame=self.measure.measure_key,
+            name_additional=f"{self.test_bundle.source}_vs_{self.reference_bundle.source}",
+            observed_numerator=self.test_bundle.datasets["numerator"],
+            observed_denominator=self.test_bundle.datasets["denominator"],
+            target_proportion=self.reference_bundle.datasets["numerator"]
+            / self.reference_bundle.datasets["denominator"],
+        )
 
     def align_datasets(
         self,
