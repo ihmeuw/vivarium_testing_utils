@@ -6,6 +6,9 @@ from loguru import logger
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    stratify,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Measure
 from vivarium_testing_utils.automated_validation.visualization import dataframe_utils
 from vivarium_testing_utils.fuzzy_checker import FuzzyChecker, TestResult
@@ -183,19 +186,28 @@ class FuzzyComparison(Comparison):
 
         return aggregated_data[["mean", "2.5%", "97.5%"]]
 
-    def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
-        # TODO: handle inputs
-        #    - align datasets on shared stratifications, aggregating over non-shared stratifications
-        #         - we need the denominators aligned too
-        #    - convert rates to "counts" based on measure_key
-        aggregated_test_data, aggregated_reference_data = self.align_datasets(stratifications)
+    def verify(
+        self, step_size: float, stratifications: Collection[str] | Literal["all"] = "all"
+    ):
+        # TODO: fail if test is not sim and reference is not artifact or gbd
+        # TODO: Find difference and stratify the differences out.
+        test_datasets = {
+            key: stratify(data, stratifications)
+            for key, data in self.test_bundle.datasets.items()
+        }
+        ref_datasets = {
+            key: stratify(data, stratifications)
+            for key, data in self.reference_bundle.datasets.items()
+        }
+        # TODO: Only scale for specific measures based on self.measure.measure_key
+        scaled_numerator = test_datasets["numerator_data"]
+        scaled_denominator = test_datasets["denominator_data"]
+        target = ref_datasets["data"] / step_size
         return self.fuzzy_checker.test_proportion_vectorized(
-            nmame=self.measure.measure_key,
-            name_additional=f"{self.test_bundle.source}_vs_{self.reference_bundle.source}",
-            observed_numerator=self.test_bundle.datasets["numerator"],
-            observed_denominator=self.test_bundle.datasets["denominator"],
-            target_proportion=self.reference_bundle.datasets["numerator"]
-            / self.reference_bundle.datasets["denominator"],
+            name=f"{self.measure.measure_key}_{self.test_bundle.source}_vs_{self.reference_bundle.source}",
+            observed_numerator=scaled_numerator,
+            observed_denominator=scaled_denominator,
+            target_proportion=target,
         )
 
     def align_datasets(

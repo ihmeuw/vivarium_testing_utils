@@ -355,12 +355,15 @@ def test_get_frame_default_rows(
     assert len(non_default) == 2
 
 
-@pytest.mark.skip(reason="Not implemented")
 def test_comparison_verify(
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the verify method of the FuzzyComparison class."""
     comparison = FuzzyComparison(test_bundle, reference_bundle)
-    result = comparison.verify()
+    step_size = 28 / 365.0
+    result = comparison.verify(step_size=step_size)
     assert isinstance(result, TestResult)
+    assert len(comparison.fuzzy_checker.proportion_test_diagnostics) == len(
+        test_bundle.datasets["numerator_data"]
+    )

@@ -44,6 +44,7 @@ class ValidationContext:
         self.scenario_columns = scenario_columns
         self.location = self.data_loader.location
         self.measure_mapper = MeasureMapper()
+        self.model_spec = self.data_loader.model_spec.configuration
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""

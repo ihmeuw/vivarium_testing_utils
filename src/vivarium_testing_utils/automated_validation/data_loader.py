@@ -6,6 +6,7 @@ from typing import Any
 import pandas as pd
 import yaml
 from gbd_mapping import causes, covariates, risk_factors
+from layered_config_tree import LayeredConfigTree
 from vivarium import Artifact
 from vivarium.framework.artifact import EntityKey
 from vivarium_inputs import interface
@@ -32,6 +33,7 @@ class DataLoader:
         self._cache_size_mb = cache_size_mb
 
         self._results_dir = self._sim_output_dir / "results"
+        self.model_spec = self._load_model_spec(self._sim_output_dir)
         self._raw_data_cache: dict[
             DataSource, dict[str, pd.DataFrame | dict[str, str] | str]
         ] = {data_source: {} for data_source in DataSource}
@@ -40,7 +42,7 @@ class DataLoader:
             DataSource.GBD: self._load_from_gbd,
             DataSource.ARTIFACT: self._load_from_artifact,
         }
-        self._artifact = self._load_artifact(self._sim_output_dir)
+        self._artifact = self._load_artifact()
 
         # Initialize derived dataset person time total
         person_time_total = self._create_person_time_total_dataset()
@@ -193,13 +195,19 @@ class DataLoader:
         )
         return multi_index_df
 
-    @staticmethod
-    def _load_artifact(results_dir: Path) -> Artifact:
-        model_spec_path = results_dir / "model_specification.yaml"
-        artifact_path = yaml.safe_load(model_spec_path.open("r"))["configuration"][
-            "input_data"
-        ]["artifact_path"]
+    def _load_artifact(self) -> Artifact:
+        artifact_path = self.model_spec["configuration"]["input_data"]["artifact_path"]
         return Artifact(artifact_path)
+
+    @staticmethod
+    def _load_model_spec(results_dir: Path) -> LayeredConfigTree:
+        """Load the model specification from the results directory."""
+        model_spec_path = results_dir / "model_specification.yaml"
+        if not model_spec_path.exists():
+            raise FileNotFoundError(
+                f"Model specification file not found at {model_spec_path}"
+            )
+        return LayeredConfigTree(model_spec_path)
 
     def _load_from_artifact(self, data_key: str) -> Any:
         """Load data directly from artifact, assuming correctly formatted data."""
