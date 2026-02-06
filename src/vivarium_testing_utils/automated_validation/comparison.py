@@ -5,7 +5,7 @@ import pandas as pd
 from loguru import logger
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     stratify,
 )
@@ -189,8 +189,24 @@ class FuzzyComparison(Comparison):
     def verify(
         self, step_size: float, stratifications: Collection[str] | Literal["all"] = "all"
     ):
-        # TODO: fail if test is not sim and reference is not artifact or gbd
-        # TODO: Find difference and stratify the differences out.
+        """Verify test and reference data are statistically indistinguishable according to the fuzzy checker."""
+
+        if self.test_bundle.source != DataSource.SIM:
+            raise NotImplementedError("Verification is only implemented for SIM test data.")
+        if self.reference_bundle.source not in [DataSource.ARTIFACT, DataSource.GBD]:
+            raise NotImplementedError(
+                "Verification is only implemented for ARTIFACT or GBD reference data."
+            )
+
+        # Get intersection of stratifications and shared indices
+        intersection = self.test_bundle.index_names.intersection(
+            self.reference_bundle.index_names
+        )
+        if stratifications == "all":
+            stratifications = intersection
+        else:
+            if not set(stratifications).issubset(intersection):
+                raise ValueError("Stratifications must be a subset of the intersection")
         test_datasets = {
             key: stratify(data, stratifications)
             for key, data in self.test_bundle.datasets.items()
@@ -199,10 +215,12 @@ class FuzzyComparison(Comparison):
             key: stratify(data, stratifications)
             for key, data in self.reference_bundle.datasets.items()
         }
-        # TODO: Only scale for specific measures based on self.measure.measure_key
+
         scaled_numerator = test_datasets["numerator_data"]
         scaled_denominator = test_datasets["denominator_data"]
-        target = ref_datasets["data"] / step_size
+        # Scale rates to the step size of the simulation
+        if "population" not in self.measure.measure_key:
+            target = ref_datasets["data"] / step_size
         return self.fuzzy_checker.test_proportion_vectorized(
             name=f"{self.measure.measure_key}_{self.test_bundle.source}_vs_{self.reference_bundle.source}",
             observed_numerator=scaled_numerator,

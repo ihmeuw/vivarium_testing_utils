@@ -364,6 +364,5 @@ def test_comparison_verify(
     step_size = 28 / 365.0
     result = comparison.verify(step_size=step_size)
     assert isinstance(result, TestResult)
-    assert len(comparison.fuzzy_checker.proportion_test_diagnostics) == len(
-        test_bundle.datasets["numerator_data"]
-    )
+    # Reference bundle has 3 rows (groups) that would be validated between the two bundles
+    assert len(comparison.fuzzy_checker.proportion_test_diagnostics) == 3
