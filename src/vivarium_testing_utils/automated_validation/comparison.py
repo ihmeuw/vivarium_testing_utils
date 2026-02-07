@@ -217,16 +217,14 @@ class FuzzyComparison(Comparison):
             key: stratify(data, stratifications)
             for key, data in self.reference_bundle.datasets.items()
         }
-
-        scaled_numerator = test_datasets["numerator_data"]
-        scaled_denominator = test_datasets["denominator_data"]
         # Scale rates to the step size of the simulation
         if "population" not in self.measure.measure_key:
             target = ref_datasets["data"] / step_size
+
         return self.fuzzy_checker.test_proportion_vectorized(
             name=f"{self.measure.measure_key}_{self.test_bundle.source}_vs_{self.reference_bundle.source}",
-            observed_numerator=scaled_numerator,
-            observed_denominator=scaled_denominator,
+            observed_numerator=test_datasets["numerator_data"],
+            observed_denominator=test_datasets["denominator_data"],
             target_proportion=target,
         )
 
