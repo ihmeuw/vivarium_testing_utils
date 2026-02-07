@@ -187,8 +187,10 @@ class FuzzyComparison(Comparison):
         return aggregated_data[["mean", "2.5%", "97.5%"]]
 
     def verify(
-        self, step_size: float, stratifications: Collection[str] | Literal["all"] = "all"
-    ):
+        self,
+        stratifications: Collection[str] | Literal["all"] = "all",
+        step_size: float = 0.5,
+    ) -> TestResult:
         """Verify test and reference data are statistically indistinguishable according to the fuzzy checker."""
 
         if self.test_bundle.source != DataSource.SIM:
