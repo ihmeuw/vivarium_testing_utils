@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import yaml
 from gbd_mapping import causes, covariates, risk_factors
 from layered_config_tree import LayeredConfigTree
 from vivarium import Artifact
