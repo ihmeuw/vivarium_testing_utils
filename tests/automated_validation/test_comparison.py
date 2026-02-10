@@ -363,5 +363,5 @@ def test_comparison_verify(
     comparison = FuzzyComparison(test_bundle, reference_bundle)
     step_size = 28 / 365.0
     comparison.verify(step_size=step_size)
-    # Reference bundle has 3 rows (groups) that would be validated between the two bundles
+    # Reference bundle has 3 rows (groups) that would be validated between the two bundles + aggregate
     assert len(comparison.proportion_test_results) == 4
