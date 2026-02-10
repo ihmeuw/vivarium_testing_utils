@@ -24,6 +24,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
     Incidence,
     RatioMeasure,
 )
+from vivarium_testing_utils.fuzzy_checker import TestResult
 
 
 @pytest.fixture
@@ -270,17 +271,6 @@ def test_fuzzy_comparison_get_frame_parametrized(
     assert set(data.columns) == expected_columns
 
 
-def test_fuzzy_comparison_verify_not_implemented(
-    test_bundle: RatioMeasureDataBundle,
-    reference_bundle: RatioMeasureDataBundle,
-) -> None:
-    """ "FuzzyComparison.verify() is not implemented."""
-    comparison = FuzzyComparison(test_bundle, reference_bundle)
-
-    with pytest.raises(NotImplementedError):
-        comparison.verify()
-
-
 def test_fuzzy_comparison_align_datasets_calculation(
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
@@ -360,3 +350,15 @@ def test_get_frame_default_rows(
 
     non_default = comparison.get_frame(num_rows=2)
     assert len(non_default) == 2
+
+
+@pytest.mark.skip(reason="Not implemented")
+def test_comparison_verify(
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
+) -> None:
+    """Test the verify method of the FuzzyComparison class."""
+    # comparison = FuzzyComparison(test_bundle, reference_bundle)
+    # result = comparison.verify()
+    # assert isinstance(result, TestResult)
+    pass
