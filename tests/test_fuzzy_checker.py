@@ -264,3 +264,51 @@ def test_fuzzy_checker_test_proportion_no_assertion_error() -> None:
     )
     assert isinstance(test_proportion, TestResult)
     assert test_proportion.reject_null is True
+
+
+class TestFuzzyCheckerTestProportionVectorized:
+    def test_fuzzy_test_proportion_vectorized_pass(
+        self,
+        simple_demographic_index: pd.MultiIndex,
+        observed_proportion_dataframe: pd.DataFrame,
+    ) -> None:
+        numerator = pd.DataFrame(
+            {"value": [10_000, 25_000, 50_000, 75_000]}, index=simple_demographic_index
+        )
+        denominator = pd.DataFrame(
+            {"value": [100_000, 100_000, 100_000, 100_000]}, index=simple_demographic_index
+        )
+        fuzzy_checker = FuzzyChecker()
+        fuzzy_checker.test_proportion_vectorized(
+            name="test_proportion_vectorized_passes",
+            observed_numerator=numerator,
+            observed_denominator=denominator,
+            target_proportion=observed_proportion_dataframe,
+        )
+        assert all(
+            not result.reject_null for result in fuzzy_checker.proportion_test_diagnostics
+        )
+        assert len(fuzzy_checker.proportion_test_diagnostics) == 5
+
+    def test_fuzzy_test_proportion_vectorized_fail(
+        self,
+        simple_demographic_index: pd.MultiIndex,
+        observed_proportion_dataframe: pd.DataFrame,
+    ) -> None:
+        # NOTE: first group is twice as high as observered proportion
+        numerator = pd.DataFrame(
+            {"value": [20_000, 25_000, 50_000, 75_000]}, index=simple_demographic_index
+        )
+        denominator = pd.DataFrame(
+            {"value": [100_000, 100_000, 100_000, 100_000]}, index=simple_demographic_index
+        )
+        fuzzy_checker = FuzzyChecker()
+        fuzzy_checker.test_proportion_vectorized(
+            name="test_proportion_vectorized_fails",
+            observed_numerator=numerator,
+            observed_denominator=denominator,
+            target_proportion=observed_proportion_dataframe,
+            fail_bayes_factor_cutoff=3.0,
+        )
+        assert any(result.reject_null for result in fuzzy_checker.proportion_test_diagnostics)
+        assert len(fuzzy_checker.proportion_test_diagnostics) == 5

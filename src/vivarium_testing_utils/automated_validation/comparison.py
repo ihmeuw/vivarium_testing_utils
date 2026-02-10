@@ -8,6 +8,7 @@ from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataB
 from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Measure
 from vivarium_testing_utils.automated_validation.visualization import dataframe_utils
+from vivarium_testing_utils.fuzzy_checker import FuzzyChecker, TestResult
 
 
 class Comparison(ABC):
@@ -81,6 +82,7 @@ class FuzzyComparison(Comparison):
         if self.test_bundle.measure != self.reference_bundle.measure:
             raise ValueError("Test and reference measures must be the same.")
         self.measure: Measure = self.test_bundle.measure
+        self.fuzzy_checker = FuzzyChecker()
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -182,7 +184,18 @@ class FuzzyComparison(Comparison):
         return aggregated_data[["mean", "2.5%", "97.5%"]]
 
     def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
-        raise NotImplementedError
+        # TODO: this needs to be vectorized to handle stratifications and dataframes
+        # The observed numerator, denominator, and target proportion are all dataframes
+        # and not single values like FuzzyChecker.test_proportion expects
+        # return self.fuzzy_checker.test_proportion(
+        #     nmame=self.measure.measure_key,
+        #     name_additional=f"{self.test_bundle.source}_vs_{self.reference_bundle.source}",
+        #     observed_numerator=self.test_bundle.datasets["numerator"],
+        #     observed_denominator=self.test_bundle.datasets["denominator"],
+        #     # TODO: update target proportion - reference numerator / denominator?
+        #     target_proportion=self.reference_bundle.datasets["numerator"],
+        # )
+        pass
 
     def align_datasets(
         self,

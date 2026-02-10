@@ -217,7 +217,7 @@ class FuzzyChecker:
         ), f"There cannot be more events ({observed_numerator}) than opportunities for events ({observed_denominator})"
         assert (
             target_upper_bound >= target_lower_bound
-        ), f"The lower bound of the V&  V target ({target_lower_bound}) cannot be greater than the upper bound ({target_upper_bound})"
+        ), f"The lower bound of the V&V target ({target_lower_bound}) cannot be greater than the upper bound ({target_upper_bound})"
 
         bug_issue_alpha, bug_issue_beta = bug_issue_beta_distribution_parameters
         bug_issue_distribution = scipy.stats.betabinom(
@@ -256,6 +256,82 @@ class FuzzyChecker:
             bug_issue_distribution=bug_issue_distribution,
             no_bug_issue_distribution=no_bug_issue_distribution,
         )
+
+    def test_proportion_vectorized(
+        self,
+        observed_numerator: pd.DataFrame,
+        observed_denominator: pd.DataFrame,
+        target_proportion: pd.DataFrame,
+        name: str = "",
+        bug_issue_beta_distribution_parameters: tuple[float, float] = (0.5, 0.5),
+        fail_bayes_factor_cutoff: float = 100.0,
+    ) -> None:
+        """Vectorized version of test_proportion that operates on DataFrames.
+
+        Performs test_proportion for each row/index group in the input data structures,
+        enabling efficient batch testing of multiple proportions.
+
+        Parameters:
+        -----------
+        observed_numerator
+            A DataFrame with a single column named "value" containing the observed number
+            of events for each group. Values should represent counts
+        observed_denominator
+            A DataFrame with a single column named "value" containing the number of opportunities
+            for events for each group. Values should represent counts
+        target_proportion
+            A DataFrame with a single column named "value" containing the target proportion
+            for each group. Values should be floats between 0 and 1
+        name
+            The name of the proportion being tested
+        bug_issue_beta_distribution_parameters
+            The parameters of the beta distribution characterizing the bug/issue hypothesis.
+        fail_bayes_factor_cutoff
+            The Bayes factor above which a hypothesis test is considered to favor a bug/issue..
+
+        """
+
+        combined_data = pd.DataFrame(
+            {
+                "numerator": observed_numerator["value"],
+                "denominator": observed_denominator["value"],
+                "target": target_proportion["value"],
+            }
+        )
+
+        # Test proportion for each group
+        for idx, row in combined_data.iterrows():
+            numerator_val = int(round(row["numerator"]))
+            denominator_val = int(round(row["denominator"]))
+            target_val = float(row["target"])
+
+            result = self.test_proportion(
+                name=name,
+                name_additional=str(idx),
+                observed_numerator=numerator_val,
+                observed_denominator=denominator_val,
+                target_proportion=target_val,
+                bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
+                fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+            )
+
+            self.proportion_test_diagnostics.append(result)
+
+        # Test population level proportion
+        # Calculate weighted average of target proportions (weighted by denominator)
+        weighted_target = (
+            combined_data["target"] * combined_data["denominator"]
+        ).sum() / combined_data["denominator"].sum()
+        aggregate = self.test_proportion(
+            name=name,
+            name_additional="population_level",
+            observed_numerator=combined_data["numerator"].sum(),
+            observed_denominator=combined_data["denominator"].sum(),
+            target_proportion=weighted_target,
+            bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
+            fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+        )
+        self.proportion_test_diagnostics.append(aggregate)
 
     def _calculate_bayes_factor(
         self,
