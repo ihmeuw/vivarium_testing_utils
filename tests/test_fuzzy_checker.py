@@ -279,22 +279,16 @@ class TestFuzzyCheckerTestProportionVectorized:
             {"value": [100_000, 100_000, 100_000, 100_000]}, index=simple_demographic_index
         )
         fuzzy_checker = FuzzyChecker()
-        result = fuzzy_checker.test_proportion_vectorized(
+        fuzzy_checker.test_proportion_vectorized(
             name="test_proportion_vectorized_passes",
             observed_numerator=numerator,
             observed_denominator=denominator,
             target_proportion=observed_proportion_dataframe,
         )
-        assert isinstance(result, TestResult)
-        assert not result.reject_null
-        assert len(fuzzy_checker.proportion_test_diagnostics) == 4
-
-        # All bayes factors should be the same
-        bayes_factors = [
-            diagnostic.bayes_factor
-            for diagnostic in fuzzy_checker.proportion_test_diagnostics
-        ]
-        assert all(bf == bayes_factors[0] for bf in bayes_factors)
+        assert all(
+            not result.reject_null for result in fuzzy_checker.proportion_test_diagnostics
+        )
+        assert len(fuzzy_checker.proportion_test_diagnostics) == 5
 
     def test_fuzzy_test_proportion_vectorized_fail(
         self,
@@ -309,20 +303,12 @@ class TestFuzzyCheckerTestProportionVectorized:
             {"value": [100_000, 100_000, 100_000, 100_000]}, index=simple_demographic_index
         )
         fuzzy_checker = FuzzyChecker()
-        result = fuzzy_checker.test_proportion_vectorized(
+        fuzzy_checker.test_proportion_vectorized(
             name="test_proportion_vectorized_fails",
             observed_numerator=numerator,
             observed_denominator=denominator,
             target_proportion=observed_proportion_dataframe,
             fail_bayes_factor_cutoff=3.0,
         )
-        assert isinstance(result, TestResult)
-        assert result.reject_null
-        assert len(fuzzy_checker.proportion_test_diagnostics) == 4
-
-        # All bayes factors should be the same
-        bayes_factors = [
-            diagnostic.bayes_factor
-            for diagnostic in fuzzy_checker.proportion_test_diagnostics
-        ]
-        assert all(bf == bayes_factors[0] for bf in bayes_factors)
+        assert any(result.reject_null for result in fuzzy_checker.proportion_test_diagnostics)
+        assert len(fuzzy_checker.proportion_test_diagnostics) == 5

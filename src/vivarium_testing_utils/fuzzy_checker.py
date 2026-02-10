@@ -307,7 +307,7 @@ class FuzzyChecker:
 
             result = self.test_proportion(
                 name=name,
-                name_additional="",
+                name_additional=str(idx),
                 observed_numerator=numerator_val,
                 observed_denominator=denominator_val,
                 target_proportion=target_val,
@@ -315,7 +315,7 @@ class FuzzyChecker:
                 fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
             )
 
-            self.proportion_test_diagnostics.append(result.bayes_factor)
+            self.proportion_test_diagnostics.append(result)
 
         # Test population level proportion
         # Calculate weighted average of target proportions (weighted by denominator)
