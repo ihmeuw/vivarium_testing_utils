@@ -363,5 +363,12 @@ def test_comparison_verify(
     comparison = FuzzyComparison(test_bundle, reference_bundle)
     step_size = 28 / 365.0
     comparison.verify(step_size=step_size)
-    # Reference bundle has 3 rows (groups) that would be validated between the two bundles + aggregate
-    assert len(comparison.proportion_test_results) == 4
+    assert set(["overall", "stratified"]) == set(comparison.proportion_test_results.keys())
+    # Reference bundle has 3 rows (groups) that would be validated between the two bundles
+    stratified_results = comparison.proportion_test_results["stratified"]
+    assert isinstance(stratified_results, dict)
+    assert len(stratified_results) == 3
+    overall_result = comparison.proportion_test_results["overall"]
+    assert isinstance(overall_result, TestResult)
+    assert not any(result.reject_null for result in stratified_results.values())
+    assert not overall_result.reject_null

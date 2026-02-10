@@ -85,7 +85,9 @@ class FuzzyComparison(Comparison):
         if self.test_bundle.measure != self.reference_bundle.measure:
             raise ValueError("Test and reference measures must be the same.")
         self.measure: Measure = self.test_bundle.measure
-        self.proportion_test_results: dict[str, TestResult] = {}
+        self.proportion_test_results: dict[str, TestResult | dict[str, TestResult]] = {
+            "stratified": {},
+        }
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -223,13 +225,16 @@ class FuzzyComparison(Comparison):
             target = ref_datasets["data"] / step_size
 
         fuzzy_checker.test_proportion_vectorized(
-            name=f"{self.measure.measure_key}_{self.test_bundle.source}_vs_{self.reference_bundle.source}",
+            name=self.measure.measure_key,
             observed_numerator=test_datasets["numerator_data"],
             observed_denominator=test_datasets["denominator_data"],
             target_proportion=target,
         )
         for result in fuzzy_checker.proportion_test_diagnostics:
-            self.proportion_test_results[f"{result.name}_{result.name_additional}"] = result
+            if result.name_additional == "overall":
+                self.proportion_test_results["overall"] = result
+            else:
+                self.proportion_test_results["stratified"][result.name_additional] = result  # type: ignore[index]
 
     def align_datasets(
         self,
