@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import os
-from collections import defaultdict
-from collections.abc import Callable
 from datetime import datetime
+from loguru import logger
 from pathlib import Path
 from typing import Any, Collection, Literal, Mapping
 
@@ -188,8 +187,11 @@ class ValidationContext:
         )
         self.comparisons[measure.measure_key] = comparison
 
-    def verify(self, comparison_key: str, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
-        self.comparisons[comparison_key].verify(stratifications)
+    def verify(self, comparison_key: str, stratifications: Collection[str] | Literal["all"] = "all") -> bool:
+        result = self.comparisons[comparison_key].verify(
+            stratifications, self.model_spec.time.step_size / 365.0
+        )
+        return not result.reject_null
 
     def metadata(self, comparison_key: str) -> pd.DataFrame:
         comparison_metadata = self.comparisons[comparison_key].metadata
@@ -320,10 +322,25 @@ class ValidationContext:
     def generate_comparisons(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def verify_all(self):  # type: ignore[no-untyped-def]
+    def verify_all(self) -> bool:
+        verify_results = []
+        bad_results = []
         for comparison in self.comparisons.values():
-            comparison.verify()
-
+            # TODO: log each comparison pass/fail
+            # TODO: overwrite instance of FuzzyChecker 
+            result = comparison.verify()
+            if not result.reject_null:
+                verify_results.append(comparison)
+            else:
+                bad_results.append(comparison)
+                logger.warning(f"Comparison {comparison.test_bundle.measure.measure_key} failed validation.")
+                for group in comparison.fuzzy_checker.proportion_test_diagnostics:
+                    if group.reject_null:
+                        logger.warning(f"Group {group.name}_{group.name_additional} failed.")
+        
+        return False if bad_results else True
+    
+                
     def plot_all(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
