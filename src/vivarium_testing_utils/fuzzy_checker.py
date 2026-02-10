@@ -322,16 +322,16 @@ class FuzzyChecker:
         weighted_target = (
             combined_data["target"] * combined_data["denominator"]
         ).sum() / combined_data["denominator"].sum()
-        aggregate = self.test_proportion(
+        overall = self.test_proportion(
             name=name,
-            name_additional="population_level",
+            name_additional="overall",
             observed_numerator=combined_data["numerator"].sum(),
             observed_denominator=combined_data["denominator"].sum(),
             target_proportion=weighted_target,
             bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
             fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
         )
-        self.proportion_test_diagnostics.append(aggregate)
+        self.proportion_test_diagnostics.append(overall)
 
     def _calculate_bayes_factor(
         self,
