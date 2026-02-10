@@ -289,9 +289,6 @@ class FuzzyChecker:
         fail_bayes_factor_cutoff
             The Bayes factor above which a hypothesis test is considered to favor a bug/issue..
 
-        Returns:
-        -------
-            A TestResult instance containing aggregated test results across all index groups.
         """
 
         combined_data = pd.DataFrame(
