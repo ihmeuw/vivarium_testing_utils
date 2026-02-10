@@ -187,7 +187,9 @@ class ValidationContext:
         )
         self.comparisons[measure.measure_key] = comparison
 
-    def verify(self, comparison_key: str, stratifications: Collection[str] | Literal["all"] = "all") -> bool:
+    def verify(
+        self, comparison_key: str, stratifications: Collection[str] | Literal["all"] = "all"
+    ) -> bool:
         result = self.comparisons[comparison_key].verify(
             stratifications, self.model_spec.time.step_size / 365.0
         )
@@ -326,21 +328,21 @@ class ValidationContext:
         verify_results = []
         bad_results = []
         for comparison in self.comparisons.values():
-            # TODO: log each comparison pass/fail
-            # TODO: overwrite instance of FuzzyChecker 
+            logger.info(f"Comparison {comparison.test_bundle.measure.measure_key} passed!")
             result = comparison.verify()
             if not result.reject_null:
                 verify_results.append(comparison)
             else:
                 bad_results.append(comparison)
-                logger.warning(f"Comparison {comparison.test_bundle.measure.measure_key} failed validation.")
+                logger.warning(
+                    f"Comparison {comparison.test_bundle.measure.measure_key} failed."
+                )
                 for group in comparison.fuzzy_checker.proportion_test_diagnostics:
                     if group.reject_null:
                         logger.warning(f"Group {group.name}_{group.name_additional} failed.")
-        
+
         return False if bad_results else True
-    
-                
+
     def plot_all(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
