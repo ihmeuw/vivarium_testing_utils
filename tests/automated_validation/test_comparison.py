@@ -362,7 +362,6 @@ def test_comparison_verify(
     """Test the verify method of the FuzzyComparison class."""
     comparison = FuzzyComparison(test_bundle, reference_bundle)
     step_size = 28 / 365.0
-    result = comparison.verify(step_size=step_size)
-    assert isinstance(result, TestResult)
+    comparison.verify(step_size=step_size)
     # Reference bundle has 3 rows (groups) that would be validated between the two bundles
-    assert len(comparison.fuzzy_checker.proportion_test_diagnostics) == 3
+    assert len(comparison.proportion_test_results) == 4

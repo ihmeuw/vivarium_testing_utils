@@ -85,7 +85,7 @@ class FuzzyComparison(Comparison):
         if self.test_bundle.measure != self.reference_bundle.measure:
             raise ValueError("Test and reference measures must be the same.")
         self.measure: Measure = self.test_bundle.measure
-        self.fuzzy_checker = FuzzyChecker()
+        self.proportion_test_results: dict[str, TestResult] = {}
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -190,8 +190,9 @@ class FuzzyComparison(Comparison):
         self,
         stratifications: Collection[str] | Literal["all"] = "all",
         step_size: float = 0.5,
-    ) -> TestResult:
+    ) -> None:
         """Verify test and reference data are statistically indistinguishable according to the fuzzy checker."""
+        fuzzy_checker = FuzzyChecker()
 
         if self.test_bundle.source != DataSource.SIM:
             raise NotImplementedError("Verification is only implemented for SIM test data.")
@@ -221,12 +222,14 @@ class FuzzyComparison(Comparison):
         if "population" not in self.measure.measure_key:
             target = ref_datasets["data"] / step_size
 
-        return self.fuzzy_checker.test_proportion_vectorized(
+        fuzzy_checker.test_proportion_vectorized(
             name=f"{self.measure.measure_key}_{self.test_bundle.source}_vs_{self.reference_bundle.source}",
             observed_numerator=test_datasets["numerator_data"],
             observed_denominator=test_datasets["denominator_data"],
             target_proportion=target,
         )
+        for result in fuzzy_checker.proportion_test_diagnostics:
+            self.proportion_test_results[f"{result.name}_{result.name_additional}"] = result
 
     def align_datasets(
         self,
