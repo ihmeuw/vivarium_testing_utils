@@ -205,7 +205,6 @@ class FuzzyChecker:
         observed_denominator: int = 0,
         bug_issue_beta_distribution_parameters: tuple[float, float] = (0.5, 0.5),
         fail_bayes_factor_cutoff: float = 100.0,
-        bayes_factor: float | None = None,
     ) -> TestResult:
         """Convert a dictionary representation of a test result to a TestResult object."""
         if isinstance(target_proportion, tuple):
@@ -238,10 +237,9 @@ class FuzzyChecker:
                 a=a, b=b, n=observed_denominator
             )
 
-        if bayes_factor is None:
-            bayes_factor = self._calculate_bayes_factor(
-                observed_numerator, bug_issue_distribution, no_bug_issue_distribution
-            )
+        bayes_factor = self._calculate_bayes_factor(
+            observed_numerator, bug_issue_distribution, no_bug_issue_distribution
+        )
 
         observed_proportion = observed_numerator / observed_denominator
         reject_null = bayes_factor > fail_bayes_factor_cutoff
@@ -267,7 +265,7 @@ class FuzzyChecker:
         name: str = "",
         bug_issue_beta_distribution_parameters: tuple[float, float] = (0.5, 0.5),
         fail_bayes_factor_cutoff: float = 100.0,
-    ) -> TestResult:
+    ) -> None:
         """Vectorized version of test_proportion that operates on DataFrames.
 
         Performs test_proportion for each row/index group in the input data structures,
@@ -291,12 +289,9 @@ class FuzzyChecker:
         fail_bayes_factor_cutoff
             The Bayes factor above which a hypothesis test is considered to favor a bug/issue..
 
-        Returns:
-        -------
-            A TestResult instance containing aggregated test results across all index groups.
         """
 
-        aggregate_data = pd.DataFrame(
+        combined_data = pd.DataFrame(
             {
                 "numerator": observed_numerator["value"],
                 "denominator": observed_denominator["value"],
@@ -304,17 +299,15 @@ class FuzzyChecker:
             }
         )
 
-        # First pass: Calculate Bayes factors for each group
-        individual_bayes_factors = []
-        for idx, row in aggregate_data.iterrows():
+        # Test proportion for each group
+        for idx, row in combined_data.iterrows():
             numerator_val = int(round(row["numerator"]))
             denominator_val = int(round(row["denominator"]))
             target_val = float(row["target"])
 
-            # Call test_proportion to get the Bayes factor for this group
             result = self.test_proportion(
                 name=name,
-                name_additional="",
+                name_additional=str(idx),
                 observed_numerator=numerator_val,
                 observed_denominator=denominator_val,
                 target_proportion=target_val,
@@ -322,85 +315,23 @@ class FuzzyChecker:
                 fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
             )
 
-            individual_bayes_factors.append(result.bayes_factor)
+            self.proportion_test_diagnostics.append(result)
 
-        # Multiply all Bayes factors together for overall Bayes factor
-        overall_bayes_factor = 1.0
-        for bayes_factor in individual_bayes_factors:
-            overall_bayes_factor *= bayes_factor
-
-        # Second pass: Create proper TestResult objects for each group with context
-        results = []
-        for idx, row in aggregate_data.iterrows():
-            numerator_val = int(round(row["numerator"]))
-            denominator_val = int(round(row["denominator"]))
-            target_val = float(row["target"])
-            # Generate a string representation of the index for name_additional
-            if isinstance(idx, tuple):
-                idx_str = "_".join(str(i) for i in idx)
-            else:
-                idx_str = str(idx)
-
-            # Call test_proportion to create full TestResult for diagnostics
-            result = self.test_proportion(
-                name=name,
-                name_additional=idx_str,
-                observed_numerator=numerator_val,
-                observed_denominator=denominator_val,
-                target_proportion=target_val,
-                bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
-                fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
-                bayes_factor=overall_bayes_factor,
-            )
-            results.append(result)
-        # Store the full list of proportion test so users can look at individual groups if needed
-        self.proportion_test_diagnostics.extend(results)
-
-        # Create aggregated TestResult
-        # Determine overall reject_null: True if ANY individual group failed
-        overall_reject_null = any(result.reject_null for result in results)
-        total_numerator = int(aggregate_data["numerator"].sum())
-        total_denominator = int(aggregate_data["denominator"].sum())
-        overall_proportion = total_numerator / total_denominator
-
+        # Test population level proportion
         # Calculate weighted average of target proportions (weighted by denominator)
         weighted_target = (
-            aggregate_data["target"] * aggregate_data["denominator"]
-        ).sum() / aggregate_data["denominator"].sum()
-
-        # Count how many individual groups failed
-        num_failed = sum(1 for result in results if result.reject_null)
-        num_groups = len(results)
-        name_additional = f"aggregated_{num_groups}_groups_{num_failed}_failed"
-
-        # Create distributions for the aggregated TestResult
-        # Note: These distributions are created to satisfy the TestResult dataclass requirements
-        # and represent the aggregated data scale. However, the overall_bayes_factor above was
-        # calculated by multiplying individual group Bayes factors, not from these distributions.
-        # These distributions would produce a different Bayes factor if used directly.
-        bug_issue_alpha, bug_issue_beta = bug_issue_beta_distribution_parameters
-        bug_issue_distribution = scipy.stats.betabinom(
-            a=bug_issue_alpha, b=bug_issue_beta, n=total_denominator
-        )
-        # Use weighted target as the no-bug target
-        no_bug_issue_distribution = scipy.stats.binom(p=weighted_target, n=total_denominator)
-
-        # Create and return aggregated TestResult
-        aggregated_result = TestResult(
+            combined_data["target"] * combined_data["denominator"]
+        ).sum() / combined_data["denominator"].sum()
+        aggregate = self.test_proportion(
             name=name,
-            name_additional=name_additional,
-            observed_proportion=overall_proportion,
-            observed_numerator=total_numerator,
-            observed_denominator=total_denominator,
-            target_lower_bound=weighted_target,
-            target_upper_bound=weighted_target,
-            bayes_factor=overall_bayes_factor,
-            reject_null=overall_reject_null,
-            bug_issue_distribution=bug_issue_distribution,
-            no_bug_issue_distribution=no_bug_issue_distribution,
+            name_additional="population_level",
+            observed_numerator=combined_data["numerator"].sum(),
+            observed_denominator=combined_data["denominator"].sum(),
+            target_proportion=weighted_target,
+            bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
+            fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
         )
-
-        return aggregated_result
+        self.proportion_test_diagnostics.append(aggregate)
 
     def _calculate_bayes_factor(
         self,
