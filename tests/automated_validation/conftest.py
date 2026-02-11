@@ -276,7 +276,20 @@ def get_model_spec(artifact_path: Path) -> dict[str, dict[str, dict[str, str]]]:
         "configuration": {
             "input_data": {
                 "artifact_path": str(artifact_path),
-            }
+            },
+            "time": {
+                "start": {
+                    "year": 2020,
+                    "month": 1,
+                    "day": 1,
+                },
+                "end": {
+                    "year": 2025,
+                    "month": 12,
+                    "day": 31,
+                },
+                "step_size": 1,
+            },
         }
     }
 

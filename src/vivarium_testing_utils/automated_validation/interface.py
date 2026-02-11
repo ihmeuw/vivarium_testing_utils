@@ -201,6 +201,7 @@ class ValidationContext:
             .proportion_test_results["stratified"]
             .values()
         ]
+
         return not any(result)
 
     def metadata(self, comparison_key: str) -> pd.DataFrame:
