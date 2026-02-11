@@ -647,6 +647,12 @@ def test_add_new_measure(sim_result_dir: Path) -> None:
     )
 
 
+def test_verify() -> None:
+    pass
+
+def test_verify_all() -> None:
+    pass
+
 ###########
 # Helpers #
 ###########
