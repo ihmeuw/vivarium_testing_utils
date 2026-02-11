@@ -41,6 +41,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.rate_aggreg
     population_weighted,
 )
 from vivarium_testing_utils.automated_validation.interface import ValidationContext
+from vivarium_testing_utils.fuzzy_checker import TestResult
 
 MEASURE_DATA_MAPPER = {
     "risk_factor.child_wasting.exposure": "exposure",
@@ -654,8 +655,29 @@ def test_verify(sim_result_dir: Path) -> None:
     context.verify(measure_key)
 
 
-def test_verify_all() -> None:
-    pass
+def test_verify_all(sim_result_dir: Path, mocker: MockFixture) -> None:
+    # Create a full mock of TestResult class that makes all tests pass
+    mock_result = mocker.MagicMock(spec=TestResult)
+    mock_result.reject_null = False
+
+    # Create mock comparisons to avoid data loading issues
+    mock_proportion_test_results = {
+        "overall": mock_result,
+        "stratified": {"group1": mock_result, "group2": mock_result},
+    }
+    mock_comparison_1 = mocker.MagicMock()
+    mock_comparison_1.proportion_test_results = mock_proportion_test_results
+    mock_comparison_2 = mocker.MagicMock()
+    mock_comparison_2.proportion_test_results = mock_proportion_test_results
+
+    # Manually add comparisons to context to avoid data loading
+    context = ValidationContext(sim_result_dir)
+    context.comparisons["cause.disease.incidence_rate"] = mock_comparison_1
+    context.comparisons["cause.disease_2.incidence_rate"] = mock_comparison_2
+
+    assert context.verify_all()
+    assert len(context.verified_results) == 2
+    assert not context.bad_test_results
 
 
 ###########

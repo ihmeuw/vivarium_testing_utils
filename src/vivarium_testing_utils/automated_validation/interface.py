@@ -44,6 +44,8 @@ class ValidationContext:
         self.location = self.data_loader.location
         self.measure_mapper = MeasureMapper()
         self.model_spec = self.data_loader.model_spec.configuration
+        self.verified_results: list[Comparison] = []
+        self.bad_test_results: list[Comparison] = []
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -333,11 +335,9 @@ class ValidationContext:
     def generate_comparisons(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def verify_all(self) -> bool:
-        verify_results = []
-        bad_results = []
+    def verify_all(self, stratifications: Collection[str] | Literal["all"] = "all") -> bool:
         for comparison in self.comparisons.values():
-            comparison.verify()
+            comparison.verify(stratifications, self.model_spec.time.step_size / 365.0)
             result = [comparison.proportion_test_results["overall"].reject_null] + [
                 group.reject_null
                 for group in comparison.proportion_test_results["stratified"].values()
@@ -346,9 +346,9 @@ class ValidationContext:
                 logger.info(
                     f"Comparison {comparison.test_bundle.measure.measure_key} passed!"
                 )
-                verify_results.append(comparison)
+                self.verified_results.append(comparison)
             else:
-                bad_results.append(comparison)
+                self.bad_test_results.append(comparison)
                 logger.warning(
                     f"Comparison {comparison.test_bundle.measure.measure_key} failed."
                 )
@@ -356,7 +356,7 @@ class ValidationContext:
                     if group.reject_null:
                         logger.warning(f"Group {group.name}_{group.name_additional} failed.")
 
-        return False if bad_results else True
+        return False if self.bad_test_results else True
 
     def plot_all(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
@@ -384,7 +384,7 @@ class ValidationContext:
             raise ValueError(
                 "No age groups found. Please provide a DataFrame or use the artifact."
             )
-            # relabel index level age_group_name to age_group
+            # relabel index leddddddddddvel age_group_name to age_group
 
         return age_groups.rename_axis(index={"age_group_name": "age_group"})
 

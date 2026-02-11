@@ -191,7 +191,7 @@ class FuzzyComparison(Comparison):
     def verify(
         self,
         stratifications: Collection[str] | Literal["all"] = "all",
-        step_size: float = 0.5,
+        step_size: float = 28 / 365.0,
     ) -> None:
         """Verify test and reference data are statistically indistinguishable according to the fuzzy checker."""
         fuzzy_checker = FuzzyChecker()
