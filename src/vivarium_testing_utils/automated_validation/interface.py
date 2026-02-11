@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from loguru import logger
 from pathlib import Path
 from typing import Any, Collection, Literal, Mapping
 
 import pandas as pd
 import yaml
 from IPython.display import HTML, display
+from loguru import logger
 from matplotlib.figure import Figure
 from vivarium_inputs import utilities as vi
 
@@ -190,10 +190,18 @@ class ValidationContext:
     def verify(
         self, comparison_key: str, stratifications: Collection[str] | Literal["all"] = "all"
     ) -> bool:
-        result = self.comparisons[comparison_key].verify(
+        self.comparisons[comparison_key].verify(
             stratifications, self.model_spec.time.step_size / 365.0
         )
-        return not result.reject_null
+        result = [
+            self.comparisons[comparison_key].proportion_test_results["overall"].reject_null
+        ] + [
+            group.reject_null
+            for group in self.comparisons[comparison_key]
+            .proportion_test_results["stratified"]
+            .values()
+        ]
+        return not any(result)
 
     def metadata(self, comparison_key: str) -> pd.DataFrame:
         comparison_metadata = self.comparisons[comparison_key].metadata
@@ -328,16 +336,22 @@ class ValidationContext:
         verify_results = []
         bad_results = []
         for comparison in self.comparisons.values():
-            logger.info(f"Comparison {comparison.test_bundle.measure.measure_key} passed!")
-            result = comparison.verify()
-            if not result.reject_null:
+            comparison.verify()
+            result = [comparison.proportion_test_results["overall"].reject_null] + [
+                group.reject_null
+                for group in comparison.proportion_test_results["stratified"].values()
+            ]
+            if not any(result):
+                logger.info(
+                    f"Comparison {comparison.test_bundle.measure.measure_key} passed!"
+                )
                 verify_results.append(comparison)
             else:
                 bad_results.append(comparison)
                 logger.warning(
                     f"Comparison {comparison.test_bundle.measure.measure_key} failed."
                 )
-                for group in comparison.fuzzy_checker.proportion_test_diagnostics:
+                for group in comparison.proportion_test_results["stratified"].values():
                     if group.reject_null:
                         logger.warning(f"Group {group.name}_{group.name_additional} failed.")
 
