@@ -1,5 +1,6 @@
 import shutil
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 import pandas as pd
@@ -270,7 +271,7 @@ def sim_result_dir(
     return tmp_path
 
 
-def get_model_spec(artifact_path: Path) -> dict[str, dict[str, dict[str, str]]]:
+def get_model_spec(artifact_path: Path) -> dict[str, Any]:
     """Sample model specification for testing."""
     return {
         "configuration": {

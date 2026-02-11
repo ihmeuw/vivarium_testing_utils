@@ -22,6 +22,7 @@ class Comparison(ABC):
 
     test_bundle: RatioMeasureDataBundle
     reference_bundle: RatioMeasureDataBundle
+    proportion_test_results: dict[str, TestResult | dict[str, TestResult]]
 
     @property
     @abstractmethod
@@ -66,7 +67,11 @@ class Comparison(ABC):
         pass
 
     @abstractmethod
-    def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
+    def verify(
+        self,
+        stratifications: Collection[str] | Literal["all"] = "all",
+        step_size: float = 28 / 365.0,
+    ) -> None:
         pass
 
 

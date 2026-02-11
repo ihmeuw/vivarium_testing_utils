@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Collection, Literal, Mapping
+from typing import Any, Collection, Literal, Mapping, cast
 
 import pandas as pd
 import yaml
@@ -32,6 +32,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     set_validation_index,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
+from vivarium_testing_utils.fuzzy_checker import TestResult
 
 
 class ValidationContext:
@@ -195,13 +196,15 @@ class ValidationContext:
         self.comparisons[comparison_key].verify(
             stratifications, self.model_spec.time.step_size / 365.0
         )
-        result = [
-            self.comparisons[comparison_key].proportion_test_results["overall"].reject_null
-        ] + [
-            group.reject_null
-            for group in self.comparisons[comparison_key]
-            .proportion_test_results["stratified"]
-            .values()
+        overall_result = cast(
+            TestResult, self.comparisons[comparison_key].proportion_test_results["overall"]
+        )
+        stratified_results = cast(
+            dict[str, TestResult],
+            self.comparisons[comparison_key].proportion_test_results["stratified"],
+        )
+        result = [overall_result.reject_null] + [
+            group.reject_null for group in stratified_results.values()
         ]
 
         return not any(result)
@@ -338,9 +341,12 @@ class ValidationContext:
     def verify_all(self, stratifications: Collection[str] | Literal["all"] = "all") -> bool:
         for comparison in self.comparisons.values():
             comparison.verify(stratifications, self.model_spec.time.step_size / 365.0)
-            result = [comparison.proportion_test_results["overall"].reject_null] + [
-                group.reject_null
-                for group in comparison.proportion_test_results["stratified"].values()
+            overall_result = cast(TestResult, comparison.proportion_test_results["overall"])
+            stratified_results = cast(
+                dict[str, TestResult], comparison.proportion_test_results["stratified"]
+            )
+            result = [overall_result.reject_null] + [
+                group.reject_null for group in stratified_results.values()
             ]
             if not any(result):
                 logger.info(
@@ -352,7 +358,7 @@ class ValidationContext:
                 logger.warning(
                     f"Comparison {comparison.test_bundle.measure.measure_key} failed."
                 )
-                for group in comparison.proportion_test_results["stratified"].values():
+                for group in stratified_results.values():
                     if group.reject_null:
                         logger.warning(f"Group {group.name}_{group.name_additional} failed.")
 
