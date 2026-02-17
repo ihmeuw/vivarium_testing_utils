@@ -390,7 +390,7 @@ class ValidationContext:
             raise ValueError(
                 "No age groups found. Please provide a DataFrame or use the artifact."
             )
-            # relabel index leddddddddddvel age_group_name to age_group
+            # relabel index level age_group_name to age_group
 
         return age_groups.rename_axis(index={"age_group_name": "age_group"})
 
