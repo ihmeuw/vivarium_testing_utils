@@ -10,6 +10,7 @@ from pytest import TempPathFactory
 from vivarium.framework.artifact import Artifact
 
 from vivarium_testing_utils.automated_validation.constants import (
+    DAYS_PER_YEAR,
     DRAW_INDEX,
     INPUT_DATA_INDEX_NAMES,
     LOCATION_ARTIFACT_KEY,
@@ -661,8 +662,8 @@ def integration_artifact_data() -> pd.DataFrame:
     data = pd.DataFrame(
         {
             "sex": ["Male"] * 2 + ["Female"] * 2,
-            "age_start": [0, round(7 / 365.0, 8)] * 2,
-            "age_end": [round(7 / 365.0, 8), round(28 / 365.0, 8)] * 2,
+            "age_start": [0, round(7 / DAYS_PER_YEAR, 8)] * 2,
+            "age_end": [round(7 / DAYS_PER_YEAR, 8), round(28 / DAYS_PER_YEAR, 8)] * 2,
             "year_start": [2023] * 4,
             "year_end": [2024] * 4,
             "draw_0": [0.1, 0.2, 0.3, 0.4],
@@ -686,8 +687,8 @@ def load_integration_age_bins() -> pd.DataFrame:
         {
             "age_group_id": [2, 3],
             "age_group_name": ["Early Neonatal", "Late Neonatal"],
-            "age_start": [0, round(7 / 365.0, 8)],
-            "age_end": [round(7 / 365.0, 8), round(28 / 365.0, 8)],
+            "age_start": [0, round(7 / DAYS_PER_YEAR, 8)],
+            "age_end": [round(7 / DAYS_PER_YEAR, 8), round(28 / DAYS_PER_YEAR, 8)],
         }
     )
     data = data.set_index(

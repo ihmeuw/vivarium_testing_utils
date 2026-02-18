@@ -69,8 +69,8 @@ class Comparison(ABC):
     @abstractmethod
     def verify(
         self,
+        step_size: float,
         stratifications: Collection[str] | Literal["all"] = "all",
-        step_size: float = 28 / 365.0,
     ) -> None:
         pass
 
@@ -195,8 +195,8 @@ class FuzzyComparison(Comparison):
 
     def verify(
         self,
+        step_size: float,
         stratifications: Collection[str] | Literal["all"] = "all",
-        step_size: float = 28 / 365.0,
     ) -> None:
         """Verify test and reference data are statistically indistinguishable according to the fuzzy checker."""
         fuzzy_checker = FuzzyChecker()

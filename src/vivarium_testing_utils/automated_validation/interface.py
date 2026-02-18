@@ -14,6 +14,7 @@ from vivarium_inputs import utilities as vi
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
+from vivarium_testing_utils.automated_validation.constants import DAYS_PER_YEAR
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
@@ -193,19 +194,25 @@ class ValidationContext:
     def verify(
         self, comparison_key: str, stratifications: Collection[str] | Literal["all"] = "all"
     ) -> bool:
+        """Check whether the compparison passes validation for the given stratifications.
+
+        Parameters
+        ----------
+        comparison_key
+        The key of the comparison to validate, usually of the form 'entity_type.entity.entity_measure'
+        stratifications
+            Stratifications to preserve when validating the comparison
+
+        Returns
+        -------
+        True if the comparison passes validation, False otherwise.
+        """
+
         self.comparisons[comparison_key].verify(
-            stratifications, self.model_spec.time.step_size / 365.0
+            self.model_spec.time.step_size / DAYS_PER_YEAR,
+            stratifications,
         )
-        overall_result = cast(
-            TestResult, self.comparisons[comparison_key].proportion_test_results["overall"]
-        )
-        stratified_results = cast(
-            dict[str, TestResult],
-            self.comparisons[comparison_key].proportion_test_results["stratified"],
-        )
-        result = [overall_result.reject_null] + [
-            group.reject_null for group in stratified_results.values()
-        ]
+        _, _, result = self._gather_comparison_test_results(self.comparisons[comparison_key])
 
         return not any(result)
 
@@ -339,15 +346,24 @@ class ValidationContext:
         raise NotImplementedError
 
     def verify_all(self, stratifications: Collection[str] | Literal["all"] = "all") -> bool:
+        """Verify all comparisons in the context and capture results.
+
+        Parameters
+        ----------
+        stratifications
+            The stratifications to preserve when validating the comparison
+
+        Returns
+        -------
+        True if all comparisons pass validation, False otherwise.
+
+        """
+
         for comparison in self.comparisons.values():
-            comparison.verify(stratifications, self.model_spec.time.step_size / 365.0)
-            overall_result = cast(TestResult, comparison.proportion_test_results["overall"])
-            stratified_results = cast(
-                dict[str, TestResult], comparison.proportion_test_results["stratified"]
+            comparison.verify(self.model_spec.time.step_size / DAYS_PER_YEAR, stratifications)
+            overall_result, stratified_results, result = self._gather_comparison_test_results(
+                comparison
             )
-            result = [overall_result.reject_null] + [
-                group.reject_null for group in stratified_results.values()
-            ]
             if not any(result):
                 logger.info(
                     f"Comparison {comparison.test_bundle.measure.measure_key} passed!"
@@ -358,11 +374,27 @@ class ValidationContext:
                 logger.warning(
                     f"Comparison {comparison.test_bundle.measure.measure_key} failed."
                 )
+                if overall_result.reject_null:
+                    logger.warning(
+                        f"Overall comparison for {comparison.test_bundle.measure.measure_key} failed."
+                    )
                 for group in stratified_results.values():
                     if group.reject_null:
                         logger.warning(f"Group {group.name}_{group.name_additional} failed.")
 
-        return False if self.bad_test_results else True
+        return not self.bad_test_results
+
+    def _gather_comparison_test_results(
+        self, comparison: Comparison
+    ) -> tuple[TestResult, dict[str, TestResult], list[bool]]:
+        overall_result = cast(TestResult, comparison.proportion_test_results["overall"])
+        stratified_results = cast(
+            dict[str, TestResult], comparison.proportion_test_results["stratified"]
+        )
+        result = [overall_result.reject_null] + [
+            group.reject_null for group in stratified_results.values()
+        ]
+        return overall_result, stratified_results, result
 
     def plot_all(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
