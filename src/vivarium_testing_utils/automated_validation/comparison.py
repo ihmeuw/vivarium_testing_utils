@@ -85,7 +85,9 @@ class FuzzyComparison(Comparison):
         if self.test_bundle.measure != self.reference_bundle.measure:
             raise ValueError("Test and reference measures must be the same.")
         self.measure: Measure = self.test_bundle.measure
-        self.proportion_test_results: dict[str, TestResult | dict[str, TestResult]] = {
+        self.proportion_test_results: dict[
+            str, TestResult | dict[str, dict[str, TestResult]]
+        ] = {
             "stratified": {},
         }
 
@@ -194,7 +196,6 @@ class FuzzyComparison(Comparison):
         step_size: float = 0.5,
     ) -> None:
         """Verify test and reference data are statistically indistinguishable according to the fuzzy checker."""
-        fuzzy_checker = FuzzyChecker()
 
         if self.test_bundle.source != DataSource.SIM:
             raise NotImplementedError("Verification is only implemented for SIM test data.")
@@ -203,21 +204,26 @@ class FuzzyComparison(Comparison):
                 "Verification is only implemented for ARTIFACT or GBD reference data."
             )
 
+        fuzzy_checker = FuzzyChecker()
         # Get intersection of stratifications and shared indices
         intersection = self.test_bundle.index_names.intersection(
             self.reference_bundle.index_names
         )
         if stratifications == "all":
-            stratifications = intersection
+            stratify_cols = intersection
+            key = "all"
         else:
             if not set(stratifications).issubset(intersection):
                 raise ValueError("Stratifications must be a subset of the intersection")
+            stratify_cols = set(stratifications)
+            key = ",".join(stratify_cols)
+
         test_datasets = {
-            key: stratify(data, stratifications)
+            key: stratify(data, stratify_cols)
             for key, data in self.test_bundle.datasets.items()
         }
         ref_datasets = {
-            key: stratify(data, stratifications)
+            key: stratify(data, stratify_cols)
             for key, data in self.reference_bundle.datasets.items()
         }
         # Scale rates to the step size of the simulation
@@ -234,7 +240,11 @@ class FuzzyComparison(Comparison):
             if result.name_additional == "overall":
                 self.proportion_test_results["overall"] = result
             else:
-                self.proportion_test_results["stratified"][result.name_additional] = result  # type: ignore[index]
+                stratified = self.proportion_test_results["stratified"]
+                if isinstance(stratified, dict):
+                    if key not in stratified:
+                        stratified[key] = {}
+                    stratified[key][result.name_additional] = result
 
     def align_datasets(
         self,

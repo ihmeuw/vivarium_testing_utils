@@ -367,8 +367,8 @@ def test_comparison_verify(
     # Reference bundle has 3 rows (groups) that would be validated between the two bundles
     stratified_results = comparison.proportion_test_results["stratified"]
     assert isinstance(stratified_results, dict)
-    assert len(stratified_results) == 3
+    assert len(stratified_results["all"]) == 3
     overall_result = comparison.proportion_test_results["overall"]
     assert isinstance(overall_result, TestResult)
-    assert not any(result.reject_null for result in stratified_results.values())
+    assert not any(result.reject_null for result in stratified_results["all"].values())
     assert not overall_result.reject_null
