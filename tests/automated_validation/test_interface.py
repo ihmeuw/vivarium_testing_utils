@@ -656,29 +656,53 @@ def test_verify(sim_result_dir: Path) -> None:
     context.verify(comparison)
 
 
-def test_verify_all(sim_result_dir: Path, mocker: MockFixture) -> None:
+@pytest.mark.parametrize("status", ["pass", "fail", "stratification", "overall"])
+def test_verify_all(status: str, sim_result_dir: Path, mocker: MockFixture) -> None:
     # Create a full mock of TestResult class that makes all tests pass
     mock_result = mocker.MagicMock(spec=TestResult)
     mock_result.reject_null = False
+    mock_result.name = "mock_result"
+    mock_result.name_additional = "fake_group"
+    mock_bad_result = mocker.MagicMock(spec=TestResult)
+    mock_bad_result.reject_null = True
+    mock_bad_result.name = "mock_bad_result"
+    mock_bad_result.name_additional = "fake_group"
 
     # Create mock comparisons to avoid data loading issues
-    mock_proportion_test_results = {
+    mock_proportion_test_results_passing = {
         "overall": mock_result,
         "stratified": {"stratification_1": {"group1": mock_result, "group2": mock_result}},
     }
+    mock_proportion_test_results_2 = {
+        "overall": mock_bad_result if status == "overall" else mock_result,
+        "stratified": {
+            "stratification_1": {
+                "group1": mock_result,
+                "group2": mock_bad_result if status == "fail" else mock_result,
+            },
+            "stratification_2": {
+                "group1": mock_bad_result if status == "stratification" else mock_result,
+                "group2": mock_result,
+            },
+        },
+    }
     mock_comparison_1 = mocker.MagicMock()
-    mock_comparison_1.proportion_test_results = mock_proportion_test_results
+    mock_comparison_1.proportion_test_results = mock_proportion_test_results_passing
     mock_comparison_2 = mocker.MagicMock()
-    mock_comparison_2.proportion_test_results = mock_proportion_test_results
+    mock_comparison_2.proportion_test_results = mock_proportion_test_results_2
 
     # Manually add comparisons to context to avoid data loading
     context = ValidationContext(sim_result_dir)
     context.comparisons["cause.disease.incidence_rate"] = mock_comparison_1
     context.comparisons["cause.disease_2.incidence_rate"] = mock_comparison_2
 
-    assert context.verify_all()
-    assert len(context.verified_results) == 2
-    assert not context.bad_test_results
+    assert context.verify_all() if status == "pass" else not context.verify_all()
+    assert len(context.verified_results) == 2 if status == "pass" else 1
+    assert (
+        not context.bad_test_results
+        if status == "pass"
+        else len(context.bad_test_results) == 1
+    )
 
 
 ###########
