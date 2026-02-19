@@ -221,6 +221,7 @@ def test___get_raw_data_from_source(
 
 
 @pytest.mark.slow
+@pytest.mark.cluster
 @pytest.mark.parametrize(
     "key",
     [
