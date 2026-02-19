@@ -652,7 +652,8 @@ def test_verify(sim_result_dir: Path) -> None:
     context = ValidationContext(sim_result_dir)
     measure_key = "cause.disease.incidence_rate"
     context.add_comparison(measure_key, "sim", "artifact")
-    context.verify(measure_key)
+    comparison = context.comparisons[measure_key]
+    context.verify(comparison)
 
 
 def test_verify_all(sim_result_dir: Path, mocker: MockFixture) -> None:
@@ -663,7 +664,7 @@ def test_verify_all(sim_result_dir: Path, mocker: MockFixture) -> None:
     # Create mock comparisons to avoid data loading issues
     mock_proportion_test_results = {
         "overall": mock_result,
-        "stratified": {"group1": mock_result, "group2": mock_result},
+        "stratified": {"stratification_1": {"group1": mock_result, "group2": mock_result}},
     }
     mock_comparison_1 = mocker.MagicMock()
     mock_comparison_1.proportion_test_results = mock_proportion_test_results

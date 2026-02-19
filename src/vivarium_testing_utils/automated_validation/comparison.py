@@ -22,7 +22,9 @@ class Comparison(ABC):
 
     test_bundle: RatioMeasureDataBundle
     reference_bundle: RatioMeasureDataBundle
-    proportion_test_results: dict[str, TestResult | dict[str, TestResult]]
+    from typing import Any
+
+    proportion_test_results: dict[str, Any]
 
     @property
     @abstractmethod

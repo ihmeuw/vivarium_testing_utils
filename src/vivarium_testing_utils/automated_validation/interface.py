@@ -192,29 +192,33 @@ class ValidationContext:
         self.comparisons[measure.measure_key] = comparison
 
     def verify(
-        self, comparison_key: str, stratifications: Collection[str] | Literal["all"] = "all"
+        self,
+        comparison: Comparison,
+        stratifications: Collection[str] | Literal["all"] = "all",
     ) -> bool:
-        """Check whether the compparison passes validation for the given stratifications.
-
-        Parameters
-        ----------
-        comparison_key
-        The key of the comparison to validate, usually of the form 'entity_type.entity.entity_measure'
-        stratifications
-            Stratifications to preserve when validating the comparison
-
-        Returns
-        -------
-        True if the comparison passes validation, False otherwise.
-        """
-
-        self.comparisons[comparison_key].verify(
+        """Verify a single comparison, log the result, and return True if successful, False otherwise."""
+        comparison.verify(
             self.model_spec.time.step_size / DAYS_PER_YEAR,
             stratifications,
         )
-        _, _, result = self._gather_comparison_test_results(self.comparisons[comparison_key])
-
-        return not any(result)
+        overall_result, stratified_results, result = self._gather_comparison_test_results(
+            comparison
+        )
+        if not any(result):
+            logger.info(f"Comparison {comparison.test_bundle.measure.measure_key} passed!")
+            return True
+        else:
+            logger.warning(f"Comparison {comparison.test_bundle.measure.measure_key} failed.")
+            if overall_result.reject_null:
+                logger.warning(
+                    f"Overall comparison for {comparison.test_bundle.measure.measure_key} failed."
+                )
+            # stratified_results is dict[str, dict[str, TestResult]]
+            for group_dict in stratified_results.values():
+                for group in group_dict.values():
+                    if group.reject_null:
+                        logger.warning(f"Group {group.name}_{group.name_additional} failed.")
+            return False
 
     def metadata(self, comparison_key: str) -> pd.DataFrame:
         comparison_metadata = self.comparisons[comparison_key].metadata
@@ -358,42 +362,28 @@ class ValidationContext:
         True if all comparisons pass validation, False otherwise.
 
         """
-
         for comparison in self.comparisons.values():
-            comparison.verify(self.model_spec.time.step_size / DAYS_PER_YEAR, stratifications)
-            overall_result, stratified_results, result = self._gather_comparison_test_results(
-                comparison
-            )
-            if not any(result):
-                logger.info(
-                    f"Comparison {comparison.test_bundle.measure.measure_key} passed!"
-                )
+            if self.verify(comparison, stratifications):
                 self.verified_results.append(comparison)
             else:
                 self.bad_test_results.append(comparison)
-                logger.warning(
-                    f"Comparison {comparison.test_bundle.measure.measure_key} failed."
-                )
-                if overall_result.reject_null:
-                    logger.warning(
-                        f"Overall comparison for {comparison.test_bundle.measure.measure_key} failed."
-                    )
-                for group in stratified_results.values():
-                    if group.reject_null:
-                        logger.warning(f"Group {group.name}_{group.name_additional} failed.")
-
         return not self.bad_test_results
 
     def _gather_comparison_test_results(
         self, comparison: Comparison
-    ) -> tuple[TestResult, dict[str, TestResult], list[bool]]:
+    ) -> tuple[TestResult, dict[str, dict[str, TestResult]], list[bool]]:
         overall_result = cast(TestResult, comparison.proportion_test_results["overall"])
         stratified_results = cast(
-            dict[str, TestResult], comparison.proportion_test_results["stratified"]
+            dict[str, dict[str, TestResult]], comparison.proportion_test_results["stratified"]
         )
-        result = [overall_result.reject_null] + [
-            group.reject_null for group in stratified_results.values()
+        # stratified results is a dict[str, dict[str, TestResult]]
+        # Collect all reject_nulls from the nested structure
+        reject_nulls = [
+            test_result.reject_null
+            for group in stratified_results.values()
+            for test_result in group.values()
         ]
+        result = [overall_result.reject_null] + reject_nulls
         return overall_result, stratified_results, result
 
     def plot_all(self):  # type: ignore[no-untyped-def]
