@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 import os
-from collections import defaultdict
-from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Collection, Literal, Mapping
+from typing import Any, Collection, Literal, Mapping, cast
 
 import pandas as pd
 import yaml
 from IPython.display import HTML, display
+from loguru import logger
 from matplotlib.figure import Figure
 from vivarium_inputs import utilities as vi
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
+from vivarium_testing_utils.automated_validation.constants import DAYS_PER_YEAR
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
@@ -33,6 +33,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     set_validation_index,
 )
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
+from vivarium_testing_utils.fuzzy_checker import TestResult
 
 
 class ValidationContext:
@@ -45,6 +46,8 @@ class ValidationContext:
         self.location = self.data_loader.location
         self.measure_mapper = MeasureMapper()
         self.model_spec = self.data_loader.model_spec.configuration
+        self.verified_results: list[Comparison] = []
+        self.bad_test_results: list[Comparison] = []
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -188,8 +191,34 @@ class ValidationContext:
         )
         self.comparisons[measure.measure_key] = comparison
 
-    def verify(self, comparison_key: str, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
-        self.comparisons[comparison_key].verify(stratifications)
+    def verify(
+        self,
+        comparison: Comparison,
+        stratifications: Collection[str] | Literal["all"] = "all",
+    ) -> bool:
+        """Verify a single comparison, log the result, and return True if successful, False otherwise."""
+        comparison.verify(
+            self.model_spec.time.step_size / DAYS_PER_YEAR,
+            stratifications,
+        )
+        overall_result, stratified_results, result = self._gather_comparison_test_results(
+            comparison
+        )
+        if not any(result):
+            logger.info(f"Comparison {comparison.test_bundle.measure.measure_key} passed!")
+            return True
+        else:
+            logger.warning(f"Comparison {comparison.test_bundle.measure.measure_key} failed.")
+            if overall_result.reject_null:
+                logger.warning(
+                    f"Overall comparison for {comparison.test_bundle.measure.measure_key} failed."
+                )
+            # stratified_results is dict[str, dict[str, TestResult]]
+            for group_dict in stratified_results.values():
+                for group in group_dict.values():
+                    if group.reject_null:
+                        logger.warning(f"Group {group.name}_{group.name_additional} failed.")
+            return False
 
     def metadata(self, comparison_key: str) -> pd.DataFrame:
         comparison_metadata = self.comparisons[comparison_key].metadata
@@ -320,9 +349,38 @@ class ValidationContext:
     def generate_comparisons(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def verify_all(self):  # type: ignore[no-untyped-def]
+    def verify_all(self) -> bool:
+        """Verify all comparisons in the context and capture results.
+
+        Returns
+        -------
+        True if all comparisons pass validation, False otherwise.
+
+        """
         for comparison in self.comparisons.values():
-            comparison.verify()
+            # TODO: MIC-6840 - Infer set of stratifications to iterate through with verify
+            if self.verify(comparison):
+                self.verified_results.append(comparison)
+            else:
+                self.bad_test_results.append(comparison)
+        return not self.bad_test_results
+
+    def _gather_comparison_test_results(
+        self, comparison: Comparison
+    ) -> tuple[TestResult, dict[str, dict[str, TestResult]], list[bool]]:
+        overall_result = cast(TestResult, comparison.proportion_test_results["overall"])
+        stratified_results = cast(
+            dict[str, dict[str, TestResult]], comparison.proportion_test_results["stratified"]
+        )
+        # stratified results is a dict[str, dict[str, TestResult]]
+        # Collect all reject_nulls from the nested structure
+        reject_nulls = [
+            test_result.reject_null
+            for group in stratified_results.values()
+            for test_result in group.values()
+        ]
+        result = [overall_result.reject_null] + reject_nulls
+        return overall_result, stratified_results, result
 
     def plot_all(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
