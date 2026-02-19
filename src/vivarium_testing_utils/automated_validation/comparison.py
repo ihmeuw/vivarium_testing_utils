@@ -5,7 +5,10 @@ import pandas as pd
 from loguru import logger
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
-from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX
+from vivarium_testing_utils.automated_validation.constants import DRAW_INDEX, DataSource
+from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
+    stratify,
+)
 from vivarium_testing_utils.automated_validation.data_transformation.measures import Measure
 from vivarium_testing_utils.automated_validation.visualization import dataframe_utils
 from vivarium_testing_utils.fuzzy_checker import FuzzyChecker, TestResult
@@ -82,7 +85,11 @@ class FuzzyComparison(Comparison):
         if self.test_bundle.measure != self.reference_bundle.measure:
             raise ValueError("Test and reference measures must be the same.")
         self.measure: Measure = self.test_bundle.measure
-        self.fuzzy_checker = FuzzyChecker()
+        self.proportion_test_results: dict[
+            str, TestResult | dict[str, dict[str, TestResult]]
+        ] = {
+            "stratified": {},
+        }
 
     @property
     def metadata(self) -> pd.DataFrame:
@@ -183,19 +190,61 @@ class FuzzyComparison(Comparison):
 
         return aggregated_data[["mean", "2.5%", "97.5%"]]
 
-    def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
-        # TODO: this needs to be vectorized to handle stratifications and dataframes
-        # The observed numerator, denominator, and target proportion are all dataframes
-        # and not single values like FuzzyChecker.test_proportion expects
-        # return self.fuzzy_checker.test_proportion(
-        #     nmame=self.measure.measure_key,
-        #     name_additional=f"{self.test_bundle.source}_vs_{self.reference_bundle.source}",
-        #     observed_numerator=self.test_bundle.datasets["numerator"],
-        #     observed_denominator=self.test_bundle.datasets["denominator"],
-        #     # TODO: update target proportion - reference numerator / denominator?
-        #     target_proportion=self.reference_bundle.datasets["numerator"],
-        # )
-        pass
+    def verify(
+        self,
+        stratifications: Collection[str] | Literal["all"] = "all",
+        step_size: float = 0.5,
+    ) -> None:
+        """Verify test and reference data are statistically indistinguishable according to the fuzzy checker."""
+
+        if self.test_bundle.source != DataSource.SIM:
+            raise NotImplementedError("Verification is only implemented for SIM test data.")
+        if self.reference_bundle.source not in [DataSource.ARTIFACT, DataSource.GBD]:
+            raise NotImplementedError(
+                "Verification is only implemented for ARTIFACT or GBD reference data."
+            )
+
+        fuzzy_checker = FuzzyChecker()
+        # Get intersection of stratifications and shared indices
+        intersection = self.test_bundle.index_names.intersection(
+            self.reference_bundle.index_names
+        )
+        if stratifications == "all":
+            stratify_cols = intersection
+            key = "all"
+        else:
+            if not set(stratifications).issubset(intersection):
+                raise ValueError("Stratifications must be a subset of the intersection")
+            stratify_cols = set(stratifications)
+            key = ",".join(stratify_cols)
+
+        test_datasets = {
+            key: stratify(data, stratify_cols)
+            for key, data in self.test_bundle.datasets.items()
+        }
+        ref_datasets = {
+            key: stratify(data, stratify_cols)
+            for key, data in self.reference_bundle.datasets.items()
+        }
+        # Scale rates to the step size of the simulation
+        if "population" not in self.measure.measure_key:
+            target = ref_datasets["data"] / step_size
+
+        fuzzy_checker.test_proportion_vectorized(
+            name=self.measure.measure_key,
+            observed_numerator=test_datasets["numerator_data"],
+            observed_denominator=test_datasets["denominator_data"],
+            target_proportion=target,
+        )
+        for result in fuzzy_checker.proportion_test_diagnostics:
+            if result.name_additional == "overall":
+                self.proportion_test_results["overall"] = result
+            else:
+                stratified = self.proportion_test_results["stratified"]
+                if isinstance(stratified, dict):
+                    if key not in stratified:
+                        stratified[key] = {}
+                    stratified[key][result.name_additional] = result
 
     def align_datasets(
         self,

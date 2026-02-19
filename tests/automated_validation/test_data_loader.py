@@ -118,7 +118,8 @@ def test__load_artifact(
     sim_result_dir: Path, _artifact_keys_mapper: dict[str, pd.DataFrame | str]
 ) -> None:
     """Ensure that we can load the artifact itself"""
-    artifact = DataLoader._load_artifact(sim_result_dir)
+    data_loader = DataLoader(sim_result_dir)
+    artifact = data_loader._load_artifact()
     assert set(artifact.keys) == set(
         list(_artifact_keys_mapper.keys()) + ["metadata.keyspace"]
     )

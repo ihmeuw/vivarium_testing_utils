@@ -352,13 +352,20 @@ def test_get_frame_default_rows(
     assert len(non_default) == 2
 
 
-@pytest.mark.skip(reason="Not implemented")
 def test_comparison_verify(
     test_bundle: RatioMeasureDataBundle,
     reference_bundle: RatioMeasureDataBundle,
 ) -> None:
     """Test the verify method of the FuzzyComparison class."""
-    # comparison = FuzzyComparison(test_bundle, reference_bundle)
-    # result = comparison.verify()
-    # assert isinstance(result, TestResult)
-    pass
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
+    step_size = 28 / 365.0
+    comparison.verify(step_size=step_size)
+    assert set(["overall", "stratified"]) == set(comparison.proportion_test_results.keys())
+    # Reference bundle has 3 rows (groups) that would be validated between the two bundles
+    stratified_results = comparison.proportion_test_results["stratified"]
+    assert isinstance(stratified_results, dict)
+    assert len(stratified_results["all"]) == 3
+    overall_result = comparison.proportion_test_results["overall"]
+    assert isinstance(overall_result, TestResult)
+    assert not any(result.reject_null for result in stratified_results["all"].values())
+    assert not overall_result.reject_null
