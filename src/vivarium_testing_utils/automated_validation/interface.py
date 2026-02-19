@@ -349,13 +349,8 @@ class ValidationContext:
     def generate_comparisons(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError
 
-    def verify_all(self, stratifications: Collection[str] | Literal["all"] = "all") -> bool:
+    def verify_all(self) -> bool:
         """Verify all comparisons in the context and capture results.
-
-        Parameters
-        ----------
-        stratifications
-            The stratifications to preserve when validating the comparison
 
         Returns
         -------
@@ -363,7 +358,8 @@ class ValidationContext:
 
         """
         for comparison in self.comparisons.values():
-            if self.verify(comparison, stratifications):
+            # TODO: MIC-6840 - Infer set of stratifications to iterate through with verify
+            if self.verify(comparison):
                 self.verified_results.append(comparison)
             else:
                 self.bad_test_results.append(comparison)
