@@ -13,6 +13,7 @@ from vivarium_inputs import interface
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
 from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import (
+    DAYS_PER_YEAR,
     DRAW_INDEX,
     INPUT_DATA_INDEX_NAMES,
     SEED_INDEX,
@@ -358,7 +359,7 @@ def test_comparison_verify(
 ) -> None:
     """Test the verify method of the FuzzyComparison class."""
     comparison = FuzzyComparison(test_bundle, reference_bundle)
-    step_size = 28 / 365.0
+    step_size = 28 / DAYS_PER_YEAR
     comparison.verify(step_size=step_size)
     assert set(["overall", "stratified"]) == set(comparison.proportion_test_results.keys())
     # Reference bundle has 3 rows (groups) that would be validated between the two bundles

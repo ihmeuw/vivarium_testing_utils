@@ -22,6 +22,9 @@ class Comparison(ABC):
 
     test_bundle: RatioMeasureDataBundle
     reference_bundle: RatioMeasureDataBundle
+    from typing import Any
+
+    proportion_test_results: dict[str, Any]
 
     @property
     @abstractmethod
@@ -66,7 +69,11 @@ class Comparison(ABC):
         pass
 
     @abstractmethod
-    def verify(self, stratifications: Collection[str] = ()):  # type: ignore[no-untyped-def]
+    def verify(
+        self,
+        step_size: float,
+        stratifications: Collection[str] | Literal["all"] = "all",
+    ) -> None:
         pass
 
 
@@ -192,8 +199,8 @@ class FuzzyComparison(Comparison):
 
     def verify(
         self,
+        step_size: float,
         stratifications: Collection[str] | Literal["all"] = "all",
-        step_size: float = 0.5,
     ) -> None:
         """Verify test and reference data are statistically indistinguishable according to the fuzzy checker."""
 
