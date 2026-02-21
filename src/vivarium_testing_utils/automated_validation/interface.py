@@ -334,7 +334,7 @@ class ValidationContext:
             sort_by = "percent_error"
 
         if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
-            data = self.comparisons[comparison_key[f"{test_source}_{ref_source}"]].get_frame(
+            data = self.comparisons[comparison_key][f"{test_source}_{ref_source}"].get_frame(
                 stratifications, num_rows, sort_by, ascending, aggregate_draws
             )
             data = self.format_ui_data_index(data, comparison_key)
@@ -380,7 +380,7 @@ class ValidationContext:
             The generated figure or list of figures.
         """
         return plot_utils.plot_comparison(
-            self.comparisons[comparison_key[f"{test_source}_{ref_source}"]],
+            self.comparisons[comparison_key][f"{test_source}_{ref_source}"],
             type,
             condition,
             stratifications,
