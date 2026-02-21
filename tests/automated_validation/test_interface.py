@@ -613,7 +613,7 @@ def test_compare_artifact_and_gbd(
         )
         data_key += ".diarrheal_diseases.incidence_rate"
 
-    diff = vc.get_frame(data_key)
+    diff = vc.get_frame(data_key, "artifact", "gbd")
     assert not diff.empty
     assert diff.notna().all().all()
 
