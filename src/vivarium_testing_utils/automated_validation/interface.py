@@ -50,7 +50,7 @@ class ValidationContext:
         self.location = self.data_loader.location
         self.measure_mapper = MeasureMapper()
         self.model_spec = self.data_loader.model_spec.configuration
-        self.test_results = TestResults()
+        self.verifications = TestResults()
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -401,15 +401,15 @@ class ValidationContext:
             for comparison in comparison_dict.values():
                 # TODO: MIC-6840 - Infer set of stratifications to iterate through with verify
                 if self.verify(comparison):
-                    self.test_results.passing[comparison.test_bundle.measure.measure_key][
+                    self.verifications.passing[comparison.test_bundle.measure.measure_key][
                         f"{comparison.test_bundle.source.name.lower()}_{comparison.reference_bundle.source.name.lower()}"
                     ] = comparison
                 else:
-                    self.test_results.failing[comparison.test_bundle.measure.measure_key][
+                    self.verifications.failing[comparison.test_bundle.measure.measure_key][
                         f"{comparison.test_bundle.source.name.lower()}_{comparison.reference_bundle.source.name.lower()}"
                     ] = comparison
         # Return True if no failing results
-        return not any(self.test_results.failing.values())
+        return not any(self.verifications.failing.values())
 
     def _gather_comparison_test_results(
         self, comparison: Comparison
