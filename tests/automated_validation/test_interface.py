@@ -1,3 +1,4 @@
+from collections import defaultdict
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -700,9 +701,13 @@ def test_verify_all(status: str, sim_result_dir: Path, mocker: MockFixture) -> N
 
     # Manually add comparisons to context to avoid data loading
     context = ValidationContext(sim_result_dir)
-    context.comparisons["cause.disease.incidence_rate"] = {}
+    context.comparisons["cause.disease.incidence_rate"] = defaultdict(
+        lambda: mock_comparison_1.__class__
+    )
     context.comparisons["cause.disease.incidence_rate"]["sim_artifact"] = mock_comparison_1
-    context.comparisons["cause.disease_2.incidence_rate"] = {}
+    context.comparisons["cause.disease_2.incidence_rate"] = defaultdict(
+        lambda: mock_comparison_2.__class__
+    )
     context.comparisons["cause.disease_2.incidence_rate"]["sim_artifact"] = mock_comparison_2
 
     assert context.verify_all() if status == "pass" else not context.verify_all()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Collection, Literal, Mapping, cast
@@ -40,7 +41,9 @@ class ValidationContext:
     def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
         self.results_dir = Path(results_dir)
         self.data_loader = DataLoader(self.results_dir)
-        self.comparisons: dict[str, dict[str, Comparison]] = {}
+        self.comparisons: defaultdict[str, defaultdict[str, Comparison]] = defaultdict(
+            lambda: defaultdict(Comparison)
+        )
         self.age_groups = self._get_age_groups()
         self.scenario_columns = scenario_columns
         self.location = self.data_loader.location
@@ -189,8 +192,6 @@ class ValidationContext:
         comparison = FuzzyComparison(
             test_bundle=test_data_bundle, reference_bundle=ref_data_bundle
         )
-        if measure.measure_key not in self.comparisons:
-            self.comparisons[measure.measure_key] = {}
         self.comparisons[measure.measure_key][
             f"{test_source_enum.name.lower()}_{ref_source_enum.name.lower()}"
         ] = comparison
@@ -231,7 +232,6 @@ class ValidationContext:
 
         Parameters
         ----------
-
         comparison_key
             The key of the comparison for which to get the metadata
         test_source
@@ -241,8 +241,7 @@ class ValidationContext:
 
         Returns
         -------
-
-        A DataFrame containing the metadata for the comparison in tabular format.
+            A DataFrame containing the metadata for the comparison in tabular format.
         """
         comparison_metadata = self.comparisons[comparison_key][
             f"{test_source}_{ref_source}"
@@ -328,7 +327,7 @@ class ValidationContext:
 
         Returns:
         --------
-        A DataFrame of the comparison data.
+            A DataFrame of the comparison data.
         """
         if not aggregate_draws and not sort_by:
             sort_by = "percent_error"
@@ -395,7 +394,7 @@ class ValidationContext:
 
         Returns
         -------
-        True if all comparisons pass validation, False otherwise.
+            True if all comparisons pass validation, False otherwise.
 
         """
         for comparison_dict in self.comparisons.values():
