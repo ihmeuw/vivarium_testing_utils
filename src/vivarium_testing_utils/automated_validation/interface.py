@@ -33,6 +33,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     set_gbd_index,
     set_validation_index,
 )
+from vivarium_testing_utils.automated_validation.results import TestResults
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 from vivarium_testing_utils.fuzzy_checker import TestResult
 
@@ -49,8 +50,7 @@ class ValidationContext:
         self.location = self.data_loader.location
         self.measure_mapper = MeasureMapper()
         self.model_spec = self.data_loader.model_spec.configuration
-        self.verified_results: list[Comparison] = []
-        self.bad_test_results: list[Comparison] = []
+        self.test_results = TestResults()
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -401,10 +401,15 @@ class ValidationContext:
             for comparison in comparison_dict.values():
                 # TODO: MIC-6840 - Infer set of stratifications to iterate through with verify
                 if self.verify(comparison):
-                    self.verified_results.append(comparison)
+                    self.test_results.passing[comparison.test_bundle.measure.measure_key][
+                        f"{comparison.test_bundle.source.name.lower()}_{comparison.reference_bundle.source.name.lower()}"
+                    ] = comparison
                 else:
-                    self.bad_test_results.append(comparison)
-        return not self.bad_test_results
+                    self.test_results.failing[comparison.test_bundle.measure.measure_key][
+                        f"{comparison.test_bundle.source.name.lower()}_{comparison.reference_bundle.source.name.lower()}"
+                    ] = comparison
+        # Return True if no failing results
+        return not any(self.test_results.failing.values())
 
     def _gather_comparison_test_results(
         self, comparison: Comparison
