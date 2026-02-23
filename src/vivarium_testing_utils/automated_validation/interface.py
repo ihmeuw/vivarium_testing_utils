@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Collection, Literal, Mapping, cast
@@ -40,7 +41,9 @@ class ValidationContext:
     def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
         self.results_dir = Path(results_dir)
         self.data_loader = DataLoader(self.results_dir)
-        self.comparisons: dict[str, Comparison] = {}
+        self.comparisons: defaultdict[str, defaultdict[str, Comparison]] = defaultdict(
+            lambda: defaultdict(Comparison)
+        )
         self.age_groups = self._get_age_groups()
         self.scenario_columns = scenario_columns
         self.location = self.data_loader.location
@@ -189,7 +192,9 @@ class ValidationContext:
         comparison = FuzzyComparison(
             test_bundle=test_data_bundle, reference_bundle=ref_data_bundle
         )
-        self.comparisons[measure.measure_key] = comparison
+        self.comparisons[measure.measure_key][
+            f"{test_source_enum.name.lower()}_{ref_source_enum.name.lower()}"
+        ] = comparison
 
     def verify(
         self,
@@ -220,8 +225,27 @@ class ValidationContext:
                         logger.warning(f"Group {group.name}_{group.name_additional} failed.")
             return False
 
-    def metadata(self, comparison_key: str) -> pd.DataFrame:
-        comparison_metadata = self.comparisons[comparison_key].metadata
+    def metadata(
+        self, comparison_key: str, test_source: str, ref_source: str
+    ) -> pd.DataFrame:
+        """Get the metadata for a given comparison and specified sources.
+
+        Parameters
+        ----------
+        comparison_key
+            The key of the comparison for which to get the metadata
+        test_source
+            The source of the test data (e.g., 'sim', 'artifact', 'custom')
+        ref_source
+            The source of the reference data (e.g., 'sim', 'artifact', 'custom')
+
+        Returns
+        -------
+            A DataFrame containing the metadata for the comparison in tabular format.
+        """
+        comparison_metadata = self.comparisons[comparison_key][
+            f"{test_source}_{ref_source}"
+        ].metadata
         directory_metadata = self._get_directory_metadata()
 
         data = pd.concat([comparison_metadata, directory_metadata])
@@ -267,6 +291,8 @@ class ValidationContext:
     def get_frame(
         self,
         comparison_key: str,
+        test_source: str,
+        ref_source: str,
         stratifications: Collection[str] | Literal["all"] = "all",
         num_rows: int | Literal["all"] = "all",
         sort_by: str = "",
@@ -280,6 +306,10 @@ class ValidationContext:
         -----------
         comparison_key
             The key of the comparison for which to get the data
+        test_source
+            The source of the test data (e.g., 'sim', 'artifact', 'custom')
+        ref_source
+            The source of the reference data (e.g., 'sim', 'artifact', 'custom')
         stratifications
             The stratifications to use for the comparison. If "all", no aggregation will happen and
             all existing stratifications will remain. If an empty list is passed, no stratifications
@@ -297,13 +327,13 @@ class ValidationContext:
 
         Returns:
         --------
-        A DataFrame of the comparison data.
+            A DataFrame of the comparison data.
         """
         if not aggregate_draws and not sort_by:
             sort_by = "percent_error"
 
         if (isinstance(num_rows, int) and num_rows > 0) or num_rows == "all":
-            data = self.comparisons[comparison_key].get_frame(
+            data = self.comparisons[comparison_key][f"{test_source}_{ref_source}"].get_frame(
                 stratifications, num_rows, sort_by, ascending, aggregate_draws
             )
             data = self.format_ui_data_index(data, comparison_key)
@@ -318,6 +348,8 @@ class ValidationContext:
     def plot_comparison(
         self,
         comparison_key: str,
+        test_source: str,
+        ref_source: str,
         type: str,
         condition: dict[str, Any] = {},
         stratifications: Collection[str] | Literal["all"] = "all",
@@ -329,6 +361,10 @@ class ValidationContext:
         ----------
         comparison_key
             The comparison object to plot.
+        test_source
+            The source of the test data (e.g., 'sim', 'artifact', 'custom')
+        ref_source
+            The source of the reference data (e.g., 'sim', 'artifact', 'custom')
         type
             Type of plot to create.
         condition
@@ -343,7 +379,11 @@ class ValidationContext:
             The generated figure or list of figures.
         """
         return plot_utils.plot_comparison(
-            self.comparisons[comparison_key], type, condition, stratifications, **kwargs
+            self.comparisons[comparison_key][f"{test_source}_{ref_source}"],
+            type,
+            condition,
+            stratifications,
+            **kwargs,
         )
 
     def generate_comparisons(self):  # type: ignore[no-untyped-def]
@@ -354,15 +394,16 @@ class ValidationContext:
 
         Returns
         -------
-        True if all comparisons pass validation, False otherwise.
+            True if all comparisons pass validation, False otherwise.
 
         """
-        for comparison in self.comparisons.values():
-            # TODO: MIC-6840 - Infer set of stratifications to iterate through with verify
-            if self.verify(comparison):
-                self.verified_results.append(comparison)
-            else:
-                self.bad_test_results.append(comparison)
+        for comparison_dict in self.comparisons.values():
+            for comparison in comparison_dict.values():
+                # TODO: MIC-6840 - Infer set of stratifications to iterate through with verify
+                if self.verify(comparison):
+                    self.verified_results.append(comparison)
+                else:
+                    self.bad_test_results.append(comparison)
         return not self.bad_test_results
 
     def _gather_comparison_test_results(

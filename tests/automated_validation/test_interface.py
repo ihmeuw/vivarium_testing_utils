@@ -1,3 +1,4 @@
+from collections import defaultdict
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -161,7 +162,7 @@ def test_add_comparison(
     context = ValidationContext(sim_result_dir)
     context.add_comparison(measure_key, "sim", "artifact")
     assert measure_key in context.comparisons
-    comparison = context.comparisons[measure_key]
+    comparison = context.comparisons[measure_key]["sim_artifact"]
 
     assert comparison.measure.measure_key == measure_key  # type: ignore [attr-defined]
 
@@ -204,7 +205,7 @@ def test_get_frame(sim_result_dir: Path) -> None:
     measure_key = "cause.disease.incidence_rate"
     context = ValidationContext(sim_result_dir)
     context.add_comparison(measure_key, "sim", "artifact")
-    data = context.get_frame(measure_key)
+    data = context.get_frame(measure_key, "sim", "artifact")
     assert isinstance(data, pd.DataFrame)
     assert not data.empty
     assert set(data.index.names) == {
@@ -217,7 +218,9 @@ def test_get_frame(sim_result_dir: Path) -> None:
 
     # Test stratification works - there are only two columns and we do not remove input draw
     # so this will return the same dataframe
-    data2 = context.get_frame(measure_key, stratifications=["common_stratify_column"])
+    data2 = context.get_frame(
+        measure_key, "sim", "artifact", stratifications=["common_stratify_column"]
+    )
     assert isinstance(data2, pd.DataFrame)
     assert not data2.empty
     assert set(data2.index.names) == {
@@ -243,7 +246,7 @@ def test_metadata(sim_result_dir: Path, mocker: MockFixture) -> None:
         "vivarium_testing_utils.automated_validation.interface.os.path.getmtime",
         return_value=1735718340,  # Represents Dec 31 23:59
     )
-    metadata = context.metadata(measure_key)
+    metadata = context.metadata(measure_key, "sim", "artifact")
 
     assert set(metadata.index) == {
         "Measure Key",
@@ -279,7 +282,12 @@ def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:
     condition = {"sex": "male"}
     x_axis = "age_group"
     result = context.plot_comparison(
-        comparison_key=measure_key, type=plot_type, condition=condition, x_axis=x_axis
+        comparison_key=measure_key,
+        test_source="sim",
+        ref_source="artifact",
+        type=plot_type,
+        condition=condition,
+        x_axis=x_axis,
     )
 
     # Assert plot_utils.plot_comparison was called with correct arguments
@@ -287,7 +295,7 @@ def test_plot_comparison(sim_result_dir: Path, mocker: MockFixture) -> None:
     args, kwargs = mock_plot_comparison.call_args
 
     # Check arguments
-    assert args[0] == context.comparisons[measure_key]  # comparison object
+    assert args[0] == context.comparisons[measure_key]["sim_artifact"]  # comparison object
     assert args[1] == plot_type  # type
     assert args[2] == condition  # condition
     assert kwargs["x_axis"] == x_axis  # additional kwargs
@@ -305,7 +313,7 @@ def test_add_comparison_different_test_source(
     context = ValidationContext(sim_result_dir)
     context.add_comparison(measure_key, test_source, "artifact")
     assert measure_key in context.comparisons
-    comparison = context.comparisons[measure_key]
+    comparison = context.comparisons[measure_key][f"{test_source}_artifact"]
 
     assert comparison.measure.measure_key == measure_key  # type: ignore [attr-defined]
 
@@ -323,7 +331,7 @@ def test_get_frame_different_test_source(test_source: str, sim_result_dir: Path)
     measure_key = "cause.disease.incidence_rate"
     context = ValidationContext(sim_result_dir)
     context.add_comparison(measure_key, test_source, "artifact")
-    data = context.get_frame(measure_key)
+    data = context.get_frame(measure_key, test_source, "artifact")
     assert isinstance(data, pd.DataFrame)
     assert not data.empty
     assert set(data.columns) == {"test_rate", "reference_rate", "percent_error"}
@@ -530,16 +538,16 @@ def test_get_frame_filters(mocker: MockFixture, sim_result_dir: Path) -> None:
     )
     # Patch the instance method after the comparison is created
     mocker.patch.object(
-        context.comparisons[measure_key],
+        context.comparisons[measure_key]["sim_artifact"],
         "get_frame",
         return_value=data,
     )
 
     # Default is no filters
-    assert len(context.get_frame(measure_key)) == 4
+    assert len(context.get_frame(measure_key, "sim", "artifact")) == 4
 
     filtered = context.get_frame(
-        measure_key, filters={INPUT_DATA_INDEX_NAMES.AGE_START: "10"}
+        measure_key, "sim", "artifact", filters={INPUT_DATA_INDEX_NAMES.AGE_START: "10"}
     )
     assert len(filtered) == 2
     assert all(filtered.index.get_level_values(INPUT_DATA_INDEX_NAMES.AGE_START) == "10")
@@ -606,7 +614,7 @@ def test_compare_artifact_and_gbd(
         )
         data_key += ".diarrheal_diseases.incidence_rate"
 
-    diff = vc.get_frame(data_key)
+    diff = vc.get_frame(data_key, "artifact", "gbd")
     assert not diff.empty
     assert diff.notna().all().all()
 
@@ -652,7 +660,7 @@ def test_verify(sim_result_dir: Path) -> None:
     context = ValidationContext(sim_result_dir)
     measure_key = "cause.disease.incidence_rate"
     context.add_comparison(measure_key, "sim", "artifact")
-    comparison = context.comparisons[measure_key]
+    comparison = context.comparisons[measure_key]["sim_artifact"]
     context.verify(comparison)
 
 
@@ -693,8 +701,14 @@ def test_verify_all(status: str, sim_result_dir: Path, mocker: MockFixture) -> N
 
     # Manually add comparisons to context to avoid data loading
     context = ValidationContext(sim_result_dir)
-    context.comparisons["cause.disease.incidence_rate"] = mock_comparison_1
-    context.comparisons["cause.disease_2.incidence_rate"] = mock_comparison_2
+    context.comparisons["cause.disease.incidence_rate"] = defaultdict(
+        lambda: mock_comparison_1.__class__
+    )
+    context.comparisons["cause.disease.incidence_rate"]["sim_artifact"] = mock_comparison_1
+    context.comparisons["cause.disease_2.incidence_rate"] = defaultdict(
+        lambda: mock_comparison_2.__class__
+    )
+    context.comparisons["cause.disease_2.incidence_rate"]["sim_artifact"] = mock_comparison_2
 
     assert context.verify_all() if status == "pass" else not context.verify_all()
     assert len(context.verified_results) == 2 if status == "pass" else 1
