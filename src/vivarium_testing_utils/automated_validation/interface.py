@@ -198,10 +198,30 @@ class ValidationContext:
 
     def verify(
         self,
-        comparison: Comparison,
+        comparison: Comparison | str,
         stratifications: Collection[str] | Literal["all"] = "all",
+        test_source: str = "sim",
+        ref_source: str = "artifact",
     ) -> bool:
-        """Verify a single comparison, log the result, and return True if successful, False otherwise."""
+        """Verify a single comparison, log the result, and return True if successful, False otherwise.
+
+        Parameters
+        ----------
+        comparison
+            The Comparison object or the key of the comparison to verify.
+        stratifications
+            The stratifications to use for the comparison. Default is "all".
+        test_source
+            The source of the test data (e.g., 'sim', 'artifact', 'custom'). Default is "sim".
+        ref_source
+            The source of the reference data (e.g., 'sim', 'artifact', 'custom'). Default is "artifact".
+
+        Returns
+        -------
+            True if the comparison passes validation, False otherwise.
+        """
+        if isinstance(comparison, str):
+            comparison = self.comparisons[comparison][f"{test_source}_{ref_source}"]
         comparison.verify(
             self.model_spec.time.step_size / DAYS_PER_YEAR,
             stratifications,
