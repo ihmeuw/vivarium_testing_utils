@@ -718,49 +718,16 @@ def test_plot_all(sim_result_dir: Path, mocker: MockFixture) -> None:
         return_value=mock_figure,
     )
 
-    # Create a context and add mocked comparisons
+    # Create a context and add real comparisons using existing fixture data
     context = ValidationContext(sim_result_dir)
+    context.add_comparison("cause.disease.incidence_rate", "sim", "artifact")
+    context.add_comparison("cause.disease.prevalence", "sim", "artifact")
+    context.add_comparison("risk_factor.child_stunting.exposure", "sim", "artifact")
 
-    # Use lightweight mocks for comparisons
-    mock_comparison_1 = mocker.MagicMock(spec=FuzzyComparison)
-    mock_comparison_2 = mocker.MagicMock(spec=FuzzyComparison)
-    mock_comparison_3 = mocker.MagicMock(spec=FuzzyComparison)
-
-    # Add necessary attributes to the mock comparisons
-    mock_comparison_1.test_bundle = mocker.MagicMock()
-    mock_comparison_1.test_bundle.measure = mocker.MagicMock()
-    mock_comparison_1.test_bundle.measure.measure_key = "cause.disease.incidence_rate"
-    mock_comparison_1.test_bundle.source = mocker.MagicMock()
-    mock_comparison_1.test_bundle.source.name = "sim"
-
-    mock_comparison_1.reference_bundle = mocker.MagicMock()
-    mock_comparison_1.reference_bundle.source = mocker.MagicMock()
-    mock_comparison_1.reference_bundle.source.name = "artifact"
-
-    mock_comparison_2.test_bundle = mocker.MagicMock()
-    mock_comparison_2.test_bundle.measure = mocker.MagicMock()
-    mock_comparison_2.test_bundle.measure.measure_key = "cause.disease_2.incidence_rate"
-    mock_comparison_2.test_bundle.source = mocker.MagicMock()
-    mock_comparison_2.test_bundle.source.name = "sim"
-
-    mock_comparison_2.reference_bundle = mocker.MagicMock()
-    mock_comparison_2.reference_bundle.source = mocker.MagicMock()
-    mock_comparison_2.reference_bundle.source.name = "artifact"
-
-    mock_comparison_3.test_bundle = mocker.MagicMock()
-    mock_comparison_3.test_bundle.measure = mocker.MagicMock()
-    mock_comparison_3.test_bundle.measure.measure_key = "cause.disease_3.incidence_rate"
-    mock_comparison_3.test_bundle.source = mocker.MagicMock()
-    mock_comparison_3.test_bundle.source.name = "sim"
-
-    mock_comparison_3.reference_bundle = mocker.MagicMock()
-    mock_comparison_3.reference_bundle.source = mocker.MagicMock()
-    mock_comparison_3.reference_bundle.source.name = "artifact"
-
-    # Add mocked comparisons to the context
-    context.comparisons["cause.disease.incidence_rate"]["sim_artifact"] = mock_comparison_1
-    context.comparisons["cause.disease_2.incidence_rate"]["sim_artifact"] = mock_comparison_2
-    context.comparisons["cause.disease_3.incidence_rate"]["sim_artifact"] = mock_comparison_3
+    # Get the actual comparison objects for verification
+    comparison_1 = context.comparisons["cause.disease.incidence_rate"]["sim_artifact"]
+    comparison_2 = context.comparisons["cause.disease.prevalence"]["sim_artifact"]
+    comparison_3 = context.comparisons["risk_factor.child_stunting.exposure"]["sim_artifact"]
 
     # Call plot_all and verify interactions
     result = context.plot_all(type="line")
@@ -768,19 +735,19 @@ def test_plot_all(sim_result_dir: Path, mocker: MockFixture) -> None:
     # Verify that plot_comparison was called for each comparison with the correct arguments
     # plot_utils.plot_comparison receives: comparison_object, type, condition, stratifications
     mock_plot_comparison.assert_any_call(
-        mock_comparison_1,
+        comparison_1,
         "line",
         {},
         "all",
     )
     mock_plot_comparison.assert_any_call(
-        mock_comparison_2,
+        comparison_2,
         "line",
         {},
         "all",
     )
     mock_plot_comparison.assert_any_call(
-        mock_comparison_3,
+        comparison_3,
         "line",
         {},
         "all",
