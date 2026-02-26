@@ -33,7 +33,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     set_gbd_index,
     set_validation_index,
 )
-from vivarium_testing_utils.automated_validation.results import TestResults
+from vivarium_testing_utils.automated_validation.results import VerificationResults
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 from vivarium_testing_utils.fuzzy_checker import TestResult
 
@@ -50,7 +50,7 @@ class ValidationContext:
         self.location = self.data_loader.location
         self.measure_mapper = MeasureMapper()
         self.model_spec = self.data_loader.model_spec.configuration
-        self.verifications = TestResults()
+        self.verifications = VerificationResults()
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
