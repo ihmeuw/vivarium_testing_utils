@@ -221,7 +221,7 @@ class ValidationContext:
 
     def verify(
         self,
-        comparison: Comparison | str,
+        comparison: str,
         stratifications: Collection[str] | Literal["all"] = "all",
         test_source: str = "sim",
         ref_source: str = "artifact",
@@ -231,7 +231,7 @@ class ValidationContext:
         Parameters
         ----------
         comparison
-            The Comparison object or the key of the comparison to verify.
+            The key of the comparison to verify.
         stratifications
             The stratifications to use for the comparison. Default is "all".
         test_source
@@ -243,8 +243,15 @@ class ValidationContext:
         -------
             True if the comparison passes validation, False otherwise.
         """
-        if isinstance(comparison, str):
-            comparison = self.comparisons[comparison][f"{test_source}_{ref_source}"]
+        return self._verify(
+            self.comparisons[comparison][f"{test_source}_{ref_source}"], stratifications
+        )
+
+    def _verify(
+        self,
+        comparison: Comparison,
+        stratifications: Collection[str] | Literal["all"] = "all",
+    ) -> bool:
         comparison.verify(
             self.model_spec.time.step_size / DAYS_PER_YEAR,
             stratifications,
@@ -443,7 +450,7 @@ class ValidationContext:
         for comparison_dict in self.comparisons.values():
             for comparison in comparison_dict.values():
                 # TODO: MIC-6840 - Infer set of stratifications to iterate through with verify
-                self.verify(comparison)
+                self._verify(comparison)
 
         # Return True if no failing results (property dynamically computes results)
         return not any(self.verifications.failing.values())
