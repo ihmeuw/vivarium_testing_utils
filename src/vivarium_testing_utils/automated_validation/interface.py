@@ -33,11 +33,36 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     set_gbd_index,
     set_validation_index,
 )
+from vivarium_testing_utils.automated_validation.results import VerificationResults
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 from vivarium_testing_utils.fuzzy_checker import TestResult
 
 
 class ValidationContext:
+    @property
+    def verifications(self) -> VerificationResults:
+        """Get the verification results dynamically from comparisons."""
+        results = VerificationResults()
+        for comparison_dict in self.comparisons.values():
+            for comparison in comparison_dict.values():
+                # Check if comparison has been verified by checking for test results
+                if (
+                    not hasattr(comparison, "proportion_test_results")
+                    or not comparison.proportion_test_results
+                ):
+                    continue
+
+                # Categorize based on test results
+                _, _, result = self._gather_comparison_test_results(comparison)
+                source_key = f"{comparison.test_bundle.source.name.lower()}_{comparison.reference_bundle.source.name.lower()}"
+                measure_key = comparison.test_bundle.measure.measure_key
+
+                if not any(result):
+                    results.passing[measure_key][source_key] = comparison
+                else:
+                    results.failing[measure_key][source_key] = comparison
+        return results
+
     def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
         self.results_dir = Path(results_dir)
         self.data_loader = DataLoader(self.results_dir)
@@ -49,8 +74,6 @@ class ValidationContext:
         self.location = self.data_loader.location
         self.measure_mapper = MeasureMapper()
         self.model_spec = self.data_loader.model_spec.configuration
-        self.verified_results: list[Comparison] = []
-        self.bad_test_results: list[Comparison] = []
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -400,11 +423,10 @@ class ValidationContext:
         for comparison_dict in self.comparisons.values():
             for comparison in comparison_dict.values():
                 # TODO: MIC-6840 - Infer set of stratifications to iterate through with verify
-                if self.verify(comparison):
-                    self.verified_results.append(comparison)
-                else:
-                    self.bad_test_results.append(comparison)
-        return not self.bad_test_results
+                self.verify(comparison)
+
+        # Return True if no failing results (property dynamically computes results)
+        return not any(self.verifications.failing.values())
 
     def _gather_comparison_test_results(
         self, comparison: Comparison

@@ -704,12 +704,10 @@ def test_verify_all(status: str, sim_result_dir: Path, mocker: MockFixture) -> N
     context.comparisons["cause.disease_2.incidence_rate"]["sim_artifact"] = mock_comparison_2
 
     assert context.verify_all() if status == "pass" else not context.verify_all()
-    assert len(context.verified_results) == 2 if status == "pass" else 1
-    assert (
-        not context.bad_test_results
-        if status == "pass"
-        else len(context.bad_test_results) == 1
-    )
+    passing_count = sum(len(inner) for inner in context.verifications.passing.values())
+    failing_count = sum(len(inner) for inner in context.verifications.failing.values())
+    assert passing_count == 2 if status == "pass" else 1
+    assert failing_count == 0 if status == "pass" else failing_count == 1
 
 
 ###########
