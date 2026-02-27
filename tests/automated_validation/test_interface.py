@@ -660,8 +660,7 @@ def test_verify(sim_result_dir: Path) -> None:
     context = ValidationContext(sim_result_dir)
     measure_key = "cause.disease.incidence_rate"
     context.add_comparison(measure_key, "sim", "artifact")
-    comparison = context.comparisons[measure_key]["sim_artifact"]
-    context.verify(comparison)
+    context.verify(measure_key, test_source="sim", ref_source="artifact")
 
 
 @pytest.mark.parametrize("status", ["pass", "fail", "stratification", "overall"])
