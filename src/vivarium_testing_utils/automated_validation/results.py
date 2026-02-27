@@ -6,7 +6,7 @@ from .comparison import Comparison
 
 
 @dataclass
-class TestResults:
+class VerificationResults:
     """Stores passing and failing test results for Comparisons."""
 
     passing: DefaultDict[str, DefaultDict[str, Comparison]] = field(
