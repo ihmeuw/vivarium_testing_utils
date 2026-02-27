@@ -10,23 +10,16 @@ from pytest import TempPathFactory
 from pytest_mock import MockFixture
 from vivarium.framework.artifact import Artifact
 from vivarium.framework.artifact.artifact import ArtifactException
-from vivarium_inputs import interface
+from vivarium_inputs import get_age_bins
 
-from tests.automated_validation.conftest import (
-    IS_ON_SLURM,
-    get_model_spec,
-    load_exposure_categories,
-)
+from tests.automated_validation.conftest import IS_ON_SLURM, get_model_spec
+from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     INPUT_DATA_INDEX_NAMES,
 )
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
-from vivarium_testing_utils.automated_validation.data_transformation import (
-    age_groups,
-    calculations,
-    utils,
-)
+from vivarium_testing_utils.automated_validation.data_transformation import age_groups, utils
 from vivarium_testing_utils.automated_validation.data_transformation.data_schema import (
     SingleNumericColumn,
 )
@@ -714,6 +707,54 @@ def test_verify_all(status: str, sim_result_dir: Path, mocker: MockFixture) -> N
     failing_count = sum(len(inner) for inner in context.verifications.failing.values())
     assert passing_count == 2 if status == "pass" else 1
     assert failing_count == 0 if status == "pass" else failing_count == 1
+
+
+def test_plot_all(sim_result_dir: Path, mocker: MockFixture) -> None:
+    # Setup
+    mock_figure = mocker.Mock(spec=plt.Figure)
+    mock_plot_comparison = mocker.patch(
+        "vivarium_testing_utils.automated_validation.visualization.plot_utils.plot_comparison",
+        return_value=mock_figure,
+    )
+
+    # Create a context and add real comparisons using existing fixture data
+    context = ValidationContext(sim_result_dir)
+    context.add_comparison("cause.disease.incidence_rate", "sim", "artifact")
+    context.add_comparison("cause.disease.prevalence", "sim", "artifact")
+    context.add_comparison("risk_factor.child_stunting.exposure", "sim", "artifact")
+
+    # Get the actual comparison objects for verification
+    comparison_1 = context.comparisons["cause.disease.incidence_rate"]["sim_artifact"]
+    comparison_2 = context.comparisons["cause.disease.prevalence"]["sim_artifact"]
+    comparison_3 = context.comparisons["risk_factor.child_stunting.exposure"]["sim_artifact"]
+
+    # Call plot_all and verify interactions
+    result = context.plot_all(type="line")
+
+    # Verify that plot_comparison was called for each comparison with the correct arguments
+    # plot_utils.plot_comparison receives: comparison_object, type, condition, stratifications
+    mock_plot_comparison.assert_any_call(
+        comparison_1,
+        "line",
+        {},
+        "all",
+    )
+    mock_plot_comparison.assert_any_call(
+        comparison_2,
+        "line",
+        {},
+        "all",
+    )
+    mock_plot_comparison.assert_any_call(
+        comparison_3,
+        "line",
+        {},
+        "all",
+    )
+
+    assert isinstance(result, list)
+    assert len(result) == 3
+    assert all(isinstance(fig, plt.Figure) for fig in result)
 
 
 ###########

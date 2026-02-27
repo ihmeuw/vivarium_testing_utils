@@ -472,8 +472,32 @@ class ValidationContext:
         result = [overall_result.reject_null] + reject_nulls
         return overall_result, stratified_results, result
 
-    def plot_all(self):  # type: ignore[no-untyped-def]
-        raise NotImplementedError
+    def plot_all(self, type: str) -> list[Figure]:
+        """Plot all comparisons in the context.
+
+        Parameters
+        ----------
+        type
+            The type of plot to create for each comparison.
+
+        Returns
+        -------
+            A list of generated figures.
+        """
+        figures = []
+        for comparison_dict in self.comparisons.values():
+            for comparison in comparison_dict.values():
+                fig = self.plot_comparison(
+                    comparison.test_bundle.measure.measure_key,
+                    comparison.test_bundle.source.name.lower(),
+                    comparison.reference_bundle.source.name.lower(),
+                    type,
+                )
+                if isinstance(fig, list):
+                    figures.extend(fig)
+                else:
+                    figures.append(fig)
+        return figures
 
     def get_results(self, verbose: bool = False):  # type: ignore[no-untyped-def]
         raise NotImplementedError
