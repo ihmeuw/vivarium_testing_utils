@@ -251,8 +251,6 @@ class ValidationContext:
         self,
         comparison: Comparison,
         stratifications: Collection[str] | Literal["all"] = "all",
-        test_source: str = "sim",
-        ref_source: str = "artifact",
     ) -> bool:
         comparison.verify(
             self.model_spec.time.step_size / DAYS_PER_YEAR,
