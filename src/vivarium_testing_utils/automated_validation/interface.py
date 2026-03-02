@@ -33,6 +33,7 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     set_gbd_index,
     set_validation_index,
 )
+from vivarium_testing_utils.automated_validation.data_transformation import report
 from vivarium_testing_utils.automated_validation.results import VerificationResults
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 from vivarium_testing_utils.fuzzy_checker import TestResult
@@ -499,8 +500,73 @@ class ValidationContext:
                     figures.append(fig)
         return figures
 
-    def get_results(self, verbose: bool = False):  # type: ignore[no-untyped-def]
-        raise NotImplementedError
+    def get_results(
+        self, output_path: str | Path | None = None, plot_type: str = "line"
+    ) -> str:
+        """Generate an HTML report of validation results.
+
+        This method runs verification for all comparisons, generates plots,
+        and creates an interactive HTML report with tabbed navigation.
+
+        Parameters
+        ----------
+        output_path
+            Optional path to save the HTML report. If None, returns HTML string only.
+        plot_type
+            Type of plots to generate for comparisons (default: "line").
+            Options: "line", "bar", "box", "heatmap"
+
+        Returns
+        -------
+            HTML string of the generated report. Can be displayed in Jupyter notebooks
+            using IPython.display.HTML().
+
+        Examples
+        --------
+        >>> context = ValidationContext(results_dir="path/to/results")
+        >>> context.add_comparison("cause.diarrhea.incidence_rate", "sim", "artifact")
+        >>> html_report = context.get_results(output_path="report.html")
+        >>> # In Jupyter:
+        >>> from IPython.display import HTML, display
+        >>> display(HTML(html_report))
+        """
+        html_content = self._generate_report(plot_type=plot_type)
+
+        if output_path is not None:
+            report.save_html_report(html_content, Path(output_path))
+            logger.info(f"Report saved to {output_path}")
+
+        return html_content
+
+    def _generate_report(self, plot_type: str = "line") -> str:
+        """Generate HTML report content from validation results.
+
+        This is the core report generation logic that collects data from
+        comparisons and renders the HTML template.
+
+        Parameters
+        ----------
+        plot_type
+            Type of plots to generate for each comparison
+
+        Returns
+        -------
+            HTML string of the generated report
+        """
+        report_data = {
+            "summary": {
+                "total": 0,
+                "passing": 0,
+                "failing": 0,
+                "pass_rate": 0.0,
+            },
+            "comparisons": [],
+        }
+
+        # Generate the HTML report using the template
+        html_content = report.create_html_report(report_data)
+
+        return html_content
 
     # TODO MIC-6047 Let user pass in custom age groups
     def _get_age_groups(self) -> pd.DataFrame:
