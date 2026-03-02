@@ -544,7 +544,6 @@ class ValidationContext:
         if output_path is not None:
             saved_path = report.save_html_report(html_content, Path(output_path))
             logger.info(f"Report saved to: {saved_path}")
-            print(f"✓ Report saved to: {saved_path}")
 
         # Auto-display in Jupyter notebooks if requested
         if display_in_notebook:
