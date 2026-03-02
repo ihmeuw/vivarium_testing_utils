@@ -572,14 +572,57 @@ class ValidationContext:
         -------
             HTML string of the generated report
         """
+        # Run verification on all comparisons to populate results
+        self.verify_all()
+
+        # Collect summary statistics from verifications
+        passing_count = sum(len(sources) for sources in self.verifications.passing.values())
+        failing_count = sum(len(sources) for sources in self.verifications.failing.values())
+        total_count = passing_count + failing_count
+
+        # Calculate pass rate
+        pass_rate = (passing_count / total_count * 100) if total_count > 0 else 0.0
+
+        # Build list of comparison details for extended summary
+        comparisons_list = []
+
+        # Add passing comparisons
+        for measure_key, source_dict in self.verifications.passing.items():
+            for source_key, comparison in source_dict.items():
+                test_source = comparison.test_bundle.source.name.lower()
+                ref_source = comparison.reference_bundle.source.name.lower()
+                comparisons_list.append(
+                    {
+                        "measure_key": measure_key,
+                        "test_source": test_source,
+                        "ref_source": ref_source,
+                        "passed": True,
+                    }
+                )
+
+        # Add failing comparisons
+        for measure_key, source_dict in self.verifications.failing.items():
+            for source_key, comparison in source_dict.items():
+                test_source = comparison.test_bundle.source.name.lower()
+                ref_source = comparison.reference_bundle.source.name.lower()
+                comparisons_list.append(
+                    {
+                        "measure_key": measure_key,
+                        "test_source": test_source,
+                        "ref_source": ref_source,
+                        "passed": False,
+                    }
+                )
+
+        # Prepare the report data
         report_data = {
             "summary": {
-                "total": 0,
-                "passing": 0,
-                "failing": 0,
-                "pass_rate": 0.0,
+                "total": total_count,
+                "passing": passing_count,
+                "failing": failing_count,
+                "pass_rate": round(pass_rate, 1),
             },
-            "comparisons": [],
+            "comparisons": comparisons_list,
         }
 
         # Generate the HTML report using the template
