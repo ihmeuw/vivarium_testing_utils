@@ -17,6 +17,7 @@ from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataB
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import DAYS_PER_YEAR
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_transformation import report
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
 )
@@ -33,7 +34,6 @@ from vivarium_testing_utils.automated_validation.data_transformation.utils impor
     set_gbd_index,
     set_validation_index,
 )
-from vivarium_testing_utils.automated_validation.data_transformation import report
 from vivarium_testing_utils.automated_validation.results import VerificationResults
 from vivarium_testing_utils.automated_validation.visualization import plot_utils
 from vivarium_testing_utils.fuzzy_checker import TestResult
@@ -501,7 +501,10 @@ class ValidationContext:
         return figures
 
     def get_results(
-        self, output_path: str | Path | None = None, plot_type: str = "line"
+        self,
+        output_path: str | Path | None = None,
+        plot_type: str = "line",
+        display_in_notebook: bool = True,
     ) -> str:
         """Generate an HTML report of validation results.
 
@@ -515,26 +518,43 @@ class ValidationContext:
         plot_type
             Type of plots to generate for comparisons (default: "line").
             Options: "line", "bar", "box", "heatmap"
+        display_in_notebook
+            If True (default), automatically displays the report in Jupyter notebooks.
+            Set to False if you only want the HTML string returned without display.
 
         Returns
         -------
-            HTML string of the generated report. Can be displayed in Jupyter notebooks
-            using IPython.display.HTML().
+            HTML string of the generated report.
 
         Examples
         --------
+        >>> # Auto-display in Jupyter (default behavior)
         >>> context = ValidationContext(results_dir="path/to/results")
         >>> context.add_comparison("cause.diarrhea.incidence_rate", "sim", "artifact")
+        >>> html_report = context.get_results()  # Automatically displays!
+
+        >>> # Save to file and display
         >>> html_report = context.get_results(output_path="report.html")
-        >>> # In Jupyter:
-        >>> from IPython.display import HTML, display
-        >>> display(HTML(html_report))
+
+        >>> # Get string only, no display
+        >>> html_string = context.get_results(display_in_notebook=False)
         """
         html_content = self._generate_report(plot_type=plot_type)
 
         if output_path is not None:
-            report.save_html_report(html_content, Path(output_path))
-            logger.info(f"Report saved to {output_path}")
+            saved_path = report.save_html_report(html_content, Path(output_path))
+            logger.info(f"Report saved to: {saved_path}")
+            print(f"✓ Report saved to: {saved_path}")
+
+        # Auto-display in Jupyter notebooks if requested
+        if display_in_notebook:
+            try:
+                # Check if we're in a Jupyter environment
+                get_ipython()  # type: ignore[name-defined]
+                display(HTML(html_content))
+            except NameError:
+                # Not in Jupyter, skip display
+                pass
 
         return html_content
 

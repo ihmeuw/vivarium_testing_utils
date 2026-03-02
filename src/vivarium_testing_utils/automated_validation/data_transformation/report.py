@@ -71,7 +71,7 @@ def _get_default_template_path() -> Path:
     return template_path
 
 
-def save_html_report(html_content: str, output_path: Path) -> None:
+def save_html_report(html_content: str, output_path: Path) -> Path:
     """Save HTML content to a file.
 
     Parameters
@@ -80,8 +80,19 @@ def save_html_report(html_content: str, output_path: Path) -> None:
         The HTML string to save
     output_path
         Path where the HTML file should be saved
+
+    Returns
+    -------
+        Absolute path to the saved file
     """
+    # Convert to absolute path
+    output_path = output_path.resolve()
+
+    # Create parent directories if they don't exist
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Write the file
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html_content)
+
+    return output_path
