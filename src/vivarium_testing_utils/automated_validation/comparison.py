@@ -236,6 +236,8 @@ class FuzzyComparison(Comparison):
         # Scale rates to the step size of the simulation
         if "population" not in self.measure.measure_key:
             target = ref_datasets["data"] / step_size
+        else:
+            target = ref_datasets["data"]
 
         fuzzy_checker.test_proportion_vectorized(
             name=self.measure.measure_key,
