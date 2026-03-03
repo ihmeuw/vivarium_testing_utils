@@ -291,6 +291,11 @@ class FuzzyChecker:
 
         """
 
+        # Reorder index levels to match target_proportion for proper alignment
+        target_index_order = target_proportion.index.names
+        observed_numerator = observed_numerator.reorder_levels(target_index_order)
+        observed_denominator = observed_denominator.reorder_levels(target_index_order)
+
         # NOTE: Use inner join to keep only rows where all three DataFrames have matching indices
         # Observed numerator and denominator should have the same indices, and target_proportion
         # might have additional levels where verification would be unncesary
