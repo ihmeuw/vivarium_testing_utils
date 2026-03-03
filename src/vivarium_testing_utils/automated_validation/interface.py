@@ -556,7 +556,7 @@ class ValidationContext:
             try:
                 # Check if we're in a Jupyter environment
                 get_ipython()  # type: ignore[name-defined]
-                display(HTML(html_content))
+                display(HTML(html_content))  # type: ignore
             except NameError:
                 # Not in Jupyter, skip display
                 pass
@@ -640,7 +640,9 @@ class ValidationContext:
 
         return html_content
 
-    def _extract_comparison_overall_test_result(self, comparison):
+    def _extract_comparison_overall_test_result(
+        self, comparison: Comparison
+    ) -> dict[str, Any]:
         """Extract TestResult metadata for 'overall' from a comparison object."""
         overall = comparison.proportion_test_results["overall"]
         return {
