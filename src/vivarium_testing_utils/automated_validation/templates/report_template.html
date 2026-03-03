@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validation Report</title>
     <style>
+                /* Enable word wrapping for long comparison names in summary table */
+                .comparison-summary-table td.comparison-name, .comparison-summary-table th.comparison-name {
+                    max-width: 320px;
+                    white-space: normal;
+                    word-break: break-word;
+                }
         * {
             margin: 0;
             padding: 0;
@@ -243,10 +249,10 @@
         <!-- Tab 2: Comparison Summary -->
         <div id="comparison-summary" class="tab-content">
             <h2>Comparison Details</h2>
-            <table>
+            <table class="comparison-summary-table">
                 <thead>
                     <tr>
-                        <th>Comparison Name</th>
+                        <th class="comparison-name">Comparison Name</th>
                         <th>Test Source</th>
                         <th>Reference Source</th>
                         <th>Status</th>
@@ -256,7 +262,7 @@
                 <tbody>
                     {% for comparison in comparisons %}
                     <tr>
-                        <td>{{ comparison.measure_key }}</td>
+                        <td class="comparison-name">{{ comparison.measure_key }}</td>
                         <td>{{ comparison.test_source }}</td>
                         <td>{{ comparison.ref_source }}</td>
                         <td>
@@ -308,7 +314,21 @@
             <div class="comparison-section">
                 <h3>Test Results</h3>
                 <p><strong>Overall Result:</strong> {{ "Pass" if comparison.passed else "Fail" }}</p>
-                <!-- Test result details will be added here -->
+                {% if comparison.overall_testresult %}
+                <table class="testresult-table">
+                    <tr><th>Property</th><th>Value</th></tr>
+                    <tr><td>Name</td><td>{{ comparison.overall_testresult.name }}</td></tr>
+                    <tr><td>Observed Proportion</td><td>{{ comparison.overall_testresult.observed_proportion }}</td></tr>
+                    <tr><td>Observed Numerator</td><td>{{ comparison.overall_testresult.observed_numerator }}</td></tr>
+                    <tr><td>Observed Denominator</td><td>{{ comparison.overall_testresult.observed_denominator }}</td></tr>
+                    <tr><td>Target Lower Bound</td><td>{{ comparison.overall_testresult.target_lower_bound }}</td></tr>
+                    <tr><td>Target Upper Bound</td><td>{{ comparison.overall_testresult.target_upper_bound }}</td></tr>
+                    <tr><td>Bayes Factor</td><td>{{ comparison.overall_testresult.bayes_factor }}</td></tr>
+                    <tr><td>Reject Null</td><td>{{ comparison.overall_testresult.reject_null }}</td></tr>
+                </table>
+                {% else %}
+                <p>No overall test result metadata available.</p>
+                {% endif %}
             </div>
 
             <div class="comparison-section">

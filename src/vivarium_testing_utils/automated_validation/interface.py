@@ -597,12 +597,14 @@ class ValidationContext:
             for source_key, comparison in source_dict.items():
                 test_source = comparison.test_bundle.source.name.lower()
                 ref_source = comparison.reference_bundle.source.name.lower()
+                overall_metadata = self._extract_comparison_overall_test_result(comparison)
                 comparisons_list.append(
                     {
                         "measure_key": measure_key,
                         "test_source": test_source,
                         "ref_source": ref_source,
                         "passed": True,
+                        "overall_testresult": overall_metadata,
                     }
                 )
 
@@ -611,12 +613,14 @@ class ValidationContext:
             for source_key, comparison in source_dict.items():
                 test_source = comparison.test_bundle.source.name.lower()
                 ref_source = comparison.reference_bundle.source.name.lower()
+                overall_metadata = self._extract_comparison_overall_test_result(comparison)
                 comparisons_list.append(
                     {
                         "measure_key": measure_key,
                         "test_source": test_source,
                         "ref_source": ref_source,
                         "passed": False,
+                        "overall_testresult": overall_metadata,
                     }
                 )
 
@@ -635,6 +639,21 @@ class ValidationContext:
         html_content = report.create_html_report(report_data)
 
         return html_content
+
+    def _extract_comparison_overall_test_result(self, comparison):
+        """Extract TestResult metadata for 'overall' from a comparison object."""
+        overall = comparison.proportion_test_results["overall"]
+        return {
+            "name": overall.name,
+            "name_additional": overall.name_additional,
+            "observed_proportion": overall.observed_proportion,
+            "observed_numerator": overall.observed_numerator,
+            "observed_denominator": overall.observed_denominator,
+            "target_lower_bound": overall.target_lower_bound,
+            "target_upper_bound": overall.target_upper_bound,
+            "bayes_factor": overall.bayes_factor,
+            "reject_null": overall.reject_null,
+        }
 
     # TODO MIC-6047 Let user pass in custom age groups
     def _get_age_groups(self) -> pd.DataFrame:
