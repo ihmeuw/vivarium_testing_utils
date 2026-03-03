@@ -253,10 +253,13 @@ class ValidationContext:
         comparison: Comparison,
         stratifications: Collection[str] | Literal["all"] = "all",
     ) -> bool:
-        comparison.verify(
-            self.model_spec.time.step_size / DAYS_PER_YEAR,
-            stratifications,
-        )
+        step_size = self.model_spec.time.step_size / DAYS_PER_YEAR
+        if step_size is None:
+            logger.warning(
+                "Step size is not defined in the model specification. This may result "
+                "in inaccurate verification results."
+            )
+        comparison.verify(step_size, stratifications)
         overall_result, stratified_results, result = self._gather_comparison_test_results(
             comparison
         )

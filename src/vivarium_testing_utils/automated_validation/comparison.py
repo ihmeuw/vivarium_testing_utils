@@ -71,7 +71,7 @@ class Comparison(ABC):
     @abstractmethod
     def verify(
         self,
-        step_size: float,
+        step_size: float | None,
         stratifications: Collection[str] | Literal["all"] = "all",
     ) -> None:
         pass
@@ -199,7 +199,7 @@ class FuzzyComparison(Comparison):
 
     def verify(
         self,
-        step_size: float,
+        step_size: float | None,
         stratifications: Collection[str] | Literal["all"] = "all",
     ) -> None:
         """Verify test and reference data are statistically indistinguishable according to the fuzzy checker."""
@@ -234,10 +234,10 @@ class FuzzyComparison(Comparison):
             for key, data in self.reference_bundle.datasets.items()
         }
         # Scale rates to the step size of the simulation
-        if "population" not in self.measure.measure_key:
-            target = ref_datasets["data"] / step_size
-        else:
+        if step_size is None or "population" in self.measure.measure_key:
             target = ref_datasets["data"]
+        else:
+            target = ref_datasets["data"] / step_size
 
         fuzzy_checker.test_proportion_vectorized(
             name=self.measure.measure_key,
