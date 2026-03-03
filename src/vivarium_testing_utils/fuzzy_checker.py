@@ -291,12 +291,17 @@ class FuzzyChecker:
 
         """
 
-        combined_data = pd.DataFrame(
-            {
-                "numerator": observed_numerator["value"],
-                "denominator": observed_denominator["value"],
-                "target": target_proportion["value"],
-            }
+        # NOTE: Use inner join to keep only rows where all three DataFrames have matching indices
+        # Observed numerator and denominator should have the same indices, and target_proportion
+        # might have additional levels where verification would be unncesary
+        combined_data = pd.concat(
+            [
+                observed_numerator["value"].rename("numerator"),
+                observed_denominator["value"].rename("denominator"),
+                target_proportion["value"].rename("target"),
+            ],
+            axis=1,
+            join="inner",
         )
 
         # Test proportion for each group
