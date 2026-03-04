@@ -511,7 +511,7 @@ class ValidationContext:
         output_path: str | Path | None = None,
         plot_type: str = "line",
         display_in_notebook: bool = True,
-    ) -> str:
+    ) -> None:
         """Generate an HTML report of validation results.
 
         This method runs verification for all comparisons, generates plots,
