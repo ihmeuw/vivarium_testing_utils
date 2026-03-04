@@ -591,39 +591,13 @@ class ValidationContext:
         pass_rate = (passing_count / total_count * 100) if total_count > 0 else 0.0
 
         # Build list of comparison details for extended summary
-        comparisons_list = []
-
-        # Add passing comparisons
-        for measure_key, source_dict in self.verifications.passing.items():
-            for source_key, comparison in source_dict.items():
-                test_source = comparison.test_bundle.source.name.lower()
-                ref_source = comparison.reference_bundle.source.name.lower()
-                overall_metadata = self._extract_comparison_overall_test_result(comparison)
-                comparisons_list.append(
-                    {
-                        "measure_key": measure_key,
-                        "test_source": test_source,
-                        "ref_source": ref_source,
-                        "passed": True,
-                        "overall_testresult": overall_metadata,
-                    }
-                )
-
-        # Add failing comparisons
-        for measure_key, source_dict in self.verifications.failing.items():
-            for source_key, comparison in source_dict.items():
-                test_source = comparison.test_bundle.source.name.lower()
-                ref_source = comparison.reference_bundle.source.name.lower()
-                overall_metadata = self._extract_comparison_overall_test_result(comparison)
-                comparisons_list.append(
-                    {
-                        "measure_key": measure_key,
-                        "test_source": test_source,
-                        "ref_source": ref_source,
-                        "passed": False,
-                        "overall_testresult": overall_metadata,
-                    }
-                )
+        comparisons_list: list[dict[str, Any]] = []
+        comparisons_list.extend(
+            self._compile_comparison_results(self.verifications.passing, True)
+        )
+        comparisons_list.extend(
+            self._compile_comparison_results(self.verifications.failing, False)
+        )
 
         # Prepare the report data
         report_data = {
@@ -641,22 +615,41 @@ class ValidationContext:
 
         return html_content
 
-    def _extract_comparison_overall_test_result(
-        self, comparison: Comparison
-    ) -> dict[str, Any]:
-        """Extract TestResult metadata for 'overall' from a comparison object."""
-        overall = comparison.proportion_test_results["overall"]
-        return {
-            "name": overall.name,
-            "name_additional": overall.name_additional,
-            "observed_proportion": overall.observed_proportion,
-            "observed_numerator": overall.observed_numerator,
-            "observed_denominator": overall.observed_denominator,
-            "target_lower_bound": overall.target_lower_bound,
-            "target_upper_bound": overall.target_upper_bound,
-            "bayes_factor": overall.bayes_factor,
-            "reject_null": overall.reject_null,
-        }
+    def _compile_comparison_results(
+        self, comparison_dict: Mapping[str, Mapping[str, Comparison]], passed: bool
+    ) -> list[dict[str, Any]]:
+        """Compile comparison results for report generation."""
+        results = []
+        for measure_key, source_dict in comparison_dict.items():
+            for source_key, comparison in source_dict.items():
+                test_source = comparison.test_bundle.source.name.lower()
+                ref_source = comparison.reference_bundle.source.name.lower()
+                overall_metadata = comparison.proportion_test_results["overall"].to_dict()
+                all_testresults = self._extract_all_testresults(comparison)
+                results.append(
+                    {
+                        "measure_key": measure_key,
+                        "test_source": test_source,
+                        "ref_source": ref_source,
+                        "passed": passed,
+                        "overall_testresult": overall_metadata,
+                        "all_testresults": all_testresults,
+                    }
+                )
+        return results
+
+    def _extract_all_testresults(self, comparison: Comparison) -> list[dict[str, Any]]:
+        """Collect all TestResults (overall and stratified) as a flat list of dicts."""
+        results = []
+        overall = comparison.proportion_test_results.get("overall")
+        if overall:
+            results.append(overall)
+        stratified = comparison.proportion_test_results.get("stratified", {})
+        if isinstance(stratified, dict):
+            for group in stratified.values():
+                for test_result in group.values():
+                    results.append(test_result)
+        return [r.to_dict() for r in results]
 
     # TODO MIC-6047 Let user pass in custom age groups
     def _get_age_groups(self) -> pd.DataFrame:

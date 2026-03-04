@@ -17,6 +17,7 @@ from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_
 
 @dataclass
 class TestResult:
+
     """Class to store metadata for individual tests run by FuzzyChecker."""
 
     name: str
@@ -41,6 +42,20 @@ class TestResult:
     """The bug/issue distribution used in the test."""
     no_bug_issue_distribution: rv_discrete_frozen
     """The no-bug/issue distribution used in the test."""
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a dictionary of the main metadata for this TestResult."""
+        return {
+            "name": self.name,
+            "name_additional": self.name_additional,
+            "observed_proportion": self.observed_proportion,
+            "observed_numerator": self.observed_numerator,
+            "observed_denominator": self.observed_denominator,
+            "target_lower_bound": self.target_lower_bound,
+            "target_upper_bound": self.target_upper_bound,
+            "bayes_factor": self.bayes_factor,
+            "reject_null": self.reject_null,
+        }
 
 
 class FuzzyChecker:
