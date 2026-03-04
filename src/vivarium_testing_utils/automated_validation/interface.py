@@ -559,9 +559,10 @@ class ValidationContext:
                 display(HTML(html_content))  # type: ignore
             except NameError:
                 # Not in Jupyter, skip display
+                logger.info("Not in a Jupyter environment, cannot display the report.")
                 pass
 
-        return html_content
+        return None
 
     def _generate_report(self, plot_type: str = "line") -> str:
         """Generate HTML report content from validation results.
