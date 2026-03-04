@@ -308,6 +308,14 @@
                             </span>
                         </td>
                     </tr>
+                    <tr>
+                        <td>Passing Test Results</td>
+                        <td>{{ comparison.passing_count }}</td>
+                    </tr>
+                    <tr>
+                        <td>Failing Test Results</td>
+                        <td>{{ comparison.failing_count }}</td>
+                    </tr>
                 </table>
             </div>
 
@@ -334,13 +342,21 @@
                 <h4 style="margin-top:2em;">All Test Results</h4>
                 <table class="testresult-table">
                     <tr>
-                        <th>Name Additional</th>
+                        <th>Stratifications</th>
                         <th>Expand</th>
                     </tr>
                     {% for tr in comparison.all_testresults %}
                         {% if tr.name_additional != 'overall' %}
                         <tr>
-                            <td>{{ tr.name_additional }}</td>
+                            <td>
+                                {% if tr.index_info %}
+                                    {% for k, v in tr.index_info.items() %}
+                                        <strong>{{ k }}</strong>: {{ v }}{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    {{ tr.name_additional }}
+                                {% endif %}
+                            </td>
                             <td><button type="button" onclick="toggleTestResultDetails(this)">Show Details</button></td>
                         </tr>
                         <tr class="testresult-details-row" style="display:none;">

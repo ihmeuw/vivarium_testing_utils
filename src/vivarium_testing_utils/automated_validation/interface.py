@@ -617,6 +617,7 @@ class ValidationContext:
         self, comparison_dict: Mapping[str, Mapping[str, Comparison]], passed: bool
     ) -> list[dict[str, Any]]:
         """Compile comparison results for report generation."""
+
         results = []
         for measure_key, source_dict in comparison_dict.items():
             for source_key, comparison in source_dict.items():
@@ -632,6 +633,12 @@ class ValidationContext:
                         "passed": passed,
                         "overall_testresult": overall_metadata,
                         "all_testresults": all_testresults,
+                        "passing_count": sum(
+                            1 for tr in all_testresults if not tr["reject_null"]
+                        ),
+                        "failing_count": sum(
+                            1 for tr in all_testresults if tr["reject_null"]
+                        ),
                     }
                 )
         return results
