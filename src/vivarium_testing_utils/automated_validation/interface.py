@@ -562,8 +562,6 @@ class ValidationContext:
                 logger.info("Not in a Jupyter environment, cannot display the report.")
                 pass
 
-        return None
-
     def _generate_report(self, plot_type: str = "line") -> str:
         """Generate HTML report content from validation results.
 
