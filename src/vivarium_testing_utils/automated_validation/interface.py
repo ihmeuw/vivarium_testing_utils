@@ -506,7 +506,7 @@ class ValidationContext:
                     figures.append(fig)
         return figures
 
-    def get_results(
+    def generate_results(
         self,
         output_path: str | Path | None = None,
         plot_type: str = "line",
@@ -528,22 +528,16 @@ class ValidationContext:
             If True (default), automatically displays the report in Jupyter notebooks.
             Set to False if you only want the HTML string returned without display.
 
-        Returns
-        -------
-            HTML string of the generated report.
-
         Examples
         --------
         >>> # Auto-display in Jupyter (default behavior)
         >>> context = ValidationContext(results_dir="path/to/results")
         >>> context.add_comparison("cause.diarrhea.incidence_rate", "sim", "artifact")
-        >>> html_report = context.get_results()  # Automatically displays!
+        >>> context.generate_results()  # Automatically displays!
 
         >>> # Save to file and display
-        >>> html_report = context.get_results(output_path="report.html")
+        >>> context.generate_results(output_path="report.html")
 
-        >>> # Get string only, no display
-        >>> html_string = context.get_results(display_in_notebook=False)
         """
         html_content = self._generate_report(plot_type=plot_type)
 
@@ -624,7 +618,7 @@ class ValidationContext:
                 test_source = comparison.test_bundle.source.name.lower()
                 ref_source = comparison.reference_bundle.source.name.lower()
                 overall_metadata = comparison.proportion_test_results["overall"].to_dict()
-                all_testresults = self._extract_all_testresults(comparison)
+                all_test_results = self._extract_all_test_results(comparison)
                 results.append(
                     {
                         "measure_key": measure_key,
@@ -632,18 +626,18 @@ class ValidationContext:
                         "ref_source": ref_source,
                         "passed": passed,
                         "overall_testresult": overall_metadata,
-                        "all_testresults": all_testresults,
+                        "all_testresults": all_test_results,
                         "passing_count": sum(
-                            1 for tr in all_testresults if not tr["reject_null"]
+                            1 for tr in all_test_results if not tr["reject_null"]
                         ),
                         "failing_count": sum(
-                            1 for tr in all_testresults if tr["reject_null"]
+                            1 for tr in all_test_results if tr["reject_null"]
                         ),
                     }
                 )
         return results
 
-    def _extract_all_testresults(self, comparison: Comparison) -> list[dict[str, Any]]:
+    def _extract_all_test_results(self, comparison: Comparison) -> list[dict[str, Any]]:
         """Collect all TestResults (overall and stratified) as a flat list of dicts."""
         results = []
         overall = comparison.proportion_test_results.get("overall")

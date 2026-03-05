@@ -47,7 +47,7 @@ class TestResult:
 
     def to_dict(self) -> dict[str, Any]:
         """Return a dictionary of the main metadata for this TestResult, including index info if present."""
-        d = {
+        results_dict = {
             "name": self.name,
             "name_additional": self.name_additional,
             "observed_proportion": self.observed_proportion,
@@ -59,8 +59,8 @@ class TestResult:
             "reject_null": self.reject_null,
         }
         if self.index_info is not None:
-            d["index_info"] = self.index_info
-        return d
+            results_dict["index_info"] = self.index_info
+        return results_dict
 
 
 class FuzzyChecker:
