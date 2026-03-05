@@ -88,7 +88,7 @@ def save_plot(fig, name, format):
 def _line_plot(
     title: str,
     combined_data: pd.DataFrame,
-    x_axis: str,
+    x_axis: str = "age_group",
     subplots: bool = True,
 ) -> Figure | list[Figure]:
     """Create a line plot for the given data.
@@ -116,7 +116,7 @@ def _line_plot(
         "y": "value",  # Assuming 'value' is the y-axis variable
         "errorbar": "pi",  # "Percent Interval", a nonparametric 95% CI
     }
-
+    combined_data = _drop_missing_groups(combined_data, x_axis)
     if subplots:
         return _rel_plot(
             title=title,
@@ -309,3 +309,13 @@ def _append_condition_to_title(condition_dict: dict[str, Any], title: str) -> st
     if condition_dict:
         title += f"\n{' | '.join([f'{k} = {v}' for k, v in condition_dict.items()])}"
     return title
+
+
+def _drop_missing_groups(df: pd.DataFrame, group_col: str) -> pd.DataFrame:
+    """
+    Remove groups (by group_col) where all 'value' entries are null.
+    """
+    if group_col not in df.columns:
+        return df
+    mask = ~df.groupby(group_col)["value"].transform(lambda v: v.isnull().all())
+    return df[mask]

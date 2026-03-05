@@ -522,7 +522,6 @@ class ValidationContext:
         output_path: str | Path | None = None,
         plot_type: str = "line",
         display_in_notebook: bool = True,
-        x_axis: str = "age_group",
         **kwargs: Any,
     ) -> None:
         """Generate an HTML report of validation results.
@@ -540,8 +539,6 @@ class ValidationContext:
         display_in_notebook
             If True (default), automatically displays the report in Jupyter notebooks.
             Set to False if you only want the HTML string returned without display.
-        x_axis
-            The column to use for the x-axis in plots (default: "age_group").
         kwargs
             Additional keyword arguments to pass to the plotting function.
 
@@ -556,12 +553,6 @@ class ValidationContext:
         >>> context.generate_results(output_path="report.html")
 
         """
-        # Ensure x_axis is propagated to plotting functions
-        if "x_axis" in kwargs:
-            logger.warning(
-                f"'x_axis' is already provided in kwargs and will be overridden to '{x_axis}'."
-            )
-        kwargs["x_axis"] = x_axis
         # Generate all plots as Figures using plot_all
         figures_dict = self.plot_all(plot_type, **kwargs)
         plot_images = self._figures_to_base64_dict(figures_dict)
