@@ -382,9 +382,12 @@
                 </table>
                 {% endif %}
             </div>
+        </div>
 
+        <!-- Plots tab for this comparison -->
+        <div id="comparison-{{ loop.index }}-plots" class="tab-content">
+            <h2>{{ comparison.measure_key }} — Plots</h2>
             <div class="comparison-section">
-                <h3>Plots</h3>
                 <div class="plot-container">
                     {% set plot_key = (comparison.measure_key, comparison.test_source, comparison.ref_source) %}
                     {% if plot_images and plot_key in plot_images %}
