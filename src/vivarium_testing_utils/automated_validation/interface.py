@@ -481,7 +481,7 @@ class ValidationContext:
         result = [overall_result.reject_null] + reject_nulls
         return overall_result, stratified_results, result
 
-    def plot_all(self, type: str) -> dict[tuple[str, str, str], list[Figure]]:
+    def plot_all(self, type: str, **kwargs: Any) -> dict[tuple[str, str, str], list[Figure]]:
         """Plot all comparisons and return dict of (measure_key, test_source, ref_source) -> list[Figure]."""
         figures_dict: dict[tuple[str, str, str], list[Figure]] = {}
         for comparison_dict in self.comparisons.values():
@@ -521,6 +521,8 @@ class ValidationContext:
         output_path: str | Path | None = None,
         plot_type: str = "line",
         display_in_notebook: bool = True,
+        x_axis: str = "age_group",
+        **kwargs: Any,
     ) -> None:
         """Generate an HTML report of validation results.
 
@@ -537,6 +539,10 @@ class ValidationContext:
         display_in_notebook
             If True (default), automatically displays the report in Jupyter notebooks.
             Set to False if you only want the HTML string returned without display.
+        x_axis
+            The column to use for the x-axis in plots (default: "age_group").
+        kwargs
+            Additional keyword arguments to pass to the plotting function.
 
         Examples
         --------
@@ -549,8 +555,14 @@ class ValidationContext:
         >>> context.generate_results(output_path="report.html")
 
         """
+        # Ensure x_axis is propagated to plotting functions
+        if "x_axis" in kwargs:
+            logger.warning(
+                f"'x_axis' is already provided in kwargs and will be overridden to '{x_axis}'."
+            )
+        kwargs["x_axis"] = x_axis
         # Generate all plots as Figures using plot_all
-        figures_dict = self.plot_all(plot_type)
+        figures_dict = self.plot_all(plot_type, **kwargs)
         plot_images = self._figures_to_base64_dict(figures_dict)
         html_content = self._generate_report(plot_images=plot_images)
 
