@@ -329,6 +329,47 @@
                 {% else %}
                 <p>No overall test result metadata available.</p>
                 {% endif %}
+
+                {% if comparison.all_testresults and comparison.all_testresults|length > 1 %}
+                <h4 style="margin-top:2em;">All Test Results</h4>
+                <table class="testresult-table">
+                    <tr>
+                        <th>Stratifications</th>
+                        <th>Expand</th>
+                    </tr>
+                    {% for tr in comparison.all_testresults %}
+                        {% if tr.name_additional != 'overall' %}
+                        <tr>
+                            <td>
+                                {% if tr.index_info %}
+                                    {% for k, v in tr.index_info.items() %}
+                                        <strong>{{ k }}</strong>: {{ v }}{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    {{ tr.name_additional }}
+                                {% endif %}
+                            </td>
+                            <td><button type="button" onclick="toggleTestResultDetails(this)">Show Details</button></td>
+                        </tr>
+                        <tr class="testresult-details-row" style="display:none;">
+                            <td colspan="2">
+                                <table class="testresult-table" style="margin:0;">
+                                    <tr><th>Property</th><th>Value</th></tr>
+                                    <tr><td>Name</td><td>{{ tr.name }}</td></tr>
+                                    <tr><td>Observed Proportion</td><td>{{ tr.observed_proportion }}</td></tr>
+                                    <tr><td>Observed Numerator</td><td>{{ tr.observed_numerator }}</td></tr>
+                                    <tr><td>Observed Denominator</td><td>{{ tr.observed_denominator }}</td></tr>
+                                    <tr><td>Target Lower Bound</td><td>{{ tr.target_lower_bound }}</td></tr>
+                                    <tr><td>Target Upper Bound</td><td>{{ tr.target_upper_bound }}</td></tr>
+                                    <tr><td>Bayes Factor</td><td>{{ tr.bayes_factor }}</td></tr>
+                                    <tr><td>Reject Null</td><td>{{ tr.reject_null }}</td></tr>
+                                </table>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                </table>
+                {% endif %}
             </div>
 
             <div class="comparison-section">
@@ -347,6 +388,16 @@
     </div>
 
     <script>
+                function toggleTestResultDetails(button) {
+                    var row = button.parentElement.parentElement.nextElementSibling;
+                    if (row.style.display === "none") {
+                        row.style.display = "table-row";
+                        button.textContent = "Hide Details";
+                    } else {
+                        row.style.display = "none";
+                        button.textContent = "Show Details";
+                    }
+                }
         function openTab(evt, tabName) {
             // Hide all tab contents
             var tabContents = document.getElementsByClassName("tab-content");

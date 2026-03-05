@@ -231,7 +231,7 @@ def test_save_diagnostic_output(tmpdir: LocalPath) -> None:
     assert len(tmpdir.listdir()) == 1
 
     output = pd.read_csv(tmpdir.listdir()[0])
-    assert output.shape == (1, 11)
+    assert output.shape == (1, 12)
 
 
 ###########
