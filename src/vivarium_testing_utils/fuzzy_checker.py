@@ -17,6 +17,7 @@ from scipy.stats._distn_infrastructure import rv_continuous_frozen, rv_discrete_
 
 @dataclass
 class TestResult:
+
     """Class to store metadata for individual tests run by FuzzyChecker."""
 
     name: str
@@ -41,6 +42,25 @@ class TestResult:
     """The bug/issue distribution used in the test."""
     no_bug_issue_distribution: rv_discrete_frozen
     """The no-bug/issue distribution used in the test."""
+    index_info: dict[str, Any] | None = None
+    """Index name mapping for name_additional attribute."""
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a dictionary of the main metadata for this TestResult, including index info if present."""
+        results_dict = {
+            "name": self.name,
+            "name_additional": self.name_additional,
+            "observed_proportion": self.observed_proportion,
+            "observed_numerator": self.observed_numerator,
+            "observed_denominator": self.observed_denominator,
+            "target_lower_bound": self.target_lower_bound,
+            "target_upper_bound": self.target_upper_bound,
+            "bayes_factor": self.bayes_factor,
+            "reject_null": self.reject_null,
+        }
+        if self.index_info is not None:
+            results_dict["index_info"] = self.index_info
+        return results_dict
 
 
 class FuzzyChecker:
@@ -312,13 +332,22 @@ class FuzzyChecker:
         )
 
         # Test proportion for each group
+        index_names = list(combined_data.index.names)
         for idx, row in combined_data.iterrows():
             if (row == 0.0).all():
-                # Skip rows where all values are zero indicated these values were cast over indices that didn't match
                 continue
             numerator_val = int(round(row["numerator"]))
             denominator_val = int(round(row["denominator"]))
             target_val = float(row["target"])
+
+            if isinstance(idx, tuple):
+                index_info = dict(zip(index_names, idx))
+            elif index_names and index_names[0] is not None:
+                index_info = {index_names[0]: idx}
+            else:
+                raise ValueError(
+                    "Index must be a tuple or a single value with a named index level"
+                )
 
             result = self.test_proportion(
                 name=name,
@@ -329,7 +358,7 @@ class FuzzyChecker:
                 bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
                 fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
             )
-
+            result.index_info = index_info
             self.proportion_test_diagnostics.append(result)
 
         # Test population level proportion
