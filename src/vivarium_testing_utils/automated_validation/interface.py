@@ -494,6 +494,7 @@ class ValidationContext:
                     test_source,
                     ref_source,
                     type,
+                    **kwargs,
                 )
                 figs = fig if isinstance(fig, list) else [fig]
                 figures_dict[(measure_key, test_source, ref_source)] = figs
