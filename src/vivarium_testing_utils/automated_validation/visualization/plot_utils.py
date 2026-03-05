@@ -159,7 +159,7 @@ def _line_plot(
 def _rel_plot(
     title: str,
     combined_data: pd.DataFrame,
-    x_axis: str = "age_group",
+    x_axis: str,
     plot_args: dict[str, Any] = {},
 ) -> Figure:
     """Create a stratified line plot using Seaborn's relplot.
@@ -318,4 +318,9 @@ def _drop_missing_groups(df: pd.DataFrame, group_col: str) -> pd.DataFrame:
     if group_col not in df.columns:
         return df
     mask = ~df.groupby(group_col)["value"].transform(lambda v: v.isnull().all())
-    return df[mask]
+    df = df[mask]
+    # If the column is categorical, remove unused categories so they don't appear on plots
+    if hasattr(df[group_col], "cat"):
+        df = df.copy()
+        df[group_col] = df[group_col].cat.remove_unused_categories()
+    return df

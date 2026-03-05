@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Collection, Literal, Mapping, cast
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import yaml
 from IPython.display import HTML, display
@@ -514,6 +515,7 @@ class ValidationContext:
                 img_b64 = base64.b64encode(buf.read()).decode("utf-8")
                 images.append(img_b64)
                 buf.close()
+                plt.close(figure)
             plot_images[key] = images
         return plot_images
 
