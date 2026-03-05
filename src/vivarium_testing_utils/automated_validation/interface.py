@@ -17,6 +17,7 @@ from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataB
 from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
 from vivarium_testing_utils.automated_validation.constants import DAYS_PER_YEAR
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
+from vivarium_testing_utils.automated_validation.data_transformation import report
 from vivarium_testing_utils.automated_validation.data_transformation.calculations import (
     filter_data,
 )
@@ -252,10 +253,16 @@ class ValidationContext:
         comparison: Comparison,
         stratifications: Collection[str] | Literal["all"] = "all",
     ) -> bool:
-        comparison.verify(
-            self.model_spec.time.step_size / DAYS_PER_YEAR,
-            stratifications,
-        )
+        if "step_size" in self.model_spec.time:
+            step_size = self.model_spec.time.step_size / DAYS_PER_YEAR
+        else:
+            step_size = None
+            logger.warning(
+                "Step size is not defined in the model specification. This may result "
+                "in inaccurate verification results."
+            )
+
+        comparison.verify(step_size, stratifications)
         overall_result, stratified_results, result = self._gather_comparison_test_results(
             comparison
         )
@@ -499,8 +506,155 @@ class ValidationContext:
                     figures.append(fig)
         return figures
 
-    def get_results(self, verbose: bool = False):  # type: ignore[no-untyped-def]
-        raise NotImplementedError
+    def get_results(
+        self,
+        output_path: str | Path | None = None,
+        plot_type: str = "line",
+        display_in_notebook: bool = True,
+    ) -> None:
+        """Generate an HTML report of validation results.
+
+        This method runs verification for all comparisons, generates plots,
+        and creates an interactive HTML report with tabbed navigation.
+
+        Parameters
+        ----------
+        output_path
+            Optional path to save the HTML report. If None, returns HTML string only.
+        plot_type
+            Type of plots to generate for comparisons (default: "line").
+            Options: "line", "bar", "box", "heatmap"
+        display_in_notebook
+            If True (default), automatically displays the report in Jupyter notebooks.
+            Set to False if you only want the HTML string returned without display.
+
+        Returns
+        -------
+            HTML string of the generated report.
+
+        Examples
+        --------
+        >>> # Auto-display in Jupyter (default behavior)
+        >>> context = ValidationContext(results_dir="path/to/results")
+        >>> context.add_comparison("cause.diarrhea.incidence_rate", "sim", "artifact")
+        >>> html_report = context.get_results()  # Automatically displays!
+
+        >>> # Save to file and display
+        >>> html_report = context.get_results(output_path="report.html")
+
+        >>> # Get string only, no display
+        >>> html_string = context.get_results(display_in_notebook=False)
+        """
+        html_content = self._generate_report(plot_type=plot_type)
+
+        if output_path is not None:
+            saved_path = report.save_html_report(html_content, Path(output_path))
+            logger.info(f"Report saved to: {saved_path}")
+
+        # Auto-display in Jupyter notebooks if requested
+        if display_in_notebook:
+            try:
+                # Check if we're in a Jupyter environment
+                get_ipython()  # type: ignore[name-defined]
+                display(HTML(html_content))  # type: ignore
+            except NameError:
+                # Not in Jupyter, skip display
+                logger.info("Not in a Jupyter environment, cannot display the report.")
+                pass
+
+    def _generate_report(self, plot_type: str = "line") -> str:
+        """Generate HTML report content from validation results.
+
+        This is the core report generation logic that collects data from
+        comparisons and renders the HTML template.
+
+        Parameters
+        ----------
+        plot_type
+            Type of plots to generate for each comparison
+
+        Returns
+        -------
+            HTML string of the generated report
+        """
+        # Run verification on all comparisons to populate results
+        self.verify_all()
+
+        # Collect summary statistics from verifications
+        passing_count = sum(len(sources) for sources in self.verifications.passing.values())
+        failing_count = sum(len(sources) for sources in self.verifications.failing.values())
+        total_count = passing_count + failing_count
+
+        # Calculate pass rate
+        pass_rate = (passing_count / total_count * 100) if total_count > 0 else 0.0
+
+        # Build list of comparison details for extended summary
+        comparisons_list = []
+
+        # Add passing comparisons
+        for measure_key, source_dict in self.verifications.passing.items():
+            for source_key, comparison in source_dict.items():
+                test_source = comparison.test_bundle.source.name.lower()
+                ref_source = comparison.reference_bundle.source.name.lower()
+                overall_metadata = self._extract_comparison_overall_test_result(comparison)
+                comparisons_list.append(
+                    {
+                        "measure_key": measure_key,
+                        "test_source": test_source,
+                        "ref_source": ref_source,
+                        "passed": True,
+                        "overall_testresult": overall_metadata,
+                    }
+                )
+
+        # Add failing comparisons
+        for measure_key, source_dict in self.verifications.failing.items():
+            for source_key, comparison in source_dict.items():
+                test_source = comparison.test_bundle.source.name.lower()
+                ref_source = comparison.reference_bundle.source.name.lower()
+                overall_metadata = self._extract_comparison_overall_test_result(comparison)
+                comparisons_list.append(
+                    {
+                        "measure_key": measure_key,
+                        "test_source": test_source,
+                        "ref_source": ref_source,
+                        "passed": False,
+                        "overall_testresult": overall_metadata,
+                    }
+                )
+
+        # Prepare the report data
+        report_data = {
+            "summary": {
+                "total": total_count,
+                "passing": passing_count,
+                "failing": failing_count,
+                "pass_rate": round(pass_rate, 1),
+            },
+            "comparisons": comparisons_list,
+        }
+
+        # Generate the HTML report using the template
+        html_content = report.create_html_report(report_data)
+
+        return html_content
+
+    def _extract_comparison_overall_test_result(
+        self, comparison: Comparison
+    ) -> dict[str, Any]:
+        """Extract TestResult metadata for 'overall' from a comparison object."""
+        overall = comparison.proportion_test_results["overall"]
+        return {
+            "name": overall.name,
+            "name_additional": overall.name_additional,
+            "observed_proportion": overall.observed_proportion,
+            "observed_numerator": overall.observed_numerator,
+            "observed_denominator": overall.observed_denominator,
+            "target_lower_bound": overall.target_lower_bound,
+            "target_upper_bound": overall.target_upper_bound,
+            "bayes_factor": overall.bayes_factor,
+            "reject_null": overall.reject_null,
+        }
 
     # TODO MIC-6047 Let user pass in custom age groups
     def _get_age_groups(self) -> pd.DataFrame:
