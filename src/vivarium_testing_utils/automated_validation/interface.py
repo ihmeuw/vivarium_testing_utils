@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import io
 import os
 from collections import defaultdict
 from datetime import datetime
@@ -479,32 +481,40 @@ class ValidationContext:
         result = [overall_result.reject_null] + reject_nulls
         return overall_result, stratified_results, result
 
-    def plot_all(self, type: str) -> list[Figure]:
-        """Plot all comparisons in the context.
-
-        Parameters
-        ----------
-        type
-            The type of plot to create for each comparison.
-
-        Returns
-        -------
-            A list of generated figures.
-        """
-        figures = []
+    def plot_all(self, type: str) -> dict[tuple[str, str, str], list[Figure]]:
+        """Plot all comparisons and return dict of (measure_key, test_source, ref_source) -> list[Figure]."""
+        figures_dict: dict[tuple[str, str, str], list[Figure]] = {}
         for comparison_dict in self.comparisons.values():
             for comparison in comparison_dict.values():
+                measure_key = comparison.test_bundle.measure.measure_key
+                test_source = comparison.test_bundle.source.name.lower()
+                ref_source = comparison.reference_bundle.source.name.lower()
                 fig = self.plot_comparison(
-                    comparison.test_bundle.measure.measure_key,
-                    comparison.test_bundle.source.name.lower(),
-                    comparison.reference_bundle.source.name.lower(),
+                    measure_key,
+                    test_source,
+                    ref_source,
                     type,
                 )
-                if isinstance(fig, list):
-                    figures.extend(fig)
-                else:
-                    figures.append(fig)
-        return figures
+                figs = fig if isinstance(fig, list) else [fig]
+                figures_dict[(measure_key, test_source, ref_source)] = figs
+        return figures_dict
+
+    def _figures_to_base64_dict(
+        self, figures_dict: dict[tuple[str, str, str], list[Figure]]
+    ) -> dict[tuple[str, str, str], list[str]]:
+        """Convert a dict of (measure_key, test_source, ref_source) -> list[Figure] to base64 images."""
+        plot_images: dict[tuple[str, str, str], list[str]] = {}
+        for key, figs in figures_dict.items():
+            images: list[str] = []
+            for figure in figs:
+                buf = io.BytesIO()
+                figure.savefig(buf, format="png", bbox_inches="tight")
+                buf.seek(0)
+                img_b64 = base64.b64encode(buf.read()).decode("utf-8")
+                images.append(img_b64)
+                buf.close()
+            plot_images[key] = images
+        return plot_images
 
     def generate_results(
         self,
@@ -539,7 +549,10 @@ class ValidationContext:
         >>> context.generate_results(output_path="report.html")
 
         """
-        html_content = self._generate_report(plot_type=plot_type)
+        # Generate all plots as Figures using plot_all
+        figures_dict = self.plot_all(plot_type)
+        plot_images = self._figures_to_base64_dict(figures_dict)
+        html_content = self._generate_report(plot_images=plot_images)
 
         if output_path is not None:
             saved_path = report.save_html_report(html_content, Path(output_path))
@@ -556,16 +569,13 @@ class ValidationContext:
                 logger.info("Not in a Jupyter environment, cannot display the report.")
                 pass
 
-    def _generate_report(self, plot_type: str = "line") -> str:
+    def _generate_report(
+        self, plot_images: dict[tuple[str, str, str], list[str]] | None = None
+    ) -> str:
         """Generate HTML report content from validation results.
 
         This is the core report generation logic that collects data from
         comparisons and renders the HTML template.
-
-        Parameters
-        ----------
-        plot_type
-            Type of plots to generate for each comparison
 
         Returns
         -------
@@ -600,6 +610,7 @@ class ValidationContext:
                 "pass_rate": round(pass_rate, 1),
             },
             "comparisons": comparisons_list,
+            "plot_images": plot_images or {},
         }
 
         # Generate the HTML report using the template

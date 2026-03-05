@@ -752,9 +752,10 @@ def test_plot_all(sim_result_dir: Path, mocker: MockFixture) -> None:
         "all",
     )
 
-    assert isinstance(result, list)
+    assert isinstance(result, dict)
     assert len(result) == 3
-    assert all(isinstance(fig, plt.Figure) for fig in result)
+    for val in result.values():
+        assert all(isinstance(fig, plt.Figure) for fig in val)
 
 
 ###########

@@ -271,8 +271,11 @@
                             </span>
                         </td>
                         <td>
-                            <a href="#" onclick="openTab(event, 'comparison-{{ loop.index }}'); return false;">
+                            <a href="#" onclick="openTab(event, 'comparison-{{ loop.index }}'); return false;" class="action-btn view-details-btn">
                                 View Details
+                            </a>
+                            <a href="#" onclick="openTab(event, 'comparison-{{ loop.index }}-plots'); return false;" class="action-btn plots-btn" style="margin-left: 8px;">
+                                Plots
                             </a>
                         </td>
                     </tr>
@@ -307,6 +310,14 @@
                                 {{ 'PASS' if comparison.passed else 'FAIL' }}
                             </span>
                         </td>
+                    </tr>
+                    <tr>
+                        <td>Passing</td>
+                        <td>{{ comparison.passing_count }}</td>
+                    </tr>
+                    <tr>
+                        <td>Failing</td>
+                        <td>{{ comparison.failing_count }}</td>
                     </tr>
                 </table>
             </div>
@@ -375,8 +386,14 @@
             <div class="comparison-section">
                 <h3>Plots</h3>
                 <div class="plot-container">
-                    <!-- Plots will be embedded here -->
-                    <p>Plots will be displayed here</p>
+                    {% set plot_key = (comparison.measure_key, comparison.test_source, comparison.ref_source) %}
+                    {% if plot_images and plot_key in plot_images %}
+                        {% for img_b64 in plot_images[plot_key] %}
+                            <img src="data:image/png;base64,{{ img_b64 }}" alt="Plot for {{ comparison.measure_key }}" style="max-width: 100%; margin-bottom: 1em;" />
+                        {% endfor %}
+                    {% else %}
+                        <p>No plots available for this comparison.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
