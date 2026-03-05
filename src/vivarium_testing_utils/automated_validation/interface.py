@@ -515,7 +515,9 @@ class ValidationContext:
                 img_b64 = base64.b64encode(buf.read()).decode("utf-8")
                 images.append(img_b64)
                 buf.close()
-                plt.close(figure)
+                # Handle both matplotlib Figure and seaborn FacetGrid
+                underlying_fig = getattr(figure, "fig", figure)
+                plt.close(underlying_fig)
             plot_images[key] = images
         return plot_images
 
