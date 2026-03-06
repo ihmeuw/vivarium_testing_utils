@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Collection, Literal
+from typing import Any, Collection, Literal
 
 import pandas as pd
 from loguru import logger
@@ -22,8 +22,6 @@ class Comparison(ABC):
 
     test_bundle: RatioMeasureDataBundle
     reference_bundle: RatioMeasureDataBundle
-    from typing import Any
-
     proportion_test_results: dict[str, Any]
 
     @property
@@ -32,7 +30,7 @@ class Comparison(ABC):
         if self.test_bundle.measure.measure_key != self.reference_bundle.measure.measure_key:
             raise ValueError("Test and reference bundle measure keys must be the same.")
         return self.test_bundle.measure.measure_key
-    
+
     @property
     @abstractmethod
     def metadata(self) -> pd.DataFrame:
