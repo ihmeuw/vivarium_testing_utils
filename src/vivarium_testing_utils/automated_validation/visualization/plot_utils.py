@@ -315,12 +315,15 @@ def _drop_missing_groups(df: pd.DataFrame, group_col: str) -> pd.DataFrame:
     """
     Remove groups (by group_col) where all 'value' entries are null.
     """
-    if group_col not in df.columns:
+    if group_col not in df.index.names:
         return df
-    mask = ~df.groupby(group_col)["value"].transform(lambda v: v.isnull().all())
+    mask = ~df.groupby(level=group_col)["value"].transform(lambda v: v.isnull().all())
     df = df[mask]
     # If the column is categorical, remove unused categories so they don't appear on plots
-    if hasattr(df[group_col], "cat"):
+    if hasattr(df.index.get_level_values(group_col), "categories"):
         df = df.copy()
-        df[group_col] = df[group_col].cat.remove_unused_categories()
+        df.index = df.index.set_levels(
+            df.index.levels[df.index.names.index(group_col)].remove_unused_categories(),
+            level=group_col,
+        )
     return df
