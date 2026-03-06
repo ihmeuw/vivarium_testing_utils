@@ -27,6 +27,13 @@ class Comparison(ABC):
     proportion_test_results: dict[str, Any]
 
     @property
+    def comparison_key(self) -> str:
+        """A key to indentiy a comparison of the form 'entity_type.entity.measure'."""
+        if self.test_bundle.measure.measure_key != self.reference_bundle.measure.measure_key:
+            raise ValueError("Test and reference bundle measure keys must be the same.")
+        return self.test_bundle.measure.measure_key
+    
+    @property
     @abstractmethod
     def metadata(self) -> pd.DataFrame:
         """A summary of the test data and reference data, including:
