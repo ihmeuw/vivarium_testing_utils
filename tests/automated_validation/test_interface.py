@@ -1,5 +1,7 @@
+import io
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -756,6 +758,38 @@ def test_plot_all(sim_result_dir: Path, mocker: MockFixture) -> None:
     assert len(result) == 3
     for val in result.values():
         assert all(isinstance(fig, plt.Figure) for fig in val)
+
+
+def test_figures_to_base64_dict(sim_result_dir: Path, mocker: MockFixture) -> None:
+    context = ValidationContext(sim_result_dir)
+
+    figure_1 = mocker.Mock(spec=plt.Figure)
+    figure_2 = mocker.Mock(spec=plt.Figure)
+
+    def _savefig_1(buffer: io.BytesIO, *_args: Any, **_kwargs: Any) -> None:
+        buffer.write(b"fake_png_1")
+
+    def _savefig_2(buffer: io.BytesIO, *_args: Any, **_kwargs: Any) -> None:
+        buffer.write(b"fake_png_2")
+
+    figure_1.savefig.side_effect = _savefig_1
+    figure_2.savefig.side_effect = _savefig_2
+
+    mock_close = mocker.patch(
+        "vivarium_testing_utils.automated_validation.interface.plt.close"
+    )
+
+    figures_dict = {
+        ("cause.disease.incidence_rate", "sim", "artifact"): [figure_1, figure_2],
+    }
+    plot_images = context._figures_to_base64_dict(figures_dict)
+
+    assert set(plot_images.keys()) == set(figures_dict.keys())
+    images = plot_images[("cause.disease.incidence_rate", "sim", "artifact")]
+    assert len(images) == 2
+    assert all(isinstance(image, str) and image for image in images)
+    assert images == ["ZmFrZV9wbmdfMQ==", "ZmFrZV9wbmdfMg=="]
+    assert mock_close.call_count == 2
 
 
 ###########
