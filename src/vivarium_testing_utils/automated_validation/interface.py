@@ -59,7 +59,7 @@ class ValidationContext:
                 # Categorize based on test results
                 _, _, result = self._gather_comparison_test_results(comparison)
                 source_key = f"{comparison.test_bundle.source.name.lower()}_{comparison.reference_bundle.source.name.lower()}"
-                measure_key = comparison.test_bundle.measure.measure_key
+                measure_key = comparison.comparison_key
 
                 if not any(result):
                     results.passing[measure_key][source_key] = comparison
@@ -270,13 +270,13 @@ class ValidationContext:
             comparison
         )
         if not any(result):
-            logger.info(f"Comparison {comparison.test_bundle.measure.measure_key} passed!")
+            logger.info(f"Comparison {comparison.comparison_key} passed!")
             return True
         else:
-            logger.warning(f"Comparison {comparison.test_bundle.measure.measure_key} failed.")
+            logger.warning(f"Comparison {comparison.comparison_key} failed.")
             if overall_result.reject_null:
                 logger.warning(
-                    f"Overall comparison for {comparison.test_bundle.measure.measure_key} failed."
+                    f"Overall comparison for {comparison.comparison_key} failed."
                 )
             # stratified_results is dict[str, dict[str, TestResult]]
             for group_dict in stratified_results.values():
@@ -487,7 +487,7 @@ class ValidationContext:
         figures_dict: dict[tuple[str, str, str], list[Figure]] = {}
         for comparison_dict in self.comparisons.values():
             for comparison in comparison_dict.values():
-                measure_key = comparison.test_bundle.measure.measure_key
+                measure_key = comparison.comparison_key
                 test_source = comparison.test_bundle.source.name.lower()
                 ref_source = comparison.reference_bundle.source.name.lower()
                 fig = self.plot_comparison(
