@@ -59,12 +59,11 @@ class ValidationContext:
                 # Categorize based on test results
                 _, _, result = self._gather_comparison_test_results(comparison)
                 source_key = f"{comparison.test_bundle.source.name.lower()}_{comparison.reference_bundle.source.name.lower()}"
-                measure_key = comparison.test_bundle.measure.measure_key
 
                 if not any(result):
-                    results.passing[measure_key][source_key] = comparison
+                    results.passing[comparison.comparison_key][source_key] = comparison
                 else:
-                    results.failing[measure_key][source_key] = comparison
+                    results.failing[comparison.comparison_key][source_key] = comparison
         return results
 
     def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
@@ -270,14 +269,12 @@ class ValidationContext:
             comparison
         )
         if not any(result):
-            logger.info(f"Comparison {comparison.test_bundle.measure.measure_key} passed!")
+            logger.info(f"Comparison {comparison.comparison_key} passed!")
             return True
         else:
-            logger.warning(f"Comparison {comparison.test_bundle.measure.measure_key} failed.")
+            logger.warning(f"Comparison {comparison.comparison_key} failed.")
             if overall_result.reject_null:
-                logger.warning(
-                    f"Overall comparison for {comparison.test_bundle.measure.measure_key} failed."
-                )
+                logger.warning(f"Overall comparison for {comparison.comparison_key} failed.")
             # stratified_results is dict[str, dict[str, TestResult]]
             for group_dict in stratified_results.values():
                 for group in group_dict.values():
@@ -487,18 +484,17 @@ class ValidationContext:
         figures_dict: dict[tuple[str, str, str], list[Figure]] = {}
         for comparison_dict in self.comparisons.values():
             for comparison in comparison_dict.values():
-                measure_key = comparison.test_bundle.measure.measure_key
                 test_source = comparison.test_bundle.source.name.lower()
                 ref_source = comparison.reference_bundle.source.name.lower()
                 fig = self.plot_comparison(
-                    measure_key,
+                    comparison.comparison_key,
                     test_source,
                     ref_source,
                     type,
                     **kwargs,
                 )
                 figs = fig if isinstance(fig, list) else [fig]
-                figures_dict[(measure_key, test_source, ref_source)] = figs
+                figures_dict[(comparison.comparison_key, test_source, ref_source)] = figs
         return figures_dict
 
     def _figures_to_base64_dict(

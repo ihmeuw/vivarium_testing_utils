@@ -158,7 +158,7 @@ def test_add_comparison(
     assert measure_key in context.comparisons
     comparison = context.comparisons[measure_key]["sim_artifact"]
 
-    assert comparison.measure.measure_key == measure_key  # type: ignore [attr-defined]
+    assert comparison.comparison_key == measure_key
 
     # Test that test_data is now a dictionary with numerator and denominator
     assert isinstance(comparison.test_bundle.datasets, dict)
@@ -309,7 +309,7 @@ def test_add_comparison_different_test_source(
     assert measure_key in context.comparisons
     comparison = context.comparisons[measure_key][f"{test_source}_artifact"]
 
-    assert comparison.measure.measure_key == measure_key  # type: ignore [attr-defined]
+    assert comparison.comparison_key == measure_key
 
     # Test that test_data is now a dictionary with numerator and denominator
     assert isinstance(comparison.test_bundle.datasets, dict)
