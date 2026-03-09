@@ -45,6 +45,20 @@ class TestResult:
     index_info: dict[str, Any] | None = None
     """Index name mapping for name_additional attribute."""
 
+    @property
+    def comparison_to_target(self) -> str:
+        """Describe whether the observed proportion is below, above, or aligned with target."""
+        if not self.reject_null:
+            return "No significant difference"
+
+        if self.observed_proportion < self.target_lower_bound:
+            return "Underestimated"
+
+        if self.observed_proportion > self.target_upper_bound:
+            return "Overestimated"
+
+        return "No significant difference"
+
     def to_dict(self) -> dict[str, Any]:
         """Return a dictionary of the main metadata for this TestResult, including index info if present."""
         results_dict = {
@@ -57,6 +71,7 @@ class TestResult:
             "target_upper_bound": self.target_upper_bound,
             "bayes_factor": self.bayes_factor,
             "reject_null": self.reject_null,
+            "comparison_to_target": self.comparison_to_target,
         }
         if self.index_info is not None:
             results_dict["index_info"] = self.index_info
