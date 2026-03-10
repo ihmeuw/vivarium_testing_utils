@@ -324,7 +324,7 @@ class FuzzyChecker:
         excluding the full set (already tested per-row) and the empty
         set (already tested as the overall population-level check).
         """
-        result = []
+        result: list[tuple[str, ...]] = []
         for r in range(len(index_names) - 1, 0, -1):
             result.extend(combinations(index_names, r))
         return result
