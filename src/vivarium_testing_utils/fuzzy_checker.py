@@ -353,10 +353,16 @@ class FuzzyChecker:
             The Bayes factor cutoff for rejecting the null hypothesis.
         """
         for idx, row in data.iterrows():
-            if (row[["numerator", "denominator", "target"]] == 0.0).all():
-                continue
             numerator_val = int(round(row["numerator"]))
             denominator_val = int(round(row["denominator"]))
+
+            if denominator_val == 0:
+                if numerator_val > 0:
+                    raise ValueError(
+                        f"Group {idx} has a numerator of {numerator_val} but a denominator of 0."
+                    )
+                continue
+
             target_val = float(row["target"])
 
             if isinstance(idx, tuple):
