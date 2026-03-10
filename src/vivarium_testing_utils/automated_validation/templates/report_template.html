@@ -327,6 +327,7 @@
                 <p><strong>Overall Result:</strong> {{ "Pass" if comparison.passed else "Fail" }}</p>
                 {% if comparison.overall_testresult %}
                 <table class="testresult-table">
+                    <!-- Test Result Table - displayed in this order -->
                     <tr><th>Property</th><th>Value</th></tr>
                     <tr><td>Name</td><td>{{ comparison.overall_testresult.name }}</td></tr>
                     <tr><td>Reject Null</td><td>{{ comparison.overall_testresult.reject_null }}</td></tr>
