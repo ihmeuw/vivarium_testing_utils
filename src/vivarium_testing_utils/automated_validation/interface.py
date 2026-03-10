@@ -464,12 +464,12 @@ class ValidationContext:
 
     def _gather_comparison_test_results(
         self, comparison: Comparison
-    ) -> tuple[TestResult, dict[str, dict[str, TestResult]], list[bool]]:
+    ) -> tuple[TestResult, dict[tuple[str, ...], dict[str, TestResult]], list[bool]]:
         overall_result = cast(TestResult, comparison.proportion_test_results["overall"])
         stratified_results = cast(
-            dict[str, dict[str, TestResult]], comparison.proportion_test_results["stratified"]
+            dict[tuple[str, ...], dict[str, TestResult]],
+            comparison.proportion_test_results["stratified"],
         )
-        # stratified results is a dict[str, dict[str, TestResult]]
         # Collect all reject_nulls from the nested structure
         reject_nulls = [
             test_result.reject_null
