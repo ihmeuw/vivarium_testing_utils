@@ -98,7 +98,7 @@ class FuzzyComparison(Comparison):
             raise ValueError("Test and reference measures must be the same.")
         self.measure: Measure = self.test_bundle.measure
         self.proportion_test_results: dict[
-            str, TestResult | dict[str, dict[str, TestResult]]
+            str, TestResult | dict[tuple[str, ...], dict[str, TestResult]]
         ] = {
             "stratified": {},
         }
@@ -223,12 +223,10 @@ class FuzzyComparison(Comparison):
         )
         if stratifications == "all":
             stratify_cols = intersection
-            key = "all"
         else:
             if not set(stratifications).issubset(intersection):
                 raise ValueError("Stratifications must be a subset of the intersection")
             stratify_cols = set(stratifications)
-            key = ",".join(stratify_cols)
 
         test_datasets = {
             key: stratify(data, stratify_cols)
@@ -256,9 +254,10 @@ class FuzzyComparison(Comparison):
             else:
                 stratified = self.proportion_test_results["stratified"]
                 if isinstance(stratified, dict):
-                    if key not in stratified:
-                        stratified[key] = {}
-                    stratified[key][result.name_additional] = result
+                    strat_key = tuple(result.index_info.keys()) if result.index_info else ()
+                    if strat_key not in stratified:
+                        stratified[strat_key] = {}
+                    stratified[strat_key][result.name_additional] = result
 
     def align_datasets(
         self,

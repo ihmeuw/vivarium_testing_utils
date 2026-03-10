@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import cache
+from itertools import combinations
 from pathlib import Path
 from typing import Any
 
@@ -313,6 +314,72 @@ class FuzzyChecker:
             upper_bound_bayes_factor=upper_bound_bayes_factor,
         )
 
+    @staticmethod
+    def _get_stratification_combinations(
+        index_names: list[str],
+    ) -> list[tuple[str, ...]]:
+        """Return all strict sub-combinations of index_names.
+
+        Generates combinations of sizes len(index_names)-1 down to 1,
+        excluding the full set (already tested per-row) and the empty
+        set (already tested as the overall population-level check).
+        """
+        result = []
+        for r in range(len(index_names) - 1, 0, -1):
+            result.extend(combinations(index_names, r))
+        return result
+
+    def _test_all_groups(
+        self,
+        data: pd.DataFrame,
+        index_names: list[str],
+        name: str,
+        bug_issue_beta_distribution_parameters: tuple[float, float],
+        fail_bayes_factor_cutoff: float,
+    ) -> None:
+        """Run test_proportion for each row in data and append results to diagnostics.
+
+        Parameters
+        ----------
+        data
+            DataFrame with columns "numerator", "denominator", and "target".
+        index_names
+            The index column names corresponding to the data's index levels.
+        name
+            The name of the proportion being tested.
+        bug_issue_beta_distribution_parameters
+            The parameters of the beta distribution characterizing the bug/issue hypothesis.
+        fail_bayes_factor_cutoff
+            The Bayes factor cutoff for rejecting the null hypothesis.
+        """
+        for idx, row in data.iterrows():
+            if (row[["numerator", "denominator", "target"]] == 0.0).all():
+                continue
+            numerator_val = int(round(row["numerator"]))
+            denominator_val = int(round(row["denominator"]))
+            target_val = float(row["target"])
+
+            if isinstance(idx, tuple):
+                index_info = dict(zip(index_names, idx))
+            elif index_names and index_names[0] is not None:
+                index_info = {index_names[0]: idx}
+            else:
+                raise ValueError(
+                    "Index must be a tuple or a single value with a named index level"
+                )
+
+            result = self.test_proportion(
+                name=name,
+                name_additional=str(idx),
+                observed_numerator=numerator_val,
+                observed_denominator=denominator_val,
+                target_proportion=target_val,
+                bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
+                fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+            )
+            result.index_info = index_info
+            self.proportion_test_diagnostics.append(result)
+
     def test_proportion_vectorized(
         self,
         observed_numerator: pd.DataFrame,
@@ -367,35 +434,33 @@ class FuzzyChecker:
             join="inner",
         )
 
-        # Test proportion for each group
+        # Test proportion for each group at the most granular level
         index_names = list(combined_data.index.names)
-        for idx, row in combined_data.iterrows():
-            if (row == 0.0).all():
-                continue
-            numerator_val = int(round(row["numerator"]))
-            denominator_val = int(round(row["denominator"]))
-            target_val = float(row["target"])
+        self._test_all_groups(
+            data=combined_data,
+            index_names=index_names,
+            name=name,
+            bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
+            fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+        )
 
-            if isinstance(idx, tuple):
-                index_info = dict(zip(index_names, idx))
-            elif index_names and index_names[0] is not None:
-                index_info = {index_names[0]: idx}
-            else:
-                raise ValueError(
-                    "Index must be a tuple or a single value with a named index level"
-                )
+        # Test sub-stratification combinations
+        combined_data["weighted_target"] = (
+            combined_data["target"] * combined_data["denominator"]
+        )
+        for stratifications in self._get_stratification_combinations(index_names):
+            group_cols = list(stratifications)
+            grouped = combined_data.groupby(group_cols, sort=False, observed=True)
+            agg_data = grouped[["numerator", "denominator", "weighted_target"]].sum()
+            agg_data["target"] = agg_data["weighted_target"] / agg_data["denominator"]
 
-            result = self.test_proportion(
+            self._test_all_groups(
+                data=agg_data,
+                index_names=group_cols,
                 name=name,
-                name_additional=str(idx),
-                observed_numerator=numerator_val,
-                observed_denominator=denominator_val,
-                target_proportion=target_val,
                 bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
                 fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
             )
-            result.index_info = index_info
-            self.proportion_test_diagnostics.append(result)
 
         # Test population level proportion
         # Calculate weighted average of target proportions (weighted by denominator)
