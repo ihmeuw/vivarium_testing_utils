@@ -4,6 +4,7 @@ This module is automatically loaded by pytest when vivarium_testing_utils is ins
 via the pytest11 entry point defined in setup.py.
 """
 
+import os
 import shutil
 from datetime import datetime
 
@@ -59,6 +60,27 @@ def pytest_collection_modifyitems(config: Config, items: list[Function]) -> None
 def is_on_slurm() -> bool:
     """Returns True if the current environment is a SLURM cluster."""
     return shutil.which("sbatch") is not None
+
+
+def pytest_xdist_auto_num_workers(config: Config) -> int:
+    """Automatically determine the number of workers for pytest-xdist.
+
+    - On SLURM: Use CPUs allocated to the job (via SLURM environment variables)
+    - Not on SLURM: Return 1 (no parallelization by default)
+    - Users can override by explicitly passing ``-n <N>`` flag to pytest
+    """
+    if not is_on_slurm():
+        return 1
+
+    # On SLURM clusters, use the number of CPUs allocated to the job
+    slurm_cpus = os.environ.get("SLURM_CPUS_PER_TASK") or os.environ.get(
+        "SLURM_CPUS_ON_NODE"
+    )
+    if slurm_cpus:
+        return int(slurm_cpus)
+
+    # Fallback to total CPUs if SLURM vars not found
+    return os.cpu_count() or 1
 
 
 def is_slow_test_day(slow_test_day: str = SLOW_TEST_DAY) -> bool:
