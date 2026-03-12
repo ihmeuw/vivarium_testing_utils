@@ -217,6 +217,7 @@
         <div class="tabs">
             <button class="tab active" onclick="openTab(event, 'summary')">Summary</button>
             <button class="tab" onclick="openTab(event, 'comparison-summary')">Comparison Summary</button>
+            <button class="tab" onclick="openTab(event, 'test-results')">Test Results</button>
             <!-- Individual comparison tabs will be added dynamically -->
         </div>
 
@@ -282,6 +283,68 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <!-- Tab 3: Test Results (hierarchically filtered failing results) -->
+        <div id="test-results" class="tab-content">
+            <h2>Test Results</h2>
+            {% if not filtered_failing_results %}
+            <p>No failing test results.</p>
+            {% else %}
+            <table class="testresult-table">
+                <thead>
+                    <tr>
+                        <th>Comparison Name</th>
+                        <th>Stratification</th>
+                        <th>Bayes Factor</th>
+                        <th>Comparison to Target</th>
+                        <th>Observed Proportion</th>
+                        <th>Target Range</th>
+                        <th>Confidence</th>
+                        <th>Expand</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tr in filtered_failing_results %}
+                    <tr>
+                        <td>{{ tr.name }}</td>
+                        <td>
+                            {% if tr.index_info %}
+                                {% for k, v in tr.index_info.items() %}
+                                    <strong>{{ k }}</strong>: {{ v }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                {{ tr.name_additional }}
+                            {% endif %}
+                        </td>
+                        <td>{{ '%.3g' | format(tr.bayes_factor) }}</td>
+                        <td>{{ tr.comparison_to_target }}</td>
+                        <td>{{ '%.3g' | format(tr.observed_proportion) }}</td>
+                        <td>{{ '%.3g' | format(tr.target_lower_bound) }} &ndash; {{ '%.3g' | format(tr.target_upper_bound) }}</td>
+                        <td>{{ tr.confidence }}</td>
+                        <td><button type="button" onclick="toggleTestResultDetails(this)">Show Details</button></td>
+                    </tr>
+                    <tr class="testresult-details-row" style="display:none;">
+                        <td colspan="8">
+                            <table class="testresult-table" style="margin:0;">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>{{ tr.name }}</td></tr>
+                                <tr><td>Reject Null</td><td>{{ tr.reject_null }}</td></tr>
+                                <tr><td>Comparison to Target</td><td>{{ tr.comparison_to_target }}</td></tr>
+                                <tr><td>Confidence</td><td>{{ tr.confidence }}</td></tr>
+                                <tr><td>Observed Proportion</td><td>{{ '%.3g' | format(tr.observed_proportion) }}</td></tr>
+                                <tr><td>Observed Numerator</td><td>{{ tr.observed_numerator }}</td></tr>
+                                <tr><td>Observed Denominator</td><td>{{ tr.observed_denominator }}</td></tr>
+                                <tr><td>Target Lower Bound</td><td>{{ '%.3g' | format(tr.target_lower_bound) }}</td></tr>
+                                <tr><td>Target Upper Bound</td><td>{{ '%.3g' | format(tr.target_upper_bound) }}</td></tr>
+                                <tr><td>Bayes Factor</td><td>{{ '%.3g' | format(tr.bayes_factor) }}</td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
         </div>
 
         <!-- Individual Comparison Tabs (will be populated dynamically) -->

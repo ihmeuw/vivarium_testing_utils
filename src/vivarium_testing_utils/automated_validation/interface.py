@@ -615,6 +615,7 @@ class ValidationContext:
             },
             "comparisons": comparisons_list,
             "plot_images": plot_images or {},
+            "filtered_failing_results": self._gather_filtered_test_results(),
         }
 
         # Generate the HTML report using the template
@@ -664,6 +665,78 @@ class ValidationContext:
                 for test_result in group.values():
                     results.append(test_result)
         return [test_result.to_dict() for test_result in results]
+
+    def _gather_filtered_test_results(self) -> list[dict[str, Any]]:
+        """Collect, hierarchically filter, and sort failing test results across all comparisons.
+
+        For each failing comparison, collects stratified TestResults where reject_null is True
+        (excluding the overall result). Then applies hierarchical filtering: if a less-granular
+        stratification fails (e.g. sex=Male), more-granular results that are supersets of that
+        failure (e.g. sex=Male, year=2023) are removed since they are expected to also fail.
+
+        Results are sorted by bayes_factor descending (highest first) so the most significant
+        failures appear at the top.
+
+        Returns
+        -------
+            Sorted list of filtered failing TestResult dicts.
+        """
+        all_filtered: list[dict[str, Any]] = []
+
+        for source_dict in self.verifications.failing.values():
+            for comparison in source_dict.values():
+                stratified = comparison.proportion_test_results.get("stratified", {})
+                if not isinstance(stratified, dict):
+                    continue
+
+                # Collect all failing stratified TestResults
+                failing_results: list[TestResult] = []
+                for group in stratified.values():
+                    for test_result in group.values():
+                        if test_result.reject_null:
+                            failing_results.append(test_result)
+
+                if not failing_results:
+                    continue
+
+                # Group by granularity level (number of keys in index_info)
+                by_level: dict[int, list[TestResult]] = {}
+                for result in failing_results:
+                    level = len(result.index_info) if result.index_info else 0
+                    by_level.setdefault(level, []).append(result)
+
+                # Process from least granular to most granular
+                redundant: set[int] = set()  # ids of results to exclude
+                sorted_levels = sorted(by_level.keys())
+
+                for level in sorted_levels:
+                    for result in by_level[level]:
+                        if id(result) in redundant:
+                            continue
+                        # Mark all more-granular results as redundant if they are
+                        # supersets of this failing result's index_info
+                        if result.index_info:
+                            parent_items = result.index_info.items()
+                            for deeper_level in sorted_levels:
+                                if deeper_level <= level:
+                                    continue
+                                for deeper_result in by_level[deeper_level]:
+                                    if id(deeper_result) in redundant:
+                                        continue
+                                    if deeper_result.index_info and all(
+                                        deeper_result.index_info.get(k) == v
+                                        for k, v in parent_items
+                                    ):
+                                        redundant.add(id(deeper_result))
+
+                # Collect non-redundant results
+                for result in failing_results:
+                    if id(result) not in redundant:
+                        all_filtered.append(result.to_dict())
+
+        # Sort by bayes_factor descending (highest first)
+        all_filtered.sort(key=lambda r: r["bayes_factor"], reverse=True)
+        return all_filtered
 
     # TODO MIC-6047 Let user pass in custom age groups
     def _get_age_groups(self) -> pd.DataFrame:
