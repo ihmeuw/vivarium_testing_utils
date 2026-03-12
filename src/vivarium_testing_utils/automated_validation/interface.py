@@ -669,10 +669,12 @@ class ValidationContext:
     def _gather_filtered_test_results(self) -> list[dict[str, Any]]:
         """Collect, hierarchically filter, and sort failing test results across all comparisons.
 
-        For each failing comparison, collects stratified TestResults where reject_null is True
-        (excluding the overall result). Then applies hierarchical filtering: if a less-granular
-        stratification fails (e.g. sex=Male), more-granular results that are supersets of that
-        failure (e.g. sex=Male, year=2023) are removed since they are expected to also fail.
+        For each failing comparison, collects the overall TestResult (if it fails) and all
+        stratified TestResults where reject_null is True. Then applies hierarchical filtering
+        on the stratified results: if a less-granular stratification fails (e.g. sex=Male),
+        more-granular results that are supersets of that failure (e.g. sex=Male, year=2023)
+        are removed since they are expected to also fail. The overall result does not trigger
+        filtering of stratified results, allowing drill-down to find root causes.
 
         Results are sorted by bayes_factor descending (highest first) so the most significant
         failures appear at the top.
@@ -685,6 +687,11 @@ class ValidationContext:
 
         for source_dict in self.verifications.failing.values():
             for comparison in source_dict.values():
+                # Include the overall result if it fails
+                overall = comparison.proportion_test_results.get("overall")
+                if overall and overall.reject_null:
+                    all_filtered.append(overall.to_dict())
+
                 stratified = comparison.proportion_test_results.get("stratified", {})
                 if not isinstance(stratified, dict):
                     continue
@@ -724,8 +731,8 @@ class ValidationContext:
                                     if id(deeper_result) in redundant:
                                         continue
                                     if deeper_result.index_info and all(
-                                        deeper_result.index_info.get(k) == v
-                                        for k, v in parent_items
+                                        deeper_result.index_info.get(key) == value
+                                        for key, value in parent_items
                                     ):
                                         redundant.add(id(deeper_result))
 
@@ -735,7 +742,7 @@ class ValidationContext:
                         all_filtered.append(result.to_dict())
 
         # Sort by bayes_factor descending (highest first)
-        all_filtered.sort(key=lambda r: r["bayes_factor"], reverse=True)
+        all_filtered.sort(key=lambda result: result["bayes_factor"], reverse=True)
         return all_filtered
 
     # TODO MIC-6047 Let user pass in custom age groups
