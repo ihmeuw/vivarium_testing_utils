@@ -663,7 +663,7 @@ class ValidationContext:
             for group in stratified.values():
                 for test_result in group.values():
                     results.append(test_result)
-        return [r.to_dict() for r in results]
+        return [test_result.to_dict() for test_result in results]
 
     # TODO MIC-6047 Let user pass in custom age groups
     def _get_age_groups(self) -> pd.DataFrame:

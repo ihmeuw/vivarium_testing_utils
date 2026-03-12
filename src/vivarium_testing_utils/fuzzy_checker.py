@@ -44,6 +44,26 @@ class TestResult:
     """The no-bug/issue distribution used in the test."""
     index_info: dict[str, Any] | None = None
     """Index name mapping for name_additional attribute."""
+    confidence: str = "Conclusive"
+    """Whether the test result is conclusive or inconclusive based on sample size and Bayes factor."""
+    lower_bound_bayes_factor: float | None = None
+    """Bayes factor at numerator=0, used to check if sample size is too small for lower bound detection."""
+    upper_bound_bayes_factor: float | None = None
+    """Bayes factor at numerator=denominator, used to check if sample size is too small for upper bound detection."""
+
+    @property
+    def comparison_to_target(self) -> str:
+        """Describe whether the observed proportion is below, above, or aligned with target."""
+        if not self.reject_null:
+            return "No significant difference"
+
+        if self.observed_proportion < self.target_lower_bound:
+            return "Underestimated"
+
+        if self.observed_proportion > self.target_upper_bound:
+            return "Overestimated"
+
+        return "No significant difference"
 
     def to_dict(self) -> dict[str, Any]:
         """Return a dictionary of the main metadata for this TestResult, including index info if present."""
@@ -57,6 +77,8 @@ class TestResult:
             "target_upper_bound": self.target_upper_bound,
             "bayes_factor": self.bayes_factor,
             "reject_null": self.reject_null,
+            "comparison_to_target": self.comparison_to_target,
+            "confidence": self.confidence,
         }
         if self.index_info is not None:
             results_dict["index_info"] = self.index_info
@@ -171,8 +193,8 @@ class FuzzyChecker:
             observed_denominator=observed_denominator,
             bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
             fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+            inconclusive_bayes_factor_cutoff=inconclusive_bayes_factor_cutoff,
         )
-        self.proportion_test_diagnostics.append(test_proportion)
 
         if test_proportion.reject_null:
             if test_proportion.observed_proportion < test_proportion.target_lower_bound:
@@ -184,37 +206,31 @@ class FuzzyChecker:
                     f"{name} value {test_proportion.observed_proportion:g} is significantly greater than expected, bayes factor = {test_proportion.bayes_factor:g}"
                 )
 
-        if (
-            test_proportion.target_lower_bound > 0
-            and self._calculate_bayes_factor(
-                0,
-                test_proportion.bug_issue_distribution,
-                test_proportion.no_bug_issue_distribution,
-            )
-            < fail_bayes_factor_cutoff
-        ):
-            logger.warning(
-                f"Sample size too small to ever find that the simulation's '{name}' value is less than expected."
-            )
+        if test_proportion.confidence == "Inconclusive":
+            if (
+                test_proportion.lower_bound_bayes_factor is not None
+                and test_proportion.lower_bound_bayes_factor < fail_bayes_factor_cutoff
+            ):
+                logger.warning(
+                    f"Sample size too small to ever find that the simulation's '{name}' value is less than expected."
+                )
 
-        if test_proportion.target_upper_bound < 1 and (
-            self._calculate_bayes_factor(
-                observed_denominator,
-                test_proportion.bug_issue_distribution,
-                test_proportion.no_bug_issue_distribution,
-            )
-            < fail_bayes_factor_cutoff
-        ):
-            logger.warning(
-                f"Sample size too small to ever find that the simulation's '{name}' value is greater than expected."
-            )
+            if (
+                test_proportion.upper_bound_bayes_factor is not None
+                and test_proportion.upper_bound_bayes_factor < fail_bayes_factor_cutoff
+            ):
+                logger.warning(
+                    f"Sample size too small to ever find that the simulation's '{name}' value is greater than expected."
+                )
 
-        if (
-            fail_bayes_factor_cutoff
-            > test_proportion.bayes_factor
-            > inconclusive_bayes_factor_cutoff
-        ):
-            logger.warning(f"Bayes factor for '{name}' is not conclusive.")
+            if (
+                fail_bayes_factor_cutoff
+                > test_proportion.bayes_factor
+                > inconclusive_bayes_factor_cutoff
+            ):
+                logger.warning(f"Bayes factor for '{name}' is not conclusive.")
+
+        self.proportion_test_diagnostics.append(test_proportion)
 
     def test_proportion(
         self,
@@ -225,6 +241,7 @@ class FuzzyChecker:
         observed_denominator: int = 0,
         bug_issue_beta_distribution_parameters: tuple[float, float] = (0.5, 0.5),
         fail_bayes_factor_cutoff: float = 100.0,
+        inconclusive_bayes_factor_cutoff: float = 0.1,
     ) -> TestResult:
         """Convert a dictionary representation of a test result to a TestResult object."""
         if isinstance(target_proportion, tuple):
@@ -263,6 +280,22 @@ class FuzzyChecker:
 
         observed_proportion = observed_numerator / observed_denominator
         reject_null = bayes_factor > fail_bayes_factor_cutoff
+
+        (
+            confidence,
+            lower_bound_bayes_factor,
+            upper_bound_bayes_factor,
+        ) = self._determine_confidence(
+            target_lower_bound=target_lower_bound,
+            target_upper_bound=target_upper_bound,
+            observed_denominator=observed_denominator,
+            bayes_factor=bayes_factor,
+            fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+            inconclusive_bayes_factor_cutoff=inconclusive_bayes_factor_cutoff,
+            bug_issue_distribution=bug_issue_distribution,
+            no_bug_issue_distribution=no_bug_issue_distribution,
+        )
+
         return TestResult(
             name=name,
             name_additional=name_additional,
@@ -275,6 +308,9 @@ class FuzzyChecker:
             reject_null=reject_null,
             bug_issue_distribution=bug_issue_distribution,
             no_bug_issue_distribution=no_bug_issue_distribution,
+            confidence=confidence,
+            lower_bound_bayes_factor=lower_bound_bayes_factor,
+            upper_bound_bayes_factor=upper_bound_bayes_factor,
         )
 
     def test_proportion_vectorized(
@@ -376,6 +412,41 @@ class FuzzyChecker:
             fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
         )
         self.proportion_test_diagnostics.append(overall)
+
+    def _determine_confidence(
+        self,
+        target_lower_bound: float,
+        target_upper_bound: float,
+        observed_denominator: int,
+        bayes_factor: float,
+        fail_bayes_factor_cutoff: float,
+        inconclusive_bayes_factor_cutoff: float,
+        bug_issue_distribution: rv_discrete_frozen,
+        no_bug_issue_distribution: rv_discrete_frozen,
+    ) -> tuple[str, float | None, float | None]:
+        """Determine confidence level and compute edge Bayes factors."""
+        confidence = "Conclusive"
+        lower_bound_bayes_factor = None
+        upper_bound_bayes_factor = None
+
+        if target_lower_bound > 0:
+            lower_bound_bayes_factor = self._calculate_bayes_factor(
+                0, bug_issue_distribution, no_bug_issue_distribution
+            )
+            if lower_bound_bayes_factor < fail_bayes_factor_cutoff:
+                confidence = "Inconclusive"
+
+        if target_upper_bound < 1:
+            upper_bound_bayes_factor = self._calculate_bayes_factor(
+                observed_denominator, bug_issue_distribution, no_bug_issue_distribution
+            )
+            if upper_bound_bayes_factor < fail_bayes_factor_cutoff:
+                confidence = "Inconclusive"
+
+        if fail_bayes_factor_cutoff > bayes_factor > inconclusive_bayes_factor_cutoff:
+            confidence = "Inconclusive"
+
+        return confidence, lower_bound_bayes_factor, upper_bound_bayes_factor
 
     def _calculate_bayes_factor(
         self,
