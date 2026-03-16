@@ -297,10 +297,6 @@
                         <th>Comparison Name</th>
                         <th>Stratification</th>
                         <th>Bayes Factor</th>
-                        <th>Comparison to Target</th>
-                        <th>Observed Proportion</th>
-                        <th>Target Range</th>
-                        <th>Confidence</th>
                         <th>Expand</th>
                     </tr>
                 </thead>
@@ -318,14 +314,10 @@
                             {% endif %}
                         </td>
                         <td>{{ '%.3g' | format(tr.bayes_factor) }}</td>
-                        <td>{{ tr.comparison_to_target }}</td>
-                        <td>{{ '%.3g' | format(tr.observed_proportion) }}</td>
-                        <td>{{ '%.3g' | format(tr.target_lower_bound) }} &ndash; {{ '%.3g' | format(tr.target_upper_bound) }}</td>
-                        <td>{{ tr.confidence }}</td>
                         <td><button type="button" onclick="toggleTestResultDetails(this)">Show Details</button></td>
                     </tr>
                     <tr class="testresult-details-row" style="display:none;">
-                        <td colspan="8">
+                        <td colspan="4">
                             <table class="testresult-table" style="margin:0;">
                                 <tr><th>Property</th><th>Value</th></tr>
                                 <tr><td>Name</td><td>{{ tr.name }}</td></tr>
