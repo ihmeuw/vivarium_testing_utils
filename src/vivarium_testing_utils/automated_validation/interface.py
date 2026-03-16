@@ -667,17 +667,18 @@ class ValidationContext:
         return [test_result.to_dict() for test_result in results]
 
     def _gather_filtered_test_results(self) -> list[dict[str, Any]]:
-        """Collect, hierarchically filter, and sort failing test results across all comparisons.
+        """Collect and filter test results using lattice drill-down algorithm.
 
-        For each failing comparison, collects the overall TestResult (if it fails) and all
-        stratified TestResults where reject_null is True. Then applies hierarchical filtering
-        on the stratified results: if a less-granular stratification fails (e.g. sex=Male),
-        more-granular results that are supersets of that failure (e.g. sex=Male, year=2023)
-        are removed since they are expected to also fail. The overall result does not trigger
-        filtering of stratified results, allowing drill-down to find root causes.
+        For each failing comparison, starts from the overall result and drills
+        down through the lattice of stratification levels:
 
-        Results are sorted by bayes_factor descending (highest first) so the most significant
-        failures appear at the top.
+        - If a node failed and has no failing descendants: display it
+        - If a node failed and a single child contains all failing descendants:
+          skip the parent and recurse into that child
+        - If a node failed and failures span multiple children: display the node
+        - If a node passed: recurse into each child
+
+        Results are sorted by bayes_factor descending (highest first).
 
         Returns
         -------
@@ -687,63 +688,130 @@ class ValidationContext:
 
         for source_dict in self.verifications.failing.values():
             for comparison in source_dict.values():
-                # Include the overall result if it fails
                 overall = comparison.proportion_test_results.get("overall")
-                if overall and overall.reject_null:
-                    all_filtered.append(overall.to_dict())
-
                 stratified = comparison.proportion_test_results.get("stratified", {})
-                if not isinstance(stratified, dict):
+
+                if not overall:
                     continue
 
-                # Collect all failing stratified TestResults
-                failing_results: list[TestResult] = []
-                for group in stratified.values():
-                    for test_result in group.values():
-                        if test_result.reject_null:
-                            failing_results.append(test_result)
+                # Collect all TestResults for this comparison
+                all_results: list[TestResult] = [overall]
+                if isinstance(stratified, dict):
+                    for group in stratified.values():
+                        for test_result in group.values():
+                            all_results.append(test_result)
 
-                if not failing_results:
-                    continue
-
-                # Group by granularity level (number of keys in index_info)
-                by_level: dict[int, list[TestResult]] = {}
-                for result in failing_results:
-                    level = len(result.index_info) if result.index_info else 0
-                    by_level.setdefault(level, []).append(result)
-
-                # Process from least granular to most granular
-                redundant: set[int] = set()  # ids of results to exclude
-                sorted_levels = sorted(by_level.keys())
-
-                for level in sorted_levels:
-                    for result in by_level[level]:
-                        if id(result) in redundant:
-                            continue
-                        # Mark all more-granular results as redundant if they are
-                        # supersets of this failing result's index_info
-                        if result.index_info:
-                            parent_items = result.index_info.items()
-                            for deeper_level in sorted_levels:
-                                if deeper_level <= level:
-                                    continue
-                                for deeper_result in by_level[deeper_level]:
-                                    if id(deeper_result) in redundant:
-                                        continue
-                                    if deeper_result.index_info and all(
-                                        deeper_result.index_info.get(key) == value
-                                        for key, value in parent_items
-                                    ):
-                                        redundant.add(id(deeper_result))
-
-                # Collect non-redundant results
-                for result in failing_results:
-                    if id(result) not in redundant:
-                        all_filtered.append(result.to_dict())
+                # Run the lattice drill-down starting from overall
+                displayed: list[TestResult] = []
+                self._process_lattice_node(overall, all_results, displayed)
+                all_filtered.extend(r.to_dict() for r in displayed)
 
         # Sort by bayes_factor descending (highest first)
         all_filtered.sort(key=lambda result: result["bayes_factor"], reverse=True)
         return all_filtered
+
+    def _process_lattice_node(
+        self,
+        node: TestResult,
+        all_results: list[TestResult],
+        displayed: list[TestResult],
+    ) -> None:
+        """Process a single node in the lattice drill-down algorithm.
+
+        Parameters
+        ----------
+        node
+            The current TestResult node being evaluated.
+        all_results
+            All TestResults for the current comparison.
+        displayed
+            Accumulator list of TestResults to display.
+        """
+        children = self._get_lattice_children(node, all_results)
+
+        if node.reject_null:
+            failing_beneath = self._get_failing_descendants(node, all_results)
+
+            if not failing_beneath:
+                # No failing checks beneath: display this node, stop
+                displayed.append(node)
+                return
+
+            # Check if a single child contains ALL failing descendants
+            failing_ids = {id(r) for r in failing_beneath}
+
+            for child in children:
+                # Compute the set of failing result ids beneath (or equal to) this child
+                child_coverage: set[int] = set()
+                if child.reject_null:
+                    child_coverage.add(id(child))
+                for r in self._get_failing_descendants(child, all_results):
+                    child_coverage.add(id(r))
+
+                if failing_ids.issubset(child_coverage):
+                    # Single child contains all failures — recurse, don't display parent
+                    self._process_lattice_node(child, all_results, displayed)
+                    return
+
+            # No single child contains all failures: display parent, don't recurse
+            displayed.append(node)
+        else:
+            # Node passed: recurse into each child
+            for child in children:
+                self._process_lattice_node(child, all_results, displayed)
+
+    @staticmethod
+    def _get_lattice_children(
+        node: TestResult, all_results: list[TestResult]
+    ) -> list[TestResult]:
+        """Get direct children of a node in the lattice.
+
+        A direct child has exactly one additional stratification dimension
+        and matching values on all dimensions shared with the parent.
+        """
+        node_info = node.index_info or {}
+        node_dims = frozenset(node_info.keys())
+        target_dim_count = len(node_dims) + 1
+
+        children = []
+        for result in all_results:
+            result_info = result.index_info or {}
+            result_dims = frozenset(result_info.keys())
+
+            if len(result_dims) != target_dim_count:
+                continue
+            if not node_dims.issubset(result_dims):
+                continue
+            if not all(result_info.get(k) == v for k, v in node_info.items()):
+                continue
+
+            children.append(result)
+
+        return children
+
+    @staticmethod
+    def _is_lattice_descendant(candidate: TestResult, ancestor: TestResult) -> bool:
+        """Check if candidate is a strict descendant of ancestor in the lattice.
+
+        A descendant has strictly more dimensions and matching values on all
+        shared dimensions.
+        """
+        ancestor_info = ancestor.index_info or {}
+        candidate_info = candidate.index_info or {}
+
+        if len(candidate_info) <= len(ancestor_info):
+            return False
+
+        return all(candidate_info.get(key) == value for key, value in ancestor_info.items())
+
+    @classmethod
+    def _get_failing_descendants(
+        cls, node: TestResult, all_results: list[TestResult]
+    ) -> list[TestResult]:
+        """Get all failing TestResults that are strict descendants of node."""
+        return [
+            r for r in all_results if r.reject_null and cls._is_lattice_descendant(r, node)
+        ]
 
     # TODO MIC-6047 Let user pass in custom age groups
     def _get_age_groups(self) -> pd.DataFrame:

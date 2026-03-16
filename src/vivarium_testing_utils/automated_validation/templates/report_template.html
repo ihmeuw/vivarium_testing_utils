@@ -22,16 +22,19 @@
                     overflow-wrap: break-word;
                 }
                 .testresult-table th:nth-child(1), .testresult-table td:nth-child(1) {
-                    width: 35%;
+                    width: 30%;
                 }
                 .testresult-table th:nth-child(2), .testresult-table td:nth-child(2) {
-                    width: 35%;
+                    width: 30%;
                 }
                 .testresult-table th:nth-child(3), .testresult-table td:nth-child(3) {
-                    width: 15%;
+                    width: 12%;
                 }
                 .testresult-table th:nth-child(4), .testresult-table td:nth-child(4) {
                     width: 15%;
+                }
+                .testresult-table th:nth-child(5), .testresult-table td:nth-child(5) {
+                    width: 13%;
                 }
                 /* Reset layout for nested detail tables */
                 .testresult-details-row .testresult-table {
@@ -327,6 +330,7 @@
                         <th>Comparison Name</th>
                         <th>Stratification</th>
                         <th>Bayes Factor</th>
+                        <th>Direction</th>
                         <th>Expand</th>
                     </tr>
                 </thead>
@@ -344,10 +348,11 @@
                             {% endif %}
                         </td>
                         <td>{{ '%.3g' | format(tr.bayes_factor) }}</td>
+                        <td>{{ tr.comparison_to_target }}</td>
                         <td><button type="button" onclick="toggleTestResultDetails(this)">Show Details</button></td>
                     </tr>
                     <tr class="testresult-details-row" style="display:none;">
-                        <td colspan="4">
+                        <td colspan="5">
                             <table class="testresult-table" style="margin:0;">
                                 <tr><th>Property</th><th>Value</th></tr>
                                 <tr><td>Name</td><td>{{ tr.name }}</td></tr>
