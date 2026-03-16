@@ -1,3 +1,20 @@
+**0.3.6 - 03/16/26**
+
+  - Validate version prior to deploying
+  - Bugfix: Update intersphinx mapping for python and pandas
+
+**0.3.5 - 02/23/26**
+
+  - Feature: Allow VTU to be installed as a package with python 3.12 and 3.13
+
+**0.3.4 - 02/20/26**
+
+  - Feature: Add pytest options and configuration details to pytest plugin
+
+**0.3.3 - 02/06/26**
+
+  - Feature: create a pytest plugin with extraction of "no_gbd_cache"
+
 **0.3.2 - 01/26/26**
 
   - Feature: Update AgeGroup and AgeGroupSchema to handle subsets 

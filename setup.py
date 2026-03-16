@@ -4,7 +4,7 @@ import sys
 from packaging.version import parse
 from setuptools import find_packages, setup
 
-with open("python_versions.json", "r") as f:
+with open("python_setup_versions.json", "r") as f:
     supported_python_versions = json.load(f)
 
 python_versions = [parse(v) for v in supported_python_versions]
@@ -49,6 +49,7 @@ if __name__ == "__main__":
         "vivarium_build_utils>=2.0.1,<3.0.0",
         "pyarrow",
         "seaborn",
+        "layered-config-tree",
         # Type stubs
         "types-setuptools",
     ]
@@ -124,6 +125,9 @@ if __name__ == "__main__":
             + interactive_requirements
             + lint_requirements
             + validation_requirements,
+        },
+        entry_points={
+            "pytest11": ["vivarium_testing_utils = vivarium_testing_utils.pytest_plugin"],
         },
         zip_safe=False,
         use_scm_version={
