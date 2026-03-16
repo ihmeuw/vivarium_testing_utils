@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import cache
-from itertools import combinations
+from itertools import chain, combinations
 from pathlib import Path
 from typing import Any
 
@@ -324,10 +324,11 @@ class FuzzyChecker:
         excluding the full set (already tested per-row) and the empty
         set (already tested as the overall population-level check).
         """
-        result: list[tuple[str, ...]] = []
-        for r in range(len(index_names) - 1, 0, -1):
-            result.extend(combinations(index_names, r))
-        return result
+        return list(
+            chain.from_iterable(
+                combinations(index_names, r) for r in range(len(index_names) - 1, 0, -1)
+            )
+        )
 
     def _test_all_groups(
         self,
@@ -353,8 +354,8 @@ class FuzzyChecker:
             The Bayes factor cutoff for rejecting the null hypothesis.
         """
         for idx, row in data.iterrows():
-            numerator_val = int(round(row["numerator"]))
-            denominator_val = int(round(row["denominator"]))
+            numerator_val = row["numerator"]
+            denominator_val = row["denominator"]
 
             if denominator_val == 0:
                 if numerator_val > 0:
@@ -471,8 +472,8 @@ class FuzzyChecker:
         # Test population level proportion
         # Calculate weighted average of target proportions (weighted by denominator)
         weighted_target = (
-            combined_data["target"] * combined_data["denominator"]
-        ).sum() / combined_data["denominator"].sum()
+            combined_data["weighted_target"].sum() / combined_data["denominator"].sum()
+        )
         overall = self.test_proportion(
             name=name,
             name_additional="overall",
