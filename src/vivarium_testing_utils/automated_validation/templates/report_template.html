@@ -11,6 +11,36 @@
                     white-space: normal;
                     word-break: break-word;
                 }
+                /* Word wrapping for test results table */
+                .testresult-table {
+                    table-layout: fixed;
+                    width: 100%;
+                }
+                .testresult-table th, .testresult-table td {
+                    white-space: normal;
+                    word-break: break-word;
+                    overflow-wrap: break-word;
+                }
+                .testresult-table th:nth-child(1), .testresult-table td:nth-child(1) {
+                    width: 35%;
+                }
+                .testresult-table th:nth-child(2), .testresult-table td:nth-child(2) {
+                    width: 35%;
+                }
+                .testresult-table th:nth-child(3), .testresult-table td:nth-child(3) {
+                    width: 15%;
+                }
+                .testresult-table th:nth-child(4), .testresult-table td:nth-child(4) {
+                    width: 15%;
+                }
+                /* Reset layout for nested detail tables */
+                .testresult-details-row .testresult-table {
+                    table-layout: auto;
+                }
+                .testresult-details-row .testresult-table th,
+                .testresult-details-row .testresult-table td {
+                    width: auto;
+                }
         * {
             margin: 0;
             padding: 0;
