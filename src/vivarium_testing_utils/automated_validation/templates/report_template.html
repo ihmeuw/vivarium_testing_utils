@@ -542,10 +542,10 @@
 
                 <!-- Embed data as JSON for JS filtering -->
                 <script type="application/json" id="comp-data-{{ comp_idx }}">
-                    {{ comparison.all_testresults | tojson }}
+                    {{ comparison.all_testresults | safe_tojson }}
                 </script>
                 <script type="application/json" id="comp-strat-meta-{{ comp_idx }}">
-                    {{ comparison.stratification_metadata | tojson }}
+                    {{ comparison.stratification_metadata | safe_tojson }}
                 </script>
 
                 <!-- Stratification dimension selector -->
@@ -663,10 +663,13 @@
             var dataEl = document.getElementById('comp-data-' + compIdx);
             var metaEl = document.getElementById('comp-strat-meta-' + compIdx);
             if (!dataEl || !metaEl) return null;
-            return {
-                testResults: JSON.parse(dataEl.textContent),
-                meta: JSON.parse(metaEl.textContent)
-            };
+            try {
+                var testResults = JSON.parse(dataEl.textContent);
+                var meta = JSON.parse(metaEl.textContent);
+                return { testResults: testResults, meta: meta };
+            } catch(e) {
+                return null;
+            }
         }
 
         function getSelectedDimensions(compIdx) {
@@ -717,11 +720,11 @@
         function onDimensionChange(compIdx) {
             try {
             var data = getComparisonData(compIdx);
-            if (!data) { console.error('No comparison data for index', compIdx); return; }
+            if (!data) return;
 
             var selectedDims = getSelectedDimensions(compIdx);
             var filtersContainer = document.getElementById('value-filters-' + compIdx);
-            if (!filtersContainer) { console.error('No filters container for index', compIdx); return; }
+            if (!filtersContainer) return;
 
             // Update dimension button text
             var filterControls = filtersContainer.closest('.filter-controls');

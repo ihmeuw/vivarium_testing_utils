@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import html as html_module
 import io
 import os
 from collections import defaultdict
@@ -615,7 +616,14 @@ class ValidationContext:
             try:
                 # Check if we're in a Jupyter environment
                 get_ipython()  # type: ignore[name-defined]
-                display(HTML(html_content))  # type: ignore
+                # Use iframe with srcdoc so JavaScript executes properly
+                escaped = html_module.escape(html_content)
+                iframe_html = (
+                    f'<iframe srcdoc="{escaped}" '
+                    f'style="width:100%;height:800px;border:1px solid #ccc;border-radius:8px;" '
+                    f'sandbox="allow-scripts"></iframe>'
+                )
+                display(HTML(iframe_html))  # type: ignore
             except NameError:
                 # Not in Jupyter, skip display
                 logger.info("Not in a Jupyter environment, cannot display the report.")
