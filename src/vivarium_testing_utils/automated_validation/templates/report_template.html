@@ -708,12 +708,12 @@
         function getMatchingResults(testResults, selectedDims) {
             if (selectedDims.length === 0) return [];
 
-            // Filter test results to those whose index_info keys contain ALL selected dimensions
+            // Filter test results to those whose index_info keys exactly match the selected dimensions
             return testResults.filter(function(tr) {
                 if (tr.name_additional === 'overall') return false;
                 if (!tr.index_info) return false;
-                var keys = Object.keys(tr.index_info);
-                return isSubset(selectedDims, keys);
+                var keys = Object.keys(tr.index_info).sort();
+                return arraysEqual(keys, selectedDims);
             });
         }
 
