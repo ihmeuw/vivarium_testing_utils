@@ -537,13 +537,14 @@
                 {% endif %}
 
                 {% if comparison.all_testresults and comparison.all_testresults|length > 1 %}
+                {% set comp_idx = loop.index %}
                 <h4 style="margin-top:2em;">All Test Results</h4>
 
                 <!-- Embed data as JSON for JS filtering -->
-                <script type="application/json" id="comp-data-{{ loop.index }}">
+                <script type="application/json" id="comp-data-{{ comp_idx }}">
                     {{ comparison.all_testresults | tojson }}
                 </script>
-                <script type="application/json" id="comp-strat-meta-{{ loop.index }}">
+                <script type="application/json" id="comp-strat-meta-{{ comp_idx }}">
                     {{ comparison.stratification_metadata | tojson }}
                 </script>
 
@@ -552,17 +553,15 @@
                     <div class="filter-controls-label">Select Stratifications:</div>
                     <div class="multi-select-container">
                         <button type="button" class="multi-select-btn" onclick="toggleDropdown(this)">Choose dimensions...</button>
-                        <div class="multi-select-dropdown" data-comp-idx="{{ loop.index }}" data-type="dimensions">
-                            {% if comparison.stratification_metadata and comparison.stratification_metadata.dimensions %}
-                                {% for dim in comparison.stratification_metadata.dimensions %}
-                                <label><input type="checkbox" value="{{ dim }}" onchange="onDimensionChange({{ loop.parentloop.index }})"> {{ dim }}</label>
-                                {% endfor %}
-                            {% endif %}
+                        <div class="multi-select-dropdown" data-comp-idx="{{ comp_idx }}" data-type="dimensions">
+                            {% for dim in comparison.stratification_metadata["dimensions"] | default([]) %}
+                            <label><input type="checkbox" class="dim-checkbox" data-comp-idx="{{ comp_idx }}" value="{{ dim }}"> {{ dim }}</label>
+                            {% endfor %}
                         </div>
                     </div>
 
                     <!-- Value filters appear here dynamically -->
-                    <div class="value-filters-row" id="value-filters-{{ loop.index }}"></div>
+                    <div class="value-filters-row" id="value-filters-{{ comp_idx }}"></div>
                 </div>
 
                 <!-- Results table -->
@@ -574,7 +573,7 @@
                             <th>Expand</th>
                         </tr>
                     </thead>
-                    <tbody id="strat-results-body-{{ loop.index }}">
+                    <tbody id="strat-results-body-{{ comp_idx }}">
                         <!-- Populated by JavaScript -->
                     </tbody>
                 </table>
@@ -657,6 +656,14 @@
                 for (var i = 0; i < allDropdowns.length; i++) {
                     allDropdowns[i].classList.remove('open');
                 }
+            }
+        });
+
+        // Dimension checkbox event delegation
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('dim-checkbox')) {
+                var compIdx = parseInt(e.target.getAttribute('data-comp-idx'), 10);
+                onDimensionChange(compIdx);
             }
         });
 
