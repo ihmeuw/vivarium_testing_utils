@@ -43,6 +43,20 @@ from vivarium_testing_utils.fuzzy_checker import TestResult
 
 
 class ValidationContext:
+    """Context for managing validation comparisons, results, and report generation."""
+
+    def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
+        self.results_dir = Path(results_dir)
+        self.data_loader = DataLoader(self.results_dir)
+        self.comparisons: defaultdict[str, defaultdict[str, Comparison]] = defaultdict(
+            lambda: defaultdict(Comparison)
+        )
+        self.age_groups = self._get_age_groups()
+        self.scenario_columns = scenario_columns
+        self.location = self.data_loader.location
+        self.measure_mapper = MeasureMapper()
+        self.model_spec = self.data_loader.model_spec.configuration
+
     @property
     def verifications(self) -> VerificationResults:
         """Get the verification results dynamically from comparisons."""
@@ -66,17 +80,51 @@ class ValidationContext:
                     results.failing[comparison.comparison_key][source_key] = comparison
         return results
 
-    def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
-        self.results_dir = Path(results_dir)
-        self.data_loader = DataLoader(self.results_dir)
-        self.comparisons: defaultdict[str, defaultdict[str, Comparison]] = defaultdict(
-            lambda: defaultdict(Comparison)
-        )
-        self.age_groups = self._get_age_groups()
-        self.scenario_columns = scenario_columns
-        self.location = self.data_loader.location
-        self.measure_mapper = MeasureMapper()
-        self.model_spec = self.data_loader.model_spec.configuration
+    @property
+    def stratification_metadata(
+        self,
+    ) -> dict[tuple[str, str], dict[str, Any]]:
+        """Get stratification metadata dynamically from comparisons.
+
+        Returns a dict keyed by (measure_key, source_key) mapping to metadata
+        about the available stratification dimensions for that comparison.
+        """
+        metadata: dict[tuple[str, str], dict[str, Any]] = {}
+        for measure_key, source_dict in self.comparisons.items():
+            for _source_key, comparison in source_dict.items():
+                if (
+                    not hasattr(comparison, "proportion_test_results")
+                    or not comparison.proportion_test_results
+                ):
+                    continue
+                stratified = comparison.proportion_test_results.get("stratified", {})
+                if not isinstance(stratified, dict):
+                    continue
+
+                dimensions: set[str] = set()
+                values: dict[str, set[str]] = {}
+                strat_groups: list[list[str]] = []
+
+                for strat_key_tuple, group in stratified.items():
+                    group_dims = list(strat_key_tuple)
+                    strat_groups.append(group_dims)
+                    dimensions.update(group_dims)
+                    for test_result in group.values():
+                        if test_result.index_info:
+                            for dim, val in test_result.index_info.items():
+                                if dim not in values:
+                                    values[dim] = set()
+                                values[dim].add(str(val))
+
+                test_source = comparison.test_bundle.source.name.lower()
+                ref_source = comparison.reference_bundle.source.name.lower()
+                lookup_key = (measure_key, f"{test_source}_{ref_source}")
+                metadata[lookup_key] = {
+                    "dimensions": sorted(dimensions),
+                    "values": {dim: sorted(vals) for dim, vals in values.items()},
+                    "strat_groups": sorted(strat_groups, key=lambda g: (len(g), g)),
+                }
+        return metadata
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -635,6 +683,8 @@ class ValidationContext:
                 ref_source = comparison.reference_bundle.source.name.lower()
                 overall_metadata = comparison.proportion_test_results["overall"].to_dict()
                 all_test_results = self._extract_all_test_results(comparison)
+                source_key = f"{test_source}_{ref_source}"
+                strat_meta = self.stratification_metadata.get((measure_key, source_key), {})
                 results.append(
                     {
                         "measure_key": measure_key,
@@ -643,6 +693,7 @@ class ValidationContext:
                         "passed": passed,
                         "overall_testresult": overall_metadata,
                         "all_testresults": all_test_results,
+                        "stratification_metadata": strat_meta,
                         "passing_count": sum(
                             1 for tr in all_test_results if not tr["reject_null"]
                         ),
