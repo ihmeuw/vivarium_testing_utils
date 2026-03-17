@@ -555,7 +555,7 @@
                         <button type="button" class="multi-select-btn" onclick="toggleDropdown(this)">Choose dimensions...</button>
                         <div class="multi-select-dropdown" data-comp-idx="{{ comp_idx }}" data-type="dimensions">
                             {% for dim in comparison.stratification_metadata["dimensions"] | default([]) %}
-                            <label><input type="checkbox" class="dim-checkbox" data-comp-idx="{{ comp_idx }}" value="{{ dim }}"> {{ dim }}</label>
+                            <label><input type="checkbox" data-comp-idx="{{ comp_idx }}" value="{{ dim }}" onchange="onDimensionChange(Number(this.dataset.compIdx))"> {{ dim }}</label>
                             {% endfor %}
                         </div>
                     </div>
@@ -659,14 +659,6 @@
             }
         });
 
-        // Dimension checkbox event delegation
-        document.addEventListener('change', function(e) {
-            if (e.target.classList.contains('dim-checkbox')) {
-                var compIdx = parseInt(e.target.getAttribute('data-comp-idx'), 10);
-                onDimensionChange(compIdx);
-            }
-        });
-
         function getComparisonData(compIdx) {
             var dataEl = document.getElementById('comp-data-' + compIdx);
             var metaEl = document.getElementById('comp-strat-meta-' + compIdx);
@@ -678,10 +670,13 @@
         }
 
         function getSelectedDimensions(compIdx) {
-            var container = document.querySelector('#strat-results-body-' + compIdx)
-                .closest('.comparison-section')
-                .querySelector('[data-type="dimensions"]');
-            var checked = container.querySelectorAll('input[type="checkbox"]:checked');
+            var tbody = document.getElementById('strat-results-body-' + compIdx);
+            if (!tbody) return [];
+            var section = tbody.closest('.comparison-section');
+            if (!section) return [];
+            var dimDropdown = section.querySelector('[data-type="dimensions"]');
+            if (!dimDropdown) return [];
+            var checked = dimDropdown.querySelectorAll('input[type="checkbox"]:checked');
             var dims = [];
             for (var i = 0; i < checked.length; i++) {
                 dims.push(checked[i].value);
@@ -720,15 +715,22 @@
         }
 
         function onDimensionChange(compIdx) {
+            try {
             var data = getComparisonData(compIdx);
-            if (!data) return;
+            if (!data) { console.error('No comparison data for index', compIdx); return; }
 
             var selectedDims = getSelectedDimensions(compIdx);
             var filtersContainer = document.getElementById('value-filters-' + compIdx);
+            if (!filtersContainer) { console.error('No filters container for index', compIdx); return; }
 
             // Update dimension button text
-            var dimBtn = filtersContainer.closest('.filter-controls').querySelector('.multi-select-btn');
-            dimBtn.textContent = selectedDims.length > 0 ? selectedDims.join(', ') : 'Choose dimensions...';
+            var filterControls = filtersContainer.closest('.filter-controls');
+            if (filterControls) {
+                var dimBtn = filterControls.querySelector('.multi-select-btn');
+                if (dimBtn) {
+                    dimBtn.textContent = selectedDims.length > 0 ? selectedDims.join(', ') : 'Choose dimensions...';
+                }
+            }
 
             // Get matching results for the selected dimensions
             var matchingResults = getMatchingResults(
@@ -793,6 +795,7 @@
 
             // Show all matching results immediately
             renderStratResults(compIdx, matchingResults);
+            } catch(err) { console.error('onDimensionChange error:', err); }
         }
 
         function onValueFilterChange(compIdx) {
