@@ -790,8 +790,8 @@
                 }
             }
 
-            // Clear the table (no values selected yet)
-            renderStratResults(compIdx, []);
+            // Show all matching results immediately
+            renderStratResults(compIdx, matchingResults);
         }
 
         function onValueFilterChange(compIdx) {
@@ -831,7 +831,7 @@
             }
 
             if (!anyValueSelected) {
-                renderStratResults(compIdx, []);
+                renderStratResults(compIdx, matchingResults);
                 return;
             }
 
