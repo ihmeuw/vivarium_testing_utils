@@ -288,7 +288,7 @@ class TestFuzzyCheckerTestProportionVectorized:
         assert all(
             not result.reject_null for result in fuzzy_checker.proportion_test_diagnostics
         )
-        assert len(fuzzy_checker.proportion_test_diagnostics) == 5
+        assert len(fuzzy_checker.proportion_test_diagnostics) == 21
 
     def test_fuzzy_test_proportion_vectorized_fail(
         self,
@@ -311,4 +311,4 @@ class TestFuzzyCheckerTestProportionVectorized:
             fail_bayes_factor_cutoff=3.0,
         )
         assert any(result.reject_null for result in fuzzy_checker.proportion_test_diagnostics)
-        assert len(fuzzy_checker.proportion_test_diagnostics) == 5
+        assert len(fuzzy_checker.proportion_test_diagnostics) == 21

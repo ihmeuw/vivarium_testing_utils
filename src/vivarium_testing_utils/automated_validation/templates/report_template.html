@@ -333,12 +333,12 @@
                     <tr><td>Reject Null</td><td>{{ comparison.overall_testresult.reject_null }}</td></tr>
                     <tr><td>Comparison to Target</td><td>{{ comparison.overall_testresult.comparison_to_target }}</td></tr>
                     <tr><td>Confidence</td><td>{{ comparison.overall_testresult.confidence }}</td></tr>
-                    <tr><td>Observed Proportion</td><td>{{ comparison.overall_testresult.observed_proportion }}</td></tr>
+                    <tr><td>Observed Proportion</td><td>{{ '%.3g' | format(comparison.overall_testresult.observed_proportion) }}</td></tr>
                     <tr><td>Observed Numerator</td><td>{{ comparison.overall_testresult.observed_numerator }}</td></tr>
                     <tr><td>Observed Denominator</td><td>{{ comparison.overall_testresult.observed_denominator }}</td></tr>
-                    <tr><td>Target Lower Bound</td><td>{{ comparison.overall_testresult.target_lower_bound }}</td></tr>
-                    <tr><td>Target Upper Bound</td><td>{{ comparison.overall_testresult.target_upper_bound }}</td></tr>
-                    <tr><td>Bayes Factor</td><td>{{ comparison.overall_testresult.bayes_factor }}</td></tr>
+                    <tr><td>Target Lower Bound</td><td>{{ '%.3g' | format(comparison.overall_testresult.target_lower_bound) }}</td></tr>
+                    <tr><td>Target Upper Bound</td><td>{{ '%.3g' | format(comparison.overall_testresult.target_upper_bound) }}</td></tr>
+                    <tr><td>Bayes Factor</td><td>{{ '%.3g' | format(comparison.overall_testresult.bayes_factor) }}</td></tr>
                 </table>
                 {% else %}
                 <p>No overall test result metadata available.</p>
@@ -373,12 +373,12 @@
                                     <tr><td>Reject Null</td><td>{{ tr.reject_null }}</td></tr>
                                     <tr><td>Comparison to Target</td><td>{{ tr.comparison_to_target }}</td></tr>
                                     <tr><td>Confidence</td><td>{{ tr.confidence }}</td></tr>
-                                    <tr><td>Observed Proportion</td><td>{{ tr.observed_proportion }}</td></tr>
+                                    <tr><td>Observed Proportion</td><td>{{ '%.3g' | format(tr.observed_proportion) }}</td></tr>
                                     <tr><td>Observed Numerator</td><td>{{ tr.observed_numerator }}</td></tr>
                                     <tr><td>Observed Denominator</td><td>{{ tr.observed_denominator }}</td></tr>
-                                    <tr><td>Target Lower Bound</td><td>{{ tr.target_lower_bound }}</td></tr>
-                                    <tr><td>Target Upper Bound</td><td>{{ tr.target_upper_bound }}</td></tr>
-                                    <tr><td>Bayes Factor</td><td>{{ tr.bayes_factor }}</td></tr>
+                                    <tr><td>Target Lower Bound</td><td>{{ '%.3g' | format(tr.target_lower_bound) }}</td></tr>
+                                    <tr><td>Target Upper Bound</td><td>{{ '%.3g' | format(tr.target_upper_bound) }}</td></tr>
+                                    <tr><td>Bayes Factor</td><td>{{ '%.3g' | format(tr.bayes_factor) }}</td></tr>
                                 </table>
                             </td>
                         </tr>

@@ -365,8 +365,12 @@ def test_comparison_verify(
     # Reference bundle has 3 rows (groups) that would be validated between the two bundles
     stratified_results = comparison.proportion_test_results["stratified"]
     assert isinstance(stratified_results, dict)
-    assert len(stratified_results["all"]) == 3
+    # Index levels are age, sex, year. (age, sex, year), (age, sex), (age, year), (sex, year)
+    # and each index of the 3 index levels
+    assert len(stratified_results.keys()) == 7
     overall_result = comparison.proportion_test_results["overall"]
     assert isinstance(overall_result, TestResult)
-    assert not any(result.reject_null for result in stratified_results["all"].values())
+    assert not any(
+        result.reject_null for result in stratified_results[("year", "sex", "age")].values()
+    )
     assert not overall_result.reject_null
