@@ -699,22 +699,23 @@
             return true;
         }
 
-        function getMatchingResults(testResults, selectedDims, stratGroups) {
-            // Find which strat_groups exactly match the selected dimensions
-            var matchingGroups = [];
-            for (var i = 0; i < stratGroups.length; i++) {
-                if (arraysEqual(stratGroups[i], selectedDims)) {
-                    matchingGroups.push(stratGroups[i]);
-                }
+        function isSubset(subset, superset) {
+            // Check if every element in subset is in superset
+            for (var i = 0; i < subset.length; i++) {
+                if (superset.indexOf(subset[i]) === -1) return false;
             }
-            if (matchingGroups.length === 0) return [];
+            return true;
+        }
 
-            // Filter test results to those whose index_info keys match exactly
+        function getMatchingResults(testResults, selectedDims) {
+            if (selectedDims.length === 0) return [];
+
+            // Filter test results to those whose index_info keys contain ALL selected dimensions
             return testResults.filter(function(tr) {
                 if (tr.name_additional === 'overall') return false;
                 if (!tr.index_info) return false;
-                var keys = Object.keys(tr.index_info).sort();
-                return arraysEqual(keys, selectedDims);
+                var keys = Object.keys(tr.index_info);
+                return isSubset(selectedDims, keys);
             });
         }
 
@@ -731,7 +732,7 @@
 
             // Get matching results for the selected dimensions
             var matchingResults = getMatchingResults(
-                data.testResults, selectedDims, data.meta.strat_groups || []
+                data.testResults, selectedDims
             );
 
             // Build value-filter dropdowns for each selected dimension
@@ -800,7 +801,7 @@
 
             var selectedDims = getSelectedDimensions(compIdx);
             var matchingResults = getMatchingResults(
-                data.testResults, selectedDims, data.meta.strat_groups || []
+                data.testResults, selectedDims
             );
 
             // Collect selected values per dimension from value-filter dropdowns
