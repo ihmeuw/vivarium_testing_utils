@@ -667,7 +667,7 @@ class ValidationContext:
         return [test_result.to_dict() for test_result in results]
 
     def _gather_filtered_test_results(self) -> list[dict[str, Any]]:
-        """Collect and filter test results using lattice drill-down algorithm.
+        """Collect and filter test results based on importance of failures (if any).
 
         For each failing comparison, starts from the overall result and drills
         down through the lattice of stratification levels:
@@ -678,7 +678,7 @@ class ValidationContext:
         - If a node failed and failures span multiple children: display the node
         - If a node passed: recurse into each child
 
-        Results are sorted by bayes_factor descending (highest first).
+        Results are sorted by bayes_factor in descending order (highest first).
 
         Returns
         -------
@@ -717,6 +717,10 @@ class ValidationContext:
         displayed: list[TestResult],
     ) -> None:
         """Process a single node in the lattice drill-down algorithm.
+
+        This method recursively drills down through each node of a data lattice structure and
+        determines which TestResults to displayed for a given Comparison. It evalues the node based
+        on the passing or failing status of the node and its descendants.
 
         Parameters
         ----------
