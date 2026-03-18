@@ -14,6 +14,8 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 from vivarium_testing_utils.automated_validation.visualization import dataframe_utils
 from vivarium_testing_utils.fuzzy_checker import FuzzyChecker, TestResult
 
+StratValue = str | int | float
+
 
 @dataclass
 class TargetIntervalConfig:
@@ -33,7 +35,7 @@ class TargetIntervalConfig:
         of (target * (1 - relative_error), target * (1 + relative_error)).
     """
 
-    stratifications: dict[str, str]
+    stratifications: dict[str, StratValue]
     relative_error: float
 
 

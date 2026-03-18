@@ -21,6 +21,7 @@ from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataB
 from vivarium_testing_utils.automated_validation.comparison import (
     Comparison,
     FuzzyComparison,
+    StratValue,
     TargetIntervalConfig,
 )
 from vivarium_testing_utils.automated_validation.constants import DAYS_PER_YEAR
@@ -501,7 +502,7 @@ class ValidationContext:
         comparison_key: str,
         test_source: str,
         ref_source: str,
-        stratifications: dict[str, str],
+        stratifications: dict[str, StratValue],
         relative_error: float,
     ) -> None:
         """Set a target interval configuration for a specific comparison.

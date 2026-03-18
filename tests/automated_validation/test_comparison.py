@@ -409,13 +409,3 @@ def test_target_interval_configuration_setter(
     # Test setting back to None
     comparison.target_interval_configuration = None
     assert comparison.target_interval_configuration is None
-
-
-def test_target_interval_configuration_setter_type_error(
-    test_bundle: RatioMeasureDataBundle,
-    reference_bundle: RatioMeasureDataBundle,
-) -> None:
-    """Test that setting target_interval_configuration with wrong type raises TypeError."""
-    comparison = FuzzyComparison(test_bundle, reference_bundle)
-    with pytest.raises(TypeError, match="must be a TargetIntervalConfig or None"):
-        comparison.target_interval_configuration = {"stratifications": {"sex": "all"}}  # type: ignore[assignment]

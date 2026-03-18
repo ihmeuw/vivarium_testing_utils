@@ -7,7 +7,10 @@ from dataclasses import dataclass
 from functools import cache
 from itertools import chain, combinations
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from vivarium_testing_utils.automated_validation.comparison import TargetIntervalConfig
 
 import numpy as np
 import pandas as pd
@@ -335,7 +338,7 @@ class FuzzyChecker:
         target_val: float,
         index_names: list[str],
         index_info: dict[str, Any],
-        config: Any | None = None,
+        config: TargetIntervalConfig | None = None,
     ) -> float | tuple[float, float]:
         """Check if a group matches the target interval config and return the
         (possibly updated) target value.
@@ -367,7 +370,7 @@ class FuzzyChecker:
         name: str,
         bug_issue_beta_distribution_parameters: tuple[float, float],
         fail_bayes_factor_cutoff: float,
-        target_interval_config: Any | None = None,
+        target_interval_config: TargetIntervalConfig | None = None,
     ) -> None:
         """Run test_proportion for each row in data and append results to diagnostics.
 
@@ -426,7 +429,7 @@ class FuzzyChecker:
         name: str = "",
         bug_issue_beta_distribution_parameters: tuple[float, float] = (0.5, 0.5),
         fail_bayes_factor_cutoff: float = 100.0,
-        target_interval_config: Any | None = None,
+        target_interval_config: TargetIntervalConfig | None = None,
     ) -> None:
         """Vectorized version of test_proportion that operates on DataFrames.
 
