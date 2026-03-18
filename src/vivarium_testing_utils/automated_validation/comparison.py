@@ -28,7 +28,7 @@ class TargetIntervalConfig:
         A mapping of stratification names to filter values.
         - "all": match groups where this stratification is NOT present
         - "specific": match groups where this stratification IS present (any value)
-        - A specific value (e.g. "Male"): match groups where this stratification
+        - A specific value: match groups where this stratification
           is present with that exact value
     relative_error
         The relative error to apply to the target proportion, creating an interval
