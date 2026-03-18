@@ -701,19 +701,69 @@ class ValidationContext:
                         for test_result in group.values():
                             all_results.append(test_result)
 
+                # Build lattice lookups once per comparison
+                children_map, failing_desc_map = self._build_lattice(all_results)
+
                 # Run the lattice drill-down starting from overall
                 displayed: list[TestResult] = []
-                self._process_lattice_node(overall, all_results, displayed)
+                self._process_lattice_node(overall, children_map, failing_desc_map, displayed)
                 all_filtered.extend(r.to_dict() for r in displayed)
 
         # Sort by bayes_factor descending (highest first)
         all_filtered.sort(key=lambda result: result["bayes_factor"], reverse=True)
         return all_filtered
 
+    @staticmethod
+    def _build_lattice(
+        all_results: list[TestResult],
+    ) -> tuple[dict[int, list[TestResult]], dict[int, set[int]]]:
+        """Build the lattice adjacency list and failing-descendant index.
+
+        Returns
+        -------
+        children
+            Maps each node's id to its direct children (one additional dimension,
+            matching values on shared dimensions).
+        failing_descendants
+            Maps each node's id to the set of ids of all strict descendants
+            that reject the null.
+        """
+        children: dict[int, list[TestResult]] = {id(r): [] for r in all_results}
+        failing_descendants: dict[int, set[int]] = {id(r): set() for r in all_results}
+
+        for parent in all_results:
+            parent_info = parent.index_info or {}
+            parent_dims = frozenset(parent_info.keys())
+
+            for candidate in all_results:
+                candidate_info = candidate.index_info or {}
+                candidate_dims = frozenset(candidate_info.keys())
+
+                # Skip if not strictly more dimensions
+                if len(candidate_dims) <= len(parent_dims):
+                    continue
+                # Skip if parent dims aren't a subset
+                if not parent_dims.issubset(candidate_dims):
+                    continue
+                # Skip if shared values don't match
+                if not all(candidate_info.get(k) == v for k, v in parent_info.items()):
+                    continue
+
+                # It's a descendant — check if direct child (exactly +1 dim)
+                if len(candidate_dims) == len(parent_dims) + 1:
+                    children[id(parent)].append(candidate)
+
+                # Track failing descendants
+                if candidate.reject_null:
+                    failing_descendants[id(parent)].add(id(candidate))
+
+        return children, failing_descendants
+
     def _process_lattice_node(
         self,
         node: TestResult,
-        all_results: list[TestResult],
+        children_map: dict[int, list[TestResult]],
+        failing_desc_map: dict[int, set[int]],
         displayed: list[TestResult],
     ) -> None:
         """Process a single node in the lattice drill-down algorithm.
@@ -721,40 +771,38 @@ class ValidationContext:
         This method recursively drills down through each node of a data lattice structure and
         determines which TestResults to display for a given Comparison. It evaluates the node based
         on the passing or failing status of the node and its descendants.
-
+    
         Parameters
         ----------
         node
             The current TestResult node being evaluated.
-        all_results
-            All TestResults for the current comparison.
+        children_map
+            Pre-built map from node id to direct children.
+        failing_desc_map
+            Pre-built map from node id to ids of all failing strict descendants.
         displayed
             Accumulator list of TestResults to display.
         """
-        children = self._get_lattice_children(node, all_results)
+        children = children_map[id(node)]
+        failing_ids = failing_desc_map[id(node)]
 
         if node.reject_null:
-            failing_beneath = self._get_failing_descendants(node, all_results)
-
-            if not failing_beneath:
+            if not failing_ids:
                 # No failing checks beneath: display this node, stop
                 displayed.append(node)
                 return
 
             # Check if a single child contains ALL failing descendants
-            failing_ids = {id(r) for r in failing_beneath}
-
             for child in children:
-                # Compute the set of failing result ids beneath (or equal to) this child
-                child_coverage: set[int] = set()
+                child_coverage = failing_desc_map[id(child)]
                 if child.reject_null:
-                    child_coverage.add(id(child))
-                for r in self._get_failing_descendants(child, all_results):
-                    child_coverage.add(id(r))
+                    child_coverage = child_coverage | {id(child)}
 
                 if failing_ids.issubset(child_coverage):
                     # Single child contains all failures — recurse, don't display parent
-                    self._process_lattice_node(child, all_results, displayed)
+                    self._process_lattice_node(
+                        child, children_map, failing_desc_map, displayed
+                    )
                     return
 
             # No single child contains all failures: display parent, don't recurse
@@ -762,60 +810,7 @@ class ValidationContext:
         else:
             # Node passed: recurse into each child
             for child in children:
-                self._process_lattice_node(child, all_results, displayed)
-
-    @staticmethod
-    def _get_lattice_children(
-        node: TestResult, all_results: list[TestResult]
-    ) -> list[TestResult]:
-        """Get direct children of a node in the lattice.
-
-        A direct child has exactly one additional stratification dimension
-        and matching values on all dimensions shared with the parent.
-        """
-        node_info = node.index_info or {}
-        node_dims = frozenset(node_info.keys())
-        target_dim_count = len(node_dims) + 1
-
-        children = []
-        for result in all_results:
-            result_info = result.index_info or {}
-            result_dims = frozenset(result_info.keys())
-
-            if len(result_dims) != target_dim_count:
-                continue
-            if not node_dims.issubset(result_dims):
-                continue
-            if not all(result_info.get(k) == v for k, v in node_info.items()):
-                continue
-
-            children.append(result)
-
-        return children
-
-    @staticmethod
-    def _is_lattice_descendant(candidate: TestResult, ancestor: TestResult) -> bool:
-        """Check if candidate is a strict descendant of ancestor in the lattice.
-
-        A descendant has strictly more dimensions and matching values on all
-        shared dimensions.
-        """
-        ancestor_info = ancestor.index_info or {}
-        candidate_info = candidate.index_info or {}
-
-        if len(candidate_info) <= len(ancestor_info):
-            return False
-
-        return all(candidate_info.get(key) == value for key, value in ancestor_info.items())
-
-    @classmethod
-    def _get_failing_descendants(
-        cls, node: TestResult, all_results: list[TestResult]
-    ) -> list[TestResult]:
-        """Get all failing TestResults that are strict descendants of node."""
-        return [
-            r for r in all_results if r.reject_null and cls._is_lattice_descendant(r, node)
-        ]
+                self._process_lattice_node(child, children_map, failing_desc_map, displayed)
 
     # TODO MIC-6047 Let user pass in custom age groups
     def _get_age_groups(self) -> pd.DataFrame:
