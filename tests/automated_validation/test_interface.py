@@ -2,6 +2,7 @@ import io
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+from unittest.mock import MagicMock
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -18,6 +19,7 @@ from tests.automated_validation.conftest import get_model_spec
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     INPUT_DATA_INDEX_NAMES,
+    DataSource,
 )
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader
 from vivarium_testing_utils.automated_validation.data_transformation import age_groups, utils
@@ -788,6 +790,217 @@ def test_figures_to_base64_dict(sim_result_dir: Path, mocker: MockFixture) -> No
     assert mock_close.call_count == 2
 
 
+class TestDataLattice:
+    """Tests for the lattice drill-down algorithm that powers the 3rd Test Result tab.
+
+    Each test adds two comparisons to a ValidationContext:
+    - Comparison 1 always fully passes (contributes nothing to the 3rd tab).
+    - Comparison 2 is configured per scenario to test different filtering outcomes.
+    """
+
+    @staticmethod
+    def _build_context_with_comparisons(
+        sim_result_dir: Path,
+        comp2_overall_fail: bool,
+        comp2_child_results: list[dict[str, Any]],
+    ) -> ValidationContext:
+        """Build a ValidationContext with 2 mock comparisons injected.
+
+        Parameters
+        ----------
+        sim_result_dir
+            Path to the test simulation result directory fixture.
+        comp2_overall_fail
+            Whether comparison 2's overall result should reject the null.
+        comp2_child_results
+            List of dicts with keys 'name_additional', 'reject_null', 'bayes_factor',
+            and 'index_info' for each child node of comparison 2.
+        """
+        context = ValidationContext(sim_result_dir)
+
+        # Comparison 1: fully passing
+        comp1 = _make_mock_comparison(
+            measure_key="comp1.measure",
+            proportion_test_results={
+                "overall": _make_test_result(
+                    name="comp1.measure", name_additional="overall", reject_null=False
+                ),
+                "stratified": {
+                    ("sex",): {
+                        "sex_Male": _make_test_result(
+                            name="comp1.measure",
+                            name_additional="sex_Male",
+                            index_info={"sex": "Male"},
+                        ),
+                        "sex_Female": _make_test_result(
+                            name="comp1.measure",
+                            name_additional="sex_Female",
+                            index_info={"sex": "Female"},
+                        ),
+                    }
+                },
+            },
+        )
+
+        # Comparison 2: configured per test scenario
+        stratified_children: dict[str, TestResult] = {}
+        for child in comp2_child_results:
+            stratified_children[child["name_additional"]] = _make_test_result(
+                name="comp2.measure",
+                name_additional=child["name_additional"],
+                reject_null=child["reject_null"],
+                bayes_factor=child["bayes_factor"],
+                index_info=child["index_info"],
+            )
+
+        comp2 = _make_mock_comparison(
+            measure_key="comp2.measure",
+            proportion_test_results={
+                "overall": _make_test_result(
+                    name="comp2.measure",
+                    name_additional="overall",
+                    reject_null=comp2_overall_fail,
+                    bayes_factor=10.0,
+                ),
+                "stratified": {("sex",): stratified_children},
+            },
+        )
+
+        # Inject mock comparisons into context
+        context.comparisons["comp1.measure"]["sim_artifact"] = comp1
+        context.comparisons["comp2.measure"]["sim_artifact"] = comp2
+
+        return context
+
+    def test_overall_fail_no_children_fail(self, sim_result_dir: Path) -> None:
+        """Comparison 2 has overall fail with no child failures.
+
+        The lattice algorithm should display only the 'overall' TestResult
+        because it failed and has no failing descendants.
+        """
+        context = self._build_context_with_comparisons(
+            sim_result_dir,
+            comp2_overall_fail=True,
+            comp2_child_results=[
+                {
+                    "name_additional": "sex_Male",
+                    "reject_null": False,
+                    "bayes_factor": 1.0,
+                    "index_info": {"sex": "Male"},
+                },
+                {
+                    "name_additional": "sex_Female",
+                    "reject_null": False,
+                    "bayes_factor": 1.0,
+                    "index_info": {"sex": "Female"},
+                },
+            ],
+        )
+
+        filtered = context._gather_filtered_test_results()
+
+        assert len(filtered) == 1
+        assert filtered[0]["name_additional"] == "overall"
+        assert filtered[0]["name"] == "comp2.measure"
+
+    def test_single_child_fail(self, sim_result_dir: Path) -> None:
+        """Comparison 2 has overall pass but one child fails.
+
+        The lattice algorithm should recurse past the passing overall node
+        and display only the single failing child.
+        """
+        context = self._build_context_with_comparisons(
+            sim_result_dir,
+            comp2_overall_fail=False,
+            comp2_child_results=[
+                {
+                    "name_additional": "sex_Male",
+                    "reject_null": True,
+                    "bayes_factor": 15.0,
+                    "index_info": {"sex": "Male"},
+                },
+                {
+                    "name_additional": "sex_Female",
+                    "reject_null": False,
+                    "bayes_factor": 1.0,
+                    "index_info": {"sex": "Female"},
+                },
+            ],
+        )
+
+        filtered = context._gather_filtered_test_results()
+
+        assert len(filtered) == 1
+        assert filtered[0]["name_additional"] == "sex_Male"
+        assert filtered[0]["index_info"] == {"sex": "Male"}
+
+    def test_two_children_fail(self, sim_result_dir: Path) -> None:
+        """Comparison 2 has overall pass but two children fail.
+
+        The lattice algorithm should display both failing children,
+        sorted by bayes_factor descending (Female=30.0 first, Male=20.0 second).
+        """
+        context = self._build_context_with_comparisons(
+            sim_result_dir,
+            comp2_overall_fail=False,
+            comp2_child_results=[
+                {
+                    "name_additional": "sex_Male",
+                    "reject_null": True,
+                    "bayes_factor": 20.0,
+                    "index_info": {"sex": "Male"},
+                },
+                {
+                    "name_additional": "sex_Female",
+                    "reject_null": True,
+                    "bayes_factor": 30.0,
+                    "index_info": {"sex": "Female"},
+                },
+            ],
+        )
+
+        filtered = context._gather_filtered_test_results()
+
+        assert len(filtered) == 2
+        # Sorted by bayes_factor descending
+        assert filtered[0]["name_additional"] == "sex_Female"
+        assert filtered[0]["bayes_factor"] == 30.0
+        assert filtered[1]["name_additional"] == "sex_Male"
+        assert filtered[1]["bayes_factor"] == 20.0
+
+    def test_overall_fail_two_children_fail(self, sim_result_dir: Path) -> None:
+        """Comparison 2 has overall fail and both children also fail.
+
+        Because failures span multiple children, the lattice algorithm should
+        display only the overall node (not recurse into individual children).
+        """
+        context = self._build_context_with_comparisons(
+            sim_result_dir,
+            comp2_overall_fail=True,
+            comp2_child_results=[
+                {
+                    "name_additional": "sex_Male",
+                    "reject_null": True,
+                    "bayes_factor": 20.0,
+                    "index_info": {"sex": "Male"},
+                },
+                {
+                    "name_additional": "sex_Female",
+                    "reject_null": True,
+                    "bayes_factor": 30.0,
+                    "index_info": {"sex": "Female"},
+                },
+            ],
+        )
+
+        filtered = context._gather_filtered_test_results()
+
+        assert len(filtered) == 1
+        assert filtered[0]["name_additional"] == "overall"
+        assert filtered[0]["name"] == "comp2.measure"
+        assert filtered[0]["bayes_factor"] == 10.0
+
+
 ###########
 # Helpers #
 ###########
@@ -808,3 +1021,40 @@ def load_gbd_data(data_key: str) -> pd.DataFrame:
     if data_key in measure_mapper:
         gbd = gbd.loc[gbd["measure_id"] == measure_mapper[data_key]]
     return gbd
+
+
+def _make_test_result(
+    name: str = "test_measure",
+    name_additional: str = "overall",
+    reject_null: bool = False,
+    bayes_factor: float = 1.0,
+    index_info: dict[str, Any] | None = None,
+) -> TestResult:
+    """Factory to create a TestResult with sensible defaults for lattice tests."""
+    return TestResult(
+        name=name,
+        name_additional=name_additional,
+        observed_proportion=0.5,
+        observed_numerator=50,
+        observed_denominator=100,
+        target_lower_bound=0.4,
+        target_upper_bound=0.6,
+        bayes_factor=bayes_factor,
+        reject_null=reject_null,
+        bug_issue_distribution=(0.5, 0.5),
+        no_bug_issue_distribution=MagicMock(),
+        index_info=index_info,
+    )
+
+
+def _make_mock_comparison(
+    measure_key: str,
+    proportion_test_results: dict[str, Any],
+) -> MagicMock:
+    """Create a mock Comparison with the given proportion_test_results."""
+    mock = MagicMock()
+    mock.comparison_key = measure_key
+    mock.test_bundle.source = DataSource.SIM
+    mock.reference_bundle.source = DataSource.ARTIFACT
+    mock.proportion_test_results = proportion_test_results
+    return mock

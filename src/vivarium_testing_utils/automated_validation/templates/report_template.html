@@ -1,3 +1,18 @@
+{% macro testresult_detail_table(tr, inline=false) %}
+<table class="testresult-table"{% if inline %} style="margin:0;"{% endif %}>
+    <tr><th>Property</th><th>Value</th></tr>
+    <tr><td>Name</td><td>{{ tr.name }}</td></tr>
+    <tr><td>Reject Null</td><td>{{ tr.reject_null }}</td></tr>
+    <tr><td>Comparison to Target</td><td>{{ tr.comparison_to_target }}</td></tr>
+    <tr><td>Confidence</td><td>{{ tr.confidence }}</td></tr>
+    <tr><td>Observed Proportion</td><td>{{ '%.3g' | format(tr.observed_proportion) }}</td></tr>
+    <tr><td>Observed Numerator</td><td>{{ tr.observed_numerator }}</td></tr>
+    <tr><td>Observed Denominator</td><td>{{ tr.observed_denominator }}</td></tr>
+    <tr><td>Target Lower Bound</td><td>{{ '%.3g' | format(tr.target_lower_bound) }}</td></tr>
+    <tr><td>Target Upper Bound</td><td>{{ '%.3g' | format(tr.target_upper_bound) }}</td></tr>
+    <tr><td>Bayes Factor</td><td>{{ '%.3g' | format(tr.bayes_factor) }}</td></tr>
+</table>
+{% endmacro %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,6 +25,39 @@
                     max-width: 320px;
                     white-space: normal;
                     word-break: break-word;
+                }
+                /* Word wrapping for test results table */
+                .testresult-table {
+                    table-layout: fixed;
+                    width: 100%;
+                }
+                .testresult-table th, .testresult-table td {
+                    white-space: normal;
+                    word-break: break-word;
+                    overflow-wrap: break-word;
+                }
+                .testresult-table th:nth-child(1), .testresult-table td:nth-child(1) {
+                    width: 30%;
+                }
+                .testresult-table th:nth-child(2), .testresult-table td:nth-child(2) {
+                    width: 30%;
+                }
+                .testresult-table th:nth-child(3), .testresult-table td:nth-child(3) {
+                    width: 12%;
+                }
+                .testresult-table th:nth-child(4), .testresult-table td:nth-child(4) {
+                    width: 15%;
+                }
+                .testresult-table th:nth-child(5), .testresult-table td:nth-child(5) {
+                    width: 13%;
+                }
+                /* Reset layout for nested detail tables */
+                .testresult-details-row .testresult-table {
+                    table-layout: auto;
+                }
+                .testresult-details-row .testresult-table th,
+                .testresult-details-row .testresult-table td {
+                    width: auto;
                 }
         * {
             margin: 0;
@@ -217,6 +265,7 @@
         <div class="tabs">
             <button class="tab active" onclick="openTab(event, 'summary')">Summary</button>
             <button class="tab" onclick="openTab(event, 'comparison-summary')">Comparison Summary</button>
+            <button class="tab" onclick="openTab(event, 'test-results')">Test Results</button>
             <!-- Individual comparison tabs will be added dynamically -->
         </div>
 
@@ -284,6 +333,50 @@
             </table>
         </div>
 
+        <!-- Tab 3: Test Results (hierarchically filtered failing results) -->
+        <div id="test-results" class="tab-content">
+            <h2>Test Results</h2>
+            {% if not filtered_failing_results %}
+            <p>No failing test results.</p>
+            {% else %}
+            <table class="testresult-table">
+                <thead>
+                    <tr>
+                        <th>Comparison Name</th>
+                        <th>Stratification</th>
+                        <th>Bayes Factor</th>
+                        <th>Direction</th>
+                        <th>Expand</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tr in filtered_failing_results %}
+                    <tr>
+                        <td>{{ tr.name }}</td>
+                        <td>
+                            {% if tr.index_info %}
+                                {% for k, v in tr.index_info.items() %}
+                                    <strong>{{ k }}</strong>: {{ v }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                {{ tr.name_additional }}
+                            {% endif %}
+                        </td>
+                        <td>{{ '%.3g' | format(tr.bayes_factor) }}</td>
+                        <td>{{ tr.comparison_to_target }}</td>
+                        <td><button type="button" onclick="toggleTestResultDetails(this)">Show Details</button></td>
+                    </tr>
+                    <tr class="testresult-details-row" style="display:none;">
+                        <td colspan="5">
+                            {{ testresult_detail_table(tr, inline=true) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+
         <!-- Individual Comparison Tabs (will be populated dynamically) -->
         {% for comparison in comparisons %}
         <div id="comparison-{{ loop.index }}" class="tab-content">
@@ -326,20 +419,7 @@
                 <h3>Test Results</h3>
                 <p><strong>Overall Result:</strong> {{ "Pass" if comparison.passed else "Fail" }}</p>
                 {% if comparison.overall_testresult %}
-                <table class="testresult-table">
-                    <!-- Test Result Table - displayed in this order -->
-                    <tr><th>Property</th><th>Value</th></tr>
-                    <tr><td>Name</td><td>{{ comparison.overall_testresult.name }}</td></tr>
-                    <tr><td>Reject Null</td><td>{{ comparison.overall_testresult.reject_null }}</td></tr>
-                    <tr><td>Comparison to Target</td><td>{{ comparison.overall_testresult.comparison_to_target }}</td></tr>
-                    <tr><td>Confidence</td><td>{{ comparison.overall_testresult.confidence }}</td></tr>
-                    <tr><td>Observed Proportion</td><td>{{ '%.3g' | format(comparison.overall_testresult.observed_proportion) }}</td></tr>
-                    <tr><td>Observed Numerator</td><td>{{ comparison.overall_testresult.observed_numerator }}</td></tr>
-                    <tr><td>Observed Denominator</td><td>{{ comparison.overall_testresult.observed_denominator }}</td></tr>
-                    <tr><td>Target Lower Bound</td><td>{{ '%.3g' | format(comparison.overall_testresult.target_lower_bound) }}</td></tr>
-                    <tr><td>Target Upper Bound</td><td>{{ '%.3g' | format(comparison.overall_testresult.target_upper_bound) }}</td></tr>
-                    <tr><td>Bayes Factor</td><td>{{ '%.3g' | format(comparison.overall_testresult.bayes_factor) }}</td></tr>
-                </table>
+                {{ testresult_detail_table(comparison.overall_testresult) }}
                 {% else %}
                 <p>No overall test result metadata available.</p>
                 {% endif %}
@@ -367,19 +447,7 @@
                         </tr>
                         <tr class="testresult-details-row" style="display:none;">
                             <td colspan="2">
-                                <table class="testresult-table" style="margin:0;">
-                                    <tr><th>Property</th><th>Value</th></tr>
-                                    <tr><td>Name</td><td>{{ tr.name }}</td></tr>
-                                    <tr><td>Reject Null</td><td>{{ tr.reject_null }}</td></tr>
-                                    <tr><td>Comparison to Target</td><td>{{ tr.comparison_to_target }}</td></tr>
-                                    <tr><td>Confidence</td><td>{{ tr.confidence }}</td></tr>
-                                    <tr><td>Observed Proportion</td><td>{{ '%.3g' | format(tr.observed_proportion) }}</td></tr>
-                                    <tr><td>Observed Numerator</td><td>{{ tr.observed_numerator }}</td></tr>
-                                    <tr><td>Observed Denominator</td><td>{{ tr.observed_denominator }}</td></tr>
-                                    <tr><td>Target Lower Bound</td><td>{{ '%.3g' | format(tr.target_lower_bound) }}</td></tr>
-                                    <tr><td>Target Upper Bound</td><td>{{ '%.3g' | format(tr.target_upper_bound) }}</td></tr>
-                                    <tr><td>Bayes Factor</td><td>{{ '%.3g' | format(tr.bayes_factor) }}</td></tr>
-                                </table>
+                                {{ testresult_detail_table(tr, inline=true) }}
                             </td>
                         </tr>
                         {% endif %}
