@@ -771,7 +771,7 @@ class ValidationContext:
         This method recursively drills down through each node of a data lattice structure and
         determines which TestResults to display for a given Comparison. It evaluates the node based
         on the passing or failing status of the node and its descendants.
-    
+
         Parameters
         ----------
         node
