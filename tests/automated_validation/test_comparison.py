@@ -11,7 +11,10 @@ from pytest_mock import MockFixture
 from vivarium_inputs import interface
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
-from vivarium_testing_utils.automated_validation.comparison import FuzzyComparison
+from vivarium_testing_utils.automated_validation.comparison import (
+    FuzzyComparison,
+    TargetIntervalConfig,
+)
 from vivarium_testing_utils.automated_validation.constants import (
     DAYS_PER_YEAR,
     DRAW_INDEX,
@@ -374,3 +377,45 @@ def test_comparison_verify(
         result.reject_null for result in stratified_results[("year", "sex", "age")].values()
     )
     assert not overall_result.reject_null
+
+
+def test_target_interval_configuration_default_none(
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
+) -> None:
+    """Test that a new FuzzyComparison has target_interval_configuration as None."""
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
+    assert comparison.target_interval_configuration is None
+
+
+def test_target_interval_configuration_setter(
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
+) -> None:
+    """Test that target_interval_configuration can be set with a TargetIntervalConfig."""
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
+    config = TargetIntervalConfig(stratifications={"sex": "all"}, relative_error=0.1)
+    comparison.target_interval_configuration = config
+    assert comparison.target_interval_configuration is config
+    assert comparison.target_interval_configuration.stratifications == {"sex": "all"}
+    assert comparison.target_interval_configuration.relative_error == 0.1
+
+    # Test overwrite with a new config
+    new_config = TargetIntervalConfig(stratifications={"age": "specific"}, relative_error=0.2)
+    comparison.target_interval_configuration = new_config
+    assert comparison.target_interval_configuration is new_config
+    assert comparison.target_interval_configuration.stratifications == {"age": "specific"}
+
+    # Test setting back to None
+    comparison.target_interval_configuration = None
+    assert comparison.target_interval_configuration is None
+
+
+def test_target_interval_configuration_setter_type_error(
+    test_bundle: RatioMeasureDataBundle,
+    reference_bundle: RatioMeasureDataBundle,
+) -> None:
+    """Test that setting target_interval_configuration with wrong type raises TypeError."""
+    comparison = FuzzyComparison(test_bundle, reference_bundle)
+    with pytest.raises(TypeError, match="must be a TargetIntervalConfig or None"):
+        comparison.target_interval_configuration = {"stratifications": {"sex": "all"}}  # type: ignore[assignment]

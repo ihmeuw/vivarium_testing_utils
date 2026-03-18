@@ -16,6 +16,7 @@ from vivarium.framework.artifact.artifact import ArtifactException
 from vivarium_inputs import get_age_bins
 
 from tests.automated_validation.conftest import get_model_spec
+from vivarium_testing_utils.automated_validation.comparison import TargetIntervalConfig
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     INPUT_DATA_INDEX_NAMES,
@@ -654,6 +655,52 @@ def test_verify(sim_result_dir: Path) -> None:
     measure_key = "cause.disease.incidence_rate"
     context.add_comparison(measure_key, "sim", "artifact")
     context.verify(measure_key, test_source="sim", ref_source="artifact")
+
+
+@pytest.mark.xfail(raises=NotImplementedError, strict=True)
+def test_set_target_interval_updates_comparison(sim_result_dir: Path) -> None:
+    """Test that set_target_interval stores a TargetIntervalConfig on the comparison."""
+    context = ValidationContext(sim_result_dir)
+    measure_key = "cause.disease.incidence_rate"
+    context.add_comparison(measure_key, "sim", "artifact")
+    context.set_target_interval(
+        measure_key,
+        test_source="sim",
+        ref_source="artifact",
+        stratifications={"sex": "all"},
+        relative_error=0.1,
+    )
+    comparison = context.comparisons[measure_key]["sim_artifact"]
+    assert comparison.target_interval_configuration is not None
+    assert isinstance(comparison.target_interval_configuration, TargetIntervalConfig)
+    assert comparison.target_interval_configuration.stratifications == {"sex": "all"}
+    assert comparison.target_interval_configuration.relative_error == 0.1
+
+
+@pytest.mark.xfail(raises=NotImplementedError, strict=True)
+def test_set_target_interval_overwrites(sim_result_dir: Path) -> None:
+    """Test that calling set_target_interval again replaces the previous config."""
+    context = ValidationContext(sim_result_dir)
+    measure_key = "cause.disease.incidence_rate"
+    context.add_comparison(measure_key, "sim", "artifact")
+    context.set_target_interval(
+        measure_key,
+        test_source="sim",
+        ref_source="artifact",
+        stratifications={"sex": "all"},
+        relative_error=0.1,
+    )
+    context.set_target_interval(
+        measure_key,
+        test_source="sim",
+        ref_source="artifact",
+        stratifications={"age": "specific"},
+        relative_error=0.2,
+    )
+    comparison = context.comparisons[measure_key]["sim_artifact"]
+    assert comparison.target_interval_configuration is not None
+    assert comparison.target_interval_configuration.stratifications == {"age": "specific"}
+    assert comparison.target_interval_configuration.relative_error == 0.2
 
 
 @pytest.mark.parametrize("status", ["pass", "fail", "stratification", "overall"])

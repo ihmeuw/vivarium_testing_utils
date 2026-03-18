@@ -18,7 +18,11 @@ from matplotlib.figure import Figure
 from vivarium_inputs import utilities as vi
 
 from vivarium_testing_utils.automated_validation.bundle import RatioMeasureDataBundle
-from vivarium_testing_utils.automated_validation.comparison import Comparison, FuzzyComparison
+from vivarium_testing_utils.automated_validation.comparison import (
+    Comparison,
+    FuzzyComparison,
+    TargetIntervalConfig,
+)
 from vivarium_testing_utils.automated_validation.constants import DAYS_PER_YEAR
 from vivarium_testing_utils.automated_validation.data_loader import DataLoader, DataSource
 from vivarium_testing_utils.automated_validation.data_transformation import report
@@ -491,6 +495,38 @@ class ValidationContext:
             stratifications,
             **kwargs,
         )
+
+    def set_target_interval(
+        self,
+        comparison_key: str,
+        test_source: str,
+        ref_source: str,
+        stratifications: dict[str, str],
+        relative_error: float,
+    ) -> None:
+        """Set a target interval configuration for a specific comparison.
+
+        This configures a relative error to be applied to the target proportion
+        for groups matching the stratification filter during verification.
+
+        Parameters
+        ----------
+        comparison_key
+            The key of the comparison to configure.
+        test_source
+            The source of the test data (e.g., 'sim', 'artifact', 'custom').
+        ref_source
+            The source of the reference data (e.g., 'sim', 'artifact', 'custom').
+        stratifications
+            A mapping of stratification names to filter values.
+            - "all": match groups where this stratification is NOT present
+            - "specific": match groups where this stratification IS present
+            - A specific value: match only where that stratification has this value
+        relative_error
+            The relative error to apply, creating an interval of
+            (target * (1 - relative_error), target * (1 + relative_error)).
+        """
+        raise NotImplementedError
 
     def generate_comparisons(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError

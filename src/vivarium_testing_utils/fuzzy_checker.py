@@ -330,6 +330,36 @@ class FuzzyChecker:
             )
         )
 
+    def _apply_target_interval_config(
+        self,
+        target_val: float,
+        index_names: list[str],
+        index_info: dict[str, Any],
+        config: Any | None = None,
+    ) -> float | tuple[float, float]:
+        """Check if a group matches the target interval config and return the
+        (possibly updated) target value.
+
+        Parameters
+        ----------
+        target_val
+            The original target proportion value.
+        index_names
+            The stratification column names for the current aggregation level.
+        index_info
+            A mapping of stratification names to their values for the current row.
+        config
+            A TargetIntervalConfig instance, or None.
+
+        Returns
+        -------
+            The original target_val if no config or no match, or a
+            (lower_bound, upper_bound) tuple if the config matches.
+        """
+        if config is None:
+            return target_val
+        raise NotImplementedError
+
     def _test_all_groups(
         self,
         data: pd.DataFrame,
@@ -337,6 +367,7 @@ class FuzzyChecker:
         name: str,
         bug_issue_beta_distribution_parameters: tuple[float, float],
         fail_bayes_factor_cutoff: float,
+        target_interval_config: Any | None = None,
     ) -> None:
         """Run test_proportion for each row in data and append results to diagnostics.
 
@@ -395,6 +426,7 @@ class FuzzyChecker:
         name: str = "",
         bug_issue_beta_distribution_parameters: tuple[float, float] = (0.5, 0.5),
         fail_bayes_factor_cutoff: float = 100.0,
+        target_interval_config: Any | None = None,
     ) -> None:
         """Vectorized version of test_proportion that operates on DataFrames.
 
@@ -420,6 +452,9 @@ class FuzzyChecker:
             The Bayes factor above which a hypothesis test is considered to favor a bug/issue..
 
         """
+
+        if target_interval_config is not None:
+            raise NotImplementedError
 
         # Reorder index levels to match target_proportion for proper alignment
         target_index_order = target_proportion.index.names

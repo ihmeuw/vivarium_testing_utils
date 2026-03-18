@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any, Collection, Literal
 
 import pandas as pd
@@ -14,6 +15,28 @@ from vivarium_testing_utils.automated_validation.visualization import dataframe_
 from vivarium_testing_utils.fuzzy_checker import FuzzyChecker, TestResult
 
 
+@dataclass
+class TargetIntervalConfig:
+    """Configuration for applying a relative error interval to target proportions
+    for specific stratification subsets.
+
+    Parameters
+    ----------
+    stratifications
+        A mapping of stratification names to filter values.
+        - "all": match groups where this stratification is NOT present
+        - "specific": match groups where this stratification IS present (any value)
+        - A specific value (e.g. "Male"): match groups where this stratification
+          is present with that exact value
+    relative_error
+        The relative error to apply to the target proportion, creating an interval
+        of (target * (1 - relative_error), target * (1 + relative_error)).
+    """
+
+    stratifications: dict[str, str]
+    relative_error: float
+
+
 class Comparison(ABC):
     """A Comparison is the basic testing unit to compare two datasets, a "test" dataset and a
     "reference" dataset. The test dataset is the one that is being validated, while the reference
@@ -23,6 +46,16 @@ class Comparison(ABC):
     test_bundle: RatioMeasureDataBundle
     reference_bundle: RatioMeasureDataBundle
     proportion_test_results: dict[str, Any]
+
+    @property
+    @abstractmethod
+    def target_interval_configuration(self) -> TargetIntervalConfig | None:
+        ...
+
+    @target_interval_configuration.setter
+    @abstractmethod
+    def target_interval_configuration(self, value: TargetIntervalConfig | None) -> None:
+        ...
 
     @property
     def comparison_key(self) -> str:
@@ -102,6 +135,21 @@ class FuzzyComparison(Comparison):
         ] = {
             "stratified": {},
         }
+        self._target_interval_configuration: TargetIntervalConfig | None = None
+
+    @property
+    def target_interval_configuration(self) -> TargetIntervalConfig | None:
+        """The target interval configuration for this comparison."""
+        return self._target_interval_configuration
+
+    @target_interval_configuration.setter
+    def target_interval_configuration(self, value: TargetIntervalConfig | None) -> None:
+        if value is not None and not isinstance(value, TargetIntervalConfig):
+            raise TypeError(
+                f"target_interval_configuration must be a TargetIntervalConfig or None, "
+                f"got {type(value).__name__}"
+            )
+        self._target_interval_configuration = value
 
     @property
     def metadata(self) -> pd.DataFrame:
