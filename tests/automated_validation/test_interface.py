@@ -968,6 +968,38 @@ class TestDataLattice:
         assert filtered[1]["name_additional"] == "sex_Male"
         assert filtered[1]["bayes_factor"] == 20.0
 
+    def test_overall_fail_two_children_fail(self, sim_result_dir: Path) -> None:
+        """Comparison 2 has overall fail and both children also fail.
+
+        Because failures span multiple children, the lattice algorithm should
+        display only the overall node (not recurse into individual children).
+        """
+        context = self._build_context_with_comparisons(
+            sim_result_dir,
+            comp2_overall_fail=True,
+            comp2_child_results=[
+                {
+                    "name_additional": "sex_Male",
+                    "reject_null": True,
+                    "bayes_factor": 20.0,
+                    "index_info": {"sex": "Male"},
+                },
+                {
+                    "name_additional": "sex_Female",
+                    "reject_null": True,
+                    "bayes_factor": 30.0,
+                    "index_info": {"sex": "Female"},
+                },
+            ],
+        )
+
+        filtered = context._gather_filtered_test_results()
+
+        assert len(filtered) == 1
+        assert filtered[0]["name_additional"] == "overall"
+        assert filtered[0]["name"] == "comp2.measure"
+        assert filtered[0]["bayes_factor"] == 10.0
+
 
 ###########
 # Helpers #
