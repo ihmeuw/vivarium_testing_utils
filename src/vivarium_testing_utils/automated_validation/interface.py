@@ -527,7 +527,10 @@ class ValidationContext:
             The relative error to apply, creating an interval of
             (target * (1 - relative_error), target * (1 + relative_error)).
         """
-        raise NotImplementedError
+        comparison = self.comparisons[comparison_key][f"{test_source}_{ref_source}"]
+        comparison.target_interval_configuration = TargetIntervalConfig(
+            stratifications=stratifications, relative_error=relative_error
+        )
 
     def generate_comparisons(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError

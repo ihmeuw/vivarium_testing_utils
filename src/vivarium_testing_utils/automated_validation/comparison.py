@@ -297,6 +297,7 @@ class FuzzyComparison(Comparison):
             observed_numerator=test_datasets["numerator_data"],
             observed_denominator=test_datasets["denominator_data"],
             target_proportion=target,
+            target_interval_config=self.target_interval_configuration,
         )
         for result in fuzzy_checker.proportion_test_diagnostics:
             if result.name_additional == "overall":

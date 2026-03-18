@@ -657,7 +657,6 @@ def test_verify(sim_result_dir: Path) -> None:
     context.verify(measure_key, test_source="sim", ref_source="artifact")
 
 
-@pytest.mark.xfail(raises=NotImplementedError, strict=True)
 def test_set_target_interval_updates_comparison(sim_result_dir: Path) -> None:
     """Test that set_target_interval stores a TargetIntervalConfig on the comparison."""
     context = ValidationContext(sim_result_dir)
@@ -677,7 +676,6 @@ def test_set_target_interval_updates_comparison(sim_result_dir: Path) -> None:
     assert comparison.target_interval_configuration.relative_error == 0.1
 
 
-@pytest.mark.xfail(raises=NotImplementedError, strict=True)
 def test_set_target_interval_overwrites(sim_result_dir: Path) -> None:
     """Test that calling set_target_interval again replaces the previous config."""
     context = ValidationContext(sim_result_dir)

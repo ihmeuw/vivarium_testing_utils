@@ -361,7 +361,35 @@ class FuzzyChecker:
         """
         if config is None:
             return target_val
-        raise NotImplementedError
+
+        for strat_name, filter_value in config.stratifications.items():
+            if filter_value == "all":
+                # "all" means the stratification must NOT be present
+                if strat_name in index_names:
+                    return target_val
+            elif filter_value == "specific":
+                # "specific" means the stratification must be present
+                if strat_name not in index_names:
+                    return target_val
+            else:
+                # A specific value: stratification must be present with this exact value
+                if (
+                    strat_name not in index_names
+                    or index_info.get(strat_name) != filter_value
+                ):
+                    return target_val
+
+        # All conditions matched — apply the relative error interval
+        lower = target_val * (1 - config.relative_error)
+        upper = target_val * (1 + config.relative_error)
+        clipped_lower = max(0.0, lower)
+        clipped_upper = min(1.0, upper)
+        if clipped_lower != lower or clipped_upper != upper:
+            logger.warning(
+                f"Target interval clipped to [{clipped_lower}, {clipped_upper}] "
+                f"(original: [{lower}, {upper}]) due to target_interval_configuration."
+            )
+        return (clipped_lower, clipped_upper)
 
     def _test_all_groups(
         self,
@@ -409,12 +437,16 @@ class FuzzyChecker:
                     "Index must be a tuple or a single value with a named index level"
                 )
 
+            target_proportion = self._apply_target_interval_config(
+                target_val, index_names, index_info, target_interval_config
+            )
+
             result = self.test_proportion(
                 name=name,
                 name_additional=str(idx),
                 observed_numerator=numerator_val,
                 observed_denominator=denominator_val,
-                target_proportion=target_val,
+                target_proportion=target_proportion,
                 bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
                 fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
             )
@@ -456,9 +488,6 @@ class FuzzyChecker:
 
         """
 
-        if target_interval_config is not None:
-            raise NotImplementedError
-
         # Reorder index levels to match target_proportion for proper alignment
         target_index_order = target_proportion.index.names
         if isinstance(observed_numerator.index, pd.MultiIndex):
@@ -487,6 +516,7 @@ class FuzzyChecker:
             name=name,
             bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
             fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+            target_interval_config=target_interval_config,
         )
 
         # Test sub-stratification combinations
@@ -505,6 +535,7 @@ class FuzzyChecker:
                 name=name,
                 bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
                 fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+                target_interval_config=target_interval_config,
             )
 
         # Test population level proportion
@@ -512,12 +543,21 @@ class FuzzyChecker:
         weighted_target = (
             combined_data["weighted_target"].sum() / combined_data["denominator"].sum()
         )
+
+        # Apply target interval config to overall test
+        overall_target: float | tuple[float, float] = self._apply_target_interval_config(
+            target_val=weighted_target,
+            index_names=[],
+            index_info={},
+            config=target_interval_config,
+        )
+
         overall = self.test_proportion(
             name=name,
             name_additional="overall",
             observed_numerator=combined_data["numerator"].sum(),
             observed_denominator=combined_data["denominator"].sum(),
-            target_proportion=weighted_target,
+            target_proportion=overall_target,
             bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
             fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
         )
