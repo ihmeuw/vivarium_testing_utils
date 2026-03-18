@@ -1,3 +1,18 @@
+{% macro testresult_detail_table(tr, inline=false) %}
+<table class="testresult-table"{% if inline %} style="margin:0;"{% endif %}>
+    <tr><th>Property</th><th>Value</th></tr>
+    <tr><td>Name</td><td>{{ tr.name }}</td></tr>
+    <tr><td>Reject Null</td><td>{{ tr.reject_null }}</td></tr>
+    <tr><td>Comparison to Target</td><td>{{ tr.comparison_to_target }}</td></tr>
+    <tr><td>Confidence</td><td>{{ tr.confidence }}</td></tr>
+    <tr><td>Observed Proportion</td><td>{{ '%.3g' | format(tr.observed_proportion) }}</td></tr>
+    <tr><td>Observed Numerator</td><td>{{ tr.observed_numerator }}</td></tr>
+    <tr><td>Observed Denominator</td><td>{{ tr.observed_denominator }}</td></tr>
+    <tr><td>Target Lower Bound</td><td>{{ '%.3g' | format(tr.target_lower_bound) }}</td></tr>
+    <tr><td>Target Upper Bound</td><td>{{ '%.3g' | format(tr.target_upper_bound) }}</td></tr>
+    <tr><td>Bayes Factor</td><td>{{ '%.3g' | format(tr.bayes_factor) }}</td></tr>
+</table>
+{% endmacro %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -353,19 +368,7 @@
                     </tr>
                     <tr class="testresult-details-row" style="display:none;">
                         <td colspan="5">
-                            <table class="testresult-table" style="margin:0;">
-                                <tr><th>Property</th><th>Value</th></tr>
-                                <tr><td>Name</td><td>{{ tr.name }}</td></tr>
-                                <tr><td>Reject Null</td><td>{{ tr.reject_null }}</td></tr>
-                                <tr><td>Comparison to Target</td><td>{{ tr.comparison_to_target }}</td></tr>
-                                <tr><td>Confidence</td><td>{{ tr.confidence }}</td></tr>
-                                <tr><td>Observed Proportion</td><td>{{ '%.3g' | format(tr.observed_proportion) }}</td></tr>
-                                <tr><td>Observed Numerator</td><td>{{ tr.observed_numerator }}</td></tr>
-                                <tr><td>Observed Denominator</td><td>{{ tr.observed_denominator }}</td></tr>
-                                <tr><td>Target Lower Bound</td><td>{{ '%.3g' | format(tr.target_lower_bound) }}</td></tr>
-                                <tr><td>Target Upper Bound</td><td>{{ '%.3g' | format(tr.target_upper_bound) }}</td></tr>
-                                <tr><td>Bayes Factor</td><td>{{ '%.3g' | format(tr.bayes_factor) }}</td></tr>
-                            </table>
+                            {{ testresult_detail_table(tr, inline=true) }}
                         </td>
                     </tr>
                     {% endfor %}
@@ -416,20 +419,7 @@
                 <h3>Test Results</h3>
                 <p><strong>Overall Result:</strong> {{ "Pass" if comparison.passed else "Fail" }}</p>
                 {% if comparison.overall_testresult %}
-                <table class="testresult-table">
-                    <!-- Test Result Table - displayed in this order -->
-                    <tr><th>Property</th><th>Value</th></tr>
-                    <tr><td>Name</td><td>{{ comparison.overall_testresult.name }}</td></tr>
-                    <tr><td>Reject Null</td><td>{{ comparison.overall_testresult.reject_null }}</td></tr>
-                    <tr><td>Comparison to Target</td><td>{{ comparison.overall_testresult.comparison_to_target }}</td></tr>
-                    <tr><td>Confidence</td><td>{{ comparison.overall_testresult.confidence }}</td></tr>
-                    <tr><td>Observed Proportion</td><td>{{ '%.3g' | format(comparison.overall_testresult.observed_proportion) }}</td></tr>
-                    <tr><td>Observed Numerator</td><td>{{ comparison.overall_testresult.observed_numerator }}</td></tr>
-                    <tr><td>Observed Denominator</td><td>{{ comparison.overall_testresult.observed_denominator }}</td></tr>
-                    <tr><td>Target Lower Bound</td><td>{{ '%.3g' | format(comparison.overall_testresult.target_lower_bound) }}</td></tr>
-                    <tr><td>Target Upper Bound</td><td>{{ '%.3g' | format(comparison.overall_testresult.target_upper_bound) }}</td></tr>
-                    <tr><td>Bayes Factor</td><td>{{ '%.3g' | format(comparison.overall_testresult.bayes_factor) }}</td></tr>
-                </table>
+                {{ testresult_detail_table(comparison.overall_testresult) }}
                 {% else %}
                 <p>No overall test result metadata available.</p>
                 {% endif %}
@@ -457,19 +447,7 @@
                         </tr>
                         <tr class="testresult-details-row" style="display:none;">
                             <td colspan="2">
-                                <table class="testresult-table" style="margin:0;">
-                                    <tr><th>Property</th><th>Value</th></tr>
-                                    <tr><td>Name</td><td>{{ tr.name }}</td></tr>
-                                    <tr><td>Reject Null</td><td>{{ tr.reject_null }}</td></tr>
-                                    <tr><td>Comparison to Target</td><td>{{ tr.comparison_to_target }}</td></tr>
-                                    <tr><td>Confidence</td><td>{{ tr.confidence }}</td></tr>
-                                    <tr><td>Observed Proportion</td><td>{{ '%.3g' | format(tr.observed_proportion) }}</td></tr>
-                                    <tr><td>Observed Numerator</td><td>{{ tr.observed_numerator }}</td></tr>
-                                    <tr><td>Observed Denominator</td><td>{{ tr.observed_denominator }}</td></tr>
-                                    <tr><td>Target Lower Bound</td><td>{{ '%.3g' | format(tr.target_lower_bound) }}</td></tr>
-                                    <tr><td>Target Upper Bound</td><td>{{ '%.3g' | format(tr.target_upper_bound) }}</td></tr>
-                                    <tr><td>Bayes Factor</td><td>{{ '%.3g' | format(tr.bayes_factor) }}</td></tr>
-                                </table>
+                                {{ testresult_detail_table(tr, inline=true) }}
                             </td>
                         </tr>
                         {% endif %}

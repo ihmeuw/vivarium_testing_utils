@@ -719,7 +719,7 @@ class ValidationContext:
         """Process a single node in the lattice drill-down algorithm.
 
         This method recursively drills down through each node of a data lattice structure and
-        determines which TestResults to displayed for a given Comparison. It evalues the node based
+        determines which TestResults to display for a given Comparison. It evaluates the node based
         on the passing or failing status of the node and its descendants.
 
         Parameters
