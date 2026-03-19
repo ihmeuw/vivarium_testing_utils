@@ -691,7 +691,6 @@ class ValidationContext:
                 ref_source = comparison.reference_bundle.source.name.lower()
                 overall_metadata = comparison.proportion_test_results["overall"].to_dict()
                 all_test_results = self._extract_all_test_results(comparison)
-                source_key = f"{test_source}_{ref_source}"
                 strat_meta = self.stratification_metadata.get((measure_key, source_key), {})
                 results.append(
                     {
