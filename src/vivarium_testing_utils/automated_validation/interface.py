@@ -526,6 +526,7 @@ class ValidationContext:
         relative_error
             The relative error to apply, creating an interval of
             (target * (1 - relative_error), target * (1 + relative_error)).
+
         """
         comparison = self.comparisons[comparison_key][f"{test_source}_{ref_source}"]
         comparison.target_interval_configuration = TargetIntervalConfig(
