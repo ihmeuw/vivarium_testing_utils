@@ -7,7 +7,7 @@ import os
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Collection, Literal, Mapping, cast
+from typing import Any, Collection, Literal, Mapping
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -64,18 +64,12 @@ class ValidationContext:
         results = VerificationResults()
         for comparison_dict in self.comparisons.values():
             for comparison in comparison_dict.values():
-                # Check if comparison has been verified by checking for test results
-                if (
-                    not hasattr(comparison, "proportion_test_results")
-                    or not comparison.proportion_test_results
-                ):
+                if comparison.verified is None:
                     continue
 
-                # Categorize based on test results
-                _, _, result = self._gather_comparison_test_results(comparison)
                 source_key = f"{comparison.test_bundle.source.name.lower()}_{comparison.reference_bundle.source.name.lower()}"
 
-                if not any(result):
+                if comparison.verified:
                     results.passing[comparison.comparison_key][source_key] = comparison
                 else:
                     results.failing[comparison.comparison_key][source_key] = comparison
@@ -93,38 +87,14 @@ class ValidationContext:
         metadata: dict[tuple[str, str], dict[str, Any]] = {}
         for measure_key, source_dict in self.comparisons.items():
             for _source_key, comparison in source_dict.items():
-                if (
-                    not hasattr(comparison, "proportion_test_results")
-                    or not comparison.proportion_test_results
-                ):
+                strat_meta = comparison.stratification_metadata
+                if not strat_meta:
                     continue
-                stratified = comparison.proportion_test_results.get("stratified", {})
-                if not isinstance(stratified, dict):
-                    continue
-
-                dimensions: set[str] = set()
-                values: dict[str, set[str]] = {}
-                strat_groups: list[list[str]] = []
-
-                for strat_key_tuple, group in stratified.items():
-                    group_dims = list(strat_key_tuple)
-                    strat_groups.append(group_dims)
-                    dimensions.update(group_dims)
-                    for test_result in group.values():
-                        if test_result.index_info:
-                            for dim, val in test_result.index_info.items():
-                                if dim not in values:
-                                    values[dim] = set()
-                                values[dim].add(str(val))
 
                 test_source = comparison.test_bundle.source.name.lower()
                 ref_source = comparison.reference_bundle.source.name.lower()
                 lookup_key = (measure_key, f"{test_source}_{ref_source}")
-                metadata[lookup_key] = {
-                    "dimensions": sorted(dimensions),
-                    "values": {dim: sorted(vals) for dim, vals in values.items()},
-                    "strat_groups": sorted(strat_groups, key=lambda g: (len(g), g)),
-                }
+                metadata[lookup_key] = strat_meta
         return metadata
 
     def get_sim_outputs(self) -> list[str]:
@@ -314,18 +284,15 @@ class ValidationContext:
             )
 
         comparison.verify(step_size, stratifications)
-        overall_result, stratified_results, result = self._gather_comparison_test_results(
-            comparison
-        )
-        if not any(result):
+        if comparison.verified:
             logger.info(f"Comparison {comparison.comparison_key} passed!")
             return True
         else:
             logger.warning(f"Comparison {comparison.comparison_key} failed.")
-            if overall_result.reject_null:
+            if comparison.proportion_test_results["overall"].reject_null:
                 logger.warning(f"Overall comparison for {comparison.comparison_key} failed.")
-            # stratified_results is dict[str, dict[str, TestResult]]
-            for group_dict in stratified_results.values():
+            stratified = comparison.proportion_test_results.get("stratified", {})
+            for group_dict in stratified.values():
                 for group in group_dict.values():
                     if group.reject_null:
                         logger.warning(f"Group {group.name}_{group.name_additional} failed.")
@@ -510,23 +477,6 @@ class ValidationContext:
 
         # Return True if no failing results (property dynamically computes results)
         return not any(self.verifications.failing.values())
-
-    def _gather_comparison_test_results(
-        self, comparison: Comparison
-    ) -> tuple[TestResult, dict[tuple[str, ...], dict[str, TestResult]], list[bool]]:
-        overall_result = cast(TestResult, comparison.proportion_test_results["overall"])
-        stratified_results = cast(
-            dict[tuple[str, ...], dict[str, TestResult]],
-            comparison.proportion_test_results["stratified"],
-        )
-        # Collect all reject_nulls from the nested structure
-        reject_nulls = [
-            test_result.reject_null
-            for group in stratified_results.values()
-            for test_result in group.values()
-        ]
-        result = [overall_result.reject_null] + reject_nulls
-        return overall_result, stratified_results, result
 
     def plot_all(self, type: str, **kwargs: Any) -> dict[tuple[str, str, str], list[Figure]]:
         """Plot all comparisons and return dict of (measure_key, test_source, ref_source) -> list[Figure]."""
