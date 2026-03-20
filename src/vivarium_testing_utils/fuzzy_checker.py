@@ -7,7 +7,10 @@ from dataclasses import dataclass
 from functools import cache
 from itertools import chain, combinations
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from vivarium_testing_utils.automated_validation.comparison import TargetIntervalConfig
 
 import numpy as np
 import pandas as pd
@@ -326,9 +329,36 @@ class FuzzyChecker:
         """
         return list(
             chain.from_iterable(
-                combinations(index_names, r) for r in range(len(index_names) - 1, 0, -1)
+                combinations(index_names, row) for row in range(len(index_names) - 1, 0, -1)
             )
         )
+
+    def _apply_target_interval_config(
+        self,
+        target_val: float,
+        index_info: dict[str, Any],
+        config: TargetIntervalConfig | None = None,
+    ) -> float | tuple[float, float]:
+        """Check if a group matches the target interval config and return the
+        (possibly updated) target value.
+
+        Parameters
+        ----------
+        target_val
+            The original target proportion value.
+        index_info
+            A mapping of stratification names to their values for the current row.
+        config
+            A TargetIntervalConfig instance, or None.
+
+        Returns
+        -------
+            The original target_val if no config or no match, or a
+            (lower_bound, upper_bound) tuple if the config matches.
+        """
+        if config is None:
+            return target_val
+        raise NotImplementedError
 
     def _test_all_groups(
         self,
@@ -337,6 +367,7 @@ class FuzzyChecker:
         name: str,
         bug_issue_beta_distribution_parameters: tuple[float, float],
         fail_bayes_factor_cutoff: float,
+        target_interval_config: TargetIntervalConfig | None = None,
     ) -> None:
         """Run test_proportion for each row in data and append results to diagnostics.
 
@@ -352,6 +383,8 @@ class FuzzyChecker:
             The parameters of the beta distribution characterizing the bug/issue hypothesis.
         fail_bayes_factor_cutoff
             The Bayes factor cutoff for rejecting the null hypothesis.
+        target_interval_config
+            Optional configuration for applying a relative error to specific groups based on their index values.
         """
         for idx, row in data.iterrows():
             numerator_val = row["numerator"]
@@ -395,6 +428,7 @@ class FuzzyChecker:
         name: str = "",
         bug_issue_beta_distribution_parameters: tuple[float, float] = (0.5, 0.5),
         fail_bayes_factor_cutoff: float = 100.0,
+        target_interval_config: TargetIntervalConfig | None = None,
     ) -> None:
         """Vectorized version of test_proportion that operates on DataFrames.
 
@@ -417,9 +451,14 @@ class FuzzyChecker:
         bug_issue_beta_distribution_parameters
             The parameters of the beta distribution characterizing the bug/issue hypothesis.
         fail_bayes_factor_cutoff
-            The Bayes factor above which a hypothesis test is considered to favor a bug/issue..
+            The Bayes factor above which a hypothesis test is considered to favor a bug/issue.
+        target_interval_config
+            Optional configuration for applying a relative error to specific groups based on their index values.
 
         """
+
+        if target_interval_config is not None:
+            raise NotImplementedError
 
         # Reorder index levels to match target_proportion for proper alignment
         target_index_order = target_proportion.index.names

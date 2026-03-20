@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any, Collection, Literal
 
 import pandas as pd
@@ -13,6 +14,32 @@ from vivarium_testing_utils.automated_validation.data_transformation.measures im
 from vivarium_testing_utils.automated_validation.visualization import dataframe_utils
 from vivarium_testing_utils.fuzzy_checker import FuzzyChecker, TestResult
 
+StratValue = str | int | float
+
+
+@dataclass
+class TargetIntervalConfig:
+    """Configuration for applying a relative error interval to target proportions
+    for specific stratification subsets.
+
+    Parameters
+    ----------
+    stratifications
+        A mapping of stratification names to filter values.
+        - "all": match groups where this stratification is NOT present
+        - "specific": match groups where this stratification IS present (any value)
+        - A specific value: match groups where this stratification
+          is present with that exact value
+        - If multiple stratifications are specified, all conditions must be met for a match.
+          Same behavior as an AND filter across the stratifications.
+    relative_error
+        The relative error to apply to the target proportion, creating an interval
+        of (target * (1 - relative_error), target * (1 + relative_error)).
+    """
+
+    stratifications: dict[str, StratValue]
+    relative_error: float
+
 
 class Comparison(ABC):
     """A Comparison is the basic testing unit to compare two datasets, a "test" dataset and a
@@ -26,7 +53,7 @@ class Comparison(ABC):
 
     @property
     def comparison_key(self) -> str:
-        """A key to indentiy a comparison of the form 'entity_type.entity.measure'."""
+        """A key to indentify a comparison of the form 'entity_type.entity.measure'."""
         if self.test_bundle.measure.measure_key != self.reference_bundle.measure.measure_key:
             raise ValueError("Test and reference bundle measure keys must be the same.")
         return self.test_bundle.measure.measure_key
@@ -154,6 +181,21 @@ class FuzzyComparison(Comparison):
         ] = {
             "stratified": {},
         }
+        self._target_interval_configuration: TargetIntervalConfig | None = None
+
+    @property
+    def target_interval_configuration(self) -> TargetIntervalConfig | None:
+        """The target interval configuration for this comparison."""
+        return self._target_interval_configuration
+
+    @target_interval_configuration.setter
+    def target_interval_configuration(self, value: TargetIntervalConfig | None) -> None:
+        if value is not None and not isinstance(value, TargetIntervalConfig):
+            raise TypeError(
+                f"target_interval_configuration must be a TargetIntervalConfig or None, "
+                f"got {type(value).__name__}"
+            )
+        self._target_interval_configuration = value
 
     @property
     def metadata(self) -> pd.DataFrame:
