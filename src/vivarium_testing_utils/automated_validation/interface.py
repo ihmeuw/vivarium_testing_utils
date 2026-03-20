@@ -275,6 +275,7 @@ class ValidationContext:
         self,
         comparison: Comparison,
         stratifications: Collection[str] | Literal["all"] = "all",
+        verbose: bool = True,
     ) -> bool:
         if "step_size" in self.model_spec.time:
             step_size = self.model_spec.time.step_size / DAYS_PER_YEAR
@@ -291,13 +292,18 @@ class ValidationContext:
             return True
         else:
             logger.warning(f"Comparison {comparison.comparison_key} failed.")
-            if comparison.proportion_test_results["overall"].reject_null:
-                logger.warning(f"Overall comparison for {comparison.comparison_key} failed.")
-            stratified = comparison.proportion_test_results.get("stratified", {})
-            for group_dict in stratified.values():
-                for group in group_dict.values():
-                    if group.reject_null:
-                        logger.warning(f"Group {group.name}_{group.name_additional} failed.")
+            if verbose:
+                if comparison.proportion_test_results["overall"].reject_null:
+                    logger.warning(
+                        f"Overall comparison for {comparison.comparison_key} failed."
+                    )
+                stratified = comparison.proportion_test_results.get("stratified", {})
+                for group_dict in stratified.values():
+                    for group in group_dict.values():
+                        if group.reject_null:
+                            logger.warning(
+                                f"Group {group.name}_{group.name_additional} failed."
+                            )
             return False
 
     def metadata(
@@ -514,8 +520,7 @@ class ValidationContext:
         """
         for comparison_dict in self.comparisons.values():
             for comparison in comparison_dict.values():
-                # TODO: MIC-6840 - Infer set of stratifications to iterate through with verify
-                self._verify(comparison)
+                self._verify(comparison, verbose=False)
 
         # Return True if no failing results (property dynamically computes results)
         return not any(self.verifications.failing.values())
