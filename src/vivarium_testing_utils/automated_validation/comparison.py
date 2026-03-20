@@ -30,6 +30,8 @@ class TargetIntervalConfig:
         - "specific": match groups where this stratification IS present (any value)
         - A specific value: match groups where this stratification
           is present with that exact value
+        - If multiple stratifications are specified, all conditions must be met for a match.
+          Same behavior as an AND filter across the stratifications.
     relative_error
         The relative error to apply to the target proportion, creating an interval
         of (target * (1 - relative_error), target * (1 + relative_error)).
@@ -50,18 +52,8 @@ class Comparison(ABC):
     proportion_test_results: dict[str, Any]
 
     @property
-    @abstractmethod
-    def target_interval_configuration(self) -> TargetIntervalConfig | None:
-        ...
-
-    @target_interval_configuration.setter
-    @abstractmethod
-    def target_interval_configuration(self, value: TargetIntervalConfig | None) -> None:
-        ...
-
-    @property
     def comparison_key(self) -> str:
-        """A key to indentiy a comparison of the form 'entity_type.entity.measure'."""
+        """A key to indentify a comparison of the form 'entity_type.entity.measure'."""
         if self.test_bundle.measure.measure_key != self.reference_bundle.measure.measure_key:
             raise ValueError("Test and reference bundle measure keys must be the same.")
         return self.test_bundle.measure.measure_key
