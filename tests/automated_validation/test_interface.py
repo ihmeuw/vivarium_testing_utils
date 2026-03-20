@@ -16,7 +16,10 @@ from vivarium.framework.artifact.artifact import ArtifactException
 from vivarium_inputs import get_age_bins
 
 from tests.automated_validation.conftest import get_model_spec
-from vivarium_testing_utils.automated_validation.comparison import TargetIntervalConfig
+from vivarium_testing_utils.automated_validation.comparison import (
+    FuzzyComparison,
+    TargetIntervalConfig,
+)
 from vivarium_testing_utils.automated_validation.constants import (
     DRAW_INDEX,
     INPUT_DATA_INDEX_NAMES,
@@ -670,6 +673,7 @@ def test_set_target_interval_updates_comparison(sim_result_dir: Path) -> None:
         relative_error=0.1,
     )
     comparison = context.comparisons[measure_key]["sim_artifact"]
+    assert isinstance(comparison, FuzzyComparison)
     assert comparison.target_interval_configuration is not None
     assert isinstance(comparison.target_interval_configuration, TargetIntervalConfig)
     assert comparison.target_interval_configuration.stratifications == {"sex": "all"}
@@ -696,6 +700,7 @@ def test_set_target_interval_overwrites(sim_result_dir: Path) -> None:
         relative_error=0.2,
     )
     comparison = context.comparisons[measure_key]["sim_artifact"]
+    assert isinstance(comparison, FuzzyComparison)
     assert comparison.target_interval_configuration is not None
     assert comparison.target_interval_configuration.stratifications == {"age": "specific"}
     assert comparison.target_interval_configuration.relative_error == 0.2
@@ -733,8 +738,10 @@ def test_verify_all(status: str, sim_result_dir: Path, mocker: MockFixture) -> N
     }
     mock_comparison_1 = mocker.MagicMock()
     mock_comparison_1.proportion_test_results = mock_proportion_test_results_passing
+    mock_comparison_1.verified = True
     mock_comparison_2 = mocker.MagicMock()
     mock_comparison_2.proportion_test_results = mock_proportion_test_results_2
+    mock_comparison_2.verified = status == "pass"
 
     # Manually add comparisons to context to avoid data loading
     context = ValidationContext(sim_result_dir)
@@ -1102,4 +1109,18 @@ def _make_mock_comparison(
     mock.test_bundle.source = DataSource.SIM
     mock.reference_bundle.source = DataSource.ARTIFACT
     mock.proportion_test_results = proportion_test_results
+
+    # Compute verified from the test results (mirrors Comparison.verified logic)
+    overall = proportion_test_results.get("overall")
+    if overall is None:
+        mock.verified = None
+    else:
+        reject_nulls = [overall.reject_null]
+        stratified = proportion_test_results.get("stratified", {})
+        if isinstance(stratified, dict):
+            for group in stratified.values():
+                for tr in group.values():
+                    reject_nulls.append(tr.reject_null)
+        mock.verified = not any(reject_nulls)
+
     return mock

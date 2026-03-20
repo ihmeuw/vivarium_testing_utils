@@ -329,14 +329,13 @@ class FuzzyChecker:
         """
         return list(
             chain.from_iterable(
-                combinations(index_names, r) for r in range(len(index_names) - 1, 0, -1)
+                combinations(index_names, row) for row in range(len(index_names) - 1, 0, -1)
             )
         )
 
     def _apply_target_interval_config(
         self,
         target_val: float,
-        index_names: list[str],
         index_info: dict[str, Any],
         config: TargetIntervalConfig | None = None,
     ) -> float | tuple[float, float]:
@@ -347,12 +346,10 @@ class FuzzyChecker:
         ----------
         target_val
             The original target proportion value.
-        index_names
-            The stratification column names for the current aggregation level.
         index_info
             A mapping of stratification names to their values for the current row.
         config
-            A configuration containing target interval settings for specific stratifications.
+            Optional configuration for applying a relative error to specific groups based on their index values.
 
         Returns
         -------
@@ -364,6 +361,7 @@ class FuzzyChecker:
             return target_val
 
         update_target = True
+        index_names = set(index_info.keys())
         for strat_name, filter_value in config.stratifications.items():
             if filter_value == "all" and strat_name in index_names:
                 # "all" means the stratification must NOT be present
@@ -415,6 +413,8 @@ class FuzzyChecker:
             The parameters of the beta distribution characterizing the bug/issue hypothesis.
         fail_bayes_factor_cutoff
             The Bayes factor cutoff for rejecting the null hypothesis.
+        target_interval_config
+            Optional configuration for applying a relative error to specific groups based on their index values.
         """
         for idx, row in data.iterrows():
             numerator_val = row["numerator"]
@@ -439,7 +439,7 @@ class FuzzyChecker:
                 )
 
             target_proportion = self._apply_target_interval_config(
-                target_val, index_names, index_info, target_interval_config
+                target_val, index_info, target_interval_config
             )
 
             result = self.test_proportion(
@@ -485,9 +485,9 @@ class FuzzyChecker:
         bug_issue_beta_distribution_parameters
             The parameters of the beta distribution characterizing the bug/issue hypothesis.
         fail_bayes_factor_cutoff
-            The Bayes factor above which a hypothesis test is considered to favor a bug/issue..
+            The Bayes factor above which a hypothesis test is considered to favor a bug/issue.
         target_interval_config
-            An optional TargetIntervalConfig instance to apply group-specific target intervals based on stratifications.
+            Optional configuration for applying a relative error to specific groups based on their index values.
 
         """
 
@@ -500,7 +500,7 @@ class FuzzyChecker:
 
         # NOTE: Use inner join to keep only rows where all three DataFrames have matching indices
         # Observed numerator and denominator should have the same indices, and target_proportion
-        # might have additional levels where verification would be unncesary
+        # might have additional levels where verification would be unnecessary
         combined_data = pd.concat(
             [
                 observed_numerator["value"].rename("numerator"),
@@ -550,7 +550,6 @@ class FuzzyChecker:
         # Apply target interval config to overall test - this would require "all" for all stratifications
         overall_target: float | tuple[float, float] = self._apply_target_interval_config(
             target_val=weighted_target,
-            index_names=[],
             index_info={},
             config=target_interval_config,
         )

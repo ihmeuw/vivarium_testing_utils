@@ -30,6 +30,8 @@ class TargetIntervalConfig:
         - "specific": match groups where this stratification IS present (any value)
         - A specific value: match groups where this stratification
           is present with that exact value
+        - If multiple stratifications are specified, all conditions must be met for a match.
+          Same behavior as an AND filter across the stratifications.
     relative_error
         The relative error to apply to the target proportion, creating an interval
         of (target * (1 - relative_error), target * (1 + relative_error)).
@@ -50,18 +52,8 @@ class Comparison(ABC):
     proportion_test_results: dict[str, Any]
 
     @property
-    @abstractmethod
-    def target_interval_configuration(self) -> TargetIntervalConfig | None:
-        ...
-
-    @target_interval_configuration.setter
-    @abstractmethod
-    def target_interval_configuration(self, value: TargetIntervalConfig | None) -> None:
-        ...
-
-    @property
     def comparison_key(self) -> str:
-        """A key to indentiy a comparison of the form 'entity_type.entity.measure'."""
+        """A key to indentify a comparison of the form 'entity_type.entity.measure'."""
         if self.test_bundle.measure.measure_key != self.reference_bundle.measure.measure_key:
             raise ValueError("Test and reference bundle measure keys must be the same.")
         return self.test_bundle.measure.measure_key
@@ -115,6 +107,56 @@ class Comparison(ABC):
         stratifications: Collection[str] | Literal["all"] = "all",
     ) -> None:
         pass
+
+    @property
+    def verified(self) -> bool | None:
+        """Whether this comparison passes validation.
+
+        Returns None if verification has not been run yet,
+        True if all test results pass, False if any fail.
+        """
+        if "overall" not in self.proportion_test_results:
+            return None
+        overall = self.proportion_test_results["overall"]
+        stratified = self.proportion_test_results.get("stratified", {})
+        reject_nulls = [overall.reject_null] + [
+            tr.reject_null for group in stratified.values() for tr in group.values()
+        ]
+        return not any(reject_nulls)
+
+    @property
+    def stratification_metadata(self) -> dict[str, Any]:
+        """Compile stratification metadata from proportion_test_results.
+
+        Returns a dict with keys 'dimensions', 'values', 'stratification_groups',
+        or an empty dict if not yet verified.
+        """
+        if "overall" not in self.proportion_test_results:
+            return {}
+        stratified = self.proportion_test_results.get("stratified", {})
+
+        dimensions: set[str] = set()
+        values: dict[str, set[str]] = {}
+        stratification_groups: list[list[str]] = []
+
+        for strat_key_tuple, group in stratified.items():
+            group_dims = list(strat_key_tuple)
+            stratification_groups.append(group_dims)
+            dimensions.update(group_dims)
+            for test_result in group.values():
+                if test_result.index_info:
+                    for dim, val in test_result.index_info.items():
+                        if dim not in values:
+                            values[dim] = set()
+                        values[dim].add(str(val))
+
+        return {
+            "dimensions": sorted(dimensions),
+            "values": {dim: sorted(vals) for dim, vals in values.items()},
+            "stratification_groups": sorted(
+                stratification_groups, key=lambda group: (len(group), group)
+            ),
+        }
 
 
 class FuzzyComparison(Comparison):
