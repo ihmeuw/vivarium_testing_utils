@@ -272,6 +272,51 @@ def sim_result_dir(
     return tmp_path
 
 
+@pytest.fixture(scope="session")
+def sim_result_dir_new_structure(
+    tmp_path_factory: TempPathFactory, _artifact_keys_mapper: dict[str, pd.DataFrame]
+) -> Path:
+    """Create a temporary directory for simulation outputs using the new directory structure
+    where each measure is a subdirectory containing numbered parquet files."""
+    tmp_path = tmp_path_factory.mktemp("sim_data_new")
+
+    results_dir = tmp_path / "results"
+    results_dir.mkdir(parents=True)
+
+    _transition_count_data = _create_transition_count_data()
+    _person_time_data = _create_person_time_data()
+    _deaths_data = _create_deaths_data()
+    _risk_state_person_time_data = _create_risk_state_person_time_data()
+
+    # Save each dataset as a subdirectory with numbered parquet files
+    for name, data in [
+        ("transition_count_disease", _transition_count_data),
+        ("person_time_disease", _person_time_data),
+        ("deaths", _deaths_data),
+        ("person_time_child_stunting", _risk_state_person_time_data),
+    ]:
+        subdir = results_dir / name
+        subdir.mkdir()
+        reset_data = data.reset_index()
+        mid = len(reset_data) // 2
+        reset_data.iloc[:mid].to_parquet(subdir / "000.parquet")
+        reset_data.iloc[mid:].to_parquet(subdir / "001.parquet")
+
+    # Create Artifact
+    artifact_dir = tmp_path / "artifacts"
+    artifact_dir.mkdir(exist_ok=True)
+    artifact_path = artifact_dir / "artifact.hdf"
+    artifact = Artifact(artifact_path)
+    for key, data in _artifact_keys_mapper.items():
+        artifact.write(key, data)
+
+    # Save model specification
+    with open(tmp_path / "model_specification.yaml", "w") as f:
+        yaml.dump(get_model_spec(artifact_path), f)
+
+    return tmp_path
+
+
 def get_model_spec(artifact_path: Path) -> dict[str, Any]:
     """Sample model specification for testing."""
     return {

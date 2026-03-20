@@ -83,8 +83,17 @@ class DataLoader:
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets in the given simulation output directory.
         Only return the filename, not the extension."""
+        # Old structure: flat parquet files in results/
+        flat_parquets = set(str(file.stem) for file in self._results_dir.glob("*.parquet"))
+        # New structure: subdirectories containing numbered parquet files
+        subdirectory_parquets = set(
+            dir.name
+            for dir in self._results_dir.iterdir()
+            if dir.is_dir() and any(dir.glob("*.parquet"))
+        )
         return list(
-            set(str(f.stem) for f in self._results_dir.glob("*.parquet"))
+            flat_parquets
+            | subdirectory_parquets
             | set(self._raw_data_cache[DataSource.SIM].keys())
         )
 
@@ -172,7 +181,21 @@ class DataLoader:
     @utils.check_io(out=SimOutputData)
     def _load_from_sim(self, data_key: str) -> pd.DataFrame:
         """Load the data from the simulation output directory and set the non-value columns as indices."""
-        sim_data = pd.read_parquet(self._results_dir / f"{data_key}.parquet")
+        single_file = self._results_dir / f"{data_key}.parquet"
+        subdir = self._results_dir / data_key
+        if single_file.exists():
+            sim_data = pd.read_parquet(single_file)
+        elif subdir.is_dir():
+            parquet_files = sorted(subdir.glob("*.parquet"))
+            if not parquet_files:
+                raise FileNotFoundError(f"No parquet files found in directory {subdir}")
+            sim_data = pd.concat(
+                [pd.read_parquet(f) for f in parquet_files], ignore_index=True
+            )
+        else:
+            raise FileNotFoundError(
+                f"No data found for '{data_key}': neither {single_file} nor {subdir}/ exists."
+            )
         if "value" not in sim_data.columns:
             raise ValueError(f"{data_key}.parquet requires a column labeled 'value'.")
         multi_index_df = sim_data.set_index(sim_data.columns.drop("value").tolist())

@@ -200,6 +200,27 @@ def test__convert_to_total_pt(person_time_data: pd.DataFrame) -> None:
     assert actual_total_value == expected_total_value
 
 
+def test_get_sim_outputs_new_structure(sim_result_dir_new_structure: Path) -> None:
+    """Test we detect sim outputs from the new subdirectory-based structure."""
+    data_loader = DataLoader(sim_result_dir_new_structure)
+    assert set(data_loader.get_sim_outputs()) == {
+        "deaths",
+        "person_time_disease",
+        "transition_count_disease",
+        "person_time_child_stunting",
+        "person_time_total",
+    }
+
+
+def test__load_from_sim_new_structure(
+    sim_result_dir_new_structure: Path, deaths_data: pd.DataFrame
+) -> None:
+    """Test loading sim data from the new subdirectory-based structure."""
+    data_loader = DataLoader(sim_result_dir_new_structure)
+    deaths = data_loader._load_from_sim("deaths")
+    assert deaths.equals(deaths_data)
+
+
 def test___get_raw_data_from_source(
     sim_result_dir: Path,
     transition_count_data: pd.DataFrame,
