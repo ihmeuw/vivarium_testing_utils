@@ -688,8 +688,10 @@ def test_verify_all(status: str, sim_result_dir: Path, mocker: MockFixture) -> N
     }
     mock_comparison_1 = mocker.MagicMock()
     mock_comparison_1.proportion_test_results = mock_proportion_test_results_passing
+    mock_comparison_1.verified = True
     mock_comparison_2 = mocker.MagicMock()
     mock_comparison_2.proportion_test_results = mock_proportion_test_results_2
+    mock_comparison_2.verified = status == "pass"
 
     # Manually add comparisons to context to avoid data loading
     context = ValidationContext(sim_result_dir)
@@ -1057,4 +1059,18 @@ def _make_mock_comparison(
     mock.test_bundle.source = DataSource.SIM
     mock.reference_bundle.source = DataSource.ARTIFACT
     mock.proportion_test_results = proportion_test_results
+
+    # Compute verified from the test results (mirrors Comparison.verified logic)
+    overall = proportion_test_results.get("overall")
+    if overall is None:
+        mock.verified = None
+    else:
+        reject_nulls = [overall.reject_null]
+        stratified = proportion_test_results.get("stratified", {})
+        if isinstance(stratified, dict):
+            for group in stratified.values():
+                for tr in group.values():
+                    reject_nulls.append(tr.reject_null)
+        mock.verified = not any(reject_nulls)
+
     return mock

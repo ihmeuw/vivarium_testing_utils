@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import base64
+import html as html_module
 import io
 import os
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Collection, Literal, Mapping, cast
+from typing import Any, Collection, Literal, Mapping
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -43,28 +44,7 @@ from vivarium_testing_utils.fuzzy_checker import TestResult
 
 
 class ValidationContext:
-    @property
-    def verifications(self) -> VerificationResults:
-        """Get the verification results dynamically from comparisons."""
-        results = VerificationResults()
-        for comparison_dict in self.comparisons.values():
-            for comparison in comparison_dict.values():
-                # Check if comparison has been verified by checking for test results
-                if (
-                    not hasattr(comparison, "proportion_test_results")
-                    or not comparison.proportion_test_results
-                ):
-                    continue
-
-                # Categorize based on test results
-                _, _, result = self._gather_comparison_test_results(comparison)
-                source_key = f"{comparison.test_bundle.source.name.lower()}_{comparison.reference_bundle.source.name.lower()}"
-
-                if not any(result):
-                    results.passing[comparison.comparison_key][source_key] = comparison
-                else:
-                    results.failing[comparison.comparison_key][source_key] = comparison
-        return results
+    """Context for managing validation comparisons, results, and report generation."""
 
     def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
         self.results_dir = Path(results_dir)
@@ -77,6 +57,45 @@ class ValidationContext:
         self.location = self.data_loader.location
         self.measure_mapper = MeasureMapper()
         self.model_spec = self.data_loader.model_spec.configuration
+
+    @property
+    def verifications(self) -> VerificationResults:
+        """Get the verification results dynamically from comparisons."""
+        results = VerificationResults()
+        for comparison_dict in self.comparisons.values():
+            for comparison in comparison_dict.values():
+                if comparison.verified is None:
+                    continue
+
+                source_key = f"{comparison.test_bundle.source.name.lower()}_{comparison.reference_bundle.source.name.lower()}"
+
+                if comparison.verified:
+                    results.passing[comparison.comparison_key][source_key] = comparison
+                else:
+                    results.failing[comparison.comparison_key][source_key] = comparison
+        return results
+
+    @property
+    def stratification_metadata(
+        self,
+    ) -> dict[tuple[str, str], dict[str, Any]]:
+        """Get stratification metadata dynamically from comparisons.
+
+        Returns a dict keyed by (measure_key, source_key) mapping to metadata
+        about the available stratification dimensions for that comparison.
+        """
+        metadata: dict[tuple[str, str], dict[str, Any]] = {}
+        for measure_key, source_dict in self.comparisons.items():
+            for _source_key, comparison in source_dict.items():
+                strat_meta = comparison.stratification_metadata
+                if not strat_meta:
+                    continue
+
+                test_source = comparison.test_bundle.source.name.lower()
+                ref_source = comparison.reference_bundle.source.name.lower()
+                lookup_key = (measure_key, f"{test_source}_{ref_source}")
+                metadata[lookup_key] = strat_meta
+        return metadata
 
     def get_sim_outputs(self) -> list[str]:
         """Get a list of the datasets available in the given simulation output directory."""
@@ -265,18 +284,15 @@ class ValidationContext:
             )
 
         comparison.verify(step_size, stratifications)
-        overall_result, stratified_results, result = self._gather_comparison_test_results(
-            comparison
-        )
-        if not any(result):
+        if comparison.verified:
             logger.info(f"Comparison {comparison.comparison_key} passed!")
             return True
         else:
             logger.warning(f"Comparison {comparison.comparison_key} failed.")
-            if overall_result.reject_null:
+            if comparison.proportion_test_results["overall"].reject_null:
                 logger.warning(f"Overall comparison for {comparison.comparison_key} failed.")
-            # stratified_results is dict[str, dict[str, TestResult]]
-            for group_dict in stratified_results.values():
+            stratified = comparison.proportion_test_results.get("stratified", {})
+            for group_dict in stratified.values():
                 for group in group_dict.values():
                     if group.reject_null:
                         logger.warning(f"Group {group.name}_{group.name_additional} failed.")
@@ -462,23 +478,6 @@ class ValidationContext:
         # Return True if no failing results (property dynamically computes results)
         return not any(self.verifications.failing.values())
 
-    def _gather_comparison_test_results(
-        self, comparison: Comparison
-    ) -> tuple[TestResult, dict[tuple[str, ...], dict[str, TestResult]], list[bool]]:
-        overall_result = cast(TestResult, comparison.proportion_test_results["overall"])
-        stratified_results = cast(
-            dict[tuple[str, ...], dict[str, TestResult]],
-            comparison.proportion_test_results["stratified"],
-        )
-        # Collect all reject_nulls from the nested structure
-        reject_nulls = [
-            test_result.reject_null
-            for group in stratified_results.values()
-            for test_result in group.values()
-        ]
-        result = [overall_result.reject_null] + reject_nulls
-        return overall_result, stratified_results, result
-
     def plot_all(self, type: str, **kwargs: Any) -> dict[tuple[str, str, str], list[Figure]]:
         """Plot all comparisons and return dict of (measure_key, test_source, ref_source) -> list[Figure]."""
         figures_dict: dict[tuple[str, str, str], list[Figure]] = {}
@@ -567,7 +566,14 @@ class ValidationContext:
             try:
                 # Check if we're in a Jupyter environment
                 get_ipython()  # type: ignore[name-defined]
-                display(HTML(html_content))  # type: ignore
+                # Use iframe with srcdoc so JavaScript executes properly
+                escaped = html_module.escape(html_content)
+                iframe_html = (
+                    f'<iframe srcdoc="{escaped}" '
+                    f'style="width:100%;height:800px;border:1px solid #ccc;border-radius:8px;" '
+                    f'sandbox="allow-scripts"></iframe>'
+                )
+                display(HTML(iframe_html))  # type: ignore
             except NameError:
                 # Not in Jupyter, skip display
                 logger.info("Not in a Jupyter environment, cannot display the report.")
@@ -635,6 +641,7 @@ class ValidationContext:
                 ref_source = comparison.reference_bundle.source.name.lower()
                 overall_metadata = comparison.proportion_test_results["overall"].to_dict()
                 all_test_results = self._extract_all_test_results(comparison)
+                strat_meta = self.stratification_metadata.get((measure_key, source_key), {})
                 results.append(
                     {
                         "measure_key": measure_key,
@@ -643,6 +650,7 @@ class ValidationContext:
                         "passed": passed,
                         "overall_testresult": overall_metadata,
                         "all_testresults": all_test_results,
+                        "stratification_metadata": strat_meta,
                         "passing_count": sum(
                             1 for tr in all_test_results if not tr["reject_null"]
                         ),

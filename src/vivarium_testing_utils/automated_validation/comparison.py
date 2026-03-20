@@ -81,6 +81,58 @@ class Comparison(ABC):
     ) -> None:
         pass
 
+    @property
+    def verified(self) -> bool | None:
+        """Whether this comparison passes validation.
+
+        Returns None if verification has not been run yet,
+        True if all test results pass, False if any fail.
+        """
+        if "overall" not in self.proportion_test_results:
+            return None
+        overall = self.proportion_test_results["overall"]
+        stratified = self.proportion_test_results.get("stratified", {})
+        reject_nulls = [overall.reject_null] + [
+            tr.reject_null for group in stratified.values() for tr in group.values()
+        ]
+        return not any(reject_nulls)
+
+    @property
+    def stratification_metadata(self) -> dict[str, Any]:
+        """Compile stratification metadata from proportion_test_results.
+
+        Returns a dict with keys 'dimensions', 'values', 'stratification_groups',
+        or an empty dict if not yet verified.
+        """
+        if "overall" not in self.proportion_test_results:
+            return {}
+        stratified = self.proportion_test_results.get("stratified", {})
+        if not isinstance(stratified, dict):
+            return {}
+
+        dimensions: set[str] = set()
+        values: dict[str, set[str]] = {}
+        stratification_groups: list[list[str]] = []
+
+        for strat_key_tuple, group in stratified.items():
+            group_dims = list(strat_key_tuple)
+            stratification_groups.append(group_dims)
+            dimensions.update(group_dims)
+            for test_result in group.values():
+                if test_result.index_info:
+                    for dim, val in test_result.index_info.items():
+                        if dim not in values:
+                            values[dim] = set()
+                        values[dim].add(str(val))
+
+        return {
+            "dimensions": sorted(dimensions),
+            "values": {dim: sorted(vals) for dim, vals in values.items()},
+            "stratification_groups": sorted(
+                stratification_groups, key=lambda group: (len(group), group)
+            ),
+        }
+
 
 class FuzzyComparison(Comparison):
     """A FuzzyComparison is a comparison that requires statistical hypothesis testing

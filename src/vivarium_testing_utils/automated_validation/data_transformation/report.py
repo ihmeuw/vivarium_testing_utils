@@ -1,9 +1,27 @@
 """HTML report generation for validation results."""
 
+import json
+import math
 from pathlib import Path
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, Template
+
+
+def _make_json_safe(obj: Any) -> Any:
+    """Recursively replace NaN/Infinity with None for JSON serialization."""
+    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return None
+    if isinstance(obj, dict):
+        return {k: _make_json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_make_json_safe(v) for v in obj]
+    return obj
+
+
+def _safe_tojson(obj: Any) -> str:
+    """JSON-serialize an object, handling NaN/Infinity values."""
+    return json.dumps(_make_json_safe(obj))
 
 
 def create_html_report(
@@ -51,6 +69,7 @@ def _load_template(template_path: Path) -> Template:
     template_name = template_path.name
 
     env = Environment(loader=FileSystemLoader(str(template_dir)))
+    env.filters["safe_tojson"] = _safe_tojson
     template = env.get_template(template_name)
 
     return template
