@@ -687,14 +687,6 @@
             return true;
         }
 
-        function isSubset(subset, superset) {
-            // Check if every element in subset is in superset
-            for (var i = 0; i < subset.length; i++) {
-                if (superset.indexOf(subset[i]) === -1) return false;
-            }
-            return true;
-        }
-
         function getMatchingResults(testResults, selectedDims) {
             if (selectedDims.length === 0) return [];
 
