@@ -396,6 +396,7 @@ def test_target_interval_configuration_setter(
     comparison = FuzzyComparison(test_bundle, reference_bundle)
     config = TargetIntervalConfig(stratifications={"sex": "all"}, relative_error=0.1)
     comparison.target_interval_configuration = config
+    assert comparison.target_interval_configuration is config
     assert comparison.target_interval_configuration.stratifications == {"sex": "all"}
     assert comparison.target_interval_configuration.relative_error == 0.1
 

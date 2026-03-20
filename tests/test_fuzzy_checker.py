@@ -318,7 +318,6 @@ class TestFuzzyCheckerTestProportionVectorized:
 class TestApplyTargetIntervalConfig:
     """Tests for FuzzyChecker._apply_target_interval_config."""
 
-    @pytest.mark.xfail(raises=NotImplementedError, strict=True)
     def test_apply_target_interval_config_match(self) -> None:
         """When the filter matches, _apply_target_interval_config should return a tuple."""
         fuzzy_checker = FuzzyChecker()
@@ -332,7 +331,6 @@ class TestApplyTargetIntervalConfig:
         assert isinstance(result, tuple)
         assert result == (0.45, 0.55)
 
-    @pytest.mark.xfail(raises=NotImplementedError, strict=True)
     def test_apply_target_interval_config_no_match(self) -> None:
         """When the filter does not match, _apply_target_interval_config should return the
         original float."""
@@ -347,7 +345,6 @@ class TestApplyTargetIntervalConfig:
         assert isinstance(result, float)
         assert result == 0.5
 
-    @pytest.mark.xfail(raises=NotImplementedError, strict=True)
     def test_apply_target_interval_config_clipping(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
@@ -434,7 +431,6 @@ class TestTargetIntervalVectorized:
         ):
             assert r1.reject_null == r2.reject_null
 
-    @pytest.mark.xfail(raises=NotImplementedError, strict=True)
     def test_target_interval_all_filter(self, demographic_index: pd.MultiIndex) -> None:
         """With {"sex": "all"}, interval should apply to groups WITHOUT sex stratification."""
         target_val = 0.1
@@ -465,7 +461,6 @@ class TestTargetIntervalVectorized:
                 assert result.target_lower_bound == target_val
                 assert result.target_upper_bound == target_val
 
-    @pytest.mark.xfail(raises=NotImplementedError, strict=True)
     def test_target_interval_specific_filter(self, demographic_index: pd.MultiIndex) -> None:
         """With {"sex": "specific"}, interval should apply to groups WITH sex stratification."""
         target_val = 0.1
@@ -494,7 +489,6 @@ class TestTargetIntervalVectorized:
                 assert result.target_lower_bound == target_val
                 assert result.target_upper_bound == target_val
 
-    @pytest.mark.xfail(raises=NotImplementedError, strict=True)
     def test_target_interval_value_filter(self, demographic_index: pd.MultiIndex) -> None:
         """With {"sex": "Male"}, interval should apply only where sex=Male."""
         target_val = 0.1
@@ -523,7 +517,6 @@ class TestTargetIntervalVectorized:
                     assert result.target_lower_bound == target_val
                     assert result.target_upper_bound == target_val
 
-    @pytest.mark.xfail(raises=NotImplementedError, strict=True)
     def test_target_interval_combined_filter(self, demographic_index: pd.MultiIndex) -> None:
         """With {"sex": "specific", "age": "Early Neonatal"}, interval should apply only
         to groups where sex IS a stratification AND age has value "Early Neonatal"."""

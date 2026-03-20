@@ -4,7 +4,6 @@ import base64
 import html as html_module
 import io
 import os
-from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Collection, Literal, Mapping
@@ -54,9 +53,7 @@ class ValidationContext:
     def __init__(self, results_dir: str | Path, scenario_columns: Collection[str] = ()):
         self.results_dir = Path(results_dir)
         self.data_loader = DataLoader(self.results_dir)
-        self.comparisons: defaultdict[str, defaultdict[str, Comparison]] = defaultdict(
-            lambda: defaultdict(Comparison)
-        )
+        self.comparisons: dict[str, dict[str, Comparison]] = {}
         self.age_groups = self._get_age_groups()
         self.scenario_columns = scenario_columns
         self.location = self.data_loader.location
@@ -242,7 +239,7 @@ class ValidationContext:
         comparison = FuzzyComparison(
             test_bundle=test_data_bundle, reference_bundle=ref_data_bundle
         )
-        self.comparisons[measure.measure_key][
+        self.comparisons.setdefault(measure.measure_key, {})[
             f"{test_source_enum.name.lower()}_{ref_source_enum.name.lower()}"
         ] = comparison
 
@@ -494,7 +491,15 @@ class ValidationContext:
             The relative error to apply, creating an interval of
             (target * (1 - relative_error), target * (1 + relative_error)).
         """
-        raise NotImplementedError
+        comparison = self.comparisons[comparison_key][f"{test_source}_{ref_source}"]
+        if not isinstance(comparison, FuzzyComparison):
+            raise TypeError(
+                f"target_interval_configuration is only supported for FuzzyComparison, "
+                f"got {type(comparison).__name__}"
+            )
+        comparison.target_interval_configuration = TargetIntervalConfig(
+            stratifications=stratifications, relative_error=relative_error
+        )
 
     def generate_comparisons(self):  # type: ignore[no-untyped-def]
         raise NotImplementedError

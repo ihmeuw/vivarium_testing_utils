@@ -40,6 +40,13 @@ class TargetIntervalConfig:
     stratifications: dict[str, StratValue]
     relative_error: float
 
+    def __post_init__(self) -> None:
+        if not (0 < self.relative_error <= 1):
+            raise ValueError(
+                f"relative_error must be between 0 (exclusive) and 1 (inclusive), "
+                f"got {self.relative_error}"
+            )
+
 
 class Comparison(ABC):
     """A Comparison is the basic testing unit to compare two datasets, a "test" dataset and a
@@ -134,8 +141,6 @@ class Comparison(ABC):
         if "overall" not in self.proportion_test_results:
             return {}
         stratified = self.proportion_test_results.get("stratified", {})
-        if not isinstance(stratified, dict):
-            return {}
 
         dimensions: set[str] = set()
         values: dict[str, set[str]] = {}
@@ -341,6 +346,7 @@ class FuzzyComparison(Comparison):
             observed_numerator=test_datasets["numerator_data"],
             observed_denominator=test_datasets["denominator_data"],
             target_proportion=target,
+            target_interval_config=self.target_interval_configuration,
         )
         for result in fuzzy_checker.proportion_test_diagnostics:
             if result.name_additional == "overall":

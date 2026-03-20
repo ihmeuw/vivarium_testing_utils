@@ -349,16 +349,49 @@ class FuzzyChecker:
         index_info
             A mapping of stratification names to their values for the current row.
         config
-            A TargetIntervalConfig instance, or None.
+            Optional configuration for applying a relative error to specific groups based on their index values.
 
         Returns
         -------
             The original target_val if no config or no match, or a
             (lower_bound, upper_bound) tuple if the config matches.
+
         """
         if config is None:
             return target_val
-        raise NotImplementedError
+
+        update_target = True
+        index_names = set(index_info.keys())
+        for strat_name, filter_value in config.stratifications.items():
+            if filter_value == "all" and strat_name in index_names:
+                # "all" means the stratification must NOT be present
+                update_target = False
+                break
+            elif filter_value == "specific" and strat_name not in index_names:
+                # "specific" means the stratification must be present
+                update_target = False
+                break
+            elif filter_value not in ("all", "specific") and (
+                strat_name not in index_names or index_info.get(strat_name) != filter_value
+            ):
+                # A specific value: stratification must be present with this exact value
+                update_target = False
+                break
+
+        if update_target:
+            # All conditions matched — apply the relative error interval
+            lower = target_val * (1 - config.relative_error)
+            upper = target_val * (1 + config.relative_error)
+            clipped_lower = max(0.0, lower)
+            clipped_upper = min(1.0, upper)
+            if clipped_lower != lower or clipped_upper != upper:
+                logger.warning(
+                    f"Target interval clipped to [{clipped_lower}, {clipped_upper}] "
+                    f"(original: [{lower}, {upper}]) due to target_interval_configuration."
+                )
+            return (clipped_lower, clipped_upper)
+        else:
+            return target_val
 
     def _test_all_groups(
         self,
@@ -408,12 +441,16 @@ class FuzzyChecker:
                     "Index must be a tuple or a single value with a named index level"
                 )
 
+            target_proportion = self._apply_target_interval_config(
+                target_val, index_info, target_interval_config
+            )
+
             result = self.test_proportion(
                 name=name,
                 name_additional=str(idx),
                 observed_numerator=numerator_val,
                 observed_denominator=denominator_val,
-                target_proportion=target_val,
+                target_proportion=target_proportion,
                 bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
                 fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
             )
@@ -457,9 +494,6 @@ class FuzzyChecker:
 
         """
 
-        if target_interval_config is not None:
-            raise NotImplementedError
-
         # Reorder index levels to match target_proportion for proper alignment
         target_index_order = target_proportion.index.names
         if isinstance(observed_numerator.index, pd.MultiIndex):
@@ -469,7 +503,7 @@ class FuzzyChecker:
 
         # NOTE: Use inner join to keep only rows where all three DataFrames have matching indices
         # Observed numerator and denominator should have the same indices, and target_proportion
-        # might have additional levels where verification would be unncesary
+        # might have additional levels where verification would be unnecessary
         combined_data = pd.concat(
             [
                 observed_numerator["value"].rename("numerator"),
@@ -488,6 +522,7 @@ class FuzzyChecker:
             name=name,
             bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
             fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+            target_interval_config=target_interval_config,
         )
 
         # Test sub-stratification combinations
@@ -506,6 +541,7 @@ class FuzzyChecker:
                 name=name,
                 bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
                 fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
+                target_interval_config=target_interval_config,
             )
 
         # Test population level proportion
@@ -513,12 +549,20 @@ class FuzzyChecker:
         weighted_target = (
             combined_data["weighted_target"].sum() / combined_data["denominator"].sum()
         )
+
+        # Apply target interval config to overall test - this would require "all" for all stratifications
+        overall_target: float | tuple[float, float] = self._apply_target_interval_config(
+            target_val=weighted_target,
+            index_info={},
+            config=target_interval_config,
+        )
+
         overall = self.test_proportion(
             name=name,
             name_additional="overall",
             observed_numerator=combined_data["numerator"].sum(),
             observed_denominator=combined_data["denominator"].sum(),
-            target_proportion=weighted_target,
+            target_proportion=overall_target,
             bug_issue_beta_distribution_parameters=bug_issue_beta_distribution_parameters,
             fail_bayes_factor_cutoff=fail_bayes_factor_cutoff,
         )
