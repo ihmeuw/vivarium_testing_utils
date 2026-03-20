@@ -87,9 +87,9 @@ class DataLoader:
         flat_parquets = set(str(file.stem) for file in self._results_dir.glob("*.parquet"))
         # New structure: subdirectories containing numbered parquet files
         subdirectory_parquets = set(
-            dir.name
-            for dir in self._results_dir.iterdir()
-            if dir.is_dir() and any(dir.glob("*.parquet"))
+            subdir.name
+            for subdir in self._results_dir.iterdir()
+            if subdir.is_dir() and any(subdir.glob("*.parquet"))
         )
         return list(
             flat_parquets
