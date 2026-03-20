@@ -919,8 +919,8 @@ class TestDataLattice:
         )
 
         # Inject mock comparisons into context
-        context.comparisons["comp1.measure"]["sim_artifact"] = comp1
-        context.comparisons["comp2.measure"]["sim_artifact"] = comp2
+        context.comparisons["comp1.measure"] = {"sim_artifact": comp1}
+        context.comparisons["comp2.measure"] = {"sim_artifact": comp2}
 
         return context
 

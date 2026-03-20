@@ -366,14 +366,17 @@ class FuzzyChecker:
             if filter_value == "all" and strat_name in index_names:
                 # "all" means the stratification must NOT be present
                 update_target = False
+                break
             elif filter_value == "specific" and strat_name not in index_names:
                 # "specific" means the stratification must be present
                 update_target = False
+                break
             elif filter_value not in ("all", "specific") and (
                 strat_name not in index_names or index_info.get(strat_name) != filter_value
             ):
                 # A specific value: stratification must be present with this exact value
                 update_target = False
+                break
 
         if update_target:
             # All conditions matched — apply the relative error interval

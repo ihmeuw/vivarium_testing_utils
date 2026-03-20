@@ -40,6 +40,13 @@ class TargetIntervalConfig:
     stratifications: dict[str, StratValue]
     relative_error: float
 
+    def __post_init__(self) -> None:
+        if not (0 < self.relative_error <= 1):
+            raise ValueError(
+                f"relative_error must be between 0 (exclusive) and 1 (inclusive), "
+                f"got {self.relative_error}"
+            )
+
 
 class Comparison(ABC):
     """A Comparison is the basic testing unit to compare two datasets, a "test" dataset and a
