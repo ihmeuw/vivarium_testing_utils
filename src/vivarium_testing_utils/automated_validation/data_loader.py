@@ -189,9 +189,7 @@ class DataLoader:
             parquet_files = sorted(subdir.glob("*.parquet"))
             if not parquet_files:
                 raise FileNotFoundError(f"No parquet files found in directory {subdir}")
-            sim_data = pd.concat(
-                [pd.read_parquet(f) for f in parquet_files], ignore_index=True
-            )
+            sim_data = pd.read_parquet(subdir)
         else:
             raise FileNotFoundError(
                 f"No data found for '{data_key}': neither {single_file} nor {subdir}/ exists."
