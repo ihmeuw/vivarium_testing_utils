@@ -1,4 +1,4 @@
-**0.4.0 - TBD/TBD/TBD**
+**0.4.0 - 03/26/26**
 
   - Phase 2 Automated Validation
     - refactor FuzzyChecker so fuzzy checks can be done on dataframes
