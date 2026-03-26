@@ -246,9 +246,9 @@ class ValidationContext:
     def verify(
         self,
         comparison: str,
-        stratifications: Collection[str] | Literal["all"] = "all",
         test_source: str = "sim",
         ref_source: str = "artifact",
+        stratifications: Collection[str] | Literal["all"] = "all",
     ) -> bool:
         """Verify a single comparison, log the result, and return True if successful, False otherwise.
 
@@ -256,12 +256,12 @@ class ValidationContext:
         ----------
         comparison
             The key of the comparison to verify.
-        stratifications
-            The stratifications to use for the comparison. Default is "all".
         test_source
             The source of the test data (e.g., 'sim', 'artifact', 'custom'). Default is "sim".
         ref_source
             The source of the reference data (e.g., 'sim', 'artifact', 'custom'). Default is "artifact".
+        stratifications
+            The stratifications to use for the comparison. Default is "all".
 
         Returns
         -------
