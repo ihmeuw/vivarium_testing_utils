@@ -15,6 +15,7 @@ from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
 
 SLOW_TEST_DAY = "Sunday"
+IS_ON_SLURM = is_on_slurm()
 
 
 def pytest_addoption(parser: argparsing.Parser) -> None:
@@ -41,7 +42,7 @@ def pytest_collection_modifyitems(config: Config, items: list[Function]) -> None
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
 
-    if not is_on_slurm():
+    if not IS_ON_SLURM:
         skip_cluster = pytest.mark.skip(reason="not running on SLURM cluster")
         for item in items:
             if "cluster" in item.keywords:
@@ -60,9 +61,6 @@ def pytest_collection_modifyitems(config: Config, items: list[Function]) -> None
 def is_on_slurm() -> bool:
     """Returns True if the current environment is a SLURM cluster."""
     return shutil.which("sbatch") is not None
-
-
-IS_ON_SLURM = is_on_slurm()
 
 
 def pytest_xdist_auto_num_workers(config: Config) -> int:
