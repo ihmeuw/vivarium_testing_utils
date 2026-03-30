@@ -1,4 +1,4 @@
-**0.5.0 - Unreleased**
+**0.5.0 - 03/30/26**
 
   - Feature: Add pytest-xdist auto-worker detection to pytest plugin.
     Repos opt in by adding ``addopts = "-nauto"`` to ``pyproject.toml``.
