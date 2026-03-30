@@ -15,6 +15,13 @@ from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
 
 SLOW_TEST_DAY = "Sunday"
+
+
+def is_on_slurm() -> bool:
+    """Returns True if the current environment is a SLURM cluster."""
+    return shutil.which("sbatch") is not None
+
+
 IS_ON_SLURM = is_on_slurm()
 
 
@@ -56,11 +63,6 @@ def pytest_collection_modifyitems(config: Config, items: list[Function]) -> None
         for item in items:
             if "weekly" in item.keywords:
                 item.add_marker(skip_weekly)
-
-
-def is_on_slurm() -> bool:
-    """Returns True if the current environment is a SLURM cluster."""
-    return shutil.which("sbatch") is not None
 
 
 def pytest_xdist_auto_num_workers(config: Config) -> int:
