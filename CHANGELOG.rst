@@ -1,3 +1,7 @@
+**0.5.1 - 04/14/26**
+
+  - Use vivarium_dependencies for VBU
+
 **0.5.0 - 03/31/26**
 
   - Feature: Add pytest-xdist auto-worker detection to pytest plugin.
