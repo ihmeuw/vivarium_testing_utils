@@ -80,7 +80,6 @@ if __name__ == "__main__":
 
     lint_requirements = [
         "vivarium_dependencies[lint]",
-        "pandera<0.23.0",
     ]
 
     setup(
@@ -126,6 +125,7 @@ if __name__ == "__main__":
             + test_requirements
             + interactive_requirements
             + lint_requirements
+            + validation_requirements
         },
         entry_points={
             "pytest11": ["vivarium_testing_utils = vivarium_testing_utils.pytest_plugin"],
