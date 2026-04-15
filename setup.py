@@ -80,6 +80,7 @@ if __name__ == "__main__":
 
     lint_requirements = [
         "vivarium_dependencies[lint]",
+        "pandera<0.23.0",
     ]
 
     setup(
