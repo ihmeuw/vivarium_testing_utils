@@ -1,4 +1,4 @@
-**0.5.3- 05/05/26**
+**0.5.3 - 05/05/26**
 
   - Bugfix: Only skip for explicit marker calls with pytest plugin
 
