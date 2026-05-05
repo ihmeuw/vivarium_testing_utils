@@ -1,9 +1,11 @@
 """Regression tests for the pytest plugin."""
 
+import pytest
+
 pytest_plugins = ["pytester"]
 
 
-def test_test_in_slow_directory_not_skipped(pytester):
+def test_test_in_slow_directory_not_skipped(pytester: pytest.Pytester) -> None:
     """Regression test: a test located in a 'slow/' directory should NOT be
     skipped just because 'slow' appears in its keywords (path components).
     Only tests explicitly marked @pytest.mark.slow should be skipped."""
