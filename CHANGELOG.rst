@@ -1,3 +1,7 @@
+**0.5.5 - 05/22/26**
+
+  - Disable mypy from running in Jenkins builds (temporarily)
+
 **0.5.4 - 05/06/26**
 
   - Feature: Add option to manually run "weekly" tests

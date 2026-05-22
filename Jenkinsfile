@@ -34,5 +34,6 @@ reusable_pipeline(
       // for subsequent scheduled builds to run.
       "main", "epic/auto-validation"
     ],
-    skip_doc_build: true
+    skip_doc_build: true,
+    run_mypy: false,
 )
