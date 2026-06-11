@@ -1,3 +1,8 @@
+**0.5.5 - 06/11/26**
+
+- Add notes about this repository being archived to the README. A proper shim
+  release will likely be added in the future.
+
 **0.5.4 - 05/06/26**
 
   - Feature: Add option to manually run "weekly" tests
