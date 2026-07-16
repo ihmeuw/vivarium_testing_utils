@@ -2,26 +2,34 @@
 Vivarium Testing Utils
 ======================
 
-**NOTE: This repository has been archived.**
+**NOTE: This repository is archived and will receive no further updates.**
 
-The ``vivarium_testing_utils`` package has been renamed and migrated into the
+The ``vivarium_testing_utils`` package's development has migrated into the
 `vivarium-suite monorepo <https://github.com/ihmeuw/vivarium-suite>`_.
 
 What changed
 ------------
 
+- **PyPI distribution:** ``vivarium-testing-utils`` (unchanged - same name)
 - **Import path:** ``vivarium_testing_utils`` -> ``vivarium.testing_utils``
 - **Source:** ``ihmeuw/vivarium_testing_utils`` (archived) ->
   ``ihmeuw/vivarium-suite`` (under ``libs/testing-utils/``)
+- **Docs:** https://vivarium-testing-utils.readthedocs.io/
+
+This repository's final release was ``v0.5.5``. The ``vivarium-testing-utils``
+distribution name is now published from the monorepo starting at ``v0.6.0``, so
+``pip install vivarium-testing-utils`` resolves to the monorepo release (which
+imports as ``vivarium.testing_utils``). This repository is frozen and will not
+receive updates.
 
 To migrate fully to the new package
 -----------------------------------
 
-**Install:**
+**Install (unchanged):**
 
 .. code-block:: bash
 
-    pip install vivarium-testing-utils  # no change here
+    pip install vivarium-testing-utils
 
 **Import:**
 

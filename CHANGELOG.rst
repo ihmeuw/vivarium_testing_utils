@@ -1,7 +1,7 @@
 **0.5.5 - 06/11/26**
 
-- Add notes about this repository being archived to the README. A proper shim
-  release will likely be added in the future.
+- Adds an archive banner to the README pointing at the ``vivarium-suite``
+  monorepo (``libs/testing-utils/``, published as ``vivarium-testing-utils``).
 
 **0.5.4 - 05/06/26**
 
